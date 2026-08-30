@@ -11,10 +11,10 @@
 **Spec:**
 - `Sandbox Container -canvas-.dc.html` — authoritative. Read the block whose `id` matches the screen you are building (`id="6a"`, `id="6b"`, `id="6c"`, `id="7b"`, `id="7c"`, `id="5c"`, `id="8b"`, `id="8c"`). Exact copy, colours and sizes come from there, not from this plan's prose.
 - `docs/superpowers/plans/2026-08-30-isolated-web-container-01-foundation.md` — Plan 1. Supplies every token, type and widget this plan consumes.
-- `docs/superpowers/plans/2026-08-30-isolated-web-container-02-entry-and-identity.md` — Plan 2. Task 5's `AppToggle` (spec 6c's two switches) is the one widget Task 6 borrows from it.
+- `docs/superpowers/plans/2026-08-30-isolated-web-container-02-entry-and-identity.md` — Plan 2. Task 6's `AppToggle` (spec 6c's two switches) is the one widget this plan's Task 5 borrows from it.
 - `docs/superpowers/plans/2026-08-30-isolated-web-container-03-container.md` — Plan 3. Tasks 8 and 9 consume its Task 2: `RouteDecision`, `RouteFailure`, `refusalMessage()` from `lib/domain/models/route_decision.dart`.
 
-**Depends on:** Plan 1 (Tasks 1–4 at minimum: tokens, typography, shared primitives, domain model) for every task in this plan. Task 6 (site sheet, `6c`) additionally depends on Plan 2 Task 5 for `AppToggle`. Tasks 8 and 9 (`8b`, `8c`) additionally depend on Plan 3 Task 2 for `RouteFailure` and `refusalMessage()`. Tasks 1–5 and 7 depend on none of that and can be built in parallel with Plans 2 and 3.
+**Depends on:** Plan 1 (Tasks 1–4 at minimum: tokens, typography, shared primitives, domain model) for every task in this plan. Task 5 (site sheet, `6c`) additionally depends on Plan 2 Task 6 for `AppToggle`. Tasks 8 and 9 (`8b`, `8c`) additionally depend on Plan 3 Task 2 for `RouteFailure` and `refusalMessage()`. Tasks 1–4 and 6–7 depend on none of that and can be built in parallel with Plans 2 and 3.
 
 ---
 
@@ -1220,7 +1220,7 @@ git commit -m "feat: add reader mode (spec 6b)"
 - Test: `test/ui/features/in_page/site_sheet_test.dart`
 
 **Interfaces:**
-- Consumes: `BottomSheetSurface` (Task 1, extended below); `Monogram` (Plan 1 Task 2); `AppToggle` (Plan 2 Task 5, `lib/ui/core/widgets/app_toggle.dart`); `PillButton`, `PillTone` (Plan 1 Task 2); `C`, `ui`, `T` (Plan 1 Task 1).
+- Consumes: `BottomSheetSurface` (Task 1, extended below); `Monogram` (Plan 1 Task 2); `AppToggle` (Plan 2 Task 6, `lib/ui/core/widgets/app_toggle.dart`); `PillButton`, `PillTone` (Plan 1 Task 2); `C`, `ui`, `T` (Plan 1 Task 1).
 - Produces:
   - `BottomSheetSurface` gains `bool showHandle` (default `false`)
   - `class SiteSheet extends StatelessWidget` — `const SiteSheet({required String monogram, required String name, required String subtitle, required String proxyDescriptor, required String cookiesDescriptor, required int blockedCount, required bool forceDark, required bool desktopView, required VoidCallback onEdit, required ValueChanged<bool> onForceDarkChanged, required ValueChanged<bool> onDesktopViewChanged, required VoidCallback onCloseAndWipe})`
@@ -2986,5 +2986,5 @@ git commit -m "feat: add tunnel dropped mid-session banner (spec 8c)"
 ## Handoff
 
 - **From Plan 3:** this plan's Tasks 8 and 9 consume `RouteDecision`, `RouteFailure` and `refusalMessage()` from Plan 3 Task 2 verbatim; nothing here modifies that file. Plan 3's own Known-gaps entry ("`8b` and `8c` are Plan 4's... it does not render them") is closed by this plan.
-- **From Plan 2:** this plan's Task 5 (`SiteSheet`) consumes `AppToggle` from Plan 2 Task 5 (`lib/ui/core/widgets/app_toggle.dart`) rather than building a second switch widget. If Plan 2's `AppToggle` signature ever changes, `SiteSheet`'s two toggle rows are the call sites to check.
+- **From Plan 2:** this plan's Task 5 (`SiteSheet`) consumes `AppToggle` from Plan 2 Task 6 (`lib/ui/core/widgets/app_toggle.dart`) rather than building a second switch widget. If Plan 2's `AppToggle` signature ever changes, `SiteSheet`'s two toggle rows are the call sites to check.
 - **To whichever plan wires live data:** the six "Known gaps" above name every seam a real integration needs — a readability extractor for `6b`, a `FilterEngine` extended to tag block reasons for `5c`, a `DownloadListener` for `7c`, a persistence call for `6c`'s toggles, and a repeating clock for `8c`'s countdown. None of them is assigned to Plan 5 (workspaces and scripts) by Plan 1's roadmap; whoever picks this up next should confirm where they land before starting.

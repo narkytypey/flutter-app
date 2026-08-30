@@ -11,12 +11,12 @@
 **Spec:**
 - `Sandbox Container -canvas-.dc.html` — read blocks `id="10a"` through `id="10e"`.
 - `docs/superpowers/plans/2026-08-30-isolated-web-container-01-foundation.md` — Plan 1. Supplies tokens, typography, primitives, `Workspace`, `StorageRule`, `WorkspaceRepository`, `AppDatabase`.
-- `docs/superpowers/plans/2026-08-30-isolated-web-container-02-entry-and-identity.md` — Plan 2. Task 5's `AppToggle` and Task 8's `SettingRow`/`SettingsScreen`, which Task 1 extends with an entry point.
+- `docs/superpowers/plans/2026-08-30-isolated-web-container-02-entry-and-identity.md` — Plan 2. Task 6's `AppToggle` and Task 8's `SettingRow`/`SettingsScreen`, which Task 1 extends with an entry point.
 - `docs/superpowers/plans/2026-08-30-isolated-web-container-03-container.md` — Plan 3. Task 1 bumped the schema to version 2; this plan continues that sequence. Its Handoff names `addDocumentStartJavaScript` in `Shields.apply` as where this plan's scripts inject — this plan produces the value, Plan 3's engine consumes it.
 
 **Note on scope — turn 9 is not in this plan.** Plan 1's own roadmap assigned "backgrounding (`9a`, `9b`, `9c`)" to this plan, but Plan 2 built all three as part of its PIN/lock state machine: `9a` is `SecureWindowPlugin` + `FLAG_SECURE` (Plan 2 Task 8), and `9b`/`9c` are `LockBody`'s `LockMood.welcomeBack` and `LockMood.afterTimeout` (Plan 2 Task 5 — see its `Welcome back` / `3 sessions still open · locks in 40s` / `Locked after 1 minute in the background` copy, verbatim from these spec blocks). They were pulled forward because they are inseparable from the lock timer. Nothing in this plan touches turn 9 again.
 
-**Depends on:** Plan 1 (all tasks) and Plan 2 Task 5 (`AppToggle`) and Task 8 (`SettingsScreen`, which Task 1 modifies).
+**Depends on:** Plan 1 (all tasks) and Plan 2 Task 6 (`AppToggle`) and Task 8 (`SettingsScreen`, which Task 1 modifies).
 
 ---
 
@@ -518,7 +518,7 @@ git commit -m "feat: add Workspaces list screen and its Settings entry point (sp
 - Test: `test/ui/features/workspace_form_screen_test.dart`
 
 **Interfaces:**
-- Consumes: `StorageRule` (Plan 1); `C.markers` (Plan 1 Task 1); `AppToggle` (Plan 2 Task 5).
+- Consumes: `StorageRule` (Plan 1); `C.markers` (Plan 1 Task 1); `AppToggle` (Plan 2 Task 6).
 - Produces:
   - `class WorkspaceFormResult { const WorkspaceFormResult({required String name, required int markerIndex, required StorageRule storageRule, required bool requirePin, required bool showInDecoy}); }`
   - `class WorkspaceFormScreen extends StatefulWidget` — `const WorkspaceFormScreen({required String title, required String initialName, required int initialMarkerIndex, required StorageRule initialStorageRule, required bool initialRequirePin, required bool initialShowInDecoy, required ValueChanged<WorkspaceFormResult> onSave, required VoidCallback onClose})`
@@ -2278,7 +2278,7 @@ git commit -m "feat: add the script library, backed by SQLite (spec 10d)"
 - Test: `test/ui/features/script_editor_screen_test.dart`
 
 **Interfaces:**
-- Consumes: `ScriptKind`, `UserScript` (Task 5); `C`, `ui`, `mono` (Plan 1 Task 1); `AppToggle` (Plan 2 Task 5).
+- Consumes: `ScriptKind`, `UserScript` (Task 5); `C`, `ui`, `mono` (Plan 1 Task 1); `AppToggle` (Plan 2 Task 6).
 - Produces:
   - `class ScriptSiteChip { const ScriptSiteChip({required String id, required String name}); }`
   - `class ScriptEditorResult { const ScriptEditorResult({required ScriptKind kind, required String code, required bool runAtDocumentStart}); }`

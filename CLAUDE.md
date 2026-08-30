@@ -179,6 +179,21 @@ Task 1 in parallel off `plan-01-foundation`, before merging back.
     surface (`tester.view.physicalSize`) before pumping, in both the plan
     file and the implementation.
 
+11. **✅ Fixed 2026-08-31 (by flutter-app-ce).** `AppToggle` is produced by
+    Plan 2 **Task 6** (setup wizard and decoy provisioning), not Task 5 (PIN
+    primitives and lock screen) — every other plan that consumes it (Plan 4
+    Task 5's site sheet, Plan 5's intro/Task 1/Task 2/Task 5) cited "Plan 2
+    Task 5." Task 5 does not produce `AppToggle` at all; it produces
+    `PinDots`, `PinKeypad`, `LockBody`, `LockController`. Also fixed a
+    second, independent numbering slip in Plan 4's own intro: it called its
+    own site-sheet task "Task 6" in the "Depends on" line when the task list
+    has it as Task 5, and listed Task 5 among the tasks with "none of that"
+    extra dependency even though Task 5 is the one that needs `AppToggle`.
+    Fixed all references in the Plan 4 and Plan 5 doc files. This means
+    Plan 4 Task 5 and Plan 5 Tasks 1/2/5/6 are gated behind Plan 2 Task 6
+    (setup wizard), which itself needs Task 4 (`VaultStore`) — a longer
+    chain than the old "Task 5" citation implied.
+
 ## Rulings recorded while fixing issue #2 (2026-08-30, flutter-app-1e)
 
 Plan 2 Task 8 now documents these inline (Step 6 and Step 17); summarized
