@@ -378,17 +378,41 @@ import 'package:container/domain/models/vault.dart';
 import 'package:container/domain/services/crypto_service.dart';
 import 'package:container/domain/services/vault_unlocker.dart';
 
-/// A fake in which a KEK is just the PIN and salt concatenated, and a wrapped
-/// key unwraps only if it was wrapped under the same KEK.
+/// A fake in which a KEK is a fixed-length (32-byte) deterministic function
+/// of the PIN and salt — matching real Argon2id, which always derives the
+/// same output length regardless of input length — and a wrapped key
+/// unwraps only if it was wrapped under the same KEK.
+///
+/// [randomBytes] returns different bytes on each call (a counter mixed into
+/// the output), not a fixed pattern: Task 4's `VaultStore.provision` relies
+/// on two calls producing two different salts. An earlier version of this
+/// fake returned `List.filled(length, 7)` for every call, which made two
+/// provisioned vaults share a salt, and separately made the derived KEK's
+/// length track the PIN string's length — breaking Task 4's "both slots are
+/// the same size" test the moment a `provisionUnopenable` PIN (32 random
+/// base64 characters) differed in length from a real 6-digit PIN. See
+/// CLAUDE.md issue #12.
 class FakeCrypto implements CryptoService {
   FakeCrypto();
 
   final List<String> derivations = [];
+  int _randomCalls = 0;
+
+  static const _kekLength = 32;
 
   @override
   Future<Uint8List> deriveKek(String pin, Uint8List salt) async {
     derivations.add('$pin/${salt.join(",")}');
-    return Uint8List.fromList('$pin|${salt.join(",")}'.codeUnits);
+    final material = <int>[...pin.codeUnits, ...salt];
+    var state = _fnv1a(material);
+    final out = <int>[];
+    while (out.length < _kekLength) {
+      state = _splitmix64(state);
+      for (var shift = 0; shift < 64 && out.length < _kekLength; shift += 8) {
+        out.add((state >> shift) & 0xFF);
+      }
+    }
+    return Uint8List.fromList(out);
   }
 
   @override
@@ -408,11 +432,31 @@ class FakeCrypto implements CryptoService {
   }
 
   @override
-  Future<Uint8List> randomBytes(int length) async =>
-      Uint8List.fromList(List.filled(length, 7));
+  Future<Uint8List> randomBytes(int length) async {
+    final seed = _randomCalls++;
+    return Uint8List.fromList(
+        List.generate(length, (i) => (seed * 131 + i * 17) % 256));
+  }
 
   @override
   Future<void> destroyDeviceKey() async {}
+}
+
+int _fnv1a(List<int> bytes) {
+  var hash = 0xcbf29ce484222325;
+  for (final b in bytes) {
+    hash ^= b;
+    hash = (hash * 0x100000001b3) & 0xFFFFFFFFFFFFFFFF;
+  }
+  return hash;
+}
+
+int _splitmix64(int seed) {
+  seed = (seed + 0x9E3779B97F4A7C15) & 0xFFFFFFFFFFFFFFFF;
+  var z = seed;
+  z = ((z ^ (z >> 30)) * 0xBF58476D1CE4E5B9) & 0xFFFFFFFFFFFFFFFF;
+  z = ((z ^ (z >> 27)) * 0x94D049BB133111EB) & 0xFFFFFFFFFFFFFFFF;
+  return z ^ (z >> 31);
 }
 
 final _now = DateTime(2026, 8, 30, 9, 10);
@@ -1059,6 +1103,8 @@ In `pubspec.yaml`, replace `sqflite: ^2.3.3` with:
 
 Then `flutter pub get`. `sqflite_sqlcipher` exposes the same `sqflite` API surface plus a `password:` parameter, so Plan 1's repositories are unchanged.
 
+**Verified 2026-08-31 (flutter-app-6d) that this does not break the host-side FFI test strategy.** Every existing repository test opens its database via `sqflite_common_ffi`'s `databaseFactoryFfi` so tests can run in-memory on a machine with no Android device. Before writing any production code for this task, the pub cache copy of `sqflite_sqlcipher` was inspected directly: it depends on `sqflite_common` (`SqlCipherOpenDatabaseOptions extends OpenDatabaseOptions`, both from `sqflite_common`'s `sqlite_api.dart`), the exact same base package `sqflite_common_ffi` builds its `DatabaseFactory` against — and `sqflite_common_ffi`'s own `pubspec.yaml` has no dependency on the `sqflite` plugin at all. Removing `sqflite` from this project's `pubspec.yaml` and swapping in `sqflite_sqlcipher` was then verified empirically, not just read about: with the two extra import fixes noted below, the full pre-existing `test/data/` suite (`repositories_test.dart`, `site_migration_test.dart`) was run unmodified against `databaseFactoryFfi` and passed with no changes to test code. FFI opens still work exactly as before because neither test ever passes a `password`. The one real limitation this leaves: a test that *did* pass a `password` through `factory: databaseFactoryFfi` would silently get a plaintext, unencrypted SQLite file — plain `sqlite3`-backed FFI has no SQLCipher support and the base `OpenDatabaseOptions` fields it reads don't include `password`. That isn't a problem for this task, because `vault_store_test.dart` (below) never calls `openEncrypted` at all — see its own file header comment.
+
 - [ ] **Step 2: Write the failing vault-store test**
 
 Create `test/data/vault_store_test.dart`:
@@ -1335,6 +1381,8 @@ Then fix the call sites, which at this point in the plan are:
 
 - `lib/data/services/vault_store.dart` and this task's own tests — already `VaultId`, unchanged.
 - Plan 1's `test/data/repositories_test.dart` — swap `Vault.a` for `VaultId.a` and add `import 'package:container/domain/models/vault.dart';`.
+- `lib/main.dart` — swaps `vaultFileName(Vault.a)` for `vaultFileName(VaultId.a)` and adds the same import. Not listed above in earlier drafts of this step; the analyzer catches it the moment `Vault` is deleted, since Plan 1 Task 6 wrote `main.dart` against the old enum.
+- Also update the two `import 'package:sqflite/sqflite.dart';` lines this task's Step 1 doesn't mention: `lib/data/repositories/site_repository_sqlite.dart` and `lib/data/repositories/workspace_repository_sqlite.dart` both import the plain `sqflite` package for the `Database`/`ConflictAlgorithm` types. Step 1 removes `sqflite` from `pubspec.yaml` entirely, so both must switch to `import 'package:sqflite_sqlcipher/sqflite.dart';` (which re-exports the same `sqflite_common` types) or the app fails to compile outside `app_database.dart`.
 - Anything else the analyzer flags.
 
 `grep -rn 'Vault\.' lib test` should come back with no hit that is not `VaultId.`.
