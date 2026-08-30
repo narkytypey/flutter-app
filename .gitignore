@@ -1,5 +1,6 @@
 .superpowers/
 .worktrees/
+.claude/worktrees/
 
 # Miscellaneous
 *.class
