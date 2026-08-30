@@ -228,7 +228,7 @@ class AttemptGate {
 
   AttemptGate recordFailure(DateTime now) {
     final total = failures + 1;
-    final locking = total % maxTries == 0;
+    final locking = total >= maxTries;
     return AttemptGate(
       failures: total,
       lockedUntil: locking ? now.add(penalty) : lockedUntil,

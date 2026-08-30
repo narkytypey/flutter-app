@@ -2310,7 +2310,7 @@ import 'package:flutter/material.dart';
 
 import '../../../core/tokens.dart';
 import '../../../core/widgets/section_label.dart';
-import 'dashboard_view.dart';
+import '../view_models/dashboard_view.dart';
 import 'dashboard_footer.dart';
 import 'session_row.dart';
 import 'workspace_bar.dart';

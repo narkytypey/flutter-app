@@ -150,6 +150,25 @@ files before running them, not during.
    Plan 1" but actually also requires Plan 2.~~ Same fix as #4 — the test's
    phantom `openVault` call is gone.
 
+### Implementation bugs found while executing (2026-08-31)
+
+Found and fixed while three sessions executed Plan 1 Task 4/5 and Plan 2
+Task 1 in parallel off `plan-01-foundation`, before merging back.
+
+8. **✅ Fixed 2026-08-31 (by flutter-app-c7).** Plan 2 Task 1's reference
+   code for `AttemptGate.recordFailure` only re-locked on failure counts
+   that were exact multiples of `maxTries` (`total % maxTries == 0`), so a
+   6th failure arriving after the 5th failure's lockout had already expired
+   did not re-lock — failing the plan's own test "the penalty repeats for
+   every further failure". Fixed in the plan file to `total >= maxTries`.
+
+9. **✅ Fixed 2026-08-31 (by flutter-app-1e).** Plan 1 Task 5's reference
+   code for `dashboard_body.dart` imported `dashboard_view.dart` as if it
+   were in the same directory (`views/`), but Task 5's own Step 3 puts
+   `dashboard_view.dart` in `view_models/` — `session_row.dart`'s Step 4
+   code already imported it correctly as `../view_models/dashboard_view.dart`.
+   Fixed the same way in the plan file.
+
 ## Rulings recorded while fixing issue #2 (2026-08-30, flutter-app-1e)
 
 Plan 2 Task 8 now documents these inline (Step 6 and Step 17); summarized
