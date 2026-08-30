@@ -1312,12 +1312,44 @@ Future<AppDatabase> openEncrypted({
 }
 ```
 
-- [ ] **Step 6: Run the test to verify it passes**
+- [ ] **Step 6: Retire Plan 1's `Vault` enum (cross-plan issue #3)**
+
+Plan 1 Task 4 shipped `enum Vault { a, b }` and `String vaultFileName(Vault vault)` in this same `app_database.dart`; Task 2 of this plan added `enum VaultId { a, b }` in `lib/domain/models/vault.dart`. They are one concept under two names, and both now exist in the tree.
+
+`VaultId` is the survivor. It lives in the domain layer where the rest of the vault model already is, it is the type on `VaultSlot`, `Unlocked`, `VaultStore.provision` and (in Task 8) `SessionOpen`, and it has roughly forty call sites to `Vault`'s two. Plan 1 is **not** edited retroactively — it shipped a correct enum for a single-vault world, and this step is the migration that a second vault makes necessary. Doing it here rather than later keeps it in the same commit as the other `app_database.dart` change this task already makes.
+
+In `lib/data/services/app_database.dart`, delete the `enum Vault { a, b }` declaration and re-point the filename function at `VaultId`:
+
+```dart
+import '../../domain/models/vault.dart';
+
+String vaultFileName(VaultId vault) => switch (vault) {
+      VaultId.a => 'store-1.db',
+      VaultId.b => 'store-2.db',
+    };
+```
+
+The filenames do not change — `store-1.db` and `store-2.db` are what Plan 1 wrote and what any store already on disk is called, so this is a source-level rename with no migration on disk. `app_database.dart` importing a domain model is the direction the data layer already runs in (`site_repository_sqlite.dart` imports `domain/models/site.dart`), so no layering rule bends here.
+
+Then fix the call sites, which at this point in the plan are:
+
+- `lib/data/services/vault_store.dart` and this task's own tests — already `VaultId`, unchanged.
+- Plan 1's `test/data/repositories_test.dart` — swap `Vault.a` for `VaultId.a` and add `import 'package:container/domain/models/vault.dart';`.
+- Anything else the analyzer flags.
+
+`grep -rn 'Vault\.' lib test` should come back with no hit that is not `VaultId.`.
+
+Task 8's `vaultDatabasePath` is written against `VaultId` directly and needs no bridge between the two enums — see the note on that function.
+
+Run: `flutter analyze`
+Expected: `No issues found!`
+
+- [ ] **Step 7: Run the test to verify it passes**
 
 Run: `flutter test test/data/`
 Expected: PASS, 7 vault-store tests plus Plan 1's 7 repository tests.
 
-- [ ] **Step 7: Commit**
+- [ ] **Step 8: Commit**
 
 ```bash
 git add -A
@@ -2565,6 +2597,8 @@ Future<int> provisionDecoy({
 }
 ```
 
+**Forward note for Plan 3 (cross-plan issue #5).** Plan 3 Task 1 adds a required `Site.profileId` naming the site's WebView profile. `copyWith` carries every field it is not given across unchanged, so once that field exists this loop would hand the decoy store a row pointing at the *real* site's container — same cookies, same cache, one profile in two vaults, which is the one thing the two-vault model is built to prevent. When Plan 3 lands, the upsert above becomes `site.copyWith(showInDecoy: false, profileId: newProfileId())`, and the three `const Site(...)` fixtures in `decoy_provisioner_test.dart` lose their `const`, because `newProfileId()` is not a constant expression. There is nothing to do while Plan 3 is unbuilt — the field does not exist yet — but do not restructure this loop in a way that makes that change harder to spot. Plan 3 Task 1 Step 7 carries the instruction.
+
 - [ ] **Step 8: Write the failing setup-controller test**
 
 Create `test/ui/features/setup/setup_controller_test.dart`:
@@ -2861,6 +2895,8 @@ abstract interface class PanicService {
 }
 ```
 
+**This plan ships the interface, the screen and (in Task 8) the `SessionPanicked` state, and stops there.** The implementation is **Plan 3 Task 9**, and that ownership is deliberate rather than incidental: step 1 of the sequence above destroys live WebView sessions, which do not exist until Plan 3 creates them, and step 2 must not run until every container's storage is already gone — profile ids live in the vault stores, so once the data keys die there is nothing left to enumerate. Only a component that can see both `ContainerEngine` and `VaultStore` can order those correctly, and Plan 3 is the first plan in which both exist. Nothing in this plan constructs a `PanicReport`; `AppGate`'s panic branch is analysed but never taken until Plan 3 Task 9 lands (cross-plan issue #6).
+
 Create `lib/ui/features/panic/views/panic_screen.dart`:
 
 ```dart
@@ -2986,7 +3022,7 @@ The task that makes Plan 2 real: nothing reaches the dashboard without a PIN.
   - `SettingRow({required String title, String? subtitle, Widget? trailing, String? value, VoidCallback? onTap})`
   - `SettingsScreen` rendering `2d` exactly
   - `class LifecycleController` — masks on focus loss, tracks time away, always reports which `ReturnDestination` it landed on
-  - `sealed class Session`, `SessionUnconfigured`, `SessionLocked`, `SessionOpen`, `sessionProvider`, `class SessionController extends Notifier<Session>` with `unlock`, `graceExpired`, `completeSetup`
+  - `sealed class Session`, `SessionUnconfigured`, `SessionLocked`, `SessionOpen`, `SessionPanicked`, `sessionProvider`, `class SessionController extends Notifier<Session>` with `unlock`, `graceExpired`, `completeSetup`, `panicked`, `dismissPanicReport`
   - `vaultStoreProvider`, `cryptoServiceProvider`, `documentsDirectoryProvider`, `vaultOpenerProvider`, `initialSessionProvider`, `setupControllerProvider`, `vaultDatabasePath(Directory, VaultId)`
   - `databaseProvider` (redefined; was Plan 1's, now reads the open session instead of being overridden in `main()`)
   - `LockScreen` — wires `LockController` (Task 5) and `sessionProvider` to `LockBody` (Task 5)
@@ -3576,6 +3612,7 @@ import '../../../../domain/models/attempt_gate.dart';
 import '../../../../domain/models/lock_state.dart';
 import '../../../../domain/models/vault.dart';
 import '../../../../domain/services/crypto_service.dart';
+import '../../../../domain/services/panic_service.dart';
 import '../../../../domain/services/vault_unlocker.dart';
 import '../../dashboard/view_models/providers.dart' show openSiteIdsProvider;
 import '../../lock/views/lock_body.dart' show LockMood;
@@ -3624,6 +3661,19 @@ class SessionOpen extends Session {
   final AppDatabase database;
 }
 
+/// Panic has run: no store, no keys, nothing to open. `3c` renders [report].
+///
+/// This is a state, not an action — the destruction itself belongs to
+/// `PanicService` (Plan 3 Task 9 implements it), and this class only records
+/// that it finished. Keeping the sequence out of the controller is what lets
+/// the ordering in `PanicService`'s doc comment stay in one place instead of
+/// being split across a service and a `Notifier`.
+class SessionPanicked extends Session {
+  const SessionPanicked(this.report);
+
+  final PanicReport report;
+}
+
 /// Overridden in `main()` once `VaultStore.exists`/`.gate()` — the one
 /// genuinely async startup check — has resolved, so `SessionController`'s
 /// own `build()` can stay synchronous.
@@ -3649,13 +3699,11 @@ final vaultStoreProvider = Provider<VaultStore>(
 /// SQLCipher platform channel and cannot run on a test host.
 final vaultOpenerProvider = Provider<VaultOpener>((ref) => openEncrypted);
 
-/// Bridges the `Vault`/`VaultId` naming split (Known cross-plan issue #3,
-/// still open) without resolving it: both enums are `{a, b}` in the same
-/// declared order, so indexing across them is safe as long as neither ever
-/// gains a member the other doesn't. Whoever resolves issue #3 should fold
-/// this back into a single enum and delete the indexing.
+/// `vaultFileName` takes a `VaultId` as of Task 4 Step 6, which retired
+/// Plan 1's parallel `Vault` enum (cross-plan issue #3). There is one enum
+/// now and nothing left to bridge.
 String vaultDatabasePath(Directory documents, VaultId vault) =>
-    p.join(documents.path, vaultFileName(Vault.values[vault.index]));
+    p.join(documents.path, vaultFileName(vault));
 
 final sessionProvider =
     NotifierProvider<SessionController, Session>(SessionController.new);
@@ -3679,6 +3727,26 @@ class SessionController extends Notifier<Session> {
     ref.onDispose(_lifecycle.stop);
     return ref.watch(initialSessionProvider);
   }
+
+  /// Called by `PanicService` once its sequence has completed. Terminal: no
+  /// method on this class returns to `SessionOpen` afterwards, because there
+  /// is no longer a store any PIN could unwrap.
+  void panicked(PanicReport report) => state = SessionPanicked(report);
+
+  /// `3c`'s single button.
+  ///
+  /// **Ruling.** This returns to a lock screen that no PIN will ever open,
+  /// not to setup — even though `VaultStore.exists` is now false and
+  /// `SessionUnconfigured` is what a genuinely fresh device would show. Under
+  /// this plan's stated threat model (coerced unlock, not forensic imaging)
+  /// the screen after a panic has to look like the screen before one; a setup
+  /// wizard announces to the person holding the phone that everything was
+  /// just destroyed, which is the one thing the past-tense report in `3c` is
+  /// carefully not saying out loud to anyone but its owner. A cold start
+  /// after this reaches `SessionUnconfigured` normally, since `main()` re-runs
+  /// the `exists` check.
+  void dismissPanicReport() =>
+      state = const SessionLocked(mood: LockMood.normal, gate: AttemptGate());
 
   Future<void> unlock(String pin) async {
     final currentGate = await _vaultStore.gate();
@@ -4233,6 +4301,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../dashboard/views/dashboard_screen.dart';
 import '../../lock/views/lock_screen.dart';
+import '../../panic/views/panic_screen.dart';
 import '../view_models/session_controller.dart';
 import 'setup_flow.dart';
 
@@ -4253,6 +4322,10 @@ class AppGate extends ConsumerWidget {
       SessionUnconfigured() => const SetupFlow(),
       SessionLocked() => const LockScreen(),
       SessionOpen() => const DashboardScreen(),
+      SessionPanicked(:final report) => PanicScreen(
+          report: report,
+          onUnlock: () => ref.read(sessionProvider.notifier).dismissPanicReport(),
+        ),
     };
   }
 }
@@ -4344,8 +4417,7 @@ git commit -m "feat: settings, lifecycle gating and the lock in front of the das
 - **The decoy PIN has no entry screen of its own in the spec.** Task 8's `SetupFlow` reuses `SetupPinScreen` a second time for it; the visible cost — the step-progress bar reads "step 1 of 3" again instead of a fourth segment — is recorded as a Ruling at Task 8 Step 17. A dedicated screen, if the product wants one, needs a spec addition first.
 - **`LockMood.welcomeBack` (`9b`) is reachable, but only via a full PIN re-entry, not literally "one tap."** The spec's own caption for `9b` says "one tap to resume," but `LockBody` (Task 5, already built and tested) renders the same six-dot row and full keypad as every other lock mood, with no lighter-weight "just tap here" affordance anywhere in its code or tests. Task 8's Ruling (Step 6) treats the built, tested widget as authoritative over the caption and requires the same six digits as any other unlock — every attempt still evaluates both vault slots per this plan's Global Constraints. If "one tap" was meant literally, that is a `LockBody` change Task 5 would need to revisit, not something Task 8 can safely invent.
 - **Ephemeral sessions "wiped" at `afterTimeout` only means `openSiteIdsProvider` is cleared.** There are no live WebView sessions yet for anything to actually destroy — that lands in Plan 3. `SessionController.graceExpired`/`_handleReturn` clear the one piece of session state that exists today; whoever wires Plan 3's container lifecycle in should extend the same call sites rather than add a second, competing "wipe" path.
-- **Cross-plan issue #3 (`Vault` vs `VaultId`) is still open.** `session_controller.dart`'s `vaultDatabasePath` bridges it with an index lookup (`Vault.values[vault.index]`) rather than resolving it, specifically so this plan's new code wouldn't have to wait on a Plan 1 change out of scope for the gap it was asked to close. See that function's doc comment.
-- **`PanicService` has a contract and a screen but no implementation.** It cannot destroy WebView sessions until Plan 3 exists to create them. The service is implemented in Plan 3, against this interface.
+- **`PanicService` has a contract, a screen and a state, but no implementation.** It cannot destroy WebView sessions until Plan 3 exists to create them. Plan 3 Task 9 supplies `ContainerPanicService` against this interface and is what first drives `sessionProvider` into `SessionPanicked` (cross-plan issue #6). Until that task runs, nothing in the app constructs a `PanicReport`, so `PanicScreen` is reachable only from its own widget test — the gate branch for it is built and analysed but never taken at runtime.
 - **"Trigger by flipping face down" is a toggle that does nothing yet.** The accelerometer listener needs the session layer to have something to destroy.
 - **Changing the main PIN re-wraps the data key but does not re-encrypt the store.** That is correct and intentional — the data key never changes, only its wrapping — but it means a PIN change is not a defence against someone who already captured the old wrapped blob and the old PIN.
 - **The decoy's contents are provisioned once.** Adding a site to the real vault after setup does not add it to the decoy, even if flagged, until the selection is edited. Whether that should auto-sync is a design question, not an implementation one.

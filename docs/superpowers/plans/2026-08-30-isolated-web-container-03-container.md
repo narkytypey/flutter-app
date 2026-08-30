@@ -72,6 +72,7 @@ lib/data/repositories/site_repository_sqlite.dart  MODIFY: new columns
 lib/data/services/container_engine.dart        ContainerEngine interface
 lib/data/services/container_engine_channel.dart    MethodChannel implementation
 lib/data/services/fake_container_engine.dart   in-memory fake, drives every widget test
+lib/data/services/container_panic_service.dart implements Plan 2's PanicService
 
 lib/ui/features/container/view_models/container_view.dart
 lib/ui/features/container/view_models/providers.dart
@@ -89,6 +90,7 @@ lib/ui/features/add_site/views/appearance_tab.dart        2a
 
 test/domain/route_decision_test.dart
 test/data/site_migration_test.dart
+test/data/container_panic_service_test.dart
 test/ui/features/opening_screen_test.dart
 test/ui/features/container_screen_test.dart
 test/ui/features/switcher_sheet_test.dart
@@ -310,7 +312,25 @@ Expected: PASS, 2 tests.
 - [ ] **Step 7: Run the whole Plan 1 suite**
 
 Run: `flutter test`
-Expected: PASS. Plan 1's `repositories_test.dart` constructs `Site`s and `profileId` is now required — fix those call sites with `profileId: newProfileId()`. If Plan 2 has already been implemented in this codebase, its test files (`test/data/vault_store_test.dart` and any other file constructing a bare `Site(...)`) construct `Site`s the same way and need the same fix — `profileId` is one shared class, and whichever plan lands second is the one that has to update the other's call sites. If anything else fails, the migration broke something an earlier plan relied on; fix it here, not later.
+Expected: PASS.
+
+`profileId` is one field on one shared class, so every plan already in the tree has to be brought along, and whichever plan lands second does that work. This is the list as of today (cross-plan issue #5).
+
+**Plan 1.** `test/data/repositories_test.dart` constructs `Site`s — add `profileId: newProfileId()` to each.
+
+**Plan 2**, if it has already been implemented here. Two call sites, and the second one is not a compile error, which is exactly why it is easy to miss:
+
+- `test/data/decoy_provisioner_test.dart` builds three sites as `const Site(...)`. `newProfileId()` calls `Random.secure()` and is not a constant expression, so the `const` has to go — `await sites.upsert(Site(..., profileId: newProfileId()));`. Do not rescue the `const` by hard-coding one literal id across the three sites: that file's third test asserts on what reached the decoy store, and two sites sharing a profile id is the bug the next bullet is about.
+- `lib/data/repositories/decoy_provisioner.dart` copies each flagged row with `site.copyWith(showInDecoy: false)`. `copyWith` carries `profileId` across unchanged, so the decoy store ends up holding a row naming *the same WebView profile* as the real vault's row. Opening that decoy site would read and write the real site's cookies, cache and storage — one container, two vaults — which is the precise thing the two-vault model exists to prevent, and it leaks in the worst direction: a coerced decoy session writing into the real container. The copy needs its own identity:
+
+```dart
+      await targetSites.upsert(
+          site.copyWith(showInDecoy: false, profileId: newProfileId()));
+```
+
+Add `import '../services/app_database.dart';` to that file if it is not already importing `newProfileId`'s home. This is a behavioural change to a Plan 2 file rather than a mechanical one, and it is correct only because a decoy site is a genuinely separate container that happens to share a name and a URL with a real one — never the same container seen twice.
+
+If anything else fails, the migration broke something an earlier plan relied on; fix it here, not later.
 
 - [ ] **Step 8: Commit**
 
@@ -636,10 +656,30 @@ abstract interface class ContainerEngine {
   /// `CookiePolicy.wipeOnExit` and by "Close all and wipe" in `2c`.
   Future<void> wipe(String profileId);
 
+  /// Destroys every profile the platform holds, including ones this process
+  /// cannot name.
+  ///
+  /// Panic calls this, and it exists because [wipe] cannot do that job. A
+  /// profile id lives in a `Site` row inside an encrypted vault, so the ids
+  /// belonging to the vault that is *not* open are unreadable to this
+  /// process — before panic starts, not merely after it finishes. A loop over
+  /// [wipe] would clear the open vault's containers and silently leave the
+  /// other vault's storage sitting on disk. Asking the platform which
+  /// profiles exist is the only enumeration that can see both. See Task 9.
+  Future<void> wipeAll();
+
   Future<void> close(String siteId);
 
   /// Every live session. Spec `2c`'s drawer renders exactly this.
   Stream<List<ContainerSession>> sessions();
+
+  /// The same list [sessions] emits, read once.
+  ///
+  /// [sessions] is a broadcast stream that fires only on change, so awaiting
+  /// its `.first` on a cold app blocks forever instead of yielding an empty
+  /// list. Anything needing a snapshot rather than a subscription — panic
+  /// counting what it is about to destroy, for one — uses this.
+  Future<List<ContainerSession>> liveSessions();
 
   Future<void> reload(String siteId);
 }
@@ -691,6 +731,15 @@ class FakeContainerEngine implements ContainerEngine {
   @override
   Future<void> wipe(String profileId) async => wiped.add(profileId);
 
+  bool wipedAll = false;
+
+  @override
+  Future<void> wipeAll() async {
+    wipedAll = true;
+    _sessions.clear();
+    _emit();
+  }
+
   @override
   Future<void> close(String siteId) async {
     _sessions.remove(siteId);
@@ -699,6 +748,10 @@ class FakeContainerEngine implements ContainerEngine {
 
   @override
   Stream<List<ContainerSession>> sessions() => _controller.stream;
+
+  @override
+  Future<List<ContainerSession>> liveSessions() async =>
+      _sessions.values.toList();
 
   @override
   Future<void> reload(String siteId) async {}
@@ -785,6 +838,9 @@ class ChannelContainerEngine implements ContainerEngine {
       _method.invokeMethod('wipe', {'profileId': profileId});
 
   @override
+  Future<void> wipeAll() => _method.invokeMethod('wipeAll');
+
+  @override
   Future<void> close(String siteId) =>
       _method.invokeMethod('close', {'siteId': siteId});
 
@@ -797,6 +853,14 @@ class ChannelContainerEngine implements ContainerEngine {
       _events.receiveBroadcastStream().map((event) => (event as List<Object?>)
           .map((e) => _sessionFrom(e! as Map<Object?, Object?>))
           .toList());
+
+  @override
+  Future<List<ContainerSession>> liveSessions() async {
+    final result = await _method.invokeListMethod<Object?>('liveSessions');
+    return (result ?? const <Object?>[])
+        .map((e) => _sessionFrom(e! as Map<Object?, Object?>))
+        .toList();
+  }
 }
 ```
 
@@ -883,6 +947,26 @@ class ProfileManager {
             store.deleteProfile(profileId)
         }
     }
+
+    /**
+     * Destroys every profile the store holds, default excluded. Irreversible.
+     *
+     * Panic's first step. Dart cannot supply the id list: profile ids live in
+     * `Site` rows inside the encrypted vaults, and the vault that is not open
+     * cannot be read at all. `allProfileNames` is the only enumeration that
+     * covers both.
+     *
+     * `deleteProfile` throws while a profile is attached to a live WebView, so
+     * callers close every session first — see `ContainerPanicService`.
+     */
+    fun wipeAll() {
+        check(isAvailable()) { "This device cannot isolate containers." }
+        val store = ProfileStore.getInstance()
+        for (name in store.allProfileNames.toList()) {
+            if (name == Profile.DEFAULT_PROFILE_NAME) continue
+            store.deleteProfile(name)
+        }
+    }
 }
 ```
 
@@ -951,7 +1035,7 @@ class ContainerView(
 
 - [ ] **Step 4: Write `SiteConfig`, the factory, and the channel**
 
-`SiteConfig` is a plain data class mirroring the map `ChannelContainerEngine.open` sends — one field per key, same names. `ContainerViewFactory` builds a `ContainerView` from the creation params. `EngineChannel` registers both channels on `MainActivity`, routes `isolationAvailable`/`open`/`wipe`/`close`/`reload`, and pushes session lists to the event sink. Register in `MainActivity.configureFlutterEngine`:
+`SiteConfig` is a plain data class mirroring the map `ChannelContainerEngine.open` sends — one field per key, same names. `ContainerViewFactory` builds a `ContainerView` from the creation params. `EngineChannel` registers both channels on `MainActivity`, routes `isolationAvailable`/`open`/`wipe`/`wipeAll`/`liveSessions`/`close`/`reload`, and pushes session lists to the event sink. `liveSessions` returns the same list the sink pushes, serialised by the same mapper, so a snapshot and a subscription can never disagree about what is open. Register in `MainActivity.configureFlutterEngine`:
 
 ```kotlin
 flutterEngine.platformViewsController.registry
@@ -1660,6 +1744,222 @@ git commit -m "feat: add site screen with four tabs (2a)"
 
 ---
 
+## Task 9: Panic, against real containers
+
+**Files:**
+- Create: `lib/data/services/container_panic_service.dart`
+- Modify: `lib/data/services/fake_container_engine.dart` (record closes), `lib/ui/features/container/view_models/providers.dart` (`containerEngineProvider`, `panicServiceProvider`), `lib/ui/features/container/views/container_screen.dart` (wire both `onPanic` seams)
+- Test: `test/data/container_panic_service_test.dart`
+
+**Interfaces:**
+- Consumes: `PanicService`, `PanicReport`, `SessionController.panicked` (Plan 2 Tasks 7 and 8); `ContainerEngine.liveSessions`, `.close`, `.wipeAll` (Task 3).
+- Produces: `class ContainerPanicService implements PanicService`, `panicServiceProvider`.
+
+This task closes cross-plan issue #6. Plan 2 shipped `PanicService` as an interface, a screen (`3c`), and — since the fix to that issue — a `SessionPanicked` state with an `AppGate` branch, but no implementation, because the thing panic destroys did not exist yet. It does now.
+
+**The ordering is the whole task, and it is not Plan 2's ordering.** Plan 2's doc comment on `PanicService` gives the sequence it established — close sessions, destroy keys, delete files, lock — keys before files, because killing 32 bytes is the irreversible step and unlinking is cleanup. Per-container storage inserts a step *ahead of all of them*. WebView profiles are named by `Site.profileId`, and those ids live in rows inside the encrypted stores. Destroy the data keys first and every container's cookies, cache and local storage are still on disk and no longer enumerable by anything — the exact residue the two-vault model exists to prevent. So containers go first, and Plan 2's sequence runs underneath it unchanged.
+
+The second design point is why this calls `wipeAll()` instead of looping `wipe(profileId)` over the open vault's sites. The session that panics can read one vault. The other vault's rows are encrypted under a key this process never held, so its profile ids are unreadable *before* panic starts, not merely after it finishes. A per-id loop would clear the open vault's containers and quietly leave the other vault's storage behind — and under this project's threat model the vault left behind is very often the one that mattered. Asking the platform which profiles exist is the only enumeration that sees both.
+
+`ContainerPanicService` takes its two non-engine steps as callbacks rather than importing `VaultStore` and `AppDatabase`. That keeps the ordering above host-testable with no crypto, no SQLCipher and no platform channel involved, and it matches how Plan 2's `SetupController` already takes `VaultOpener` and its path function instead of reaching for providers.
+
+- [ ] **Step 1: Write the failing panic-sequence test**
+
+First add one line to `FakeContainerEngine` so closes are observable — `final closed = <String>[];`, appended to in `close` before the session is removed.
+
+Create `test/data/container_panic_service_test.dart`:
+
+```dart
+import 'package:flutter_test/flutter_test.dart';
+import 'package:container/data/services/app_database.dart';
+import 'package:container/data/services/container_panic_service.dart';
+import 'package:container/data/services/fake_container_engine.dart';
+import 'package:container/domain/models/site.dart';
+
+Site _site(String id) => Site(
+      id: id,
+      workspaceId: 'w1',
+      name: id,
+      monogram: 'X',
+      url: 'https://example.com/$id',
+      profileId: newProfileId(),
+    );
+
+void main() {
+  test('every container is destroyed before anything else is', () async {
+    final engine = FakeContainerEngine();
+    await engine.open(_site('a'));
+    await engine.open(_site('b'));
+
+    final order = <String>[];
+    final service = ContainerPanicService(
+      engine: engine,
+      closeDatabase: () async => order.add('close:${engine.wipedAll}'),
+      destroyVaults: () async => order.add('destroy:${engine.wipedAll}'),
+    );
+
+    await service.trigger();
+
+    expect(engine.wipedAll, isTrue);
+    // Both later steps observed the profiles as already gone.
+    expect(order, ['close:true', 'destroy:true']);
+  });
+
+  test('live sessions are closed before the profiles are wiped', () async {
+    final engine = FakeContainerEngine();
+    await engine.open(_site('a'));
+    await engine.open(_site('b'));
+
+    await ContainerPanicService(
+      engine: engine,
+      closeDatabase: () async {},
+      destroyVaults: () async {},
+    ).trigger();
+
+    expect(engine.closed, ['a', 'b']);
+  });
+
+  test('the report counts what was destroyed', () async {
+    final engine = FakeContainerEngine();
+    await engine.open(_site('a'));
+    await engine.open(_site('b'));
+    await engine.open(_site('c'));
+
+    final report = await ContainerPanicService(
+      engine: engine,
+      closeDatabase: () async {},
+      destroyVaults: () async {},
+    ).trigger();
+
+    expect(report.sessionsDestroyed, 3);
+  });
+
+  test('panic on a cold app with nothing open still completes', () async {
+    final engine = FakeContainerEngine();
+    var destroyed = false;
+
+    final report = await ContainerPanicService(
+      engine: engine,
+      closeDatabase: () async {},
+      destroyVaults: () async => destroyed = true,
+    ).trigger();
+
+    expect(report.sessionsDestroyed, 0);
+    expect(destroyed, isTrue);
+  });
+}
+```
+
+That last test is the reason `ContainerEngine.liveSessions()` exists. Reading the count from `sessions().first` would hang here forever: the stream is broadcast and fires only on change, so on a cold app it has never emitted and never will until something opens. A panic that blocks because nothing was open is worse than no panic at all.
+
+- [ ] **Step 2: Run it to verify it fails**
+
+Run: `flutter test test/data/container_panic_service_test.dart`
+Expected: FAIL — missing `container_panic_service.dart`.
+
+- [ ] **Step 3: Write the service**
+
+Create `lib/data/services/container_panic_service.dart`:
+
+```dart
+import '../../domain/services/panic_service.dart';
+import 'container_engine.dart';
+
+/// The real panic sequence.
+///
+/// [PanicService]'s doc comment gives the order Plan 2 established — sessions,
+/// keys, files, lock. This adds the step that per-container storage makes
+/// necessary, in front of all of them: the WebView profiles die first, while
+/// their ids are still readable. Once the data keys are gone nothing in the
+/// process can name a profile, and whatever is still on disk stays there.
+///
+/// [destroyVaults] and [closeDatabase] are callbacks rather than a `VaultStore`
+/// and an `AppDatabase` so that this ordering can be tested on the host with no
+/// crypto, no SQLCipher and no platform channel involved.
+class ContainerPanicService implements PanicService {
+  ContainerPanicService({
+    required ContainerEngine engine,
+    required Future<void> Function() closeDatabase,
+    required Future<void> Function() destroyVaults,
+  })  : _engine = engine,
+        _closeDatabase = closeDatabase,
+        _destroyVaults = destroyVaults;
+
+  final ContainerEngine _engine;
+  final Future<void> Function() _closeDatabase;
+  final Future<void> Function() _destroyVaults;
+
+  @override
+  Future<PanicReport> trigger() async {
+    // Snapshot before destroying: this is what `3c` reports.
+    final live = await _engine.liveSessions();
+
+    // `ProfileStore.deleteProfile` throws while a profile is attached to a
+    // live WebView, so detaching first is not optional politeness.
+    for (final session in live) {
+      await _engine.close(session.siteId);
+    }
+
+    await _engine.wipeAll();
+    await _closeDatabase();
+    await _destroyVaults();
+
+    return PanicReport(sessionsDestroyed: live.length);
+  }
+}
+```
+
+- [ ] **Step 4: Wire the providers**
+
+In `lib/ui/features/container/view_models/providers.dart`:
+
+```dart
+final containerEngineProvider =
+    Provider<ContainerEngine>((ref) => ChannelContainerEngine());
+
+/// Fills the seam Plan 2 Task 7 left open.
+///
+/// `closeDatabase` is a no-op when no vault is open, which is a reachable
+/// state rather than a defensive nicety: panic lives on `2b`'s top bar and
+/// `2c`'s footer, and it has to survive being triggered with nothing open
+/// instead of throwing on a null database.
+final panicServiceProvider = Provider<PanicService>((ref) {
+  return ContainerPanicService(
+    engine: ref.read(containerEngineProvider),
+    closeDatabase: () async {
+      final session = ref.read(sessionProvider);
+      if (session is SessionOpen) await session.database.close();
+    },
+    destroyVaults: () => ref.read(vaultStoreProvider).destroy(),
+  );
+});
+```
+
+- [ ] **Step 5: Wire the two entry points**
+
+Panic has exactly two triggers in this plan, both built in Task 7 as callbacks: the `◉` square in `ContainerTopBar` (always visible, never behind an overflow — Task 7 says so) and `SwitcherSheet`'s `onPanic`. In `container_screen.dart` both get the same handler:
+
+```dart
+Future<void> _panic(WidgetRef ref) async {
+  final report = await ref.read(panicServiceProvider).trigger();
+  ref.read(sessionProvider.notifier).panicked(report);
+}
+```
+
+`AppGate` is already watching `sessionProvider`, so moving to `SessionPanicked` replaces the whole tree with `3c`. Do not push `PanicScreen` as a route: a pushed route leaves the container screen — and its WebViews — mounted underneath, which is both a live surface and a lie about what just happened. Task 7's rule that neither destructive action gets a confirmation dialog holds here too; `3c` reports afterwards, it does not ask first.
+
+- [ ] **Step 6: Run everything and commit**
+
+Run: `flutter test`
+Expected: PASS, including Plan 2's `panic_test.dart` unchanged — this task implements that interface, it does not alter it.
+
+```bash
+git add lib/data/services/container_panic_service.dart lib/data/services/fake_container_engine.dart lib/ui/features/container/ test/data/container_panic_service_test.dart
+git commit -m "feat: implement panic against real containers"
+```
+
+---
+
 ## Known gaps this plan deliberately leaves
 
 - **Byte-range media requests are lossily intercepted.** `<video>` and `<audio>` issue range requests whose semantics `WebResourceResponse` represents poorly. A proxied site playing media may stall or fall back to a partial fetch. This is the one entry in "What the interceptor cannot see" that is not closed, and it is a real hole in the routing guarantee. It needs a device measurement before any screen claims media is tunnelled.
@@ -1674,4 +1974,4 @@ git commit -m "feat: add site screen with four tabs (2a)"
 
 - **To Plan 4 (49's lane):** `RouteFailure`, `refusalMessage()` and the `X-Container-Refusal` response header are the contract for `8b` and `8c`. Failures are distinguishable — at minimum keep "cannot reach the proxy" separate from "the proxy refused the destination", because the remedy differs. Routing is per-site, so one container can be frozen while others keep running.
 - **To Plan 5:** `FilterEngine` is where the script and filter library lands, and `addDocumentStartJavaScript` in `Shields.apply` is where `10e`'s script editor injects.
-- **To Plan 2 (0b's lane):** `wipe(profileId)` destroys a container's storage and is what panic must call for every site in the vault being destroyed — before the data keys go, since afterwards the profile ids are unreadable.
+- **To Plan 2 (0b's lane): nothing outstanding.** This bullet used to hand `wipe(profileId)` back to Plan 2 for panic to call, while Plan 2's own Known gaps handed the implementation forward to Plan 3 — a circle in which neither plan owned the work (cross-plan issue #6). Task 9 of this plan owns it now: `ContainerPanicService` implements Plan 2's `PanicService` interface unchanged, and it is `wipeAll()` rather than a loop over `wipe(profileId)` that makes it correct across both vaults.
