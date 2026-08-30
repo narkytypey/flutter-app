@@ -46,23 +46,23 @@ Added by this plan:
 ## File Structure
 
 ```
-lib/ui/core/widgets/sheet.dart            BottomSheetSurface, SheetGroup, SheetRow (MODIFY: Task 6 adds an optional drag handle)
-lib/ui/core/widgets/page_skeleton.dart    dimmed stand-in for the live page (Plan 3 replaces)
+lib/ui/core/widgets/sheet.dart                                BottomSheetSurface, SheetGroup, SheetRow (MODIFY: Task 6 adds an optional drag handle)
+lib/ui/core/widgets/page_skeleton.dart                        dimmed stand-in for the live page (Plan 3 replaces)
 
-lib/domain/permissions.dart               PermissionKind, PermissionDecision
-lib/domain/reader_article.dart            ReaderArticle
-lib/domain/held_download.dart             HeldDownload, DownloadDecision + formatBytes
-lib/domain/blocked_tally.dart             BlockedTally, BlockedCategory, CategoryTally, SiteTally + categoryFraction
-lib/domain/route_failure_copy.dart        proxyFailureHeadline, proxyFailureDetail (extends Plan 3's RouteFailure)
+lib/domain/models/permissions.dart                            PermissionKind, PermissionDecision
+lib/domain/models/reader_article.dart                         ReaderArticle
+lib/domain/models/held_download.dart                          HeldDownload, DownloadDecision + formatBytes
+lib/domain/models/blocked_tally.dart                          BlockedTally, BlockedCategory, CategoryTally, SiteTally + categoryFraction
+lib/domain/models/route_failure_copy.dart                     proxyFailureHeadline, proxyFailureDetail (extends Plan 3's RouteFailure)
 
-lib/ui/in_page/permission_request_sheet.dart   spec 6a
-lib/ui/in_page/reader_screen.dart              spec 6b
-lib/ui/in_page/site_sheet.dart                 spec 6c
-lib/ui/in_page/held_download_sheet.dart        spec 7c
-lib/ui/in_page/proxy_unreachable_screen.dart   spec 8b
-lib/ui/in_page/tunnel_dropped_screen.dart      spec 8c
-lib/ui/dashboard/site_row_menu.dart            spec 7b
-lib/ui/report/today_screen.dart                spec 5c
+lib/ui/features/in_page/views/permission_request_sheet.dart   spec 6a
+lib/ui/features/in_page/views/reader_screen.dart              spec 6b
+lib/ui/features/in_page/views/site_sheet.dart                 spec 6c
+lib/ui/features/in_page/views/held_download_sheet.dart        spec 7c
+lib/ui/features/in_page/views/proxy_unreachable_screen.dart   spec 8b
+lib/ui/features/in_page/views/tunnel_dropped_screen.dart      spec 8c
+lib/ui/features/dashboard/views/site_row_menu.dart            spec 7b
+lib/ui/features/report/views/today_screen.dart                spec 5c
 
 test/ui/core/sheet_test.dart
 test/domain/permissions_test.dart
@@ -70,17 +70,19 @@ test/domain/reader_article_test.dart
 test/domain/held_download_test.dart
 test/domain/blocked_tally_test.dart
 test/domain/route_failure_copy_test.dart
-test/ui/in_page/permission_request_sheet_test.dart
-test/ui/in_page/reader_screen_test.dart
-test/ui/in_page/site_sheet_test.dart
-test/ui/in_page/held_download_sheet_test.dart
-test/ui/in_page/proxy_unreachable_screen_test.dart
-test/ui/in_page/tunnel_dropped_screen_test.dart
-test/ui/dashboard/site_row_menu_test.dart
-test/ui/report/today_screen_test.dart
+test/ui/features/in_page/permission_request_sheet_test.dart
+test/ui/features/in_page/reader_screen_test.dart
+test/ui/features/in_page/site_sheet_test.dart
+test/ui/features/in_page/held_download_sheet_test.dart
+test/ui/features/in_page/proxy_unreachable_screen_test.dart
+test/ui/features/in_page/tunnel_dropped_screen_test.dart
+test/ui/features/dashboard/site_row_menu_test.dart
+test/ui/features/report/today_screen_test.dart
 ```
 
-Split by responsibility: `domain/` holds pure data and formatting with no Flutter import beyond `meta`; `ui/in_page/` holds things that appear over an open site; `ui/report/` holds the one screen that talks about the app's own work.
+Split by responsibility: `domain/models/` holds pure data and formatting with no Flutter import beyond `meta`; `ui/features/in_page/` holds things that appear over an open site; `ui/features/report/` holds the one screen that talks about the app's own work.
+
+These are Plan 1's directories, not this plan's own. An earlier draft put domain files flat in `lib/domain/` and screens in `lib/ui/in_page/`, `lib/ui/dashboard/`, `lib/ui/report/`, which collided with the layout Plan 1 shipped — and contradicted itself, since Task 8 imported `domain/models/route_decision.dart` while creating `domain/route_failure_copy.dart`. Two layouts in one app is worse than either, so this plan conforms: pure functions live in `domain/models/` beside the values they format (as Plan 1's own `relative_age.dart` and `site_descriptor.dart` do), and every screen lives under `lib/ui/features/<feature>/views/`. `site_row_menu.dart` is a dashboard screen, so it sits *inside* `lib/ui/features/dashboard/views/`, not beside it.
 
 ---
 
@@ -388,10 +390,10 @@ git commit -m "feat: add bottom sheet primitives and page skeleton stand-in"
 ## Task 2: Permission request (spec `6a`)
 
 **Files:**
-- Create: `lib/domain/permissions.dart`
-- Create: `lib/ui/in_page/permission_request_sheet.dart`
+- Create: `lib/domain/models/permissions.dart`
+- Create: `lib/ui/features/in_page/views/permission_request_sheet.dart`
 - Test: `test/domain/permissions_test.dart`
-- Test: `test/ui/in_page/permission_request_sheet_test.dart`
+- Test: `test/ui/features/in_page/permission_request_sheet_test.dart`
 
 **Interfaces:**
 - Consumes: `BottomSheetSurface` (Task 1); `PillButton`, `PillTone` (Plan 1 Task 2); `C`, `ui`, `T` (Plan 1 Task 1).
@@ -408,7 +410,7 @@ Create `test/domain/permissions_test.dart`:
 
 ```dart
 import 'package:flutter_test/flutter_test.dart';
-import 'package:container/domain/permissions.dart';
+import 'package:container/domain/models/permissions.dart';
 
 void main() {
   test('microphone phrase completes the spec sentence exactly', () {
@@ -435,13 +437,13 @@ void main() {
 }
 ```
 
-Create `test/ui/in_page/permission_request_sheet_test.dart`:
+Create `test/ui/features/in_page/permission_request_sheet_test.dart`:
 
 ```dart
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:container/domain/permissions.dart';
-import 'package:container/ui/in_page/permission_request_sheet.dart';
+import 'package:container/domain/models/permissions.dart';
+import 'package:container/ui/features/in_page/views/permission_request_sheet.dart';
 
 void main() {
   Widget host({required ValueChanged<PermissionDecision> onDecision}) {
@@ -501,12 +503,12 @@ void main() {
 
 - [ ] **Step 2: Run test to verify it fails**
 
-Run: `flutter test test/domain/permissions_test.dart test/ui/in_page/permission_request_sheet_test.dart`
+Run: `flutter test test/domain/permissions_test.dart test/ui/features/in_page/permission_request_sheet_test.dart`
 Expected: FAIL — "Couldn't resolve the package" or "PermissionKind isn't defined".
 
 - [ ] **Step 3: Write minimal implementation**
 
-Create `lib/domain/permissions.dart`:
+Create `lib/domain/models/permissions.dart`:
 
 ```dart
 /// Hardware a site can ask for. The list is spec `2a`'s
@@ -535,15 +537,15 @@ enum PermissionKind {
 enum PermissionDecision { allowOnce, allowWhileOpen, keepBlocked }
 ```
 
-Create `lib/ui/in_page/permission_request_sheet.dart`:
+Create `lib/ui/features/in_page/views/permission_request_sheet.dart`:
 
 ```dart
 import 'package:flutter/material.dart';
 
-import '../../domain/permissions.dart';
-import '../core/typography.dart';
-import '../core/widgets/pill_button.dart';
-import '../core/widgets/sheet.dart';
+import '../../../../domain/models/permissions.dart';
+import '../../../core/typography.dart';
+import '../../../core/widgets/pill_button.dart';
+import '../../../core/widgets/sheet.dart';
 
 /// Spec `6a` — a site asks for hardware.
 ///
@@ -597,13 +599,13 @@ class PermissionRequestSheet extends StatelessWidget {
 
 - [ ] **Step 4: Run test to verify it passes**
 
-Run: `flutter test test/domain/permissions_test.dart test/ui/in_page/permission_request_sheet_test.dart`
+Run: `flutter test test/domain/permissions_test.dart test/ui/features/in_page/permission_request_sheet_test.dart`
 Expected: PASS, 6 tests.
 
 - [ ] **Step 5: Commit**
 
 ```bash
-git add lib/domain/permissions.dart lib/ui/in_page/permission_request_sheet.dart test/domain/permissions_test.dart test/ui/in_page/permission_request_sheet_test.dart
+git add lib/domain/models/permissions.dart lib/ui/features/in_page/views/permission_request_sheet.dart test/domain/permissions_test.dart test/ui/features/in_page/permission_request_sheet_test.dart
 git commit -m "feat: add permission request sheet (spec 6a)"
 ```
 
@@ -612,8 +614,8 @@ git commit -m "feat: add permission request sheet (spec 6a)"
 ## Task 3: Row long-press menu (spec `7b`)
 
 **Files:**
-- Create: `lib/ui/dashboard/site_row_menu.dart`
-- Test: `test/ui/dashboard/site_row_menu_test.dart`
+- Create: `lib/ui/features/dashboard/views/site_row_menu.dart`
+- Test: `test/ui/features/dashboard/site_row_menu_test.dart`
 
 **Interfaces:**
 - Consumes: `SheetGroup`, `SheetRow` (Task 1); `Monogram`, `PillButton` (Plan 1 Task 2); `C`, `ui`, `T` (Plan 1 Task 1).
@@ -625,14 +627,14 @@ The two workspace names are parameters because the spec's labels name real works
 
 - [ ] **Step 1: Write the failing test**
 
-Create `test/ui/dashboard/site_row_menu_test.dart`:
+Create `test/ui/features/dashboard/site_row_menu_test.dart`:
 
 ```dart
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:container/ui/core/tokens.dart';
 import 'package:container/ui/core/widgets/sheet.dart';
-import 'package:container/ui/dashboard/site_row_menu.dart';
+import 'package:container/ui/features/dashboard/views/site_row_menu.dart';
 
 void main() {
   Widget host({
@@ -760,21 +762,21 @@ void main() {
 
 - [ ] **Step 2: Run test to verify it fails**
 
-Run: `flutter test test/ui/dashboard/site_row_menu_test.dart`
+Run: `flutter test test/ui/features/dashboard/site_row_menu_test.dart`
 Expected: FAIL — "SiteRowMenu isn't defined".
 
 - [ ] **Step 3: Write minimal implementation**
 
-Create `lib/ui/dashboard/site_row_menu.dart`:
+Create `lib/ui/features/dashboard/views/site_row_menu.dart`:
 
 ```dart
 import 'package:flutter/material.dart';
 
-import '../core/tokens.dart';
-import '../core/typography.dart';
-import '../core/widgets/monogram.dart';
-import '../core/widgets/pill_button.dart';
-import '../core/widgets/sheet.dart';
+import '../../../core/tokens.dart';
+import '../../../core/typography.dart';
+import '../../../core/widgets/monogram.dart';
+import '../../../core/widgets/pill_button.dart';
+import '../../../core/widgets/sheet.dart';
 
 /// What a long-press on a dashboard row can do. Spec `7b`.
 enum SiteRowAction {
@@ -904,13 +906,13 @@ class SiteRowMenu extends StatelessWidget {
 
 - [ ] **Step 4: Run test to verify it passes**
 
-Run: `flutter test test/ui/dashboard/site_row_menu_test.dart`
+Run: `flutter test test/ui/features/dashboard/site_row_menu_test.dart`
 Expected: PASS, 5 tests.
 
 - [ ] **Step 5: Commit**
 
 ```bash
-git add lib/ui/dashboard/site_row_menu.dart test/ui/dashboard/site_row_menu_test.dart
+git add lib/ui/features/dashboard/views/site_row_menu.dart test/ui/features/dashboard/site_row_menu_test.dart
 git commit -m "feat: add site row long-press menu (spec 7b)"
 ```
 
@@ -920,15 +922,15 @@ git commit -m "feat: add site row long-press menu (spec 7b)"
 
 **Files:**
 - Modify: `lib/ui/core/tokens.dart` (adds reader mode's own warm palette)
-- Create: `lib/domain/reader_article.dart`
-- Create: `lib/ui/in_page/reader_screen.dart`
+- Create: `lib/domain/models/reader_article.dart`
+- Create: `lib/ui/features/in_page/views/reader_screen.dart`
 - Test: `test/domain/reader_article_test.dart`
-- Test: `test/ui/in_page/reader_screen_test.dart`
+- Test: `test/ui/features/in_page/reader_screen_test.dart`
 
 **Interfaces:**
 - Consumes: `ui()` (Plan 1 Task 1).
 - Produces:
-  - `class ReaderArticle extends StatelessWidget` — no, a plain value: `class ReaderArticle { const ReaderArticle({required String host, required String title, required List<String> paragraphs, required int minutesToRead}); String get readingLabel; }`
+  - `class ReaderArticle { const ReaderArticle({required String host, required String title, required List<String> paragraphs, required int minutesToRead}); String get readingLabel; }` — a plain value, not a widget
   - `class ReaderScreen extends StatelessWidget` — `const ReaderScreen({required ReaderArticle article, required VoidCallback onClose, required VoidCallback onTextSize, required VoidCallback onTheme})`
 
 - [ ] **Step 1: Write the failing tests**
@@ -937,7 +939,7 @@ Create `test/domain/reader_article_test.dart`:
 
 ```dart
 import 'package:flutter_test/flutter_test.dart';
-import 'package:container/domain/reader_article.dart';
+import 'package:container/domain/models/reader_article.dart';
 
 void main() {
   test('the reading label matches the spec\'s "READER · 6 MIN"', () {
@@ -962,14 +964,14 @@ void main() {
 }
 ```
 
-Create `test/ui/in_page/reader_screen_test.dart`:
+Create `test/ui/features/in_page/reader_screen_test.dart`:
 
 ```dart
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:container/domain/reader_article.dart';
+import 'package:container/domain/models/reader_article.dart';
 import 'package:container/ui/core/tokens.dart';
-import 'package:container/ui/in_page/reader_screen.dart';
+import 'package:container/ui/features/in_page/views/reader_screen.dart';
 
 void main() {
   const article = ReaderArticle(
@@ -1042,7 +1044,7 @@ void main() {
 
 - [ ] **Step 2: Run the tests to verify they fail**
 
-Run: `flutter test test/domain/reader_article_test.dart test/ui/in_page/reader_screen_test.dart`
+Run: `flutter test test/domain/reader_article_test.dart test/ui/features/in_page/reader_screen_test.dart`
 Expected: FAIL — "Couldn't resolve the package" or "ReaderArticle isn't defined".
 
 - [ ] **Step 3: Add reader mode's palette to the shared tokens**
@@ -1059,7 +1061,7 @@ Reader mode is the one screen with its own warm-toned background (`#12100D`, alr
 
 - [ ] **Step 4: Write `ReaderArticle`**
 
-Create `lib/domain/reader_article.dart`:
+Create `lib/domain/models/reader_article.dart`:
 
 ```dart
 /// The content of one reader-mode page. Plan 3's `Site.openInReader` decides
@@ -1091,14 +1093,14 @@ Expected: PASS, 2 tests.
 
 - [ ] **Step 6: Write `ReaderScreen`**
 
-Create `lib/ui/in_page/reader_screen.dart`:
+Create `lib/ui/features/in_page/views/reader_screen.dart`:
 
 ```dart
 import 'package:flutter/material.dart';
 
-import '../../domain/reader_article.dart';
-import '../core/tokens.dart';
-import '../core/typography.dart';
+import '../../../../domain/models/reader_article.dart';
+import '../../../core/tokens.dart';
+import '../../../core/typography.dart';
 
 /// Spec `6b` — text only, controls out of the way. The header is the only
 /// chrome; everything below it is the article, full width, no card.
@@ -1192,7 +1194,7 @@ class ReaderScreen extends StatelessWidget {
 
 - [ ] **Step 7: Run the widget test to verify it passes**
 
-Run: `flutter test test/ui/in_page/reader_screen_test.dart`
+Run: `flutter test test/ui/features/in_page/reader_screen_test.dart`
 Expected: PASS, 3 tests.
 
 - [ ] **Step 8: Run the analyzer**
@@ -1203,7 +1205,7 @@ Expected: `No issues found!`
 - [ ] **Step 9: Commit**
 
 ```bash
-git add lib/ui/core/tokens.dart lib/domain/reader_article.dart lib/ui/in_page/reader_screen.dart test/domain/reader_article_test.dart test/ui/in_page/reader_screen_test.dart
+git add lib/ui/core/tokens.dart lib/domain/models/reader_article.dart lib/ui/features/in_page/views/reader_screen.dart test/domain/reader_article_test.dart test/ui/features/in_page/reader_screen_test.dart
 git commit -m "feat: add reader mode (spec 6b)"
 ```
 
@@ -1213,9 +1215,9 @@ git commit -m "feat: add reader mode (spec 6b)"
 
 **Files:**
 - Modify: `lib/ui/core/widgets/sheet.dart` (adds an optional drag handle to `BottomSheetSurface`)
-- Create: `lib/ui/in_page/site_sheet.dart`
+- Create: `lib/ui/features/in_page/views/site_sheet.dart`
 - Test: `test/ui/core/sheet_test.dart` (extended)
-- Test: `test/ui/in_page/site_sheet_test.dart`
+- Test: `test/ui/features/in_page/site_sheet_test.dart`
 
 **Interfaces:**
 - Consumes: `BottomSheetSurface` (Task 1, extended below); `Monogram` (Plan 1 Task 2); `AppToggle` (Plan 2 Task 5, `lib/ui/core/widgets/app_toggle.dart`); `PillButton`, `PillTone` (Plan 1 Task 2); `C`, `ui`, `T` (Plan 1 Task 1).
@@ -1245,14 +1247,13 @@ Add to `test/ui/core/sheet_test.dart`, inside `main()`, after the existing four 
   });
 ```
 
-Create `test/ui/in_page/site_sheet_test.dart`:
+Create `test/ui/features/in_page/site_sheet_test.dart`:
 
 ```dart
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:container/ui/core/tokens.dart';
-import 'package:container/ui/core/widgets/sheet.dart';
-import 'package:container/ui/in_page/site_sheet.dart';
+import 'package:container/ui/core/widgets/app_toggle.dart';
+import 'package:container/ui/features/in_page/views/site_sheet.dart';
 
 void main() {
   Widget host({
@@ -1327,8 +1328,12 @@ void main() {
       matching: find.byType(Row),
     ).first;
 
-    await tester.tap(find.descendant(of: forceDarkRow, matching: find.byType(GestureDetector)));
-    await tester.tap(find.descendant(of: desktopViewRow, matching: find.byType(GestureDetector)));
+    // Tap the toggle by its own type, never by whatever it happens to be
+    // built from. `AppToggle` is Plan 2's widget; a test reaching for its
+    // inner `GestureDetector` passes today and breaks the moment Plan 2
+    // rebuilds it on an `InkWell` — failing here, looking like a bug here.
+    await tester.tap(find.descendant(of: forceDarkRow, matching: find.byType(AppToggle)));
+    await tester.tap(find.descendant(of: desktopViewRow, matching: find.byType(AppToggle)));
 
     expect(forceDarkSeen, isFalse); // was on, tapped once -> off
     expect(desktopViewSeen, isTrue); // was off, tapped once -> on
@@ -1345,7 +1350,7 @@ void main() {
 
 - [ ] **Step 2: Run the tests to verify they fail**
 
-Run: `flutter test test/ui/core/sheet_test.dart test/ui/in_page/site_sheet_test.dart`
+Run: `flutter test test/ui/core/sheet_test.dart test/ui/features/in_page/site_sheet_test.dart`
 Expected: FAIL — the two new `sheet_test.dart` cases fail on the missing `showHandle` parameter; `site_sheet_test.dart` fails on the missing `SiteSheet` file.
 
 - [ ] **Step 3: Add the drag handle to `BottomSheetSurface`**
@@ -1418,17 +1423,17 @@ class BottomSheetSurface extends StatelessWidget {
 
 - [ ] **Step 4: Write `SiteSheet`**
 
-Create `lib/ui/in_page/site_sheet.dart`:
+Create `lib/ui/features/in_page/views/site_sheet.dart`:
 
 ```dart
 import 'package:flutter/material.dart';
 
-import '../core/tokens.dart';
-import '../core/typography.dart';
-import '../core/widgets/app_toggle.dart';
-import '../core/widgets/monogram.dart';
-import '../core/widgets/pill_button.dart';
-import '../core/widgets/sheet.dart';
+import '../../../core/tokens.dart';
+import '../../../core/typography.dart';
+import '../../../core/widgets/app_toggle.dart';
+import '../../../core/widgets/monogram.dart';
+import '../../../core/widgets/pill_button.dart';
+import '../../../core/widgets/sheet.dart';
 
 /// Spec `6c` — what this container is running under, editable in place.
 /// Every row here is read-only except the two switches; "Edit" is the one
@@ -1558,7 +1563,7 @@ class _SheetInfoRow extends StatelessWidget {
 
 - [ ] **Step 5: Run the tests to verify they pass**
 
-Run: `flutter test test/ui/core/sheet_test.dart test/ui/in_page/site_sheet_test.dart`
+Run: `flutter test test/ui/core/sheet_test.dart test/ui/features/in_page/site_sheet_test.dart`
 Expected: PASS, 6 + 4 tests.
 
 - [ ] **Step 6: Run the analyzer**
@@ -1569,7 +1574,7 @@ Expected: `No issues found!`
 - [ ] **Step 7: Commit**
 
 ```bash
-git add lib/ui/core/widgets/sheet.dart lib/ui/in_page/site_sheet.dart test/ui/core/sheet_test.dart test/ui/in_page/site_sheet_test.dart
+git add lib/ui/core/widgets/sheet.dart lib/ui/features/in_page/views/site_sheet.dart test/ui/core/sheet_test.dart test/ui/features/in_page/site_sheet_test.dart
 git commit -m "feat: add site sheet (spec 6c)"
 ```
 
@@ -1578,10 +1583,10 @@ git commit -m "feat: add site sheet (spec 6c)"
 ## Task 6: Held download (spec `7c`)
 
 **Files:**
-- Create: `lib/domain/held_download.dart`
-- Create: `lib/ui/in_page/held_download_sheet.dart`
+- Create: `lib/domain/models/held_download.dart`
+- Create: `lib/ui/features/in_page/views/held_download_sheet.dart`
 - Test: `test/domain/held_download_test.dart`
-- Test: `test/ui/in_page/held_download_sheet_test.dart`
+- Test: `test/ui/features/in_page/held_download_sheet_test.dart`
 
 **Interfaces:**
 - Consumes: `BottomSheetSurface` (Task 1); `PillButton`, `PillTone` (Plan 1 Task 2); `C`, `ui`, `T` (Plan 1 Task 1).
@@ -1597,7 +1602,7 @@ Create `test/domain/held_download_test.dart`:
 
 ```dart
 import 'package:flutter_test/flutter_test.dart';
-import 'package:container/domain/held_download.dart';
+import 'package:container/domain/models/held_download.dart';
 
 void main() {
   test('formats megabytes at one decimal, matching the spec\'s "1.4 MB"', () {
@@ -1614,13 +1619,13 @@ void main() {
 }
 ```
 
-Create `test/ui/in_page/held_download_sheet_test.dart`:
+Create `test/ui/features/in_page/held_download_sheet_test.dart`:
 
 ```dart
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:container/domain/held_download.dart';
-import 'package:container/ui/in_page/held_download_sheet.dart';
+import 'package:container/domain/models/held_download.dart';
+import 'package:container/ui/features/in_page/views/held_download_sheet.dart';
 
 void main() {
   const download = HeldDownload(
@@ -1676,12 +1681,12 @@ void main() {
 
 - [ ] **Step 2: Run the tests to verify they fail**
 
-Run: `flutter test test/domain/held_download_test.dart test/ui/in_page/held_download_sheet_test.dart`
+Run: `flutter test test/domain/held_download_test.dart test/ui/features/in_page/held_download_sheet_test.dart`
 Expected: FAIL — missing files.
 
 - [ ] **Step 3: Write `HeldDownload` and `formatBytes`**
 
-Create `lib/domain/held_download.dart`:
+Create `lib/domain/models/held_download.dart`:
 
 ```dart
 /// What the user can do with a file a site tried to save. Spec `7c`.
@@ -1719,16 +1724,17 @@ Expected: PASS, 3 tests.
 
 - [ ] **Step 5: Write `HeldDownloadSheet`**
 
-Create `lib/ui/in_page/held_download_sheet.dart`:
+Create `lib/ui/features/in_page/views/held_download_sheet.dart`:
 
 ```dart
 import 'package:flutter/material.dart';
 
-import '../../domain/held_download.dart';
-import '../core/tokens.dart';
-import '../core/typography.dart';
-import '../core/widgets/pill_button.dart';
-import '../core/widgets/sheet.dart';
+import '../../../../domain/models/held_download.dart';
+import '../../../core/tokens.dart';
+import '../../../core/typography.dart';
+import '../../../core/widgets/monogram.dart';
+import '../../../core/widgets/pill_button.dart';
+import '../../../core/widgets/sheet.dart';
 
 /// Spec `7c` — says what a held download is and where it would land.
 ///
@@ -1764,19 +1770,10 @@ class HeldDownloadSheet extends StatelessWidget {
           ),
           child: Row(
             children: [
-              Container(
-                width: 38,
-                height: 38,
-                alignment: Alignment.center,
-                decoration: BoxDecoration(
-                  color: C.monogramOpen,
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: Text(
-                  download.kindLabel,
-                  style: ui(size: 11, weight: 600, color: C.monogramText),
-                ),
-              ),
+              // Plan 1's Monogram, parameterised — its open branch is already
+              // `C.monogramOpen` on `C.monogramText` at weight 600, which is
+              // exactly what the spec draws for this badge.
+              Monogram(download.kindLabel, size: 38, radius: 10, fontSize: 11),
               const SizedBox(width: 12),
               Expanded(
                 child: Column(
@@ -1818,7 +1815,7 @@ class HeldDownloadSheet extends StatelessWidget {
 
 - [ ] **Step 6: Run the widget test to verify it passes**
 
-Run: `flutter test test/ui/in_page/held_download_sheet_test.dart`
+Run: `flutter test test/ui/features/in_page/held_download_sheet_test.dart`
 Expected: PASS, 2 tests.
 
 - [ ] **Step 7: Run the analyzer**
@@ -1829,7 +1826,7 @@ Expected: `No issues found!`
 - [ ] **Step 8: Commit**
 
 ```bash
-git add lib/domain/held_download.dart lib/ui/in_page/held_download_sheet.dart test/domain/held_download_test.dart test/ui/in_page/held_download_sheet_test.dart
+git add lib/domain/models/held_download.dart lib/ui/features/in_page/views/held_download_sheet.dart test/domain/held_download_test.dart test/ui/features/in_page/held_download_sheet_test.dart
 git commit -m "feat: add held download sheet (spec 7c)"
 ```
 
@@ -1838,10 +1835,10 @@ git commit -m "feat: add held download sheet (spec 7c)"
 ## Task 7: Today log (spec `5c`)
 
 **Files:**
-- Create: `lib/domain/blocked_tally.dart`
-- Create: `lib/ui/report/today_screen.dart`
+- Create: `lib/domain/models/blocked_tally.dart`
+- Create: `lib/ui/features/report/views/today_screen.dart`
 - Test: `test/domain/blocked_tally_test.dart`
-- Test: `test/ui/report/today_screen_test.dart`
+- Test: `test/ui/features/report/today_screen_test.dart`
 
 **Interfaces:**
 - Consumes: `C`, `ui`, `T` (Plan 1 Task 1).
@@ -1859,7 +1856,7 @@ Create `test/domain/blocked_tally_test.dart`:
 
 ```dart
 import 'package:flutter_test/flutter_test.dart';
-import 'package:container/domain/blocked_tally.dart';
+import 'package:container/domain/models/blocked_tally.dart';
 
 BlockedTally _tally() => const BlockedTally(
       categories: [
@@ -1896,6 +1893,14 @@ void main() {
     expect(categoryFraction(tally, BlockedCategory.permissionAsks), closeTo(2 / 198, 0.0001));
   });
 
+  test('a category missing from a non-empty tally reads as zero, not a crash', () {
+    const partial = BlockedTally(
+      categories: [CategoryTally(category: BlockedCategory.trackers, count: 9)],
+      sites: [],
+    );
+    expect(categoryFraction(partial, BlockedCategory.ads), 0);
+  });
+
   test('an empty tally has no total and does not divide by zero', () {
     const empty = BlockedTally(categories: [], sites: []);
     expect(empty.total, 0);
@@ -1912,7 +1917,7 @@ Expected: FAIL — missing file.
 
 - [ ] **Step 3: Write `BlockedTally`**
 
-Create `lib/domain/blocked_tally.dart`:
+Create `lib/domain/models/blocked_tally.dart`:
 
 ```dart
 /// What a category of request was blocked for. Order matches spec `5c`.
@@ -1963,7 +1968,16 @@ double categoryFraction(BlockedTally tally, BlockedCategory category) {
   if (tally.categories.isEmpty) return 0;
   final max = tally.categories.map((c) => c.count).reduce((a, b) => a > b ? a : b);
   if (max == 0) return 0;
-  final entry = tally.categories.firstWhere((c) => c.category == category);
+  // A category simply absent from a non-empty tally is not an error. The
+  // first real feed for this screen is Plan 3's `FilterEngine`, which counts
+  // total blocks and does not yet tag them by reason (CLAUDE.md carries
+  // "FilterEngine category tagging" as unassigned work) — so a partial list
+  // is what it will hand over, and an unguarded `firstWhere` would throw on
+  // the day it does.
+  final entry = tally.categories.firstWhere(
+    (c) => c.category == category,
+    orElse: () => CategoryTally(category: category, count: 0),
+  );
   return entry.count / max;
 }
 ```
@@ -1971,17 +1985,17 @@ double categoryFraction(BlockedTally tally, BlockedCategory category) {
 - [ ] **Step 4: Run it to verify it passes**
 
 Run: `flutter test test/domain/blocked_tally_test.dart`
-Expected: PASS, 5 tests.
+Expected: PASS, 6 tests.
 
 - [ ] **Step 5: Write the failing widget test**
 
-Create `test/ui/report/today_screen_test.dart`:
+Create `test/ui/features/report/today_screen_test.dart`:
 
 ```dart
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:container/domain/blocked_tally.dart';
-import 'package:container/ui/report/today_screen.dart';
+import 'package:container/domain/models/blocked_tally.dart';
+import 'package:container/ui/features/report/views/today_screen.dart';
 
 void main() {
   const tally = BlockedTally(
@@ -2038,19 +2052,20 @@ void main() {
 
 - [ ] **Step 6: Run it to verify it fails**
 
-Run: `flutter test test/ui/report/today_screen_test.dart`
+Run: `flutter test test/ui/features/report/today_screen_test.dart`
 Expected: FAIL — missing file.
 
 - [ ] **Step 7: Write `TodayScreen`**
 
-Create `lib/ui/report/today_screen.dart`:
+Create `lib/ui/features/report/views/today_screen.dart`:
 
 ```dart
 import 'package:flutter/material.dart';
 
-import '../../domain/blocked_tally.dart';
-import '../core/tokens.dart';
-import '../core/typography.dart';
+import '../../../../domain/models/blocked_tally.dart';
+import '../../../core/tokens.dart';
+import '../../../core/typography.dart';
+import '../../../core/widgets/monogram.dart';
 
 /// Spec `5c` — a quiet log, not a dashboard of scary numbers. Reachable
 /// from the dashboard menu, never pushed as a notification (turn 5's note).
@@ -2198,13 +2213,10 @@ class _SiteRow extends StatelessWidget {
         children: [
           Row(
             children: [
-              Container(
-                width: 32,
-                height: 32,
-                alignment: Alignment.center,
-                decoration: BoxDecoration(color: C.raised, borderRadius: BorderRadius.circular(9)),
-                child: Text(site.monogram, style: ui(size: 12.5, weight: 600, color: C.textMuted)),
-              ),
+              // `open: false` is Monogram's idle treatment — `C.raised` on
+              // `C.textMuted` — which is what `5c` draws for a site that is
+              // being reported on rather than running.
+              Monogram(site.monogram, size: 32, radius: 9, fontSize: 12.5, open: false),
               const SizedBox(width: 11),
               Text(site.name, style: ui(size: 14, color: C.textSecondary)),
             ],
@@ -2219,7 +2231,7 @@ class _SiteRow extends StatelessWidget {
 
 - [ ] **Step 8: Run it to verify it passes**
 
-Run: `flutter test test/ui/report/today_screen_test.dart`
+Run: `flutter test test/ui/features/report/today_screen_test.dart`
 Expected: PASS, 1 test.
 
 - [ ] **Step 9: Run the analyzer**
@@ -2230,7 +2242,7 @@ Expected: `No issues found!`
 - [ ] **Step 10: Commit**
 
 ```bash
-git add lib/domain/blocked_tally.dart lib/ui/report/today_screen.dart test/domain/blocked_tally_test.dart test/ui/report/today_screen_test.dart
+git add lib/domain/models/blocked_tally.dart lib/ui/features/report/views/today_screen.dart test/domain/blocked_tally_test.dart test/ui/features/report/today_screen_test.dart
 git commit -m "feat: add Today log (spec 5c)"
 ```
 
@@ -2241,10 +2253,10 @@ git commit -m "feat: add Today log (spec 5c)"
 This task and Task 9 are the "failure states" half of this plan's title. They consume Plan 3 Task 2's `RouteFailure` and `refusalMessage()` — build Plan 3 through at least that task before starting here, or stub `lib/domain/models/route_decision.dart` locally with the signatures Plan 3's Task 2 defines.
 
 **Files:**
-- Create: `lib/domain/route_failure_copy.dart`
-- Create: `lib/ui/in_page/proxy_unreachable_screen.dart`
+- Create: `lib/domain/models/route_failure_copy.dart`
+- Create: `lib/ui/features/in_page/views/proxy_unreachable_screen.dart`
 - Test: `test/domain/route_failure_copy_test.dart`
-- Test: `test/ui/in_page/proxy_unreachable_screen_test.dart`
+- Test: `test/ui/features/in_page/proxy_unreachable_screen_test.dart`
 
 **Interfaces:**
 - Consumes: `RouteFailure`, `refusalMessage()` from Plan 3 Task 2 (`lib/domain/models/route_decision.dart`); `PillButton`, `PillTone` (Plan 1 Task 2); `C`, `ui` (Plan 1 Task 1).
@@ -2262,7 +2274,7 @@ Create `test/domain/route_failure_copy_test.dart`:
 ```dart
 import 'package:flutter_test/flutter_test.dart';
 import 'package:container/domain/models/route_decision.dart';
-import 'package:container/domain/route_failure_copy.dart';
+import 'package:container/domain/models/route_failure_copy.dart';
 
 void main() {
   test('the one failure the spec draws gets its exact pinned headline', () {
@@ -2288,23 +2300,38 @@ void main() {
     );
   });
 
-  test('every failure names the site and ends on the same reassurance', () {
+  test('every failure with a tunnel names the site and ends on the same reassurance', () {
     for (final failure in RouteFailure.values) {
+      if (failure == RouteFailure.misconfigured) continue;
       final detail = proxyFailureDetail(failure, siteName: 'Forum', tunnelDescriptor: 'the tunnel');
       expect(detail, contains('Forum'));
       expect(detail, endsWith('The page was not loaded, so no request left your device.'));
     }
   });
+
+  test('misconfigured has no detail sentence, because the spec writes none', () {
+    // Its headline already says there is no proxy configured; the generic
+    // sentence would then name the tunnel the site goes through. Rather than
+    // invent copy the spec never wrote, the screen shows the headline alone.
+    expect(
+      proxyFailureDetail(
+        RouteFailure.misconfigured,
+        siteName: 'Forum',
+        tunnelDescriptor: 'the tunnel',
+      ),
+      isNull,
+    );
+  });
 }
 ```
 
-Create `test/ui/in_page/proxy_unreachable_screen_test.dart`:
+Create `test/ui/features/in_page/proxy_unreachable_screen_test.dart`:
 
 ```dart
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:container/domain/models/route_decision.dart';
-import 'package:container/ui/in_page/proxy_unreachable_screen.dart';
+import 'package:container/ui/features/in_page/views/proxy_unreachable_screen.dart';
 
 void main() {
   Widget host({
@@ -2351,7 +2378,10 @@ void main() {
 
   testWidgets('a different failure headlines with its own refusal message', (tester) async {
     await tester.pumpWidget(host(failure: RouteFailure.proxyRefused));
-    expect(find.text('The proxy refused the destination'), findsOneWidget);
+    // Assert against Plan 3's function, not a copy of the string it returns.
+    // A duplicated string keeps passing when Plan 3 rewords the message, then
+    // fails here looking like a Plan 4 bug.
+    expect(find.text(refusalMessage(RouteFailure.proxyRefused)), findsOneWidget);
   });
 
   testWidgets('each button reports its own callback', (tester) async {
@@ -2377,17 +2407,17 @@ void main() {
 
 - [ ] **Step 2: Run the tests to verify they fail**
 
-Run: `flutter test test/domain/route_failure_copy_test.dart test/ui/in_page/proxy_unreachable_screen_test.dart`
+Run: `flutter test test/domain/route_failure_copy_test.dart test/ui/features/in_page/proxy_unreachable_screen_test.dart`
 Expected: FAIL — missing files (or, if Plan 3 is not yet built, a missing `route_decision.dart`; build Plan 3 Task 2 first).
 
 - [ ] **Step 3: Write `route_failure_copy.dart`**
 
-Create `lib/domain/route_failure_copy.dart`:
+Create `lib/domain/models/route_failure_copy.dart`:
 
 ```dart
-import 'models/route_decision.dart';
+import 'route_decision.dart';
 
-export 'models/route_decision.dart' show RouteFailure;
+export 'route_decision.dart' show RouteFailure;
 
 /// Screen `8b` draws only [RouteFailure.proxyUnreachable]; its headline is
 /// pinned verbatim from the spec card. The other four kinds reuse Plan 3's
@@ -2399,16 +2429,33 @@ String proxyFailureHeadline(RouteFailure failure) {
   return refusalMessage(failure);
 }
 
-/// The explanatory sentence under the headline. Only the unreachable case is
-/// drawn, so only its first half is pinned; the rest share a generic first
-/// half rather than inventing four bespoke paragraphs the spec never wrote.
-/// The closing sentence is the same for every kind: no request ever left the
-/// device, because the interceptor refuses before it opens a socket.
-String proxyFailureDetail(
+/// The explanatory sentence under the headline, or `null` when the spec gives
+/// us nothing to say.
+///
+/// Only [RouteFailure.proxyUnreachable] is drawn, so only its wording is
+/// pinned. [RouteFailure.proxyRefused], [RouteFailure.upstreamTimeout] and
+/// [RouteFailure.tlsFailure] share a generic first half: all three describe a
+/// tunnel that exists and did not work, so naming it is accurate.
+///
+/// [RouteFailure.misconfigured] returns `null`. Its headline is "This site
+/// has no proxy configured", and the generic sentence would say the site "is
+/// set to go through" a tunnel — denying a proxy exists and naming one in
+/// consecutive sentences. The spec draws no copy for that state (a grep of
+/// the canvas file finds none), and a string that is not in the spec is a
+/// design question rather than something to invent here, so the screen shows
+/// the headline alone.
+///
+/// The cost is real and is recorded in this plan's Known gaps: the closing
+/// reassurance — no request left your device — is the sentence a user most
+/// wants on a failure screen, and `misconfigured` is the one kind that now
+/// does not get it.
+String? proxyFailureDetail(
   RouteFailure failure, {
   required String siteName,
   required String tunnelDescriptor,
 }) {
+  if (failure == RouteFailure.misconfigured) return null;
+
   final cause = failure == RouteFailure.proxyUnreachable
       ? '$siteName is set to go through $tunnelDescriptor and nothing is listening there.'
       : '$siteName is set to go through $tunnelDescriptor, which did not complete the connection.';
@@ -2421,19 +2468,19 @@ Note: `lib/domain/models/route_decision.dart` is Plan 3 Task 2's file, not this 
 - [ ] **Step 4: Run the domain test to verify it passes**
 
 Run: `flutter test test/domain/route_failure_copy_test.dart`
-Expected: PASS, 4 tests.
+Expected: PASS, 5 tests.
 
 - [ ] **Step 5: Write `ProxyUnreachableScreen`**
 
-Create `lib/ui/in_page/proxy_unreachable_screen.dart`:
+Create `lib/ui/features/in_page/views/proxy_unreachable_screen.dart`:
 
 ```dart
 import 'package:flutter/material.dart';
 
-import '../../domain/route_failure_copy.dart';
-import '../core/tokens.dart';
-import '../core/typography.dart';
-import '../core/widgets/pill_button.dart';
+import '../../../../domain/models/route_failure_copy.dart';
+import '../../../core/tokens.dart';
+import '../../../core/typography.dart';
+import '../../../core/widgets/pill_button.dart';
 
 /// Spec `8b` — no silent fallback, the risky option spelled out. This is the
 /// screen the interceptor's refusal (Plan 3) surfaces to: a route that could
@@ -2462,6 +2509,14 @@ class ProxyUnreachableScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Null for `misconfigured` — see `proxyFailureDetail`. The headline then
+    // stands alone rather than carrying invented copy.
+    final detail = proxyFailureDetail(
+      failure,
+      siteName: siteName,
+      tunnelDescriptor: tunnelDescriptor,
+    );
+
     return Scaffold(
       backgroundColor: C.bg,
       body: SafeArea(
@@ -2490,11 +2545,13 @@ class ProxyUnreachableScreen extends StatelessWidget {
                       proxyFailureHeadline(failure),
                       style: ui(size: 19, weight: 600, letterSpacing: -0.19),
                     ),
-                    const SizedBox(height: 18),
-                    Text(
-                      proxyFailureDetail(failure, siteName: siteName, tunnelDescriptor: tunnelDescriptor),
-                      style: ui(size: 13.5, height: 1.7, color: C.textMuted),
-                    ),
+                    if (detail != null) ...[
+                      const SizedBox(height: 18),
+                      Text(
+                        detail,
+                        style: ui(size: 13.5, height: 1.7, color: C.textMuted),
+                      ),
+                    ],
                     const SizedBox(height: 18),
                     Container(
                       width: double.infinity,
@@ -2608,7 +2665,7 @@ class _InfoRow extends StatelessWidget {
 
 - [ ] **Step 6: Run the widget test to verify it passes**
 
-Run: `flutter test test/ui/in_page/proxy_unreachable_screen_test.dart`
+Run: `flutter test test/ui/features/in_page/proxy_unreachable_screen_test.dart`
 Expected: PASS, 3 tests.
 
 - [ ] **Step 7: Run the analyzer**
@@ -2619,7 +2676,7 @@ Expected: `No issues found!`
 - [ ] **Step 8: Commit**
 
 ```bash
-git add lib/domain/route_failure_copy.dart lib/ui/in_page/proxy_unreachable_screen.dart test/domain/route_failure_copy_test.dart test/ui/in_page/proxy_unreachable_screen_test.dart
+git add lib/domain/models/route_failure_copy.dart lib/ui/features/in_page/views/proxy_unreachable_screen.dart test/domain/route_failure_copy_test.dart test/ui/features/in_page/proxy_unreachable_screen_test.dart
 git commit -m "feat: add proxy unreachable screen (spec 8b)"
 ```
 
@@ -2628,8 +2685,8 @@ git commit -m "feat: add proxy unreachable screen (spec 8b)"
 ## Task 9: Tunnel dropped mid-session (spec `8c`)
 
 **Files:**
-- Create: `lib/ui/in_page/tunnel_dropped_screen.dart`
-- Test: `test/ui/in_page/tunnel_dropped_screen_test.dart`
+- Create: `lib/ui/features/in_page/views/tunnel_dropped_screen.dart`
+- Test: `test/ui/features/in_page/tunnel_dropped_screen_test.dart`
 
 **Interfaces:**
 - Consumes: `PageSkeleton` (Task 1); `C`, `ui` (Plan 1 Task 1). Does **not** import `RouteFailure` — spec `8c` is a single fixed state ("Tunnel dropped"), not one branching per failure kind, so it needs no copy table.
@@ -2640,12 +2697,12 @@ git commit -m "feat: add proxy unreachable screen (spec 8b)"
 
 - [ ] **Step 1: Write the failing test**
 
-Create `test/ui/in_page/tunnel_dropped_screen_test.dart`:
+Create `test/ui/features/in_page/tunnel_dropped_screen_test.dart`:
 
 ```dart
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:container/ui/in_page/tunnel_dropped_screen.dart';
+import 'package:container/ui/features/in_page/views/tunnel_dropped_screen.dart';
 
 void main() {
   Widget host({VoidCallback? onReconnect, VoidCallback? onCloseAndWipe}) {
@@ -2694,19 +2751,19 @@ void main() {
 
 - [ ] **Step 2: Run it to verify it fails**
 
-Run: `flutter test test/ui/in_page/tunnel_dropped_screen_test.dart`
+Run: `flutter test test/ui/features/in_page/tunnel_dropped_screen_test.dart`
 Expected: FAIL — missing file.
 
 - [ ] **Step 3: Write `TunnelDroppedScreen`**
 
-Create `lib/ui/in_page/tunnel_dropped_screen.dart`:
+Create `lib/ui/features/in_page/views/tunnel_dropped_screen.dart`:
 
 ```dart
 import 'package:flutter/material.dart';
 
-import '../core/tokens.dart';
-import '../core/typography.dart';
-import '../core/widgets/page_skeleton.dart';
+import '../../../core/tokens.dart';
+import '../../../core/typography.dart';
+import '../../../core/widgets/page_skeleton.dart';
 
 /// Spec `8c` — the page freezes and the decision surfaces at the top,
 /// instead of a dialog stealing focus from a page the user was reading.
@@ -2889,7 +2946,7 @@ class _TunnelActionButton extends StatelessWidget {
 
 - [ ] **Step 4: Run the widget test to verify it passes**
 
-Run: `flutter test test/ui/in_page/tunnel_dropped_screen_test.dart`
+Run: `flutter test test/ui/features/in_page/tunnel_dropped_screen_test.dart`
 Expected: PASS, 2 tests.
 
 - [ ] **Step 5: Run the whole plan's suite and the analyzer**
@@ -2900,7 +2957,7 @@ Expected: all passing, `No issues found!`
 - [ ] **Step 6: Commit**
 
 ```bash
-git add lib/ui/in_page/tunnel_dropped_screen.dart test/ui/in_page/tunnel_dropped_screen_test.dart
+git add lib/ui/features/in_page/views/tunnel_dropped_screen.dart test/ui/features/in_page/tunnel_dropped_screen_test.dart
 git commit -m "feat: add tunnel dropped mid-session banner (spec 8c)"
 ```
 
@@ -2909,7 +2966,7 @@ git commit -m "feat: add tunnel dropped mid-session banner (spec 8c)"
 ## Known gaps this plan deliberately leaves
 
 - **Nothing in this plan is wired to a live event.** Every screen here is pure and reachable only by a caller that already has its data — a `PermissionRequestSheet` shown because a WebView actually asked, a `TunnelDroppedScreen` shown because a connection actually failed. Plan 3 owns firing them at the right moment; this plan owns what appears once it does.
-- **Four of the five `RouteFailure` copy pairs are this plan's invention, not the spec's.** `proxyFailureHeadline`/`proxyFailureDetail` pin `proxyUnreachable` exactly as drawn and generalise the other four from Plan 3's technical `refusalMessage()` strings. If the design ever draws `8b` for `proxyRefused`, `upstreamTimeout`, `tlsFailure` or `misconfigured`, that copy should be checked against this plan's guess and corrected here, not treated as already settled.
+- **Three of the five `RouteFailure` copy pairs are this plan's invention, and a fourth has no copy at all.** `proxyFailureHeadline`/`proxyFailureDetail` pin `proxyUnreachable` exactly as drawn and generalise `proxyRefused`, `upstreamTimeout` and `tlsFailure` from Plan 3's technical `refusalMessage()` strings. **`misconfigured` renders a headline with no detail sentence.** The generic sentence contradicted its own headline — it names a tunnel for the one state that means no tunnel is set — and the spec writes nothing for it, so nothing was invented in its place. The visible cost is that `misconfigured` is now the only failure that does not tell the user no request left their device, which is the most reassuring sentence on the screen. **That is an open design question, not a settled decision:** `8b` needs either a drawn `misconfigured` variant or an explicit ruling that the headline stands alone. If the design ever draws `8b` for the other kinds, that copy should be checked against this plan's guess and corrected here rather than treated as already settled.
 - **The Today log has no live data source.** `BlockedTally` is a plain value; nothing in this plan builds one from `FilterEngine`'s `blockedCount` or a per-category breakdown. Plan 3's `FilterEngine` counts total blocks only, not by category — a real `BlockedTally` needs the filter engine to tag *why* it blocked something, which is new work for whichever plan wires this screen up.
 - **The category bar's proportions are computed, not copied.** `categoryFraction` scales every bar to the largest category, which is a defensible rule but not the spec's own (non-derivable) mock percentages. Flagged once above in `blocked_tally.dart`'s doc comment; repeated here because it is a visible, judged deviation.
 - **Reader mode never extracts an article.** `ReaderArticle` is rendered, not produced. Turning a live page into `host` / `title` / `paragraphs` / `minutesToRead` (a readability pass) is unbuilt and unassigned to any plan so far.
