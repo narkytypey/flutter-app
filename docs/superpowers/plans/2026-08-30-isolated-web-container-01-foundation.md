@@ -2428,8 +2428,8 @@ This is the task that makes the app real: launching it shows seeded data, and sw
   - `class WorkspaceMenu extends StatelessWidget { WorkspaceMenu({required List<WorkspaceOption> options, required void Function(String id) onPick}) }`
   - `String workspaceMeta({required Workspace workspace, required int siteCount, required int openCount})`
   - `class EmptyWorkspace extends StatelessWidget` — no parameters; its copy is fixed by the spec
-  - Providers: `databaseProvider`, `workspaceRepositoryProvider`, `siteRepositoryProvider`, `activeWorkspaceIdProvider`, `openSiteIdsProvider`, `leakCountProvider`, `dashboardProvider`
-  - `class DashboardScreen extends ConsumerWidget`
+  - Providers: `databaseProvider`, `workspaceRepositoryProvider`, `siteRepositoryProvider`, `activeWorkspaceIdProvider`, `openSiteIdsProvider`, `leakCountProvider`, `workspacesProvider`, `workspaceOptionsProvider`, `dashboardProvider`
+  - `class DashboardScreen extends ConsumerStatefulWidget` — stateful because the workspace menu's open/closed flag (`_menuOpen`) is local UI state; a `StateProvider` for it would leak view state into the provider graph
 
 - [ ] **Step 1: Write the failing workspace-menu test**
 
