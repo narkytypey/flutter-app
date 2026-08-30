@@ -513,7 +513,7 @@ Build only the five primitives the dashboard and its empty state need. Later pla
   - `SectionLabel(String text, {bool live = false})`
   - `Monogram(String text, {double size = 36, double radius = 10, double fontSize = 14, bool open = true})`
   - `StatusRail({required bool live})`
-  - `PillButton({required String label, required VoidCallback? onTap, PillTone tone = PillTone.neutral, double height = 48, double? radius})` with `enum PillTone { primary, neutral, dangerOutline }`
+  - `PillButton({required String label, required VoidCallback? onTap, String? sublabel, PillTone tone = PillTone.neutral, double height = 48, double? radius})` with `enum PillTone { primary, neutral, dangerOutline }`
   - `DashedBox({required double size, required double radius, Color color = C.line16})`
 
 - [ ] **Step 1: Write the failing primitives test**
