@@ -48,6 +48,12 @@ abstract final class C {
   static const chevron = Color(0xFF7E8583);
   static const tabInactive = Color(0xFF767D7B);
 
+  // Reader mode — its own warm palette, spec `6b` only.
+  static const readerMuted = Color(0xFF8A857C);
+  static const readerTitle = Color(0xFFEDE7DC);
+  static const readerBody = Color(0xFFCFC8BC);
+  static const readerHost = Color(0xFF7C776E);
+
   // State
   static const jade = Color(0xFF7FC8A9);
   static const jadeCode = Color(0xFF9FD8C0);
