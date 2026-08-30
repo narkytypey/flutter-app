@@ -101,17 +101,18 @@ files before running them, not during.
    the full diff, and "Rulings recorded while fixing issue #2" below for the
    design calls made along the way.
 
-3. **Plan 1 `Vault` vs Plan 2 `VaultId` naming collision — still open.**
-   Plan 1 defines `enum Vault { a, b }` in `app_database.dart`; Plan 2
-   defines `enum VaultId { a, b }` in `vault.dart`. Same concept, two names.
-   Plan 2 must consolidate — either remove Plan 1's `Vault` enum or alias
-   it. Fixing issue #2 needed a file path per `VaultId`, and deliberately
-   did *not* fold this resolution in — `session_controller.dart`'s
-   `vaultDatabasePath` bridges the two enums with an index lookup
-   (`Vault.values[vault.index]`) rather than resolving the collision, so
-   that closing issue #2 didn't also require a Plan 1 change out of its
-   scope. Whoever picks up issue #3 should delete that bridge once a single
-   enum exists.
+3. **✅ Fixed 2026-08-31 (by flutter-app-6d, as part of Plan 2 Task 4). Plan 1
+   `Vault` vs Plan 2 `VaultId` naming collision.** Plan 1 defined
+   `enum Vault { a, b }` in `app_database.dart`; Plan 2 defines
+   `enum VaultId { a, b }` in `vault.dart`. Same concept, two names. Task 4's
+   own Step 6 was written to fix exactly this, so it was resolved in the same
+   commit as that task rather than separately: `Vault` is deleted,
+   `vaultFileName` now takes `VaultId`, and the two call sites the plan
+   didn't list (`lib/main.dart`'s `Vault.a`, and `test/data/repositories_test.dart`'s
+   two `Vault.a`/`Vault.b` uses) were fixed too, since the analyzer flagged
+   both once the enum was gone. `session_controller.dart` (Plan 2 Task 8)
+   does not exist yet in the tree, so there was no `vaultDatabasePath` bridge
+   to delete — Task 8 will simply never need one.
 
 4. **✅ Fixed 2026-08-30 (by flutter-app-42). Plan 3 Task 1's schema
    migration and its test both targeted a phantom `openVault()` function
@@ -204,6 +205,28 @@ Task 1 in parallel off `plan-01-foundation`, before merging back.
     is a test-canvas mismatch, not a real layout bug for the phone screens
     this app targets. Fixed by setting `tester.view.physicalSize` to a
     portrait size in `_pump`, in both the plan file and the test.
+
+13. **✅ Fixed 2026-08-31 (by flutter-app-6d).** Plan 2 Task 4's own
+    `vault_store_test.dart` reuses `FakeCrypto` from
+    `test/domain/vault_unlocker_test.dart` (`show FakeCrypto`), but that
+    fake's `randomBytes(length)` returned the same `List.filled(length, 7)`
+    on every call — deterministic, not random. `VaultStore.provision` calls
+    it once per salt, so vault A and vault B always got byte-identical
+    salts, failing the plan's own test "the two slots have different
+    salts." Separately, `FakeCrypto.deriveKek`'s simulated KEK length was
+    `pin.length`-dependent (`'$pin|$saltJoin'.codeUnits`), so a 6-digit PIN
+    and a 32-character generated `provisionUnopenable` PIN produced
+    different-length wrapped keys — failing "both slots are the same size
+    whether or not a decoy is real," the exact invariant the design depends
+    on to keep a decoy indistinguishable from a real vault. Real Argon2id
+    always emits a fixed-length key regardless of input length; the fake
+    didn't model that. Fixed by making `randomBytes` counter-seeded (varies
+    per call) and `deriveKek` a fixed-length (32-byte) hash of pin+salt
+    (FNV-1a seed, splitmix64 expansion) — both only in the test fixture,
+    `lib/domain/services/crypto_service.dart`'s contract is unchanged.
+    Verified `vault_unlocker_test.dart`'s own 7 tests still pass, since none
+    of them call `randomBytes` and `deriveKek`'s output remains a
+    deterministic function of (pin, salt).
 
 ## Rulings recorded while fixing issue #2 (2026-08-30, flutter-app-1e)
 

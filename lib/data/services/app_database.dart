@@ -1,8 +1,9 @@
 import 'dart:math';
 
-import 'package:sqflite/sqflite.dart';
+import 'package:sqflite_sqlcipher/sqflite.dart';
 
 import '../../domain/models/site.dart';
+import '../../domain/models/vault.dart';
 import '../../domain/models/workspace.dart';
 
 /// 128 bits of entropy, hex-encoded. Used to name WebView profiles.
@@ -17,11 +18,9 @@ String newProfileId() {
 /// The vaults are peers. Neither is named for its role on disk, because a file
 /// called `decoy.db` leaks precisely what the decoy exists to hide — and under
 /// the coerced-unlock threat model the attacker is looking at the device.
-enum Vault { a, b }
-
-String vaultFileName(Vault vault) => switch (vault) {
-      Vault.a => 'store-1.db',
-      Vault.b => 'store-2.db',
+String vaultFileName(VaultId vault) => switch (vault) {
+      VaultId.a => 'store-1.db',
+      VaultId.b => 'store-2.db',
     };
 
 /// One vault's store. Nothing here leaves the device.
@@ -40,12 +39,14 @@ class AppDatabase {
 
   static Future<AppDatabase> open({
     required String path,
+    String? password,
     DatabaseFactory? factory,
   }) async {
-    final open = factory?.openDatabase ?? databaseFactory.openDatabase;
-    final db = await open(
+    final openDb = factory?.openDatabase ?? databaseFactory.openDatabase;
+    final db = await openDb(
       path,
-      options: OpenDatabaseOptions(
+      options: SqlCipherOpenDatabaseOptions(
+        password: password,
         version: schemaVersion,
         onConfigure: (db) => db.execute('PRAGMA foreign_keys = ON'),
         onCreate: (db, _) async {
