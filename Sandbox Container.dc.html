@@ -1,0 +1,1536 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet data-dc-atomics><script src="./doc-page.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>doc-page:not(:defined){visibility:hidden}
+*{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+*{animation-delay:-99s !important;animation-duration:.001s !important;animation-iteration-count:1 !important;animation-fill-mode:both !important;animation-play-state:running !important;transition-duration:0s !important}
+body{margin:0;font-family:'Figtree',system-ui,sans-serif}
+h1.doc-title{font:600 26px/1.2 'Figtree',system-ui,sans-serif;color:#141614;margin:0 0 6px;letter-spacing:-.02em}
+p.doc-sub{font:400 13px/1.6 'Figtree',system-ui,sans-serif;color:rgba(0,0,0,.55);margin:0 0 26px}
+.dv-card{width:444px;height:924px;transform:scale(.46);transform-origin:top left;margin-bottom:-500px}
+.dv-opt{width:206px;overflow:hidden;break-inside:avoid}
+a{color:#2a78d6}a:hover{color:#1b5aa8}
+.dv-turn{break-before:page;padding:0 0 10px;border:none}
+.dv-turn:first-of-type{break-before:auto}
+.dv-thd{display:flex;align-items:baseline;gap:10px;margin:0 0 20px}
+.dv-tid{font:600 10px 'Figtree',system-ui,sans-serif;padding:3px 7px;background:#1a1a1a;color:#fff;border-radius:4px;text-decoration:none}
+.dv-tname{font:600 13px/1.2 'Figtree',system-ui,sans-serif;color:#1a1a1a}
+.dv-opts{display:flex;flex-wrap:wrap;gap:20px;align-items:flex-start}
+.dv-olabel{font-size:10px}
+.dv-oid{font:600 10.5px 'Figtree',system-ui,sans-serif;padding:3px 7px;background:rgba(0,0,0,.08);color:#1a1a1a;border-radius:5px;text-decoration:none}
+.dv-olabel{display:flex;align-items:baseline;gap:8px;font:400 11px/1.3 'Figtree',system-ui,sans-serif;color:rgba(0,0,0,.55)}
+.dv-opt:target .dv-oid{background:#2a78d6;color:#fff}
+.dv-next{margin:22px 0 0;font:12px/1.5 'Figtree',system-ui,sans-serif;color:rgba(0,0,0,.5)}
+.dv-note{max-width:620px;margin:0 0 16px;font:13px/1.6 'Figtree',system-ui,sans-serif;color:rgba(0,0,0,.62)}</style></helmet>
+
+<doc-page margin="0.5in">
+<h1 class="doc-title">Isolated Web Container — screen set</h1>
+<p class="doc-sub">Android, dark theme. Turns 10 to 1, newest first.</p>
+<section class="dv-turn" id="t10">
+<div class="dv-thd"><a class="dv-tid" href="#t10">10</a><span class="dv-tname">Workspaces, scripts and filter lists</span></div>
+<p class="dv-note">Deleting a workspace is the one place a count of what disappears is worth showing. Scripts get a central home so a rule can apply to several sites without being retyped in each.</p>
+<div class="dv-opts">
+
+<div class="dv-opt" id="10a"><div class="dv-olabel"><a class="dv-oid" href="#10a">10a</a>Workspaces — what each one keeps</div>
+<div class="dv-card">
+<x-import component-from-global-scope="AndroidDevice" from="./android-frame.jsx" dark="{{ true }}" hint-size="428px,908px">
+<div style="height:100%;background:#0F1113;display:flex;flex-direction:column;font-family:'Figtree',system-ui,sans-serif">
+  <div style="padding:14px 18px 12px;border-bottom:1px solid rgba(255,255,255,.06);display:flex;align-items:center;gap:10px">
+    <span style="font-size:16px;color:#9AA1A0">‹</span>
+    <span style="font-size:16px;font-weight:600;color:#E8E9E7">Workspaces</span>
+  </div>
+  <div style="flex:1;overflow:auto;padding:8px 18px 18px">
+    <div style="display:flex;align-items:center;gap:12px;padding:16px 0;border-bottom:1px solid rgba(255,255,255,.06)">
+      <div style="width:8px;height:8px;border-radius:2px;background:#7FC8A9"></div>
+      <div style="flex:1;display:flex;flex-direction:column;gap:4px">
+        <span style="font-size:15px;font-weight:500;color:#E8E9E7">Personal</span>
+        <span style="font-size:11.5px;color:#6E7573">6 sites · cookies kept · 12 MB</span>
+      </div>
+      <span style="font-size:14px;color:#6E7573">›</span>
+    </div>
+    <div style="display:flex;align-items:center;gap:12px;padding:16px 0;border-bottom:1px solid rgba(255,255,255,.06)">
+      <div style="width:8px;height:8px;border-radius:2px;background:#8FA5C8"></div>
+      <div style="flex:1;display:flex;flex-direction:column;gap:4px">
+        <span style="font-size:15px;font-weight:500;color:#E8E9E7">Work</span>
+        <span style="font-size:11.5px;color:#6E7573">2 sites · cookies kept · 3 MB</span>
+      </div>
+      <span style="font-size:14px;color:#6E7573">›</span>
+    </div>
+    <div style="display:flex;align-items:center;gap:12px;padding:16px 0;border-bottom:1px solid rgba(255,255,255,.06)">
+      <div style="width:8px;height:8px;border-radius:2px;background:#8A918F"></div>
+      <div style="flex:1;display:flex;flex-direction:column;gap:4px">
+        <span style="font-size:15px;font-weight:500;color:#E8E9E7">Ephemeral</span>
+        <span style="font-size:11.5px;color:#6E7573">1 site · wipes on exit · nothing stored</span>
+      </div>
+      <span style="font-size:14px;color:#6E7573">›</span>
+    </div>
+    <div style="display:flex;align-items:center;gap:11px;padding:20px 0 0">
+      <span style="font-size:17px;color:#7FC8A9;font-weight:300">+</span>
+      <span style="font-size:14.5px;font-weight:500;color:#7FC8A9">New workspace</span>
+    </div>
+    <span style="display:block;font-size:12px;line-height:1.6;color:#5F6664;padding-top:22px;text-wrap:pretty">The same site can live in more than one workspace. Each copy has its own login and its own history.</span>
+  </div>
+</div>
+</x-import>
+</div></div>
+
+<div class="dv-opt" id="10b"><div class="dv-olabel"><a class="dv-oid" href="#10b">10b</a>New workspace — name, marker, storage rule</div>
+<div class="dv-card">
+<x-import component-from-global-scope="AndroidDevice" from="./android-frame.jsx" dark="{{ true }}" hint-size="428px,908px">
+<div style="height:100%;background:#0F1113;display:flex;flex-direction:column;font-family:'Figtree',system-ui,sans-serif">
+  <div style="padding:12px 18px;display:flex;align-items:center;justify-content:space-between">
+    <span style="font-size:20px;color:#9AA1A0">×</span>
+    <span style="font-size:15px;font-weight:600;color:#E8E9E7">New workspace</span>
+    <span style="font-size:14px;font-weight:500;color:#7FC8A9">Save</span>
+  </div>
+  <div style="flex:1;overflow:auto;padding:14px 18px;display:flex;flex-direction:column;gap:20px">
+    <div style="display:flex;flex-direction:column;gap:8px">
+      <span style="font-size:10.5px;font-weight:600;letter-spacing:.1em;color:#6E7573">NAME</span>
+      <div style="height:46px;border-radius:12px;background:#15181B;border:1px solid rgba(127,200,169,.35);display:flex;align-items:center;padding:0 13px;font-size:14px;color:#D7DCDA">Research<span style="width:1.5px;height:18px;background:#7FC8A9;margin-left:2px"></span></div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:9px">
+      <span style="font-size:10.5px;font-weight:600;letter-spacing:.1em;color:#6E7573">MARKER</span>
+      <div style="display:flex;gap:12px">
+        <span style="width:30px;height:30px;border-radius:8px;background:#7FC8A9"></span>
+        <span style="width:30px;height:30px;border-radius:8px;background:#8FA5C8;border:2px solid #E8E9E7"></span>
+        <span style="width:30px;height:30px;border-radius:8px;background:#D6A45B"></span>
+        <span style="width:30px;height:30px;border-radius:8px;background:#C89BB4"></span>
+        <span style="width:30px;height:30px;border-radius:8px;background:#8A918F"></span>
+      </div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:9px">
+      <span style="font-size:10.5px;font-weight:600;letter-spacing:.1em;color:#6E7573">STORAGE</span>
+      <div style="display:flex;flex-direction:column;gap:1px;border-radius:12px;overflow:hidden;border:1px solid rgba(255,255,255,.08)">
+        <div style="padding:13px;background:#15181B;display:flex;align-items:center;justify-content:space-between">
+          <div style="display:flex;flex-direction:column;gap:3px"><span style="font-size:13.5px;color:#E8E9E7">Keep between sessions</span><span style="font-size:11px;color:#6E7573">Stays signed in</span></div>
+          <span style="width:16px;height:16px;border-radius:50%;border:5px solid #7FC8A9;background:#0F1113"></span>
+        </div>
+        <div style="padding:13px;background:#15181B;display:flex;align-items:center;justify-content:space-between">
+          <div style="display:flex;flex-direction:column;gap:3px"><span style="font-size:13.5px;color:#B9BFBD">Wipe when the app closes</span><span style="font-size:11px;color:#6E7573">Nothing survives a restart</span></div>
+          <span style="width:16px;height:16px;border-radius:50%;border:1.5px solid #3E4644"></span>
+        </div>
+      </div>
+    </div>
+    <div style="display:flex;align-items:center;justify-content:space-between;padding-top:4px">
+      <div style="display:flex;flex-direction:column;gap:3px"><span style="font-size:14px;color:#E8E9E7">Ask for PIN to enter</span><span style="font-size:11px;color:#6E7573">Applies to the whole workspace</span></div>
+      <div style="width:44px;height:26px;border-radius:20px;background:#232729;display:flex;align-items:center;padding:0 3px"><span style="width:20px;height:20px;border-radius:50%;background:#4A5150"></span></div>
+    </div>
+    <div style="display:flex;align-items:center;justify-content:space-between">
+      <div style="display:flex;flex-direction:column;gap:3px"><span style="font-size:14px;color:#E8E9E7">Show in decoy vault</span><span style="font-size:11px;color:#6E7573">Off keeps it invisible behind the second PIN</span></div>
+      <div style="width:44px;height:26px;border-radius:20px;background:#232729;display:flex;align-items:center;padding:0 3px"><span style="width:20px;height:20px;border-radius:50%;background:#4A5150"></span></div>
+    </div>
+  </div>
+</div>
+</x-import>
+</div></div>
+
+<div class="dv-opt" id="10c"><div class="dv-olabel"><a class="dv-oid" href="#10c">10c</a>Deleting — an itemised list of what goes, typed confirmation</div>
+<div class="dv-card">
+<x-import component-from-global-scope="AndroidDevice" from="./android-frame.jsx" dark="{{ true }}" hint-size="428px,908px">
+<div style="height:100%;background:#0F1113;display:flex;flex-direction:column;font-family:'Figtree',system-ui,sans-serif">
+  <div style="flex:1;opacity:.28;padding:16px 18px;display:flex;flex-direction:column;gap:20px">
+    <div style="height:14px;width:40%;border-radius:4px;background:#1B1F22"></div>
+    <div style="height:34px;border-radius:8px;background:#15181B"></div>
+    <div style="height:34px;border-radius:8px;background:#15181B"></div>
+  </div>
+  <div style="background:#141719;border-top:1px solid rgba(255,255,255,.09);border-radius:22px 22px 0 0;padding:22px 20px 20px;box-shadow:0 -20px 40px rgba(0,0,0,.55);display:flex;flex-direction:column;gap:16px">
+    <span style="font-size:17px;font-weight:600;color:#E8E9E7;letter-spacing:-.01em">Delete “Work”?</span>
+    <div style="display:flex;flex-direction:column;gap:1px;border-radius:14px;overflow:hidden;border:1px solid rgba(255,255,255,.08)">
+      <div style="padding:12px 14px;background:#15181B;display:flex;justify-content:space-between"><span style="font-size:13px;color:#B9BFBD">Sites removed</span><span style="font-size:13px;color:#E8E9E7">2</span></div>
+      <div style="padding:12px 14px;background:#15181B;display:flex;justify-content:space-between"><span style="font-size:13px;color:#B9BFBD">Logins destroyed</span><span style="font-size:13px;color:#E8E9E7">2</span></div>
+      <div style="padding:12px 14px;background:#15181B;display:flex;justify-content:space-between"><span style="font-size:13px;color:#B9BFBD">Stored data wiped</span><span style="font-size:13px;color:#E8E9E7">3 MB</span></div>
+      <div style="padding:12px 14px;background:#15181B;display:flex;justify-content:space-between"><span style="font-size:13px;color:#B9BFBD">Custom scripts kept</span><span style="font-size:13px;color:#8A918F">In the script library</span></div>
+    </div>
+    <span style="font-size:12.5px;line-height:1.6;color:#8A918F;text-wrap:pretty">This cannot be undone and there is no backup unless you made one yourself.</span>
+    <div style="display:flex;flex-direction:column;gap:8px">
+      <span style="font-size:11.5px;color:#6E7573">Type the name to confirm</span>
+      <div style="height:46px;border-radius:12px;background:#15181B;border:1px solid rgba(255,255,255,.1);display:flex;align-items:center;padding:0 13px;font-size:14px;color:#4A5150">Work</div>
+    </div>
+    <div style="display:flex;gap:9px">
+      <div style="flex:1;height:48px;border-radius:24px;background:#1C2124;display:flex;align-items:center;justify-content:center;font-size:14.5px;font-weight:500;color:#D7DCDA">Cancel</div>
+      <div style="flex:1;height:48px;border-radius:24px;background:#241C1D;border:1px solid rgba(214,106,90,.28);display:flex;align-items:center;justify-content:center;font-size:14.5px;font-weight:500;color:#8A6A62">Delete</div>
+    </div>
+  </div>
+</div>
+</x-import>
+</div></div>
+
+<div class="dv-opt" id="10d"><div class="dv-olabel"><a class="dv-oid" href="#10d">10d</a>Scripts and filters — one library, reused across sites</div>
+<div class="dv-card">
+<x-import component-from-global-scope="AndroidDevice" from="./android-frame.jsx" dark="{{ true }}" hint-size="428px,908px">
+<div style="height:100%;background:#0F1113;display:flex;flex-direction:column;font-family:'Figtree',system-ui,sans-serif">
+  <div style="padding:14px 18px 12px;border-bottom:1px solid rgba(255,255,255,.06);display:flex;align-items:center;gap:10px">
+    <span style="font-size:16px;color:#9AA1A0">‹</span>
+    <span style="font-size:16px;font-weight:600;color:#E8E9E7">Scripts and filters</span>
+  </div>
+  <div style="flex:1;overflow:auto;padding:18px">
+    <span style="display:block;font-size:10.5px;font-weight:600;letter-spacing:.1em;color:#6E7573;padding-bottom:4px">FILTER LISTS</span>
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 0;border-bottom:1px solid rgba(255,255,255,.06)">
+      <div style="display:flex;flex-direction:column;gap:3px"><span style="font-size:14px;color:#E8E9E7">Trackers and ads</span><span style="font-size:11.5px;color:#6E7573">84,102 rules · updated 2 days ago</span></div>
+      <div style="width:44px;height:26px;border-radius:20px;background:#7FC8A9;display:flex;align-items:center;justify-content:flex-end;padding:0 3px"><span style="width:20px;height:20px;border-radius:50%;background:#0F1113"></span></div>
+    </div>
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 0;border-bottom:1px solid rgba(255,255,255,.06)">
+      <div style="display:flex;flex-direction:column;gap:3px"><span style="font-size:14px;color:#E8E9E7">Cookie notices</span><span style="font-size:11.5px;color:#6E7573">11,430 rules · updated 2 days ago</span></div>
+      <div style="width:44px;height:26px;border-radius:20px;background:#7FC8A9;display:flex;align-items:center;justify-content:flex-end;padding:0 3px"><span style="width:20px;height:20px;border-radius:50%;background:#0F1113"></span></div>
+    </div>
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 0;border-bottom:1px solid rgba(255,255,255,.06)">
+      <div style="display:flex;flex-direction:column;gap:3px"><span style="font-size:14px;color:#E8E9E7">Social embeds</span><span style="font-size:11.5px;color:#6E7573">2,908 rules · off</span></div>
+      <div style="width:44px;height:26px;border-radius:20px;background:#232729;display:flex;align-items:center;padding:0 3px"><span style="width:20px;height:20px;border-radius:50%;background:#4A5150"></span></div>
+    </div>
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 0 4px">
+      <div style="display:flex;flex-direction:column;gap:4px">
+        <span style="font-size:13.5px;color:#D7DCDA">Update over the proxy</span>
+        <span style="font-size:11.5px;color:#6E7573">Next check in 5 days</span>
+      </div>
+      <div style="height:38px;padding:0 16px;border-radius:19px;background:#1C2124;display:flex;align-items:center;font-size:13px;font-weight:500;color:#D7DCDA">Update now</div>
+    </div>
+    <span style="display:block;font-size:10.5px;font-weight:600;letter-spacing:.1em;color:#6E7573;padding:24px 0 4px">MY SCRIPTS</span>
+    <div style="display:flex;align-items:center;gap:12px;padding:14px 0;border-bottom:1px solid rgba(255,255,255,.06)">
+      <div style="width:34px;height:34px;border-radius:9px;background:#181B1E;display:flex;align-items:center;justify-content:center;font-size:12px;color:#9FD8C0">CSS</div>
+      <div style="flex:1;display:flex;flex-direction:column;gap:3px"><span style="font-size:14px;color:#E8E9E7">Hide sticky headers</span><span style="font-size:11.5px;color:#6E7573">Applied to 4 sites</span></div>
+      <div style="width:44px;height:26px;border-radius:20px;background:#7FC8A9;display:flex;align-items:center;justify-content:flex-end;padding:0 3px"><span style="width:20px;height:20px;border-radius:50%;background:#0F1113"></span></div>
+    </div>
+    <div style="display:flex;align-items:center;gap:12px;padding:14px 0;border-bottom:1px solid rgba(255,255,255,.06)">
+      <div style="width:34px;height:34px;border-radius:9px;background:#181B1E;display:flex;align-items:center;justify-content:center;font-size:12px;color:#9FD8C0">CSS</div>
+      <div style="flex:1;display:flex;flex-direction:column;gap:3px"><span style="font-size:14px;color:#E8E9E7">Wider reading column</span><span style="font-size:11.5px;color:#6E7573">Applied to 1 site</span></div>
+      <div style="width:44px;height:26px;border-radius:20px;background:#7FC8A9;display:flex;align-items:center;justify-content:flex-end;padding:0 3px"><span style="width:20px;height:20px;border-radius:50%;background:#0F1113"></span></div>
+    </div>
+    <div style="display:flex;align-items:center;gap:12px;padding:14px 0;border-bottom:1px solid rgba(255,255,255,.06)">
+      <div style="width:34px;height:34px;border-radius:9px;background:#181B1E;display:flex;align-items:center;justify-content:center;font-size:12px;color:#D6A45B">JS</div>
+      <div style="flex:1;display:flex;flex-direction:column;gap:3px"><span style="font-size:14px;color:#E8E9E7">Auto-expand comments</span><span style="font-size:11.5px;color:#6E7573">Applied to 1 site · runs at load</span></div>
+      <div style="width:44px;height:26px;border-radius:20px;background:#232729;display:flex;align-items:center;padding:0 3px"><span style="width:20px;height:20px;border-radius:50%;background:#4A5150"></span></div>
+    </div>
+    <div style="display:flex;align-items:center;gap:11px;padding:18px 0 0">
+      <span style="font-size:17px;color:#7FC8A9;font-weight:300">+</span>
+      <span style="font-size:14.5px;font-weight:500;color:#7FC8A9">New script</span>
+    </div>
+  </div>
+</div>
+</x-import>
+</div></div>
+
+<div class="dv-opt" id="10e"><div class="dv-olabel"><a class="dv-oid" href="#10e">10e</a>Script editor — code, then where it runs</div>
+<div class="dv-card">
+<x-import component-from-global-scope="AndroidDevice" from="./android-frame.jsx" dark="{{ true }}" hint-size="428px,908px">
+<div style="height:100%;background:#0F1113;display:flex;flex-direction:column;font-family:'Figtree',system-ui,sans-serif">
+  <div style="padding:12px 18px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid rgba(255,255,255,.06)">
+    <span style="font-size:16px;color:#9AA1A0">‹</span>
+    <span style="font-size:15px;font-weight:600;color:#E8E9E7">Hide sticky headers</span>
+    <span style="font-size:14px;font-weight:500;color:#7FC8A9">Save</span>
+  </div>
+  <div style="flex:1;overflow:auto;padding:18px;display:flex;flex-direction:column;gap:20px">
+    <div style="display:flex;gap:8px">
+      <div style="flex:1;height:38px;border-radius:11px;background:#20262A;border:1px solid rgba(255,255,255,.1);display:flex;align-items:center;justify-content:center;font-size:13px;color:#E8E9E7">CSS</div>
+      <div style="flex:1;height:38px;border-radius:11px;border:1px solid rgba(255,255,255,.07);display:flex;align-items:center;justify-content:center;font-size:13px;color:#767D7B">JavaScript</div>
+    </div>
+    <div style="border-radius:12px;background:#15181B;border:1px solid rgba(255,255,255,.09);overflow:hidden">
+      <div style="display:flex;font:400 11.5px/1.9 'IBM Plex Mono',monospace">
+        <div style="padding:12px 8px 12px 12px;color:#3E4644;text-align:right">1<br>2<br>3<br>4<br>5<br>6</div>
+        <div style="padding:12px 12px 12px 4px;color:#9FD8C0">header, .sticky, [data-sticky] {<br>&nbsp;&nbsp;position: static !important;<br>}<br><br>.cookie-banner, .ad-slot {<br>&nbsp;&nbsp;display: none !important;</div>
+      </div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:10px">
+      <span style="font-size:10.5px;font-weight:600;letter-spacing:.1em;color:#6E7573">RUNS ON</span>
+      <div style="display:flex;flex-wrap:wrap;gap:8px">
+        <span style="padding:8px 12px;border-radius:20px;background:#1C2124;font-size:12.5px;color:#D7DCDA">Forum ×</span>
+        <span style="padding:8px 12px;border-radius:20px;background:#1C2124;font-size:12.5px;color:#D7DCDA">Reader ×</span>
+        <span style="padding:8px 12px;border-radius:20px;background:#1C2124;font-size:12.5px;color:#D7DCDA">Marketplace ×</span>
+        <span style="padding:8px 12px;border-radius:20px;background:#1C2124;font-size:12.5px;color:#D7DCDA">News ×</span>
+        <span style="padding:8px 12px;border-radius:20px;border:1px dashed rgba(255,255,255,.15);font-size:12.5px;color:#7FC8A9">+ Add site</span>
+      </div>
+    </div>
+    <div style="display:flex;align-items:center;justify-content:space-between;padding-top:6px;border-top:1px solid rgba(255,255,255,.06)">
+      <div style="display:flex;flex-direction:column;gap:3px;padding-top:14px"><span style="font-size:14px;color:#E8E9E7">Run before the page paints</span><span style="font-size:11.5px;color:#6E7573">Prevents a flash of the hidden elements</span></div>
+      <div style="width:44px;height:26px;border-radius:20px;background:#7FC8A9;display:flex;align-items:center;justify-content:flex-end;padding:0 3px;margin-top:14px"><span style="width:20px;height:20px;border-radius:50%;background:#0F1113"></span></div>
+    </div>
+  </div>
+</div>
+</x-import>
+</div></div>
+
+</div>
+<p class="dv-next">Try next: "encrypted backup flow" · "search across workspaces" · "certificate warning"</p>
+</section>
+
+<section class="dv-turn" id="t9">
+<div class="dv-thd"><a class="dv-tid" href="#t9">9</a><span class="dv-tname">Backgrounded</span></div>
+<p class="dv-note">The app is masked in recents the instant it loses focus, not when the timer expires. The timer only decides whether you come back to the board or to the PIN.</p>
+<div class="dv-opts">
+
+<div class="dv-opt" id="9a"><div class="dv-olabel"><a class="dv-oid" href="#9a">9a</a>Recents — neutral name, blank card, no page title</div>
+<div class="dv-card">
+<x-import component-from-global-scope="AndroidDevice" from="./android-frame.jsx" dark="{{ true }}" hint-size="428px,908px">
+<div style="height:100%;background:#0A0B0C;display:flex;flex-direction:column;justify-content:center;gap:22px;font-family:'Figtree',system-ui,sans-serif;padding:0 0 40px">
+  <div style="display:flex;gap:14px;padding:0 30px;align-items:center">
+    <div style="width:66%;flex:none;border-radius:20px;overflow:hidden;background:#141719;border:1px solid rgba(255,255,255,.08)">
+      <div style="padding:11px 14px;display:flex;align-items:center;gap:9px;background:#15181B">
+        <div style="width:20px;height:20px;border-radius:6px;background:#20252A;display:flex;align-items:center;justify-content:center;font-size:9px;color:#7FC8A9">◇</div>
+        <span style="font-size:12.5px;color:#B9BFBD">Container</span>
+      </div>
+      <div style="height:380px;background:#0F1113;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px">
+        <div style="width:34px;height:34px;border-radius:10px;border:1px solid rgba(255,255,255,.12);display:flex;align-items:center;justify-content:center;font-size:13px;color:#4A5150">◇</div>
+        <span style="font-size:11.5px;color:#4A5150">Content hidden</span>
+      </div>
+    </div>
+    <div style="width:38%;flex:none;border-radius:20px;overflow:hidden;background:#141719;border:1px solid rgba(255,255,255,.06);opacity:.55">
+      <div style="padding:11px 14px;display:flex;align-items:center;gap:9px;background:#15181B">
+        <div style="width:20px;height:20px;border-radius:6px;background:#22262A"></div>
+        <span style="font-size:12.5px;color:#8A918F">Maps</span>
+      </div>
+      <div style="height:380px;background:#161A1C"></div>
+    </div>
+  </div>
+  <div style="display:flex;justify-content:center"><span style="font-size:12.5px;color:#5F6664">Screenshots blocked while this app is open</span></div>
+</div>
+</x-import>
+</div></div>
+
+<div class="dv-opt" id="9b"><div class="dv-olabel"><a class="dv-oid" href="#9b">9b</a>Back within the grace period — sessions kept, one tap to resume</div>
+<div class="dv-card">
+<x-import component-from-global-scope="AndroidDevice" from="./android-frame.jsx" dark="{{ true }}" hint-size="428px,908px">
+<div style="height:100%;background:#0F1113;display:flex;flex-direction:column;align-items:center;font-family:'Figtree',system-ui,sans-serif;padding:0 28px">
+  <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:22px">
+    <div style="width:44px;height:44px;border-radius:13px;border:1px solid rgba(255,255,255,.12);display:flex;align-items:center;justify-content:center;font-size:17px;color:#7FC8A9">◇</div>
+    <div style="display:flex;flex-direction:column;align-items:center;gap:8px">
+      <span style="font-size:15px;color:#D7DCDA">Welcome back</span>
+      <span style="font-size:12.5px;color:#6E7573">3 sessions still open · locks in 40s</span>
+    </div>
+    <div style="display:flex;gap:14px">
+      <span style="width:11px;height:11px;border-radius:50%;border:1.5px solid #3A403E"></span>
+      <span style="width:11px;height:11px;border-radius:50%;border:1.5px solid #3A403E"></span>
+      <span style="width:11px;height:11px;border-radius:50%;border:1.5px solid #3A403E"></span>
+      <span style="width:11px;height:11px;border-radius:50%;border:1.5px solid #3A403E"></span>
+      <span style="width:11px;height:11px;border-radius:50%;border:1.5px solid #3A403E"></span>
+      <span style="width:11px;height:11px;border-radius:50%;border:1.5px solid #3A403E"></span>
+    </div>
+  </div>
+  <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:14px;width:100%;max-width:280px">
+    <sc-for list="{{ keys }}" as="k" hint-placeholder-count="12">
+      <div onClick="{{ k.press }}" style="height:64px;border-radius:50%;background:#15181B;display:flex;align-items:center;justify-content:center;font-size:22px;color:#D7DCDA;cursor:pointer">{{ k.label }}</div>
+    </sc-for>
+  </div>
+  <div style="padding:26px 0 30px;display:flex;flex-direction:column;align-items:center;gap:8px">
+    <span style="font-size:24px;color:#7FC8A9">☉</span>
+    <span style="font-size:12px;color:#6E7573">Use fingerprint</span>
+  </div>
+</div>
+</x-import>
+</div></div>
+
+<div class="dv-opt" id="9c"><div class="dv-olabel"><a class="dv-oid" href="#9c">9c</a>Past the timer — ephemeral sessions were already destroyed</div>
+<div class="dv-card">
+<x-import component-from-global-scope="AndroidDevice" from="./android-frame.jsx" dark="{{ true }}" hint-size="428px,908px">
+<div style="height:100%;background:#0F1113;display:flex;flex-direction:column;align-items:center;font-family:'Figtree',system-ui,sans-serif;padding:0 28px">
+  <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px">
+    <div style="width:44px;height:44px;border-radius:13px;border:1px solid rgba(255,255,255,.12);display:flex;align-items:center;justify-content:center;font-size:17px;color:#7FC8A9">◇</div>
+    <span style="font-size:14px;color:#8A918F">Enter your PIN</span>
+    <div style="display:flex;gap:14px">
+      <sc-for list="{{ pinDots }}" as="d" hint-placeholder-count="6">
+        <span style="width:11px;height:11px;border-radius:50%;background:{{ d.bg }};border:1.5px solid {{ d.border }}"></span>
+      </sc-for>
+    </div>
+    <div style="border-radius:14px;border:1px solid rgba(255,255,255,.07);background:#141719;padding:12px 14px;display:flex;flex-direction:column;gap:6px;width:100%">
+      <span style="font-size:12.5px;color:#8A918F">Locked after 1 minute in the background</span>
+      <span style="font-size:12px;line-height:1.55;color:#5F6664;text-wrap:pretty">Ephemeral sessions were closed and wiped. Saved sites will reopen where you left them.</span>
+    </div>
+  </div>
+  <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:14px;width:100%;max-width:280px">
+    <sc-for list="{{ keys }}" as="k" hint-placeholder-count="12">
+      <div onClick="{{ k.press }}" style="height:64px;border-radius:50%;background:#15181B;display:flex;align-items:center;justify-content:center;font-size:22px;color:#D7DCDA;cursor:pointer">{{ k.label }}</div>
+    </sc-for>
+  </div>
+  <div style="padding:26px 0 30px;display:flex;flex-direction:column;align-items:center;gap:8px">
+    <span style="font-size:24px;color:#7FC8A9">☉</span>
+    <span style="font-size:12px;color:#6E7573">Use fingerprint</span>
+  </div>
+</div>
+</x-import>
+</div></div>
+
+</div>
+<p class="dv-next">Try next: "encrypted backup flow" · "search across workspaces" · "workspace management"</p>
+</section>
+
+<section class="dv-turn" id="t8">
+<div class="dv-thd"><a class="dv-tid" href="#t8">8</a><span class="dv-tname">First open, and when the tunnel fails</span></div>
+<p class="dv-note">The rule these three follow: never fall back to a direct connection on its own. If the proxy is down the page does not load, and the only way past it is an explicit choice the user makes.</p>
+<div class="dv-opts">
+
+<div class="dv-opt" id="8a"><div class="dv-olabel"><a class="dv-oid" href="#8a">8a</a>Opening — shows what is being applied before the page appears</div>
+<div class="dv-card">
+<x-import component-from-global-scope="AndroidDevice" from="./android-frame.jsx" dark="{{ true }}" hint-size="428px,908px">
+<div style="height:100%;background:#0F1113;display:flex;flex-direction:column;font-family:'Figtree',system-ui,sans-serif">
+  <div style="padding:8px 12px;display:flex;align-items:center;gap:8px;border-bottom:1px solid rgba(255,255,255,.07)">
+    <span style="width:32px;height:32px;display:flex;align-items:center;justify-content:center;font-size:16px;color:#9AA1A0">‹</span>
+    <div style="flex:1;height:34px;border-radius:17px;background:#15181B;border:1px solid rgba(255,255,255,.08);display:flex;align-items:center;gap:7px;padding:0 12px">
+      <span style="width:6px;height:6px;border-radius:50%;background:#D6A45B"></span>
+      <span style="font-size:11.5px;color:#A9B0AE">forum.example.com</span>
+    </div>
+    <span style="width:32px;height:32px;display:flex;align-items:center;justify-content:center;font-size:15px;color:#9AA1A0">×</span>
+  </div>
+  <div style="height:2px;background:#1A1E21"><span style="display:block;height:2px;width:58%;background:#7FC8A9"></span></div>
+  <div style="flex:1;display:flex;flex-direction:column;justify-content:center;padding:0 34px;gap:20px">
+    <span style="font-size:16px;font-weight:600;color:#E8E9E7">Starting a clean container</span>
+    <div style="display:flex;flex-direction:column;gap:14px">
+      <div style="display:flex;align-items:center;gap:11px"><span style="font-size:12px;color:#7FC8A9">✓</span><span style="font-size:13.5px;color:#8A918F">Fresh session, no shared cookies</span></div>
+      <div style="display:flex;align-items:center;gap:11px"><span style="font-size:12px;color:#7FC8A9">✓</span><span style="font-size:13.5px;color:#8A918F">Filter lists loaded</span></div>
+      <div style="display:flex;align-items:center;gap:11px"><span style="font-size:12px;color:#7FC8A9">✓</span><span style="font-size:13.5px;color:#8A918F">Fingerprint noise injected</span></div>
+      <div style="display:flex;align-items:center;gap:11px"><span style="width:11px;height:11px;border-radius:50%;border:1.5px solid #D6A45B;border-top-color:transparent"></span><span style="font-size:13.5px;color:#D7DCDA">Connecting through 127.0.0.1:9050</span></div>
+    </div>
+  </div>
+  <div style="padding:0 34px 30px"><span style="font-size:12px;line-height:1.6;color:#5F6664">Nothing loads until the tunnel is up.</span></div>
+</div>
+</x-import>
+</div></div>
+
+<div class="dv-opt" id="8b"><div class="dv-olabel"><a class="dv-oid" href="#8b">8b</a>Proxy unreachable — no silent fallback, the risky option is spelled out</div>
+<div class="dv-card">
+<x-import component-from-global-scope="AndroidDevice" from="./android-frame.jsx" dark="{{ true }}" hint-size="428px,908px">
+<div style="height:100%;background:#0F1113;display:flex;flex-direction:column;font-family:'Figtree',system-ui,sans-serif">
+  <div style="padding:8px 12px;display:flex;align-items:center;gap:8px;border-bottom:1px solid rgba(255,255,255,.07)">
+    <span style="width:32px;height:32px;display:flex;align-items:center;justify-content:center;font-size:16px;color:#9AA1A0">‹</span>
+    <div style="flex:1;height:34px;border-radius:17px;background:#15181B;border:1px solid rgba(214,106,90,.25);display:flex;align-items:center;gap:7px;padding:0 12px">
+      <span style="width:6px;height:6px;border-radius:50%;background:#D66A5A"></span>
+      <span style="font-size:11.5px;color:#A9B0AE">forum.example.com</span>
+    </div>
+    <span style="width:32px;height:32px;display:flex;align-items:center;justify-content:center;font-size:14px;color:#9AA1A0">⟳</span>
+  </div>
+  <div style="flex:1;display:flex;flex-direction:column;justify-content:center;padding:0 30px;gap:18px">
+    <div style="width:44px;height:44px;border-radius:13px;border:1px solid rgba(214,106,90,.3);display:flex;align-items:center;justify-content:center;font-size:16px;color:#D66A5A">⛌</div>
+    <span style="font-size:19px;font-weight:600;color:#E8E9E7;letter-spacing:-.01em">Proxy did not answer</span>
+    <span style="font-size:13.5px;line-height:1.7;color:#8A918F;text-wrap:pretty">Forum is set to go through SOCKS5 at 127.0.0.1:9050 and nothing is listening there. The page was not loaded, so no request left your device.</span>
+    <div style="border-radius:14px;border:1px solid rgba(255,255,255,.08);background:#141719;padding:13px 14px;display:flex;flex-direction:column;gap:7px">
+      <div style="display:flex;justify-content:space-between"><span style="font-size:12px;color:#6E7573">Tunnel</span><span style="font-size:12px;color:#D7DCDA">socks5 · 127.0.0.1:9050</span></div>
+      <div style="display:flex;justify-content:space-between"><span style="font-size:12px;color:#6E7573">Last worked</span><span style="font-size:12px;color:#D7DCDA">2 hours ago</span></div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:9px;padding-top:4px">
+      <div style="height:48px;border-radius:24px;background:#7FC8A9;display:flex;align-items:center;justify-content:center;font-size:14.5px;font-weight:600;color:#0F1113">Try again</div>
+      <div style="height:48px;border-radius:24px;background:#1C2124;display:flex;align-items:center;justify-content:center;font-size:14.5px;font-weight:500;color:#D7DCDA">Change proxy settings</div>
+      <div style="height:48px;border-radius:24px;border:1px solid rgba(214,106,90,.28);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px">
+        <span style="font-size:14px;font-weight:500;color:#D66A5A">Open without the tunnel</span>
+        <span style="font-size:10.5px;color:#8A6A62">This site will see your real IP</span>
+      </div>
+    </div>
+  </div>
+</div>
+</x-import>
+</div></div>
+
+<div class="dv-opt" id="8c"><div class="dv-olabel"><a class="dv-oid" href="#8c">8c</a>Tunnel dropped mid-session — page frozen, decision surfaced at the top</div>
+<div class="dv-card">
+<x-import component-from-global-scope="AndroidDevice" from="./android-frame.jsx" dark="{{ true }}" hint-size="428px,908px">
+<div style="height:100%;background:#0F1113;display:flex;flex-direction:column;font-family:'Figtree',system-ui,sans-serif">
+  <div style="padding:8px 12px;display:flex;align-items:center;gap:8px">
+    <span style="width:32px;height:32px;display:flex;align-items:center;justify-content:center;font-size:16px;color:#9AA1A0">‹</span>
+    <div style="flex:1;height:34px;border-radius:17px;background:#15181B;border:1px solid rgba(214,106,90,.25);display:flex;align-items:center;gap:7px;padding:0 12px">
+      <span style="width:6px;height:6px;border-radius:50%;background:#D66A5A"></span>
+      <span style="font-size:11.5px;color:#A9B0AE">forum.example.com</span>
+    </div>
+    <span style="width:32px;height:32px;display:flex;align-items:center;justify-content:center;font-size:14px;color:#9AA1A0">⟳</span>
+  </div>
+  <div style="margin:4px 12px 0;border-radius:16px;background:#1A1517;border:1px solid rgba(214,106,90,.28);padding:14px;display:flex;flex-direction:column;gap:12px">
+    <div style="display:flex;gap:11px;align-items:flex-start">
+      <span style="font-size:13px;color:#D66A5A;line-height:1.4">⛌</span>
+      <div style="display:flex;flex-direction:column;gap:5px">
+        <span style="font-size:14.5px;font-weight:600;color:#E8E9E7">Tunnel dropped</span>
+        <span style="font-size:12.5px;line-height:1.6;color:#9A9089;text-wrap:pretty">The page is paused. Nothing further has been requested since the connection failed 4 seconds ago.</span>
+      </div>
+    </div>
+    <div style="display:flex;gap:9px">
+      <div style="flex:1;height:42px;border-radius:21px;background:#7FC8A9;display:flex;align-items:center;justify-content:center;font-size:13.5px;font-weight:600;color:#0F1113">Reconnect</div>
+      <div style="flex:1;height:42px;border-radius:21px;background:#241C1D;display:flex;align-items:center;justify-content:center;font-size:13.5px;font-weight:500;color:#D7DCDA">Close and wipe</div>
+    </div>
+  </div>
+  <div style="flex:1;padding:20px;display:flex;flex-direction:column;gap:14px;filter:grayscale(1);opacity:.34">
+    <div style="height:14px;width:45%;border-radius:4px;background:#1B1F22"></div>
+    <div style="height:26px;width:80%;border-radius:5px;background:#232729"></div>
+    <div style="height:140px;border-radius:12px;background:#15181B"></div>
+    <div style="height:10px;border-radius:4px;background:#1B1F22"></div>
+    <div style="height:10px;width:75%;border-radius:4px;background:#1B1F22"></div>
+    <div style="height:10px;width:60%;border-radius:4px;background:#1B1F22"></div>
+  </div>
+</div>
+</x-import>
+</div></div>
+
+</div>
+<p class="dv-next">Try next: "app switcher preview and auto-lock" · "encrypted backup flow" · "search across workspaces"</p>
+</section>
+
+<section class="dv-turn" id="t7">
+<div class="dv-thd"><a class="dv-tid" href="#t7">7</a><span class="dv-tname">Row menu and blocked download</span></div>
+<p class="dv-note">Dark only, as decided.</p>
+<div class="dv-opts">
+
+<div class="dv-opt" id="7b"><div class="dv-olabel"><a class="dv-oid" href="#7b">7b</a>Long-press on a row — wipe sits apart from the rest</div>
+<div class="dv-card">
+<x-import component-from-global-scope="AndroidDevice" from="./android-frame.jsx" dark="{{ true }}" hint-size="428px,908px">
+<div style="height:100%;background:#0F1113;display:flex;flex-direction:column;font-family:'Figtree',system-ui,sans-serif">
+  <div style="flex:1;opacity:.3;padding:16px 18px;display:flex;flex-direction:column;gap:22px">
+    <div style="height:14px;width:35%;border-radius:4px;background:#1B1F22"></div>
+    <div style="height:36px;border-radius:8px;background:#15181B"></div>
+    <div style="height:36px;border-radius:8px;background:#15181B"></div>
+    <div style="height:36px;border-radius:8px;background:#15181B"></div>
+  </div>
+  <div style="padding:0 16px">
+    <div style="display:flex;gap:12px;padding:12px 14px;align-items:center;background:#1A1E21;border-radius:14px;border:1px solid rgba(255,255,255,.09)">
+      <div style="width:36px;height:36px;border-radius:10px;background:#20252A;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:600;color:#C7CECC">Fr</div>
+      <div style="flex:1;display:flex;flex-direction:column;gap:3px"><span style="font-size:14.5px;font-weight:500;color:#E8E9E7">Forum</span><span style="font-size:11px;color:#6E7573">forum.example.com · ephemeral</span></div>
+    </div>
+  </div>
+  <div style="padding:10px 16px 20px;display:flex;flex-direction:column;gap:10px">
+    <div style="border-radius:16px;overflow:hidden;border:1px solid rgba(255,255,255,.08)">
+      <div style="padding:15px 16px;background:#15181B;font-size:14.5px;color:#E8E9E7;border-bottom:1px solid rgba(255,255,255,.05)">Open</div>
+      <div style="padding:15px 16px;background:#15181B;font-size:14.5px;color:#E8E9E7;border-bottom:1px solid rgba(255,255,255,.05)">Open in Ephemeral</div>
+      <div style="padding:15px 16px;background:#15181B;font-size:14.5px;color:#E8E9E7;border-bottom:1px solid rgba(255,255,255,.05)">Edit settings</div>
+      <div style="padding:15px 16px;background:#15181B;font-size:14.5px;color:#E8E9E7;border-bottom:1px solid rgba(255,255,255,.05)">Duplicate into Work</div>
+      <div style="padding:15px 16px;background:#15181B;font-size:14.5px;color:#E8E9E7">Require PIN to open</div>
+    </div>
+    <div style="border-radius:16px;overflow:hidden;border:1px solid rgba(255,255,255,.08)">
+      <div style="padding:15px 16px;background:#15181B;font-size:14.5px;color:#D7DCDA;border-bottom:1px solid rgba(255,255,255,.05)">Wipe this site's data</div>
+      <div style="padding:15px 16px;background:#15181B;font-size:14.5px;color:#D66A5A">Remove site</div>
+    </div>
+    <div style="height:50px;border-radius:25px;background:#1C2124;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:500;color:#D7DCDA">Cancel</div>
+  </div>
+</div>
+</x-import>
+</div></div>
+
+<div class="dv-opt" id="7c"><div class="dv-olabel"><a class="dv-oid" href="#7c">7c</a>Blocked download — says what it is and where it would land</div>
+<div class="dv-card">
+<x-import component-from-global-scope="AndroidDevice" from="./android-frame.jsx" dark="{{ true }}" hint-size="428px,908px">
+<div style="height:100%;background:#0F1113;display:flex;flex-direction:column;font-family:'Figtree',system-ui,sans-serif">
+  <div style="padding:8px 12px;display:flex;align-items:center;gap:8px;border-bottom:1px solid rgba(255,255,255,.07);opacity:.5">
+    <span style="width:32px;height:32px;display:flex;align-items:center;justify-content:center;font-size:16px;color:#9AA1A0">‹</span>
+    <div style="flex:1;height:34px;border-radius:17px;background:#15181B;border:1px solid rgba(255,255,255,.08);display:flex;align-items:center;gap:7px;padding:0 12px">
+      <span style="width:6px;height:6px;border-radius:50%;background:#7FC8A9"></span>
+      <span style="font-size:11.5px;color:#A9B0AE">forum.example.com</span>
+    </div>
+    <span style="width:32px;height:32px;display:flex;align-items:center;justify-content:center;font-size:14px;color:#9AA1A0">⟳</span>
+  </div>
+  <div style="flex:1;opacity:.28;padding:20px;display:flex;flex-direction:column;gap:14px">
+    <div style="height:14px;width:45%;border-radius:4px;background:#1B1F22"></div>
+    <div style="height:120px;border-radius:12px;background:#15181B"></div>
+    <div style="height:10px;border-radius:4px;background:#1B1F22"></div>
+    <div style="height:10px;width:60%;border-radius:4px;background:#1B1F22"></div>
+  </div>
+  <div style="background:#141719;border-top:1px solid rgba(255,255,255,.09);border-radius:22px 22px 0 0;padding:22px 20px 20px;box-shadow:0 -20px 40px rgba(0,0,0,.55);display:flex;flex-direction:column;gap:16px">
+    <div style="display:flex;flex-direction:column;gap:8px">
+      <span style="font-size:17px;font-weight:600;color:#E8E9E7;letter-spacing:-.01em">Download held</span>
+      <span style="font-size:13px;line-height:1.65;color:#8A918F;text-wrap:pretty">Files leave the container when they are saved. This one would go to your device storage where other apps can read it.</span>
+    </div>
+    <div style="border-radius:14px;border:1px solid rgba(255,255,255,.08);background:#15181B;padding:14px;display:flex;align-items:center;gap:12px">
+      <div style="width:38px;height:38px;border-radius:10px;background:#20252A;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;color:#C7CECC">PDF</div>
+      <div style="flex:1;display:flex;flex-direction:column;gap:3px">
+        <span style="font-size:13.5px;color:#E8E9E7">statement-june.pdf</span>
+        <span style="font-size:11.5px;color:#6E7573">1.4 MB · from forum.example.com</span>
+      </div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:9px">
+      <div style="height:48px;border-radius:24px;background:#1C2124;display:flex;align-items:center;justify-content:center;font-size:14.5px;font-weight:500;color:#D7DCDA">Keep inside this container</div>
+      <div style="height:48px;border-radius:24px;background:#1C2124;display:flex;align-items:center;justify-content:center;font-size:14.5px;font-weight:500;color:#D7DCDA">Save to device storage</div>
+      <div style="height:48px;border-radius:24px;background:#7FC8A9;display:flex;align-items:center;justify-content:center;font-size:14.5px;font-weight:600;color:#0F1113">Discard</div>
+    </div>
+  </div>
+</div>
+</x-import>
+</div></div>
+
+</div>
+<p class="dv-next">Try next: "search across workspaces" · "what the app switcher preview looks like"</p>
+</section>
+
+<section class="dv-turn" id="t6">
+<div class="dv-thd"><a class="dv-tid" href="#t6">6</a><span class="dv-tname">In-page moments</span></div>
+<p class="dv-note">Three things that happen while a site is open: it asks for hardware, you strip the page down to text, or you check what this particular site is running under.</p>
+<div class="dv-opts">
+
+<div class="dv-opt" id="6a"><div class="dv-olabel"><a class="dv-oid" href="#6a">6a</a>Permission request — one time by default, never remembered silently</div>
+<div class="dv-card">
+<x-import component-from-global-scope="AndroidDevice" from="./android-frame.jsx" dark="{{ true }}" hint-size="428px,908px">
+<div style="height:100%;background:#0F1113;display:flex;flex-direction:column;font-family:'Figtree',system-ui,sans-serif">
+  <div style="padding:8px 12px;display:flex;align-items:center;gap:8px;border-bottom:1px solid rgba(255,255,255,.07);opacity:.5">
+    <span style="width:32px;height:32px;display:flex;align-items:center;justify-content:center;font-size:16px;color:#9AA1A0">‹</span>
+    <div style="flex:1;height:34px;border-radius:17px;background:#15181B;border:1px solid rgba(255,255,255,.08);display:flex;align-items:center;gap:7px;padding:0 12px">
+      <span style="width:6px;height:6px;border-radius:50%;background:#7FC8A9"></span>
+      <span style="font-size:11.5px;color:#A9B0AE">meet.example.com</span>
+    </div>
+    <span style="width:32px;height:32px;display:flex;align-items:center;justify-content:center;font-size:14px;color:#9AA1A0">⟳</span>
+  </div>
+  <div style="flex:1;opacity:.28;padding:20px;display:flex;flex-direction:column;gap:14px">
+    <div style="height:14px;width:45%;border-radius:4px;background:#1B1F22"></div>
+    <div style="height:150px;border-radius:12px;background:#15181B"></div>
+    <div style="height:10px;border-radius:4px;background:#1B1F22"></div>
+    <div style="height:10px;width:70%;border-radius:4px;background:#1B1F22"></div>
+  </div>
+  <div style="background:#141719;border-top:1px solid rgba(255,255,255,.09);border-radius:22px 22px 0 0;padding:22px 20px 20px;box-shadow:0 -20px 40px rgba(0,0,0,.55);display:flex;flex-direction:column;gap:16px">
+    <div style="display:flex;flex-direction:column;gap:8px">
+      <span style="font-size:17px;font-weight:600;color:#E8E9E7;letter-spacing:-.01em">meet.example.com wants your microphone</span>
+      <span style="font-size:13px;line-height:1.65;color:#8A918F;text-wrap:pretty">It is blocked right now. Allowing it applies to this site only, inside this container.</span>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:9px">
+      <div style="height:48px;border-radius:24px;background:#1C2124;display:flex;align-items:center;justify-content:center;font-size:14.5px;font-weight:500;color:#D7DCDA">Allow once</div>
+      <div style="height:48px;border-radius:24px;background:#1C2124;display:flex;align-items:center;justify-content:center;font-size:14.5px;font-weight:500;color:#D7DCDA">Allow while this site is open</div>
+      <div style="height:48px;border-radius:24px;background:#7FC8A9;display:flex;align-items:center;justify-content:center;font-size:14.5px;font-weight:600;color:#0F1113">Keep blocked</div>
+    </div>
+  </div>
+</div>
+</x-import>
+</div></div>
+
+<div class="dv-opt" id="6b"><div class="dv-olabel"><a class="dv-oid" href="#6b">6b</a>Reader mode — text only, controls out of the way</div>
+<div class="dv-card">
+<x-import component-from-global-scope="AndroidDevice" from="./android-frame.jsx" dark="{{ true }}" hint-size="428px,908px">
+<div style="height:100%;background:#12100D;display:flex;flex-direction:column;font-family:'Figtree',system-ui,sans-serif">
+  <div style="padding:10px 16px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid rgba(255,255,255,.06)">
+    <span style="font-size:16px;color:#8A857C">‹</span>
+    <span style="font-size:11.5px;font-weight:500;letter-spacing:.06em;color:#8A857C">READER · 6 MIN</span>
+    <div style="display:flex;gap:14px;align-items:center">
+      <span style="font-size:13px;color:#8A857C">Aa</span>
+      <span style="font-size:14px;color:#8A857C">◑</span>
+    </div>
+  </div>
+  <div style="flex:1;overflow:auto;padding:26px 26px 40px;display:flex;flex-direction:column;gap:18px">
+    <span style="font-size:12px;color:#7C776E">forum.example.com</span>
+    <span style="font-size:25px;font-weight:600;line-height:1.25;color:#EDE7DC;letter-spacing:-.015em;text-wrap:pretty">What a container actually isolates, and what it cannot</span>
+    <div style="display:flex;flex-direction:column;gap:14px">
+      <span style="font-size:15.5px;line-height:1.75;color:#CFC8BC;text-wrap:pretty">Separate storage stops one site from reading another's cookies. It does not hide the fact that a request came from this device, which is what the proxy layer is for.</span>
+      <span style="font-size:15.5px;line-height:1.75;color:#CFC8BC;text-wrap:pretty">The two protections are often confused. Keeping them separate in your head makes it easier to decide which sites need which.</span>
+      <span style="font-size:15.5px;line-height:1.75;color:#CFC8BC;text-wrap:pretty">A site that needs a login and a site you want to read anonymously are different problems, and they belong in different workspaces.</span>
+    </div>
+  </div>
+</div>
+</x-import>
+</div></div>
+
+<div class="dv-opt" id="6c"><div class="dv-olabel"><a class="dv-oid" href="#6c">6c</a>Site sheet — what this container is running under, editable in place</div>
+<div class="dv-card">
+<x-import component-from-global-scope="AndroidDevice" from="./android-frame.jsx" dark="{{ true }}" hint-size="428px,908px">
+<div style="height:100%;background:#0F1113;display:flex;flex-direction:column;font-family:'Figtree',system-ui,sans-serif">
+  <div style="flex:1;opacity:.28;padding:20px;display:flex;flex-direction:column;gap:14px">
+    <div style="height:14px;width:45%;border-radius:4px;background:#1B1F22"></div>
+    <div style="height:120px;border-radius:12px;background:#15181B"></div>
+    <div style="height:10px;border-radius:4px;background:#1B1F22"></div>
+  </div>
+  <div style="background:#141719;border-top:1px solid rgba(255,255,255,.09);border-radius:22px 22px 0 0;padding:10px 0 18px;box-shadow:0 -20px 40px rgba(0,0,0,.5)">
+    <div style="width:36px;height:4px;border-radius:2px;background:#2C3134;margin:0 auto 16px"></div>
+    <div style="padding:0 18px 16px;display:flex;align-items:center;gap:12px;border-bottom:1px solid rgba(255,255,255,.06)">
+      <div style="width:40px;height:40px;border-radius:11px;background:#20252A;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:600;color:#C7CECC">Fr</div>
+      <div style="flex:1;display:flex;flex-direction:column;gap:3px">
+        <span style="font-size:15.5px;font-weight:600;color:#E8E9E7">Forum</span>
+        <span style="font-size:11.5px;color:#6E7573">forum.example.com · Personal</span>
+      </div>
+      <span style="font-size:13px;font-weight:500;color:#7FC8A9">Edit</span>
+    </div>
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:1px solid rgba(255,255,255,.05)">
+      <span style="font-size:14px;color:#E8E9E7">Proxy</span>
+      <span style="font-size:12.5px;color:#8A918F">SOCKS5 · 127.0.0.1:9050</span>
+    </div>
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:1px solid rgba(255,255,255,.05)">
+      <span style="font-size:14px;color:#E8E9E7">Cookies</span>
+      <span style="font-size:12.5px;color:#8A918F">Wipe on exit</span>
+    </div>
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:1px solid rgba(255,255,255,.05)">
+      <span style="font-size:14px;color:#E8E9E7">Blocked here</span>
+      <span style="font-size:12.5px;color:#8A918F">164 requests</span>
+    </div>
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:1px solid rgba(255,255,255,.05)">
+      <span style="font-size:14px;color:#E8E9E7">Force dark mode</span>
+      <div style="width:44px;height:26px;border-radius:20px;background:#7FC8A9;display:flex;align-items:center;justify-content:flex-end;padding:0 3px"><span style="width:20px;height:20px;border-radius:50%;background:#0F1113"></span></div>
+    </div>
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 18px">
+      <span style="font-size:14px;color:#E8E9E7">Desktop view</span>
+      <div style="width:44px;height:26px;border-radius:20px;background:#232729;display:flex;align-items:center;padding:0 3px"><span style="width:20px;height:20px;border-radius:50%;background:#4A5150"></span></div>
+    </div>
+    <div style="padding:14px 18px 0"><div style="height:46px;border-radius:14px;background:#1C2124;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:500;color:#D7DCDA">Close and wipe this session</div></div>
+  </div>
+</div>
+</x-import>
+</div></div>
+
+</div>
+<p class="dv-next">Try next: "light theme pass" · "long-press menu on a dashboard row" · "what a blocked download looks like"</p>
+</section>
+
+<section class="dv-turn" id="t5">
+<div class="dv-thd"><a class="dv-tid" href="#t5">5</a><span class="dv-tname">Setup step 3, empty state, and what got blocked</span></div>
+<p class="dv-note">The report in <a class="dv-oid" href="#5c">5c</a> is the one place the app talks about its own work. It is reachable from the dashboard menu, never pushed as a notification.</p>
+<div class="dv-opts">
+
+<div class="dv-opt" id="5a"><div class="dv-olabel"><a class="dv-oid" href="#5a">5a</a>Setup step 3 — the defaults, stated plainly</div>
+<div class="dv-card">
+<x-import component-from-global-scope="AndroidDevice" from="./android-frame.jsx" dark="{{ true }}" hint-size="428px,908px">
+<div style="height:100%;background:#0F1113;display:flex;flex-direction:column;font-family:'Figtree',system-ui,sans-serif;padding:0 28px">
+  <div style="display:flex;gap:6px;padding:18px 0 0">
+    <span style="flex:1;height:3px;border-radius:2px;background:#7FC8A9"></span>
+    <span style="flex:1;height:3px;border-radius:2px;background:#7FC8A9"></span>
+    <span style="flex:1;height:3px;border-radius:2px;background:#7FC8A9"></span>
+  </div>
+  <div style="flex:1;display:flex;flex-direction:column;justify-content:center;gap:18px">
+    <span style="font-size:22px;font-weight:600;color:#E8E9E7;letter-spacing:-.01em">How sites will behave</span>
+    <span style="font-size:14px;line-height:1.65;color:#8A918F;text-wrap:pretty">These apply to every site you add. You can change any of them per site later.</span>
+    <div style="display:flex;flex-direction:column;gap:0;margin-top:2px">
+      <div style="display:flex;gap:12px;align-items:flex-start;padding:14px 0;border-top:1px solid rgba(255,255,255,.06)">
+        <span style="font-size:13px;color:#7FC8A9;line-height:1.4">✓</span>
+        <div style="display:flex;flex-direction:column;gap:3px"><span style="font-size:14px;color:#E8E9E7">Each site gets its own storage</span><span style="font-size:12px;line-height:1.5;color:#6E7573">Cookies and logins never cross between sites</span></div>
+      </div>
+      <div style="display:flex;gap:12px;align-items:flex-start;padding:14px 0;border-top:1px solid rgba(255,255,255,.06)">
+        <span style="font-size:13px;color:#7FC8A9;line-height:1.4">✓</span>
+        <div style="display:flex;flex-direction:column;gap:3px"><span style="font-size:14px;color:#E8E9E7">Camera, mic, location and clipboard blocked</span><span style="font-size:12px;line-height:1.5;color:#6E7573">A site has to ask you each time it wants one</span></div>
+      </div>
+      <div style="display:flex;gap:12px;align-items:flex-start;padding:14px 0;border-top:1px solid rgba(255,255,255,.06)">
+        <span style="font-size:13px;color:#7FC8A9;line-height:1.4">✓</span>
+        <div style="display:flex;flex-direction:column;gap:3px"><span style="font-size:14px;color:#E8E9E7">Trackers, ads and WebRTC blocked</span><span style="font-size:12px;line-height:1.5;color:#6E7573">Some sites may need this relaxed to work</span></div>
+      </div>
+      <div style="display:flex;gap:12px;align-items:flex-start;padding:14px 0;border-top:1px solid rgba(255,255,255,.06);border-bottom:1px solid rgba(255,255,255,.06)">
+        <span style="font-size:13px;color:#7FC8A9;line-height:1.4">✓</span>
+        <div style="display:flex;flex-direction:column;gap:3px"><span style="font-size:14px;color:#E8E9E7">Nothing is sent anywhere</span><span style="font-size:12px;line-height:1.5;color:#6E7573">No account, no sync, no analytics</span></div>
+      </div>
+    </div>
+  </div>
+  <div style="padding:0 0 26px"><div style="height:50px;border-radius:25px;background:#7FC8A9;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:600;color:#0F1113">Add your first site</div></div>
+</div>
+</x-import>
+</div></div>
+
+<div class="dv-opt" id="5b"><div class="dv-olabel"><a class="dv-oid" href="#5b">5b</a>Empty workspace — one sentence and one action</div>
+<div class="dv-card">
+<x-import component-from-global-scope="AndroidDevice" from="./android-frame.jsx" dark="{{ true }}" hint-size="428px,908px">
+<div style="height:100%;background:#0F1113;display:flex;flex-direction:column;font-family:'Figtree',system-ui,sans-serif">
+  <div style="padding:14px 18px 12px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid rgba(255,255,255,.06)">
+    <div style="display:flex;align-items:center;gap:7px">
+      <span style="font-size:15px;font-weight:600;color:#E8E9E7">Ephemeral</span>
+      <span style="font-size:9px;color:#7E8583">▼</span>
+    </div>
+    <span style="font-size:10.5px;font-weight:500;letter-spacing:.06em;color:#6E7573">WIPES ON EXIT</span>
+  </div>
+  <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;padding:0 40px">
+    <div style="width:40px;height:40px;border-radius:12px;border:1px dashed rgba(255,255,255,.16)"></div>
+    <span style="font-size:15px;font-weight:500;color:#B9BFBD">Nothing here yet</span>
+    <span style="font-size:13px;line-height:1.65;color:#6E7573;text-align:center;text-wrap:pretty">Sites you open in this workspace leave nothing behind when you close the app.</span>
+  </div>
+  <div style="padding:12px 18px 16px;border-top:1px solid rgba(255,255,255,.06);display:flex;gap:10px;background:#111417">
+    <div style="flex:1;height:46px;border-radius:14px;background:#7FC8A9;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:600;color:#0F1113">+ Add site</div>
+    <div style="width:46px;height:46px;border-radius:14px;background:#1C2124;display:flex;align-items:center;justify-content:center;font-size:15px;color:#9AA1A0">⌕</div>
+  </div>
+</div>
+</x-import>
+</div></div>
+
+<div class="dv-opt" id="5c"><div class="dv-olabel"><a class="dv-oid" href="#5c">5c</a>Today — a quiet log, not a dashboard of scary numbers</div>
+<div class="dv-card">
+<x-import component-from-global-scope="AndroidDevice" from="./android-frame.jsx" dark="{{ true }}" hint-size="428px,908px">
+<div style="height:100%;background:#0F1113;display:flex;flex-direction:column;font-family:'Figtree',system-ui,sans-serif">
+  <div style="padding:14px 18px 12px;border-bottom:1px solid rgba(255,255,255,.06);display:flex;align-items:center;gap:10px">
+    <span style="font-size:16px;color:#9AA1A0">‹</span>
+    <span style="font-size:16px;font-weight:600;color:#E8E9E7">Today</span>
+  </div>
+  <div style="flex:1;overflow:auto;padding:20px 18px">
+    <div style="display:flex;flex-direction:column;gap:8px;padding-bottom:22px;border-bottom:1px solid rgba(255,255,255,.06)">
+      <span style="font-size:34px;font-weight:600;color:#E8E9E7;letter-spacing:-.02em">312</span>
+      <span style="font-size:13.5px;color:#8A918F">requests blocked across 4 sites</span>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:14px;padding:20px 0;border-bottom:1px solid rgba(255,255,255,.06)">
+      <div style="display:flex;align-items:center;gap:12px">
+        <span style="width:110px;font-size:13px;color:#B9BFBD">Trackers</span>
+        <div style="flex:1;height:6px;border-radius:3px;background:#1A1E21"><span style="display:block;height:6px;width:74%;border-radius:3px;background:#7FC8A9"></span></div>
+        <span style="width:34px;text-align:right;font-size:12.5px;font-weight:500;color:#8A918F">198</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:12px">
+        <span style="width:110px;font-size:13px;color:#B9BFBD">Ads</span>
+        <div style="flex:1;height:6px;border-radius:3px;background:#1A1E21"><span style="display:block;height:6px;width:33%;border-radius:3px;background:#7FC8A9"></span></div>
+        <span style="width:34px;text-align:right;font-size:12.5px;font-weight:500;color:#8A918F">88</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:12px">
+        <span style="width:110px;font-size:13px;color:#B9BFBD">Fingerprinting</span>
+        <div style="flex:1;height:6px;border-radius:3px;background:#1A1E21"><span style="display:block;height:6px;width:9%;border-radius:3px;background:#7FC8A9"></span></div>
+        <span style="width:34px;text-align:right;font-size:12.5px;font-weight:500;color:#8A918F">24</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:12px">
+        <span style="width:110px;font-size:13px;color:#B9BFBD">Permission asks</span>
+        <div style="flex:1;height:6px;border-radius:3px;background:#1A1E21"><span style="display:block;height:6px;width:3%;border-radius:3px;background:#D6A45B"></span></div>
+        <span style="width:34px;text-align:right;font-size:12.5px;font-weight:500;color:#8A918F">2</span>
+      </div>
+    </div>
+    <span style="display:block;font-size:10.5px;font-weight:500;letter-spacing:.1em;color:#6E7573;padding:20px 0 4px">BY SITE</span>
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 0;border-bottom:1px solid rgba(255,255,255,.05)">
+      <div style="display:flex;align-items:center;gap:11px">
+        <div style="width:32px;height:32px;border-radius:9px;background:#181B1E;display:flex;align-items:center;justify-content:center;font-size:12.5px;font-weight:600;color:#8A918F">Fr</div>
+        <span style="font-size:14px;color:#D7DCDA">Forum</span>
+      </div>
+      <span style="font-size:12.5px;font-weight:500;color:#8A918F">164</span>
+    </div>
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 0;border-bottom:1px solid rgba(255,255,255,.05)">
+      <div style="display:flex;align-items:center;gap:11px">
+        <div style="width:32px;height:32px;border-radius:9px;background:#181B1E;display:flex;align-items:center;justify-content:center;font-size:12.5px;font-weight:600;color:#8A918F">Mk</div>
+        <span style="font-size:14px;color:#D7DCDA">Marketplace</span>
+      </div>
+      <span style="font-size:12.5px;font-weight:500;color:#8A918F">97</span>
+    </div>
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 0;border-bottom:1px solid rgba(255,255,255,.05)">
+      <div style="display:flex;align-items:center;gap:11px">
+        <div style="width:32px;height:32px;border-radius:9px;background:#181B1E;display:flex;align-items:center;justify-content:center;font-size:12.5px;font-weight:600;color:#8A918F">Rd</div>
+        <span style="font-size:14px;color:#D7DCDA">Reader</span>
+      </div>
+      <span style="font-size:12.5px;font-weight:500;color:#8A918F">39</span>
+    </div>
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 0;border-bottom:1px solid rgba(255,255,255,.05)">
+      <div style="display:flex;align-items:center;gap:11px">
+        <div style="width:32px;height:32px;border-radius:9px;background:#181B1E;display:flex;align-items:center;justify-content:center;font-size:12.5px;font-weight:600;color:#8A918F">Wm</div>
+        <span style="font-size:14px;color:#D7DCDA">Webmail</span>
+      </div>
+      <span style="font-size:12.5px;font-weight:500;color:#8A918F">12</span>
+    </div>
+    <span style="display:block;font-size:12px;line-height:1.6;color:#5F6664;padding:20px 0 6px;text-wrap:pretty">Counts are kept in memory only and reset when the app closes.</span>
+  </div>
+</div>
+</x-import>
+</div></div>
+
+</div>
+<p class="dv-next">Try next: "permission request prompt" · "reader mode view" · "a light theme pass over the whole set"</p>
+</section>
+
+<section class="dv-turn" id="t4">
+<div class="dv-thd"><a class="dv-tid" href="#t4">4</a><span class="dv-tname">First run and failed entry</span></div>
+<p class="dv-note">Setup explains the decoy in plain words once, at the only moment it needs explaining. After that the app never mentions it again — which is what makes <a class="dv-oid" href="#3b">3b</a> work.</p>
+<div class="dv-opts">
+
+<div class="dv-opt" id="4a"><div class="dv-olabel"><a class="dv-oid" href="#4a">4a</a>Setup — main PIN, three steps, no account</div>
+<div class="dv-card">
+<x-import component-from-global-scope="AndroidDevice" from="./android-frame.jsx" dark="{{ true }}" hint-size="428px,908px">
+<div style="height:100%;background:#0F1113;display:flex;flex-direction:column;font-family:'Figtree',system-ui,sans-serif;padding:0 28px">
+  <div style="display:flex;gap:6px;padding:18px 0 0">
+    <span style="flex:1;height:3px;border-radius:2px;background:#7FC8A9"></span>
+    <span style="flex:1;height:3px;border-radius:2px;background:#232729"></span>
+    <span style="flex:1;height:3px;border-radius:2px;background:#232729"></span>
+  </div>
+  <div style="flex:1;display:flex;flex-direction:column;justify-content:center;gap:14px">
+    <span style="font-size:22px;font-weight:600;color:#E8E9E7;letter-spacing:-.01em">Choose a PIN</span>
+    <span style="font-size:14px;line-height:1.65;color:#8A918F;text-wrap:pretty">Six digits. It encrypts everything stored on this device. There is no account and no way to recover it, so pick something you will remember.</span>
+    <div style="display:flex;gap:14px;padding-top:12px">
+      <span style="width:11px;height:11px;border-radius:50%;background:#E8E9E7"></span>
+      <span style="width:11px;height:11px;border-radius:50%;background:#E8E9E7"></span>
+      <span style="width:11px;height:11px;border-radius:50%;background:#E8E9E7"></span>
+      <span style="width:11px;height:11px;border-radius:50%;border:1.5px solid #3A403E"></span>
+      <span style="width:11px;height:11px;border-radius:50%;border:1.5px solid #3A403E"></span>
+      <span style="width:11px;height:11px;border-radius:50%;border:1.5px solid #3A403E"></span>
+    </div>
+  </div>
+  <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:14px;width:100%;max-width:280px;align-self:center">
+    <sc-for list="{{ keys }}" as="k" hint-placeholder-count="12">
+      <div onClick="{{ k.press }}" style="height:64px;border-radius:50%;background:#15181B;display:flex;align-items:center;justify-content:center;font-size:22px;color:#D7DCDA;cursor:pointer">{{ k.label }}</div>
+    </sc-for>
+  </div>
+  <div style="padding:20px 0 26px"><div style="height:50px;border-radius:25px;background:#1C2124;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:500;color:#5F6664">Continue</div></div>
+</div>
+</x-import>
+</div></div>
+
+<div class="dv-opt" id="4b"><div class="dv-olabel"><a class="dv-oid" href="#4b">4b</a>Setup — the decoy, explained once and never again</div>
+<div class="dv-card">
+<x-import component-from-global-scope="AndroidDevice" from="./android-frame.jsx" dark="{{ true }}" hint-size="428px,908px">
+<div style="height:100%;background:#0F1113;display:flex;flex-direction:column;font-family:'Figtree',system-ui,sans-serif;padding:0 28px">
+  <div style="display:flex;gap:6px;padding:18px 0 0">
+    <span style="flex:1;height:3px;border-radius:2px;background:#7FC8A9"></span>
+    <span style="flex:1;height:3px;border-radius:2px;background:#7FC8A9"></span>
+    <span style="flex:1;height:3px;border-radius:2px;background:#232729"></span>
+  </div>
+  <div style="flex:1;display:flex;flex-direction:column;justify-content:center;gap:16px">
+    <span style="font-size:22px;font-weight:600;color:#E8E9E7;letter-spacing:-.01em">A second PIN, if you want one</span>
+    <span style="font-size:14px;line-height:1.65;color:#8A918F;text-wrap:pretty">If someone makes you unlock the app, this PIN opens a plain board with only the sites you choose. Nothing on it hints that anything else exists.</span>
+    <div style="display:flex;flex-direction:column;gap:1px;border-radius:14px;overflow:hidden;border:1px solid rgba(255,255,255,.08);margin-top:6px">
+      <div style="padding:14px;background:#15181B;display:flex;align-items:center;justify-content:space-between">
+        <span style="font-size:14px;color:#E8E9E7">Set up a decoy PIN</span>
+        <div style="width:44px;height:26px;border-radius:20px;background:#7FC8A9;display:flex;align-items:center;justify-content:flex-end;padding:0 3px"><span style="width:20px;height:20px;border-radius:50%;background:#0F1113"></span></div>
+      </div>
+      <div style="padding:14px;background:#15181B;display:flex;align-items:center;justify-content:space-between">
+        <div style="display:flex;flex-direction:column;gap:3px"><span style="font-size:14px;color:#E8E9E7">Sites to show</span><span style="font-size:11.5px;color:#6E7573">Pick after setup</span></div>
+        <span style="font-size:14px;color:#6E7573">›</span>
+      </div>
+    </div>
+  </div>
+  <div style="padding:0 0 26px;display:flex;flex-direction:column;gap:12px">
+    <div style="height:50px;border-radius:25px;background:#7FC8A9;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:600;color:#0F1113">Continue</div>
+    <div style="height:44px;display:flex;align-items:center;justify-content:center;font-size:14px;color:#8A918F">Skip for now</div>
+  </div>
+</div>
+</x-import>
+</div></div>
+
+<div class="dv-opt" id="4c"><div class="dv-olabel"><a class="dv-oid" href="#4c">4c</a>Wrong PIN — counts down without naming what is behind it</div>
+<div class="dv-card">
+<x-import component-from-global-scope="AndroidDevice" from="./android-frame.jsx" dark="{{ true }}" hint-size="428px,908px">
+<div style="height:100%;background:#0F1113;display:flex;flex-direction:column;align-items:center;font-family:'Figtree',system-ui,sans-serif;padding:0 28px">
+  <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:26px">
+    <div style="width:44px;height:44px;border-radius:13px;border:1px solid rgba(214,106,90,.3);display:flex;align-items:center;justify-content:center;font-size:17px;color:#D66A5A">◇</div>
+    <span style="font-size:14px;color:#D66A5A">Wrong PIN · 3 tries left</span>
+    <div style="display:flex;gap:14px">
+      <span style="width:11px;height:11px;border-radius:50%;border:1.5px solid #4A3634"></span>
+      <span style="width:11px;height:11px;border-radius:50%;border:1.5px solid #4A3634"></span>
+      <span style="width:11px;height:11px;border-radius:50%;border:1.5px solid #4A3634"></span>
+      <span style="width:11px;height:11px;border-radius:50%;border:1.5px solid #4A3634"></span>
+      <span style="width:11px;height:11px;border-radius:50%;border:1.5px solid #4A3634"></span>
+      <span style="width:11px;height:11px;border-radius:50%;border:1.5px solid #4A3634"></span>
+    </div>
+    <span style="font-size:12.5px;color:#6E7573;text-align:center;line-height:1.6;max-width:250px;text-wrap:pretty">After 5 wrong tries the app waits 30 seconds before accepting another.</span>
+  </div>
+  <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:14px;width:100%;max-width:280px">
+    <sc-for list="{{ keys }}" as="k" hint-placeholder-count="12">
+      <div onClick="{{ k.press }}" style="height:64px;border-radius:50%;background:#15181B;display:flex;align-items:center;justify-content:center;font-size:22px;color:#D7DCDA;cursor:pointer">{{ k.label }}</div>
+    </sc-for>
+  </div>
+  <div style="padding:26px 0 30px;display:flex;flex-direction:column;align-items:center;gap:8px">
+    <span style="font-size:24px;color:#4A5150">☉</span>
+    <span style="font-size:12px;color:#5F6664">Fingerprint unavailable</span>
+  </div>
+</div>
+</x-import>
+</div></div>
+
+</div>
+<p class="dv-next">Try next: "step 3 of setup" · "empty state for a new workspace" · "one screen showing what got blocked today"</p>
+</section>
+
+<section class="dv-turn" id="t3">
+<div class="dv-thd"><a class="dv-tid" href="#t3">3</a><span class="dv-tname">Entry, decoy and panic</span></div>
+<p class="dv-note">The lock screen gives no hint that a second PIN exists, and the decoy board is deliberately ordinary — no shields, no session meta, nothing to suggest a real vault is hidden behind it. The keypad in <a class="dv-oid" href="#3a">3a</a> works.</p>
+<div class="dv-opts">
+
+<div class="dv-opt" id="3a"><div class="dv-olabel"><a class="dv-oid" href="#3a">3a</a>Lock — one PIN field, no mention of vaults</div>
+<div class="dv-card">
+<x-import component-from-global-scope="AndroidDevice" from="./android-frame.jsx" dark="{{ true }}" hint-size="428px,908px">
+<div style="height:100%;background:#0F1113;display:flex;flex-direction:column;align-items:center;font-family:'Figtree',system-ui,sans-serif;padding:0 28px">
+  <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:26px">
+    <div style="width:44px;height:44px;border-radius:13px;border:1px solid rgba(255,255,255,.12);display:flex;align-items:center;justify-content:center;font-size:17px;color:#7FC8A9">◇</div>
+    <span style="font-size:14px;color:#8A918F">Enter your PIN</span>
+    <div style="display:flex;gap:14px">
+      <sc-for list="{{ pinDots }}" as="d" hint-placeholder-count="6">
+        <span style="width:11px;height:11px;border-radius:50%;background:{{ d.bg }};border:1.5px solid {{ d.border }}"></span>
+      </sc-for>
+    </div>
+  </div>
+  <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:14px;width:100%;max-width:280px">
+    <sc-for list="{{ keys }}" as="k" hint-placeholder-count="12">
+      <div onClick="{{ k.press }}" style="height:64px;border-radius:50%;background:#15181B;display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:400;color:#D7DCDA;cursor:pointer">{{ k.label }}</div>
+    </sc-for>
+  </div>
+  <div style="padding:26px 0 30px;display:flex;flex-direction:column;align-items:center;gap:8px">
+    <span style="font-size:24px;color:#7FC8A9">☉</span>
+    <span style="font-size:12px;color:#6E7573">Use fingerprint</span>
+  </div>
+</div>
+</x-import>
+</div></div>
+
+<div class="dv-opt" id="3b"><div class="dv-olabel"><a class="dv-oid" href="#3b">3b</a>Decoy vault — same shell, ordinary content, no privacy language</div>
+<div class="dv-card">
+<x-import component-from-global-scope="AndroidDevice" from="./android-frame.jsx" dark="{{ true }}" hint-size="428px,908px">
+<div style="height:100%;background:#0F1113;display:flex;flex-direction:column;font-family:'Figtree',system-ui,sans-serif">
+  <div style="padding:14px 18px 12px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid rgba(255,255,255,.06)">
+    <div style="display:flex;align-items:center;gap:7px">
+      <span style="font-size:15px;font-weight:600;color:#E8E9E7">Personal</span>
+      <span style="font-size:9px;color:#7E8583">▼</span>
+    </div>
+    <span style="font:400 10px 'Figtree',system-ui,sans-serif;color:#6E7573">4 SITES</span>
+  </div>
+  <div style="flex:1;overflow:auto">
+    <div style="display:flex;gap:12px;padding:14px 18px;align-items:center;border-bottom:1px solid rgba(255,255,255,.05)">
+      <div style="width:3px;align-self:stretch;border-radius:2px;background:rgba(255,255,255,.09)"></div>
+      <div style="width:36px;height:36px;border-radius:10px;background:#181B1E;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:600;color:#8A918F">Nw</div>
+      <div style="flex:1;display:flex;flex-direction:column;gap:3px"><span style="font-size:14.5px;font-weight:500;color:#B9BFBD">News</span><span style="font:400 10.5px 'Figtree',system-ui,sans-serif;color:#5F6664">news.example.com</span></div>
+      <span style="font:400 10.5px 'Figtree',system-ui,sans-serif;color:#5F6664">2d</span>
+    </div>
+    <div style="display:flex;gap:12px;padding:14px 18px;align-items:center;border-bottom:1px solid rgba(255,255,255,.05)">
+      <div style="width:3px;align-self:stretch;border-radius:2px;background:rgba(255,255,255,.09)"></div>
+      <div style="width:36px;height:36px;border-radius:10px;background:#181B1E;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:600;color:#8A918F">Wt</div>
+      <div style="flex:1;display:flex;flex-direction:column;gap:3px"><span style="font-size:14.5px;font-weight:500;color:#B9BFBD">Weather</span><span style="font:400 10.5px 'Figtree',system-ui,sans-serif;color:#5F6664">weather.example.com</span></div>
+      <span style="font:400 10.5px 'Figtree',system-ui,sans-serif;color:#5F6664">4d</span>
+    </div>
+    <div style="display:flex;gap:12px;padding:14px 18px;align-items:center;border-bottom:1px solid rgba(255,255,255,.05)">
+      <div style="width:3px;align-self:stretch;border-radius:2px;background:rgba(255,255,255,.09)"></div>
+      <div style="width:36px;height:36px;border-radius:10px;background:#181B1E;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:600;color:#8A918F">Rc</div>
+      <div style="flex:1;display:flex;flex-direction:column;gap:3px"><span style="font-size:14.5px;font-weight:500;color:#B9BFBD">Recipes</span><span style="font:400 10.5px 'Figtree',system-ui,sans-serif;color:#5F6664">cook.example.org</span></div>
+      <span style="font:400 10.5px 'Figtree',system-ui,sans-serif;color:#5F6664">1w</span>
+    </div>
+    <div style="display:flex;gap:12px;padding:14px 18px;align-items:center;border-bottom:1px solid rgba(255,255,255,.05)">
+      <div style="width:3px;align-self:stretch;border-radius:2px;background:rgba(255,255,255,.09)"></div>
+      <div style="width:36px;height:36px;border-radius:10px;background:#181B1E;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:600;color:#8A918F">Tt</div>
+      <div style="flex:1;display:flex;flex-direction:column;gap:3px"><span style="font-size:14.5px;font-weight:500;color:#B9BFBD">Timetable</span><span style="font:400 10.5px 'Figtree',system-ui,sans-serif;color:#5F6664">transit.example.com</span></div>
+      <span style="font:400 10.5px 'Figtree',system-ui,sans-serif;color:#5F6664">2w</span>
+    </div>
+  </div>
+  <div style="padding:12px 18px 16px;border-top:1px solid rgba(255,255,255,.06);display:flex;gap:10px;background:#111417">
+    <div style="flex:1;height:46px;border-radius:14px;background:#1C2124;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:500;color:#D7DCDA">+ Add site</div>
+    <div style="width:46px;height:46px;border-radius:14px;background:#1C2124;display:flex;align-items:center;justify-content:center;font-size:15px;color:#9AA1A0">⌕</div>
+  </div>
+</div>
+</x-import>
+</div></div>
+
+<div class="dv-opt" id="3c"><div class="dv-olabel"><a class="dv-oid" href="#3c">3c</a>Panic — no confirmation dialog, it just happens and reports after</div>
+<div class="dv-card">
+<x-import component-from-global-scope="AndroidDevice" from="./android-frame.jsx" dark="{{ true }}" hint-size="428px,908px">
+<div style="height:100%;background:#0C0E10;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:30px;font-family:'Figtree',system-ui,sans-serif;padding:0 34px">
+  <div style="width:52px;height:52px;border-radius:50%;border:1px solid rgba(214,106,90,.35);display:flex;align-items:center;justify-content:center;font-size:16px;color:#D66A5A">◉</div>
+  <div style="display:flex;flex-direction:column;align-items:center;gap:10px">
+    <span style="font-size:18px;font-weight:600;color:#E8E9E7">Everything closed</span>
+    <span style="font-size:13px;line-height:1.6;color:#8A918F;text-align:center;text-wrap:pretty">3 sessions destroyed, temporary storage wiped, app locked.</span>
+  </div>
+  <div style="width:100%;display:flex;flex-direction:column;gap:1px;border-radius:14px;overflow:hidden;border:1px solid rgba(255,255,255,.07)">
+    <div style="padding:12px 14px;background:#141719;display:flex;align-items:center;justify-content:space-between"><span style="font:400 11.5px 'Figtree',system-ui,sans-serif;color:#8A918F">WEBVIEWS</span><span style="font:500 11.5px 'Figtree',system-ui,sans-serif;color:#7FC8A9">DESTROYED</span></div>
+    <div style="padding:12px 14px;background:#141719;display:flex;align-items:center;justify-content:space-between"><span style="font:400 11.5px 'Figtree',system-ui,sans-serif;color:#8A918F">EPHEMERAL DATA</span><span style="font:500 11.5px 'Figtree',system-ui,sans-serif;color:#7FC8A9">WIPED</span></div>
+    <div style="padding:12px 14px;background:#141719;display:flex;align-items:center;justify-content:space-between"><span style="font:400 11.5px 'Figtree',system-ui,sans-serif;color:#8A918F">MEMORY</span><span style="font:500 11.5px 'Figtree',system-ui,sans-serif;color:#7FC8A9">CLEARED</span></div>
+  </div>
+  <div style="height:48px;padding:0 26px;border-radius:24px;background:#1C2124;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:500;color:#D7DCDA">Unlock</div>
+</div>
+</x-import>
+</div></div>
+
+</div>
+<p class="dv-next">Try next: "add the first-run setup wizard" · "show a wrong-PIN state on <a class="dv-oid" href="#3a">3a</a>" · "lighter theme for the whole set"</p>
+</section>
+
+<section class="dv-turn" id="t2">
+<div class="dv-thd"><a class="dv-tid" href="#t2">2</a><span class="dv-tname">Remaining screens, built on <a class="dv-oid" href="#1b">1b</a></span></div>
+<p class="dv-note">Same grammar as <a class="dv-oid" href="#1b">1b</a>: hairline dividers instead of cards, mono for anything technical, jade only for live state. Tabs in <a class="dv-oid" href="#2a">2a</a> and the user-agent picker are clickable.</p>
+<div class="dv-opts">
+
+<div class="dv-opt" id="2a"><div class="dv-olabel"><a class="dv-oid" href="#2a">2a</a>Add site — four tabs, all visible from the start</div>
+<div class="dv-card">
+<x-import component-from-global-scope="AndroidDevice" from="./android-frame.jsx" dark="{{ true }}" hint-size="428px,908px">
+<div style="height:100%;background:#0F1113;display:flex;flex-direction:column;font-family:'Figtree',system-ui,sans-serif">
+  <div style="padding:12px 18px;display:flex;align-items:center;justify-content:space-between">
+    <span style="font-size:20px;color:#9AA1A0">×</span>
+    <span style="font-size:15px;font-weight:600;color:#E8E9E7">Add site</span>
+    <span style="font-size:14px;font-weight:500;color:#7FC8A9">Save</span>
+  </div>
+  <div style="display:flex;padding:0 18px;border-bottom:1px solid rgba(255,255,255,.07)">
+    <sc-for list="{{ tabs }}" as="t" hint-placeholder-count="4">
+      <div onClick="{{ t.pick }}" style="flex:1;padding:11px 0 10px;text-align:center;cursor:pointer;border-bottom:2px solid {{ t.line }}">
+        <span style="font-size:12.5px;font-weight:500;color:{{ t.color }}">{{ t.name }}</span>
+      </div>
+    </sc-for>
+  </div>
+  <div style="flex:1;overflow:auto;padding:18px">
+
+    <sc-if value="{{ onBasics }}" hint-placeholder-val="{{ true }}">
+      <div style="display:flex;flex-direction:column;gap:18px">
+        <div style="display:flex;flex-direction:column;gap:7px">
+          <span style="font:500 10px 'Figtree',system-ui,sans-serif;letter-spacing:.1em;color:#6E7573">ADDRESS</span>
+          <div style="height:46px;border-radius:12px;background:#15181B;border:1px solid rgba(255,255,255,.09);display:flex;align-items:center;padding:0 13px;font:400 13px 'Figtree',system-ui,sans-serif;color:#D7DCDA">https://forum.example.com</div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:7px">
+          <span style="font:500 10px 'Figtree',system-ui,sans-serif;letter-spacing:.1em;color:#6E7573">NAME</span>
+          <div style="height:46px;border-radius:12px;background:#15181B;border:1px solid rgba(255,255,255,.09);display:flex;align-items:center;justify-content:space-between;padding:0 13px">
+            <span style="font-size:14px;color:#D7DCDA">Forum</span>
+            <div style="width:28px;height:28px;border-radius:8px;background:#20252A;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;color:#C7CECC">Fr</div>
+          </div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:7px">
+          <span style="font:500 10px 'Figtree',system-ui,sans-serif;letter-spacing:.1em;color:#6E7573">WORKSPACE</span>
+          <div style="display:flex;gap:8px">
+            <div style="flex:1;height:40px;border-radius:11px;background:#20262A;border:1px solid rgba(255,255,255,.1);display:flex;align-items:center;justify-content:center;font-size:13px;color:#E8E9E7">Personal</div>
+            <div style="flex:1;height:40px;border-radius:11px;border:1px solid rgba(255,255,255,.07);display:flex;align-items:center;justify-content:center;font-size:13px;color:#767D7B">Work</div>
+            <div style="flex:1;height:40px;border-radius:11px;border:1px solid rgba(255,255,255,.07);display:flex;align-items:center;justify-content:center;font-size:13px;color:#767D7B">Ephemeral</div>
+          </div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:7px">
+          <span style="font:500 10px 'Figtree',system-ui,sans-serif;letter-spacing:.1em;color:#6E7573">COOKIES</span>
+          <div style="display:flex;flex-direction:column;gap:1px;border-radius:12px;overflow:hidden;border:1px solid rgba(255,255,255,.08)">
+            <div style="padding:13px;background:#15181B;display:flex;align-items:center;justify-content:space-between">
+              <div style="display:flex;flex-direction:column;gap:3px"><span style="font-size:13.5px;color:#E8E9E7">Keep for this site</span><span style="font-size:11px;color:#6E7573">Stays signed in, isolated from other sites</span></div>
+              <span style="width:16px;height:16px;border-radius:50%;border:5px solid #7FC8A9;background:#0F1113"></span>
+            </div>
+            <div style="padding:13px;background:#15181B;display:flex;align-items:center;justify-content:space-between">
+              <div style="display:flex;flex-direction:column;gap:3px"><span style="font-size:13.5px;color:#B9BFBD">Wipe on exit</span><span style="font-size:11px;color:#6E7573">Cookies, cache and form history destroyed</span></div>
+              <span style="width:16px;height:16px;border-radius:50%;border:1.5px solid #3E4644"></span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ onNetwork }}" hint-placeholder-val="{{ false }}">
+      <div style="display:flex;flex-direction:column;gap:18px">
+        <div style="display:flex;align-items:center;justify-content:space-between;padding-bottom:14px;border-bottom:1px solid rgba(255,255,255,.06)">
+          <div style="display:flex;flex-direction:column;gap:3px"><span style="font-size:14px;color:#E8E9E7">Route through proxy</span><span style="font-size:11px;color:#6E7573">This site only</span></div>
+          <div style="width:44px;height:26px;border-radius:20px;background:#7FC8A9;display:flex;align-items:center;justify-content:flex-end;padding:0 3px"><span style="width:20px;height:20px;border-radius:50%;background:#0F1113"></span></div>
+        </div>
+        <div style="display:flex;gap:8px">
+          <div style="flex:1;height:40px;border-radius:11px;background:#20262A;border:1px solid rgba(255,255,255,.1);display:flex;align-items:center;justify-content:center;font:500 12px 'Figtree',system-ui,sans-serif;color:#E8E9E7">SOCKS5</div>
+          <div style="flex:1;height:40px;border-radius:11px;border:1px solid rgba(255,255,255,.07);display:flex;align-items:center;justify-content:center;font:500 12px 'Figtree',system-ui,sans-serif;color:#767D7B">HTTP</div>
+        </div>
+        <div style="display:flex;gap:10px">
+          <div style="flex:2;display:flex;flex-direction:column;gap:7px">
+            <span style="font:500 10px 'Figtree',system-ui,sans-serif;letter-spacing:.1em;color:#6E7573">HOST</span>
+            <div style="height:46px;border-radius:12px;background:#15181B;border:1px solid rgba(255,255,255,.09);display:flex;align-items:center;padding:0 13px;font:400 13px 'Figtree',system-ui,sans-serif;color:#D7DCDA">127.0.0.1</div>
+          </div>
+          <div style="flex:1;display:flex;flex-direction:column;gap:7px">
+            <span style="font:500 10px 'Figtree',system-ui,sans-serif;letter-spacing:.1em;color:#6E7573">PORT</span>
+            <div style="height:46px;border-radius:12px;background:#15181B;border:1px solid rgba(255,255,255,.09);display:flex;align-items:center;padding:0 13px;font:400 13px 'Figtree',system-ui,sans-serif;color:#D7DCDA">9050</div>
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 0;border-top:1px solid rgba(255,255,255,.06)">
+          <div style="display:flex;flex-direction:column;gap:3px"><span style="font-size:14px;color:#E8E9E7">Block WebRTC</span><span style="font-size:11px;color:#6E7573">Prevents real IP leaking past the proxy</span></div>
+          <div style="width:44px;height:26px;border-radius:20px;background:#7FC8A9;display:flex;align-items:center;justify-content:flex-end;padding:0 3px"><span style="width:20px;height:20px;border-radius:50%;background:#0F1113"></span></div>
+        </div>
+        <div style="display:flex;align-items:center;justify-content:space-between;padding-top:0">
+          <div style="display:flex;flex-direction:column;gap:3px"><span style="font-size:14px;color:#E8E9E7">Block trackers and ads</span><span style="font-size:11px;color:#6E7573">Local filter lists · 42 rules matched today</span></div>
+          <div style="width:44px;height:26px;border-radius:20px;background:#7FC8A9;display:flex;align-items:center;justify-content:flex-end;padding:0 3px"><span style="width:20px;height:20px;border-radius:50%;background:#0F1113"></span></div>
+        </div>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ onPrivacy }}" hint-placeholder-val="{{ false }}">
+      <div style="display:flex;flex-direction:column;gap:0">
+        <span style="font:500 10px 'Figtree',system-ui,sans-serif;letter-spacing:.1em;color:#6E7573;padding-bottom:12px">HARDWARE · ALL OFF BY DEFAULT</span>
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 0;border-top:1px solid rgba(255,255,255,.06)">
+          <span style="font-size:14px;color:#E8E9E7">Camera</span>
+          <div style="width:44px;height:26px;border-radius:20px;background:#232729;display:flex;align-items:center;padding:0 3px"><span style="width:20px;height:20px;border-radius:50%;background:#4A5150"></span></div>
+        </div>
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 0;border-top:1px solid rgba(255,255,255,.06)">
+          <span style="font-size:14px;color:#E8E9E7">Microphone</span>
+          <div style="width:44px;height:26px;border-radius:20px;background:#232729;display:flex;align-items:center;padding:0 3px"><span style="width:20px;height:20px;border-radius:50%;background:#4A5150"></span></div>
+        </div>
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 0;border-top:1px solid rgba(255,255,255,.06)">
+          <span style="font-size:14px;color:#E8E9E7">Location</span>
+          <div style="width:44px;height:26px;border-radius:20px;background:#232729;display:flex;align-items:center;padding:0 3px"><span style="width:20px;height:20px;border-radius:50%;background:#4A5150"></span></div>
+        </div>
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 0;border-top:1px solid rgba(255,255,255,.06)">
+          <span style="font-size:14px;color:#E8E9E7">Clipboard</span>
+          <div style="width:44px;height:26px;border-radius:20px;background:#232729;display:flex;align-items:center;padding:0 3px"><span style="width:20px;height:20px;border-radius:50%;background:#4A5150"></span></div>
+        </div>
+        <span style="font:500 10px 'Figtree',system-ui,sans-serif;letter-spacing:.1em;color:#6E7573;padding:22px 0 12px">SHIELDS</span>
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 0;border-top:1px solid rgba(255,255,255,.06)">
+          <div style="display:flex;flex-direction:column;gap:3px"><span style="font-size:14px;color:#E8E9E7">Anti-fingerprinting</span><span style="font-size:11px;color:#6E7573">Noise for canvas, WebGL and audio readouts</span></div>
+          <div style="width:44px;height:26px;border-radius:20px;background:#7FC8A9;display:flex;align-items:center;justify-content:flex-end;padding:0 3px"><span style="width:20px;height:20px;border-radius:50%;background:#0F1113"></span></div>
+        </div>
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 0;border-top:1px solid rgba(255,255,255,.06)">
+          <div style="display:flex;flex-direction:column;gap:3px"><span style="font-size:14px;color:#E8E9E7">Ask for PIN before opening</span><span style="font-size:11px;color:#6E7573">Biometric accepted</span></div>
+          <div style="width:44px;height:26px;border-radius:20px;background:#232729;display:flex;align-items:center;padding:0 3px"><span style="width:20px;height:20px;border-radius:50%;background:#4A5150"></span></div>
+        </div>
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 0;border-top:1px solid rgba(255,255,255,.06)">
+          <div style="display:flex;flex-direction:column;gap:3px"><span style="font-size:14px;color:#E8E9E7">Show in decoy vault</span><span style="font-size:11px;color:#6E7573">Visible when the second PIN is used</span></div>
+          <div style="width:44px;height:26px;border-radius:20px;background:#232729;display:flex;align-items:center;padding:0 3px"><span style="width:20px;height:20px;border-radius:50%;background:#4A5150"></span></div>
+        </div>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ onAppearance }}" hint-placeholder-val="{{ false }}">
+      <div style="display:flex;flex-direction:column;gap:18px">
+        <div style="display:flex;flex-direction:column;gap:7px">
+          <span style="font:500 10px 'Figtree',system-ui,sans-serif;letter-spacing:.1em;color:#6E7573">USER AGENT</span>
+          <div style="display:flex;gap:8px">
+            <sc-for list="{{ uaOpts }}" as="u" hint-placeholder-count="3">
+              <div onClick="{{ u.pick }}" style="flex:1;height:40px;border-radius:11px;cursor:pointer;background:{{ u.bg }};border:1px solid rgba(255,255,255,.08);display:flex;align-items:center;justify-content:center;font-size:13px;color:{{ u.color }}">{{ u.name }}</div>
+            </sc-for>
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 0;border-top:1px solid rgba(255,255,255,.06)">
+          <div style="display:flex;flex-direction:column;gap:3px"><span style="font-size:14px;color:#E8E9E7">Force dark mode</span><span style="font-size:11px;color:#6E7573">For sites with no dark theme</span></div>
+          <div style="width:44px;height:26px;border-radius:20px;background:#7FC8A9;display:flex;align-items:center;justify-content:flex-end;padding:0 3px"><span style="width:20px;height:20px;border-radius:50%;background:#0F1113"></span></div>
+        </div>
+        <div style="display:flex;align-items:center;justify-content:space-between;padding-bottom:14px;border-bottom:1px solid rgba(255,255,255,.06)">
+          <span style="font-size:14px;color:#E8E9E7">Open in reader mode</span>
+          <div style="width:44px;height:26px;border-radius:20px;background:#232729;display:flex;align-items:center;padding:0 3px"><span style="width:20px;height:20px;border-radius:50%;background:#4A5150"></span></div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:10px">
+          <div style="display:flex;align-items:center;justify-content:space-between"><span style="font-size:14px;color:#E8E9E7">Page zoom</span><span style="font:500 12px 'Figtree',system-ui,sans-serif;color:#7FC8A9">110%</span></div>
+          <div style="height:3px;border-radius:3px;background:#232729;position:relative"><span style="position:absolute;left:0;top:0;height:3px;width:42%;border-radius:3px;background:#7FC8A9"></span><span style="position:absolute;left:42%;top:-7px;width:17px;height:17px;border-radius:50%;background:#E8E9E7"></span></div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:7px">
+          <span style="font:500 10px 'Figtree',system-ui,sans-serif;letter-spacing:.1em;color:#6E7573">CUSTOM CSS</span>
+          <div style="border-radius:12px;background:#15181B;border:1px solid rgba(255,255,255,.09);padding:12px;font:400 11.5px/1.6 'IBM Plex Mono',monospace;color:#9FD8C0">header, .ads-banner {<br>&nbsp;&nbsp;display: none !important;<br>}</div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:7px">
+          <span style="font:500 10px 'Figtree',system-ui,sans-serif;letter-spacing:.1em;color:#6E7573">CUSTOM JS</span>
+          <div style="border-radius:12px;background:#15181B;border:1px solid rgba(255,255,255,.09);padding:12px;font:400 11.5px/1.6 'Figtree',system-ui,sans-serif;color:#6E7573">Runs at document start</div>
+        </div>
+      </div>
+    </sc-if>
+
+  </div>
+</div>
+</x-import>
+</div></div>
+
+<div class="dv-opt" id="2b"><div class="dv-olabel"><a class="dv-oid" href="#2b">2b</a>Isolated container — minimal top bar, panic button always reachable</div>
+<div class="dv-card">
+<x-import component-from-global-scope="AndroidDevice" from="./android-frame.jsx" dark="{{ true }}" hint-size="428px,908px">
+<div style="height:100%;background:#0F1113;display:flex;flex-direction:column;font-family:'Figtree',system-ui,sans-serif">
+  <div style="padding:8px 12px;display:flex;align-items:center;gap:8px;border-bottom:1px solid rgba(255,255,255,.07)">
+    <span style="width:32px;height:32px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:16px;color:#9AA1A0">‹</span>
+    <div style="flex:1;height:34px;border-radius:17px;background:#15181B;border:1px solid rgba(255,255,255,.08);display:flex;align-items:center;gap:7px;padding:0 12px;min-width:0">
+      <span style="width:6px;height:6px;border-radius:50%;background:#7FC8A9"></span>
+      <span style="font:400 11.5px 'Figtree',system-ui,sans-serif;color:#A9B0AE;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">forum.example.com</span>
+      <span style="margin-left:auto;font:500 9.5px 'Figtree',system-ui,sans-serif;color:#6E7573">SOCKS5</span>
+    </div>
+    <span style="width:32px;height:32px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:14px;color:#9AA1A0">⟳</span>
+    <span style="width:32px;height:32px;border-radius:9px;background:rgba(214,106,90,.14);display:flex;align-items:center;justify-content:center;font-size:13px;color:#D66A5A">◉</span>
+  </div>
+  <div style="flex:1;overflow:auto;padding:20px 20px 90px;display:flex;flex-direction:column;gap:14px">
+    <div style="height:14px;width:45%;border-radius:4px;background:#1B1F22"></div>
+    <div style="height:26px;width:80%;border-radius:5px;background:#232729"></div>
+    <div style="height:150px;border-radius:12px;background:#15181B;display:flex;align-items:center;justify-content:center;font:400 10px 'Figtree',system-ui,sans-serif;color:#4E5654">page content</div>
+    <div style="display:flex;flex-direction:column;gap:8px">
+      <div style="height:10px;border-radius:4px;background:#1B1F22"></div>
+      <div style="height:10px;border-radius:4px;background:#1B1F22"></div>
+      <div style="height:10px;width:70%;border-radius:4px;background:#1B1F22"></div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:8px;margin-top:8px">
+      <div style="height:10px;border-radius:4px;background:#1B1F22"></div>
+      <div style="height:10px;width:88%;border-radius:4px;background:#1B1F22"></div>
+      <div style="height:10px;width:55%;border-radius:4px;background:#1B1F22"></div>
+    </div>
+  </div>
+  <div style="position:relative;padding:0 20px 14px;margin-top:-70px">
+    <div style="height:48px;border-radius:24px;background:rgba(24,28,31,.94);border:1px solid rgba(255,255,255,.09);display:flex;align-items:center;justify-content:space-between;padding:0 8px;backdrop-filter:blur(12px)">
+      <span style="width:40px;height:40px;border-radius:20px;display:flex;align-items:center;justify-content:center;font-size:15px;color:#9AA1A0">◑</span>
+      <span style="width:40px;height:40px;border-radius:20px;display:flex;align-items:center;justify-content:center;font-size:14px;color:#9AA1A0">≡</span>
+      <div style="height:34px;padding:0 14px;border-radius:17px;background:#20262A;display:flex;align-items:center;gap:7px">
+        <span style="font:500 11px 'Figtree',system-ui,sans-serif;color:#D7DCDA">3 OPEN</span>
+        <span style="font-size:9px;color:#7FC8A9">▲</span>
+      </div>
+      <span style="width:40px;height:40px;border-radius:20px;display:flex;align-items:center;justify-content:center;font-size:15px;color:#9AA1A0">☰</span>
+      <span style="width:40px;height:40px;border-radius:20px;display:flex;align-items:center;justify-content:center;font-size:15px;color:#9AA1A0">⋯</span>
+    </div>
+  </div>
+</div>
+</x-import>
+</div></div>
+
+<div class="dv-opt" id="2c"><div class="dv-olabel"><a class="dv-oid" href="#2c">2c</a>Quick switcher drawer — thumb height, wipe and panic in the same sheet</div>
+<div class="dv-card">
+<x-import component-from-global-scope="AndroidDevice" from="./android-frame.jsx" dark="{{ true }}" hint-size="428px,908px">
+<div style="height:100%;background:#0F1113;display:flex;flex-direction:column;font-family:'Figtree',system-ui,sans-serif">
+  <div style="flex:1;opacity:.32;padding:20px;display:flex;flex-direction:column;gap:14px">
+    <div style="height:14px;width:45%;border-radius:4px;background:#1B1F22"></div>
+    <div style="height:26px;width:80%;border-radius:5px;background:#232729"></div>
+    <div style="height:140px;border-radius:12px;background:#15181B"></div>
+    <div style="height:10px;border-radius:4px;background:#1B1F22"></div>
+    <div style="height:10px;width:70%;border-radius:4px;background:#1B1F22"></div>
+  </div>
+  <div style="background:#141719;border-top:1px solid rgba(255,255,255,.09);border-radius:22px 22px 0 0;padding:10px 0 16px;box-shadow:0 -20px 40px rgba(0,0,0,.5)">
+    <div style="width:36px;height:4px;border-radius:2px;background:#2C3134;margin:0 auto 12px"></div>
+    <div style="padding:0 18px 10px;display:flex;align-items:center;justify-content:space-between">
+      <span style="font:500 10px 'Figtree',system-ui,sans-serif;letter-spacing:.1em;color:#7FC8A9">3 OPEN SESSIONS</span>
+      <span style="font:500 10px 'Figtree',system-ui,sans-serif;letter-spacing:.06em;color:#6E7573">PERSONAL</span>
+    </div>
+    <div style="display:flex;gap:12px;padding:0 18px 14px;align-items:center;border-bottom:1px solid rgba(255,255,255,.06)">
+      <div style="width:3px;height:38px;border-radius:2px;background:#7FC8A9"></div>
+      <div style="width:36px;height:36px;border-radius:10px;background:#20252A;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:600;color:#C7CECC">Fr</div>
+      <div style="flex:1;display:flex;flex-direction:column;gap:3px"><span style="font-size:14.5px;font-weight:500;color:#E8E9E7">Forum</span><span style="font:400 10.5px 'Figtree',system-ui,sans-serif;color:#6E7573">viewing now · socks5</span></div>
+      <span style="font-size:16px;color:#6E7573">×</span>
+    </div>
+    <div style="display:flex;gap:12px;padding:14px 18px;align-items:center;border-bottom:1px solid rgba(255,255,255,.06)">
+      <div style="width:3px;height:38px;border-radius:2px;background:rgba(127,200,169,.45)"></div>
+      <div style="width:36px;height:36px;border-radius:10px;background:#20252A;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:600;color:#C7CECC">Nt</div>
+      <div style="flex:1;display:flex;flex-direction:column;gap:3px"><span style="font-size:14.5px;font-weight:500;color:#E8E9E7">Notes</span><span style="font:400 10.5px 'Figtree',system-ui,sans-serif;color:#6E7573">background · 2 min</span></div>
+      <span style="font-size:16px;color:#6E7573">×</span>
+    </div>
+    <div style="display:flex;gap:12px;padding:14px 18px;align-items:center">
+      <div style="width:3px;height:38px;border-radius:2px;background:rgba(127,200,169,.45)"></div>
+      <div style="width:36px;height:36px;border-radius:10px;background:#20252A;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:600;color:#C7CECC">Wm</div>
+      <div style="flex:1;display:flex;flex-direction:column;gap:3px"><span style="font-size:14.5px;font-weight:500;color:#E8E9E7">Webmail</span><span style="font:400 10.5px 'Figtree',system-ui,sans-serif;color:#6E7573">background · 14 min</span></div>
+      <span style="font-size:16px;color:#6E7573">×</span>
+    </div>
+    <div style="display:flex;gap:10px;padding:16px 18px 0">
+      <div style="flex:1;height:46px;border-radius:14px;background:#1C2124;display:flex;align-items:center;justify-content:center;font-size:13.5px;font-weight:500;color:#D7DCDA">Close all and wipe</div>
+      <div style="width:46px;height:46px;border-radius:14px;background:rgba(214,106,90,.14);border:1px solid rgba(214,106,90,.3);display:flex;align-items:center;justify-content:center;font-size:15px;color:#D66A5A">◉</div>
+    </div>
+  </div>
+</div>
+</x-import>
+</div></div>
+
+<div class="dv-opt" id="2d"><div class="dv-olabel"><a class="dv-oid" href="#2d">2d</a>Settings — lock, vault and panic behaviour</div>
+<div class="dv-card">
+<x-import component-from-global-scope="AndroidDevice" from="./android-frame.jsx" dark="{{ true }}" hint-size="428px,908px">
+<div style="height:100%;background:#0F1113;display:flex;flex-direction:column;font-family:'Figtree',system-ui,sans-serif">
+  <div style="padding:14px 18px 12px;border-bottom:1px solid rgba(255,255,255,.06);display:flex;align-items:center;gap:10px">
+    <span style="font-size:16px;color:#9AA1A0">‹</span>
+    <span style="font-size:16px;font-weight:600;color:#E8E9E7">Settings</span>
+  </div>
+  <div style="flex:1;overflow:auto;padding:18px">
+    <span style="font:500 10px 'Figtree',system-ui,sans-serif;letter-spacing:.1em;color:#6E7573">LOCK</span>
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:15px 0;border-bottom:1px solid rgba(255,255,255,.06)">
+      <div style="display:flex;flex-direction:column;gap:3px"><span style="font-size:14px;color:#E8E9E7">Unlock with biometrics</span><span style="font-size:11px;color:#6E7573">PIN always available as fallback</span></div>
+      <div style="width:44px;height:26px;border-radius:20px;background:#7FC8A9;display:flex;align-items:center;justify-content:flex-end;padding:0 3px"><span style="width:20px;height:20px;border-radius:50%;background:#0F1113"></span></div>
+    </div>
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:15px 0;border-bottom:1px solid rgba(255,255,255,.06)">
+      <span style="font-size:14px;color:#E8E9E7">Auto-lock</span>
+      <span style="font:400 12.5px 'Figtree',system-ui,sans-serif;color:#8A918F">After 1 min</span>
+    </div>
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:15px 0;border-bottom:1px solid rgba(255,255,255,.06)">
+      <span style="font-size:14px;color:#E8E9E7">Change main PIN</span>
+      <span style="font-size:14px;color:#6E7573">›</span>
+    </div>
+    <span style="display:block;font:500 10px 'Figtree',system-ui,sans-serif;letter-spacing:.1em;color:#6E7573;padding:24px 0 0">VAULT</span>
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:15px 0;border-bottom:1px solid rgba(255,255,255,.06)">
+      <div style="display:flex;flex-direction:column;gap:3px"><span style="font-size:14px;color:#E8E9E7">Decoy vault</span><span style="font-size:11px;color:#6E7573">A second PIN opens a harmless board</span></div>
+      <div style="width:44px;height:26px;border-radius:20px;background:#7FC8A9;display:flex;align-items:center;justify-content:flex-end;padding:0 3px"><span style="width:20px;height:20px;border-radius:50%;background:#0F1113"></span></div>
+    </div>
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:15px 0;border-bottom:1px solid rgba(255,255,255,.06)">
+      <span style="font-size:14px;color:#E8E9E7">Sites shown in decoy</span>
+      <span style="font:400 12.5px 'Figtree',system-ui,sans-serif;color:#8A918F">4 selected</span>
+    </div>
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:15px 0;border-bottom:1px solid rgba(255,255,255,.06)">
+      <div style="display:flex;flex-direction:column;gap:3px"><span style="font-size:14px;color:#E8E9E7">Hide from app switcher</span><span style="font-size:11px;color:#6E7573">Blurs previews, blocks screenshots</span></div>
+      <div style="width:44px;height:26px;border-radius:20px;background:#7FC8A9;display:flex;align-items:center;justify-content:flex-end;padding:0 3px"><span style="width:20px;height:20px;border-radius:50%;background:#0F1113"></span></div>
+    </div>
+    <span style="display:block;font:500 10px 'Figtree',system-ui,sans-serif;letter-spacing:.1em;color:#6E7573;padding:24px 0 0">PANIC</span>
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:15px 0;border-bottom:1px solid rgba(255,255,255,.06)">
+      <div style="display:flex;flex-direction:column;gap:3px"><span style="font-size:14px;color:#E8E9E7">Trigger by flipping face down</span><span style="font-size:11px;color:#6E7573">Uses the accelerometer</span></div>
+      <div style="width:44px;height:26px;border-radius:20px;background:#232729;display:flex;align-items:center;padding:0 3px"><span style="width:20px;height:20px;border-radius:50%;background:#4A5150"></span></div>
+    </div>
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:15px 0;border-bottom:1px solid rgba(255,255,255,.06)">
+      <span style="font-size:14px;color:#E8E9E7">On panic</span>
+      <span style="font:400 12.5px 'Figtree',system-ui,sans-serif;color:#8A918F">Wipe + lock</span>
+    </div>
+    <div style="padding:22px 0 8px;display:flex;flex-direction:column;gap:6px">
+      <span style="font:400 11px/1.6 'Figtree',system-ui,sans-serif;color:#5F6664">Nothing leaves this device. There is no account and no sync.</span>
+    </div>
+  </div>
+</div>
+</x-import>
+</div></div>
+
+</div>
+<p class="dv-next">Try next: "add the lock and decoy screens" · "make <a class="dv-oid" href="#2b">2b</a>'s top bar auto-hide on scroll" · "show the panic confirmation"</p>
+</section>
+
+<section class="dv-turn" id="t1">
+<div class="dv-thd"><a class="dv-tid" href="#t1">1</a><span class="dv-tname">Main dashboard — three directions</span></div>
+<p class="dv-note">Android, English UI, calm posture: security is present but never shouting. Workspace lives in a top-bar dropdown, so the board itself stays empty of chrome. Cards carry live session state (open / idle, last visit). Palette and type are mine — the attached design system project is empty, so tell me if you have real brand assets to swap in.</p>
+<div class="dv-opts">
+
+<div class="dv-opt" id="1a"><div class="dv-olabel"><a class="dv-oid" href="#1a">1a</a>Quiet grid — monogram tiles, one status line, badges only when they mean something</div>
+<div class="dv-card">
+<x-import component-from-global-scope="AndroidDevice" from="./android-frame.jsx" dark="{{ true }}" hint-size="428px,908px">
+<div style="height:100%;background:#0F1113;display:flex;flex-direction:column;font-family:'Figtree',system-ui,sans-serif">
+  <div style="padding:14px 20px 10px;display:flex;align-items:center;justify-content:space-between">
+    <div onClick="{{ toggleWs }}" style="display:flex;align-items:center;gap:8px;cursor:pointer">
+      <span style="font-size:21px;font-weight:600;color:#E8E9E7;letter-spacing:-.01em">{{ wsName }}</span>
+      <span style="font-size:10px;color:#7E8583">▼</span>
+    </div>
+    <div style="display:flex;gap:8px">
+      <div style="width:34px;height:34px;border-radius:10px;background:#181B1E;border:1px solid rgba(255,255,255,.07);display:flex;align-items:center;justify-content:center;font-size:15px;color:#9AA1A0">⌕</div>
+      <div style="width:34px;height:34px;border-radius:10px;background:#181B1E;border:1px solid rgba(255,255,255,.07);display:flex;align-items:center;justify-content:center;font-size:15px;color:#9AA1A0">⋯</div>
+    </div>
+  </div>
+  <sc-if value="{{ wsOpen }}" hint-placeholder-val="{{ false }}">
+    <div style="margin:0 20px 6px;background:#15181B;border:1px solid rgba(255,255,255,.08);border-radius:14px;overflow:hidden">
+      <sc-for list="{{ workspaces }}" as="w" hint-placeholder-count="3">
+        <div onClick="{{ w.pick }}" style="display:flex;align-items:center;justify-content:space-between;padding:12px 14px;cursor:pointer;border-bottom:1px solid rgba(255,255,255,.05)">
+          <div style="display:flex;flex-direction:column;gap:2px">
+            <span style="font-size:14px;font-weight:500;color:#E8E9E7">{{ w.name }}</span>
+            <span style="font:400 10px 'Figtree',system-ui,sans-serif;color:#6E7573">{{ w.meta }}</span>
+          </div>
+          <span style="font-size:13px;color:#7FC8A9">{{ w.check }}</span>
+        </div>
+      </sc-for>
+    </div>
+  </sc-if>
+  <div style="flex:1;overflow:auto;padding:8px 20px 24px">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+      <sc-for list="{{ sites }}" as="s" hint-placeholder-count="6">
+        <div style="background:#15181B;border:1px solid rgba(255,255,255,.07);border-radius:16px;padding:14px;display:flex;flex-direction:column;gap:12px;min-height:124px">
+          <div style="display:flex;align-items:flex-start;justify-content:space-between">
+            <div style="width:38px;height:38px;border-radius:11px;background:#20252A;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:600;color:#C7CECC">{{ s.mono }}</div>
+            <div style="display:flex;gap:5px;align-items:center">
+              <sc-for list="{{ s.badges }}" as="b" hint-placeholder-count="1">
+                <span style="font:500 9px 'Figtree',system-ui,sans-serif;letter-spacing:.04em;padding:3px 5px;border-radius:5px;background:rgba(255,255,255,.06);color:#98A09E">{{ b }}</span>
+              </sc-for>
+            </div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:5px;margin-top:auto">
+            <span style="font-size:14px;font-weight:500;color:#E8E9E7;letter-spacing:-.01em">{{ s.name }}</span>
+            <div style="display:flex;align-items:center;gap:6px">
+              <span style="width:6px;height:6px;border-radius:50%;background:{{ s.dot }}"></span>
+              <span style="font:400 10.5px 'Figtree',system-ui,sans-serif;color:#727978">{{ s.status }}</span>
+            </div>
+          </div>
+        </div>
+      </sc-for>
+      <div style="border:1px dashed rgba(255,255,255,.13);border-radius:16px;min-height:124px;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:6px">
+        <span style="font-size:20px;color:#5C6462;font-weight:300">+</span>
+        <span style="font:400 10.5px 'Figtree',system-ui,sans-serif;color:#5C6462">Add site</span>
+      </div>
+    </div>
+  </div>
+</div>
+</x-import>
+</div></div>
+
+<div class="dv-opt" id="1b"><div class="dv-olabel"><a class="dv-oid" href="#1b">1b</a>Session list — grouped by what is running, technical meta in mono, one-handed reach</div>
+<div class="dv-card">
+<x-import component-from-global-scope="AndroidDevice" from="./android-frame.jsx" dark="{{ true }}" hint-size="428px,908px">
+<div style="height:100%;background:#0F1113;display:flex;flex-direction:column;font-family:'Figtree',system-ui,sans-serif">
+  <div style="padding:14px 18px 12px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid rgba(255,255,255,.06)">
+    <div style="display:flex;align-items:center;gap:7px">
+      <span style="font-size:15px;font-weight:600;color:#E8E9E7">Personal</span>
+      <span style="font-size:9px;color:#7E8583">▼</span>
+    </div>
+    <span style="font:400 10px 'Figtree',system-ui,sans-serif;color:#6E7573">2 SESSIONS · 0 LEAKS</span>
+  </div>
+  <div style="flex:1;overflow:auto">
+    <div style="padding:16px 18px 6px;font:500 10px 'Figtree',system-ui,sans-serif;letter-spacing:.1em;color:#7FC8A9">OPEN NOW</div>
+    <sc-for list="{{ openSites }}" as="s" hint-placeholder-count="2">
+      <div style="display:flex;gap:12px;padding:12px 18px;align-items:center;border-bottom:1px solid rgba(255,255,255,.05)">
+        <div style="width:3px;align-self:stretch;border-radius:2px;background:#7FC8A9"></div>
+        <div style="width:36px;height:36px;border-radius:10px;background:#20252A;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:600;color:#C7CECC">{{ s.mono }}</div>
+        <div style="flex:1;display:flex;flex-direction:column;gap:3px;min-width:0">
+          <span style="font-size:14.5px;font-weight:500;color:#E8E9E7">{{ s.name }}</span>
+          <span style="font:400 10.5px 'Figtree',system-ui,sans-serif;color:#6E7573;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ s.meta }}</span>
+        </div>
+        <span style="font:400 10.5px 'Figtree',system-ui,sans-serif;color:#8A918F">{{ s.time }}</span>
+      </div>
+    </sc-for>
+    <div style="padding:20px 18px 6px;font:500 10px 'Figtree',system-ui,sans-serif;letter-spacing:.1em;color:#6E7573">IDLE</div>
+    <sc-for list="{{ idleSites }}" as="s" hint-placeholder-count="4">
+      <div style="display:flex;gap:12px;padding:12px 18px;align-items:center;border-bottom:1px solid rgba(255,255,255,.05)">
+        <div style="width:3px;align-self:stretch;border-radius:2px;background:rgba(255,255,255,.09)"></div>
+        <div style="width:36px;height:36px;border-radius:10px;background:#181B1E;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:600;color:#8A918F">{{ s.mono }}</div>
+        <div style="flex:1;display:flex;flex-direction:column;gap:3px;min-width:0">
+          <span style="font-size:14.5px;font-weight:500;color:#B9BFBD">{{ s.name }}</span>
+          <span style="font:400 10.5px 'Figtree',system-ui,sans-serif;color:#5F6664;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ s.meta }}</span>
+        </div>
+        <span style="font:400 10.5px 'Figtree',system-ui,sans-serif;color:#5F6664">{{ s.time }}</span>
+      </div>
+    </sc-for>
+  </div>
+  <div style="padding:12px 18px 16px;border-top:1px solid rgba(255,255,255,.06);display:flex;gap:10px;background:#111417">
+    <div style="flex:1;height:46px;border-radius:14px;background:#1C2124;display:flex;align-items:center;justify-content:center;gap:8px;font-size:14px;font-weight:500;color:#D7DCDA">+ Add site</div>
+    <div style="width:46px;height:46px;border-radius:14px;background:#1C2124;display:flex;align-items:center;justify-content:center;font-size:15px;color:#9AA1A0">⌕</div>
+  </div>
+</div>
+</x-import>
+</div></div>
+
+<div class="dv-opt" id="1c"><div class="dv-olabel"><a class="dv-oid" href="#1c">1c</a>Live tiles — full-width rows for open sessions with a page preview, small tiles below</div>
+<div class="dv-card">
+<x-import component-from-global-scope="AndroidDevice" from="./android-frame.jsx" dark="{{ true }}" hint-size="428px,908px">
+<div style="height:100%;background:#0F1113;display:flex;flex-direction:column;font-family:'Figtree',system-ui,sans-serif">
+  <div style="padding:16px 20px 12px;display:flex;align-items:center;justify-content:space-between">
+    <div style="display:flex;flex-direction:column;gap:2px">
+      <span style="font:500 9.5px 'Figtree',system-ui,sans-serif;letter-spacing:.12em;color:#6E7573">WORKSPACE</span>
+      <div style="display:flex;align-items:center;gap:7px">
+        <span style="font-size:20px;font-weight:600;color:#E8E9E7;letter-spacing:-.01em">Personal</span>
+        <span style="font-size:10px;color:#7E8583">▼</span>
+      </div>
+    </div>
+    <div style="width:36px;height:36px;border-radius:50%;background:#181B1E;border:1px solid rgba(255,255,255,.07);display:flex;align-items:center;justify-content:center;font-size:15px;color:#9AA1A0">⌕</div>
+  </div>
+  <div style="flex:1;overflow:auto;padding:4px 20px 24px;display:flex;flex-direction:column;gap:12px">
+    <sc-for list="{{ openSites }}" as="s" hint-placeholder-count="2">
+      <div style="background:#15181B;border:1px solid rgba(127,200,169,.18);border-radius:18px;overflow:hidden">
+        <div style="height:96px;background:linear-gradient(180deg,#1D2226,#15181B);display:flex;align-items:center;justify-content:center;position:relative">
+          <span style="font:400 10px 'Figtree',system-ui,sans-serif;color:#4E5654">page preview</span>
+          <span style="position:absolute;top:10px;right:10px;font:500 9px 'Figtree',system-ui,sans-serif;padding:4px 7px;border-radius:20px;background:rgba(127,200,169,.14);color:#7FC8A9">LIVE</span>
+        </div>
+        <div style="padding:12px 14px;display:flex;align-items:center;gap:11px">
+          <div style="width:34px;height:34px;border-radius:10px;background:#20252A;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:600;color:#C7CECC">{{ s.mono }}</div>
+          <div style="flex:1;display:flex;flex-direction:column;gap:3px;min-width:0">
+            <span style="font-size:14.5px;font-weight:500;color:#E8E9E7">{{ s.name }}</span>
+            <span style="font:400 10.5px 'Figtree',system-ui,sans-serif;color:#6E7573;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ s.meta }}</span>
+          </div>
+          <span style="font-size:16px;color:#6E7573">×</span>
+        </div>
+      </div>
+    </sc-for>
+    <div style="font:500 10px 'Figtree',system-ui,sans-serif;letter-spacing:.1em;color:#6E7573;margin-top:6px">SAVED</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px">
+      <sc-for list="{{ idleSites }}" as="s" hint-placeholder-count="6">
+        <div style="background:#141719;border:1px solid rgba(255,255,255,.06);border-radius:14px;padding:11px;display:flex;flex-direction:column;gap:9px;align-items:flex-start">
+          <div style="width:32px;height:32px;border-radius:9px;background:#1E2226;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:600;color:#A9B0AE">{{ s.mono }}</div>
+          <span style="font-size:11.5px;font-weight:500;color:#C3C9C7;line-height:1.25">{{ s.name }}</span>
+          <span style="font:400 9px 'Figtree',system-ui,sans-serif;color:#5F6664">{{ s.time }}</span>
+        </div>
+      </sc-for>
+      <div style="border:1px dashed rgba(255,255,255,.13);border-radius:14px;min-height:96px;display:flex;align-items:center;justify-content:center;font-size:18px;color:#5C6462;font-weight:300">+</div>
+    </div>
+  </div>
+</div>
+</x-import>
+</div></div>
+
+</div>
+<p class="dv-next">Try next: "build the rest of the screens on <a class="dv-oid" href="#1a">1a</a>" · "merge <a class="dv-oid" href="#1b">1b</a>'s grouping into <a class="dv-oid" href="#1a">1a</a>" · "lighter theme"</p>
+</section>
+</doc-page>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1600,&quot;height&quot;:1080}}">
+class Component extends DCLogic {
+  state = { wsOpen: false, ws: 'Personal', tab: 'Basics', ua: 'Mobile', pin: '' };
+  renderVals() {
+    const all = {
+      Personal: [
+        { mono: 'Nt', name: 'Notes', status: 'Open · now', dot: '#7FC8A9', badges: ['PROXY'], meta: 'notes.example.org · socks5', time: 'now' },
+        { mono: 'Wm', name: 'Webmail', status: 'Open · 14 min', dot: '#7FC8A9', badges: [], meta: 'mail.example.net · direct', time: '14m' },
+        { mono: 'Fr', name: 'Forum', status: 'Idle · 2 h', dot: '#3E4644', badges: ['TEMP'], meta: 'forum.example.com · ephemeral', time: '2h' },
+        { mono: 'Rd', name: 'Reader', status: 'Idle · yesterday', dot: '#3E4644', badges: [], meta: 'read.example.io · direct', time: '1d' },
+        { mono: 'Bk', name: 'Bank', status: 'Idle · 3 d', dot: '#3E4644', badges: ['LOCK'], meta: 'bank.example.com · pin required', time: '3d' },
+        { mono: 'Mk', name: 'Marketplace', status: 'Idle · 5 d', dot: '#3E4644', badges: [], meta: 'shop.example.com · direct', time: '5d' },
+      ],
+      Work: [
+        { mono: 'Wk', name: 'Wiki', status: 'Open · 3 min', dot: '#7FC8A9', badges: ['PROXY'], meta: 'wiki.internal · socks5', time: '3m' },
+        { mono: 'Tk', name: 'Tickets', status: 'Idle · 1 h', dot: '#3E4644', badges: [], meta: 'tickets.internal · direct', time: '1h' },
+      ],
+      Ephemeral: [
+        { mono: 'Sc', name: 'Scratch tab', status: 'Open · now', dot: '#7FC8A9', badges: ['TEMP'], meta: 'wipes on exit', time: 'now' },
+      ],
+    };
+    const sites = all[this.state.ws] || all.Personal;
+    const pick = (n) => () => this.setState({ ws: n, wsOpen: false });
+    return {
+      wsName: this.state.ws,
+      wsOpen: this.state.wsOpen,
+      toggleWs: () => this.setState(s => ({ wsOpen: !s.wsOpen })),
+      workspaces: [
+        { name: 'Personal', meta: '6 SITES · 2 OPEN', check: this.state.ws === 'Personal' ? '✓' : '', pick: pick('Personal') },
+        { name: 'Work', meta: '2 SITES · 1 OPEN', check: this.state.ws === 'Work' ? '✓' : '', pick: pick('Work') },
+        { name: 'Ephemeral', meta: 'WIPES ON EXIT', check: this.state.ws === 'Ephemeral' ? '✓' : '', pick: pick('Ephemeral') },
+      ],
+      pinDots: [0, 1, 2, 3, 4, 5].map(i => ({
+        bg: i < this.state.pin.length ? '#E8E9E7' : 'transparent',
+        border: i < this.state.pin.length ? '#E8E9E7' : '#3A403E',
+      })),
+      keys: ['1', '2', '3', '4', '5', '6', '7', '8', '9', '', '0', '⌫'].map(k => ({
+        label: k,
+        press: () => this.setState(s => ({
+          pin: k === '⌫' ? s.pin.slice(0, -1) : (k === '' || s.pin.length >= 6 ? s.pin : s.pin + k),
+        })),
+      })),
+      sites,
+      tabs: ['Basics', 'Network', 'Privacy', 'Appearance'].map(t => ({
+        name: t, pick: () => this.setState({ tab: t }),
+        color: this.state.tab === t ? '#E8E9E7' : '#6E7573',
+        line: this.state.tab === t ? '#7FC8A9' : 'transparent',
+      })),
+      onBasics: this.state.tab === 'Basics',
+      onNetwork: this.state.tab === 'Network',
+      onPrivacy: this.state.tab === 'Privacy',
+      onAppearance: this.state.tab === 'Appearance',
+      uaOpts: ['Mobile', 'Desktop', 'Custom'].map(u => ({
+        name: u, pick: () => this.setState({ ua: u }),
+        bg: this.state.ua === u ? '#20262A' : 'transparent',
+        color: this.state.ua === u ? '#E8E9E7' : '#767D7B',
+      })),
+      openSites: all.Personal.filter(s => s.dot === '#7FC8A9'),
+      idleSites: all.Personal.filter(s => s.dot !== '#7FC8A9'),
+    };
+  }
+}
+</script>
+</body>
+</html>
