@@ -65,6 +65,7 @@ void main() {
       name: 'Forum',
       monogram: 'Fr',
       url: 'https://forum.example.com',
+      profileId: newProfileId(),
       cookiePolicy: CookiePolicy.wipeOnExit,
       proxyMode: ProxyMode.socks5,
       proxyHost: '127.0.0.1',
@@ -90,9 +91,9 @@ void main() {
     final sites = SqliteSiteRepository(database);
     await SqliteWorkspaceRepository(database).upsert(const Workspace(
         id: 'w1', name: 'W', markerIndex: 0, storageRule: StorageRule.keep));
-    await sites.upsert(const Site(
+    await sites.upsert(Site(
         id: 's1', workspaceId: 'w1', name: 'N', monogram: 'Nt',
-        url: 'https://n.example.com'));
+        url: 'https://n.example.com', profileId: newProfileId()));
 
     final at = DateTime.utc(2026, 8, 30, 12);
     await sites.touch('s1', at);

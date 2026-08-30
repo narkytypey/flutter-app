@@ -13,6 +13,7 @@ Site _site({
     name: 'Site',
     monogram: 'St',
     url: 'https://example.com',
+    profileId: 'p',
     cookiePolicy: cookies,
     proxyMode: proxy,
     requirePin: requirePin,

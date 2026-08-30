@@ -5,6 +5,10 @@ enum CookiePolicy { keep, wipeOnExit }
 /// set to a proxy never silently falls back to [direct].
 enum ProxyMode { direct, socks5, http }
 
+/// Spec `2a`, USER AGENT. Three presets and no free-text field, because a
+/// unique UA string is itself a fingerprint.
+enum UserAgentMode { android, desktop, minimal }
+
 class Site {
   const Site({
     required this.id,
@@ -12,6 +16,20 @@ class Site {
     required this.name,
     required this.monogram,
     required this.url,
+    required this.profileId,
+    this.blockWebRtc = true,
+    this.blockTrackers = true,
+    this.antiFingerprinting = true,
+    this.allowCamera = false,
+    this.allowMicrophone = false,
+    this.allowLocation = false,
+    this.allowClipboard = false,
+    this.userAgentMode = UserAgentMode.android,
+    this.forceDark = true,
+    this.openInReader = false,
+    this.pageZoom = 100,
+    this.customCss = '',
+    this.customJs = '',
     this.cookiePolicy = CookiePolicy.keep,
     this.proxyMode = ProxyMode.direct,
     this.proxyHost,
@@ -27,6 +45,27 @@ class Site {
   final String name;
   final String monogram;
   final String url;
+
+  /// Names this site's WebView profile. Opaque, random, stored — never derived
+  /// from [url] or [name]. See Global Constraints.
+  final String profileId;
+
+  final bool blockWebRtc;
+  final bool blockTrackers;
+  final bool antiFingerprinting;
+  final bool allowCamera;
+  final bool allowMicrophone;
+  final bool allowLocation;
+  final bool allowClipboard;
+  final UserAgentMode userAgentMode;
+  final bool forceDark;
+  final bool openInReader;
+
+  /// Percent. Spec `2a` shows `110%`; the slider spans 50–200.
+  final int pageZoom;
+
+  final String customCss;
+  final String customJs;
   final CookiePolicy cookiePolicy;
   final ProxyMode proxyMode;
   final String? proxyHost;
@@ -44,6 +83,20 @@ class Site {
     String? name,
     String? monogram,
     String? url,
+    String? profileId,
+    bool? blockWebRtc,
+    bool? blockTrackers,
+    bool? antiFingerprinting,
+    bool? allowCamera,
+    bool? allowMicrophone,
+    bool? allowLocation,
+    bool? allowClipboard,
+    UserAgentMode? userAgentMode,
+    bool? forceDark,
+    bool? openInReader,
+    int? pageZoom,
+    String? customCss,
+    String? customJs,
     CookiePolicy? cookiePolicy,
     ProxyMode? proxyMode,
     String? proxyHost,
@@ -59,6 +112,20 @@ class Site {
       name: name ?? this.name,
       monogram: monogram ?? this.monogram,
       url: url ?? this.url,
+      profileId: profileId ?? this.profileId,
+      blockWebRtc: blockWebRtc ?? this.blockWebRtc,
+      blockTrackers: blockTrackers ?? this.blockTrackers,
+      antiFingerprinting: antiFingerprinting ?? this.antiFingerprinting,
+      allowCamera: allowCamera ?? this.allowCamera,
+      allowMicrophone: allowMicrophone ?? this.allowMicrophone,
+      allowLocation: allowLocation ?? this.allowLocation,
+      allowClipboard: allowClipboard ?? this.allowClipboard,
+      userAgentMode: userAgentMode ?? this.userAgentMode,
+      forceDark: forceDark ?? this.forceDark,
+      openInReader: openInReader ?? this.openInReader,
+      pageZoom: pageZoom ?? this.pageZoom,
+      customCss: customCss ?? this.customCss,
+      customJs: customJs ?? this.customJs,
       cookiePolicy: cookiePolicy ?? this.cookiePolicy,
       proxyMode: proxyMode ?? this.proxyMode,
       proxyHost: proxyHost ?? this.proxyHost,
