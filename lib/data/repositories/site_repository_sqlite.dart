@@ -1,4 +1,4 @@
-import 'package:sqflite/sqflite.dart';
+import 'package:sqflite_sqlcipher/sqflite.dart';
 
 import '../../domain/repositories/repositories.dart';
 import '../../domain/models/site.dart';

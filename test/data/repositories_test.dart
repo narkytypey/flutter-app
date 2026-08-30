@@ -4,6 +4,7 @@ import 'package:container/data/services/app_database.dart';
 import 'package:container/data/repositories/site_repository_sqlite.dart';
 import 'package:container/data/repositories/workspace_repository_sqlite.dart';
 import 'package:container/domain/models/site.dart';
+import 'package:container/domain/models/vault.dart';
 import 'package:container/domain/models/workspace.dart';
 
 void main() {
@@ -106,7 +107,7 @@ void main() {
   test('neither vault file is named for its role', () {
     // Under the coerced-unlock threat model the attacker is looking at the
     // device, so a file called `decoy.db` would give away the whole scheme.
-    final names = {vaultFileName(Vault.a), vaultFileName(Vault.b)};
+    final names = {vaultFileName(VaultId.a), vaultFileName(VaultId.b)};
 
     expect(names.length, 2, reason: 'the two vaults must not share a file');
     for (final name in names) {

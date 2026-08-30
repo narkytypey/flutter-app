@@ -6,17 +6,35 @@ import 'package:container/domain/models/vault.dart';
 import 'package:container/domain/services/crypto_service.dart';
 import 'package:container/domain/services/vault_unlocker.dart';
 
-/// A fake in which a KEK is just the PIN and salt concatenated, and a wrapped
-/// key unwraps only if it was wrapped under the same KEK.
+/// A fake in which a KEK is a fixed-length (32-byte) deterministic function
+/// of the PIN and salt — matching real Argon2id, which always derives the
+/// same output length regardless of input length — and a wrapped key
+/// unwraps only if it was wrapped under the same KEK.
+///
+/// [randomBytes] returns different bytes on each call (a counter mixed into
+/// the output), not a fixed pattern: [VaultStore.provision] relies on two
+/// calls producing two different salts.
 class FakeCrypto implements CryptoService {
   FakeCrypto();
 
   final List<String> derivations = [];
+  int _randomCalls = 0;
+
+  static const _kekLength = 32;
 
   @override
   Future<Uint8List> deriveKek(String pin, Uint8List salt) async {
     derivations.add('$pin/${salt.join(",")}');
-    return Uint8List.fromList('$pin|${salt.join(",")}'.codeUnits);
+    final material = <int>[...pin.codeUnits, ...salt];
+    var state = _fnv1a(material);
+    final out = <int>[];
+    while (out.length < _kekLength) {
+      state = _splitmix64(state);
+      for (var shift = 0; shift < 64 && out.length < _kekLength; shift += 8) {
+        out.add((state >> shift) & 0xFF);
+      }
+    }
+    return Uint8List.fromList(out);
   }
 
   @override
@@ -36,11 +54,31 @@ class FakeCrypto implements CryptoService {
   }
 
   @override
-  Future<Uint8List> randomBytes(int length) async =>
-      Uint8List.fromList(List.filled(length, 7));
+  Future<Uint8List> randomBytes(int length) async {
+    final seed = _randomCalls++;
+    return Uint8List.fromList(
+        List.generate(length, (i) => (seed * 131 + i * 17) % 256));
+  }
 
   @override
   Future<void> destroyDeviceKey() async {}
+}
+
+int _fnv1a(List<int> bytes) {
+  var hash = 0xcbf29ce484222325;
+  for (final b in bytes) {
+    hash ^= b;
+    hash = (hash * 0x100000001b3) & 0xFFFFFFFFFFFFFFFF;
+  }
+  return hash;
+}
+
+int _splitmix64(int seed) {
+  seed = (seed + 0x9E3779B97F4A7C15) & 0xFFFFFFFFFFFFFFFF;
+  var z = seed;
+  z = ((z ^ (z >> 30)) * 0xBF58476D1CE4E5B9) & 0xFFFFFFFFFFFFFFFF;
+  z = ((z ^ (z >> 27)) * 0x94D049BB133111EB) & 0xFFFFFFFFFFFFFFFF;
+  return z ^ (z >> 31);
 }
 
 final _now = DateTime(2026, 8, 30, 9, 10);
