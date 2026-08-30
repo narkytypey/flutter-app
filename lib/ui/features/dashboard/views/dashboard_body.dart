@@ -4,6 +4,7 @@ import '../../../core/tokens.dart';
 import '../../../core/widgets/section_label.dart';
 import '../view_models/dashboard_view.dart';
 import 'dashboard_footer.dart';
+import 'empty_workspace.dart';
 import 'session_row.dart';
 import 'workspace_bar.dart';
 
@@ -55,6 +56,8 @@ class DashboardBody extends StatelessWidget {
   }
 
   Widget _list() {
+    if (view.isEmpty) return const EmptyWorkspace();
+
     final children = <Widget>[];
 
     if (view.open.isNotEmpty) {

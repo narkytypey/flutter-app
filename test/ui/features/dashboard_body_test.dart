@@ -138,4 +138,47 @@ void main() {
     expect(find.text('WIPES ON EXIT'), findsOneWidget);
     expect(find.textContaining('SESSIONS'), findsNothing);
   });
+
+  testWidgets('an empty workspace says so in one sentence with one action',
+      (tester) async {
+    await _pump(
+      tester,
+      DashboardView.from(
+        workspace: const Workspace(
+            id: 'ws', name: 'Ephemeral', markerIndex: 4,
+            storageRule: StorageRule.wipeOnExit),
+        sites: const [],
+        openSiteIds: const {},
+        leakCount: 0,
+        now: _now,
+      ),
+    );
+
+    expect(find.text('Nothing here yet'), findsOneWidget);
+    expect(
+      find.text('Sites you open in this workspace leave nothing behind when '
+          'you close the app.'),
+      findsOneWidget,
+    );
+    expect(find.text('+ Add site'), findsOneWidget);
+    expect(find.text('OPEN NOW'), findsNothing);
+  });
+
+  testWidgets('the empty state promotes Add site to the jade action',
+      (tester) async {
+    await _pump(
+      tester,
+      DashboardView.from(
+        workspace: const Workspace(
+            id: 'ws', name: 'Ephemeral', markerIndex: 4,
+            storageRule: StorageRule.wipeOnExit),
+        sites: const [],
+        openSiteIds: const {},
+        leakCount: 0,
+        now: _now,
+      ),
+    );
+
+    expect(tester.widget<Text>(find.text('+ Add site')).style!.color, C.bg);
+  });
 }
