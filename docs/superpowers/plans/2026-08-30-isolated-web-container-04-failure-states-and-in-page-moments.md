@@ -2014,6 +2014,15 @@ void main() {
   );
 
   testWidgets('renders the spec copy and numbers verbatim', (tester) async {
+    // The default 800x600 test surface is shorter than four category rows
+    // plus four site rows plus the total block, so the last few rows never
+    // enter the sliver list's build range and find.text can't see them.
+    // Widen the surface rather than scroll, since every assertion below
+    // needs simultaneous visibility.
+    addTearDown(tester.view.reset);
+    tester.view.physicalSize = const Size(800, 1600);
+    tester.view.devicePixelRatio = 1;
+
     var backs = 0;
     await tester.pumpWidget(MaterialApp(
       home: TodayScreen(tally: tally, onBack: () => backs++),

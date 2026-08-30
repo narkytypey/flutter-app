@@ -169,6 +169,16 @@ Task 1 in parallel off `plan-01-foundation`, before merging back.
    code already imported it correctly as `../view_models/dashboard_view.dart`.
    Fixed the same way in the plan file.
 
+10. **✅ Fixed 2026-08-31 (by flutter-app-ce).** Plan 4 Task 7's widget test
+    for the Today screen (spec `5c`) asserts on all four category rows and
+    all four site rows plus the total block simultaneously, with no scroll.
+    The default 800x600 `flutter_test` surface is shorter than that content,
+    so the sliver list never builds the last row (`Webmail`) into the
+    Element tree and `find.text` finds zero widgets for it — not a
+    visibility issue, an existence one. Fixed by widening the test's
+    surface (`tester.view.physicalSize`) before pumping, in both the plan
+    file and the implementation.
+
 ## Rulings recorded while fixing issue #2 (2026-08-30, flutter-app-1e)
 
 Plan 2 Task 8 now documents these inline (Step 6 and Step 17); summarized
