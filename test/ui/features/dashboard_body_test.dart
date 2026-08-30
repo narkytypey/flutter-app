@@ -14,6 +14,7 @@ Site _site(String id, String name, String mono, String url, Duration ago,
         bool pin = false}) =>
     Site(
       id: id, workspaceId: 'ws', name: name, monogram: mono, url: url,
+      profileId: 'p-$id',
       cookiePolicy: cookies, proxyMode: proxy, requirePin: pin,
       lastVisitedAt: _now.subtract(ago),
     );
