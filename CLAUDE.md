@@ -194,6 +194,17 @@ Task 1 in parallel off `plan-01-foundation`, before merging back.
     (setup wizard), which itself needs Task 4 (`VaultStore`) — a longer
     chain than the old "Task 5" citation implied.
 
+12. **✅ Fixed 2026-08-31 (by flutter-app-ce).** Plan 2 Task 5's `LockBody`
+    widget test overflows a `RenderFlex` by 20px in the `wrong` and
+    `afterTimeout` moods — same root cause as issue #10, a different
+    symptom: the default 800x600 `flutter_test` surface is landscape-shaped
+    and shorter than a real phone in portrait, and those two moods' extra
+    footnote content doesn't fit the fixed `Expanded` region at that height.
+    Verified a 400x800 portrait surface renders it with no overflow, so this
+    is a test-canvas mismatch, not a real layout bug for the phone screens
+    this app targets. Fixed by setting `tester.view.physicalSize` to a
+    portrait size in `_pump`, in both the plan file and the test.
+
 ## Rulings recorded while fixing issue #2 (2026-08-30, flutter-app-1e)
 
 Plan 2 Task 8 now documents these inline (Step 6 and Step 17); summarized
