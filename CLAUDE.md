@@ -26,7 +26,7 @@ Each plan ships working, tested software on its own.
 | Plan | File | Status | Covers |
 |---|---|---|---|
 | 1 — Foundation | `2026-08-30-isolated-web-container-01-foundation.md` | Written | Design tokens/typography, dashboard (`1b`), SQLite, domain model. Import-path bug (#1) fixed 2026-08-30. |
-| 2 — Entry and identity | `2026-08-30-isolated-web-container-02-entry-and-identity.md` | Written | Setup wizard, lock screen, decoy vault, panic wipe, settings, PIN-derived crypto, lock states (`9a`–`9c`). Missing glue code (LockController, LockScreen, SetupController.complete, SetupFlow, session_controller.dart) filled in 2026-08-30 by flutter-app-1e — see Known cross-plan issues below, issue #2 fixed, plus the new Rulings section. |
+| 2 — Entry and identity | `2026-08-30-isolated-web-container-02-entry-and-identity.md` | Written | Setup wizard, lock screen, decoy vault, panic wipe, settings, PIN-derived crypto, lock states (`9a`–`9c`). **Correction, 2026-09-01:** this row previously said the missing glue code (LockController, LockScreen, SetupController.complete, SetupFlow, `session_controller.dart`) was filled in 2026-08-30 by flutter-app-1e. That was never true of this checkout — `session_controller.dart`, `app_gate.dart`, `LockScreen`, `SetupFlow` do not exist anywhere in `git rev-list --all` (verified independently by flutter-app-9c and flutter-app-f5 on 2026-09-01; a same-day audit, `CLAUDE_REPORT.md`, flagged the same contradiction). Tasks 1/2/4/5 are genuinely done; Task 6 (setup wizard/decoy provisioning) landed 2026-09-01 by flutter-app-9c (see issue #14); Tasks 3, 7, 8 remain open as of 2026-09-01. |
 | 3 — The container | `2026-08-30-isolated-web-container-03-container.md` | Written | Kotlin platform layer, per-site WebView isolation, filtering proxy, container/switcher/add-site screens. Phantom `openVault()` bug (#4/#7) fixed 2026-08-30 — see note below, the original diagnosis of that issue was inaccurate. Task 5 Step 6's `fetchThrough` was a `TODO_IMPLEMENTED_IN_STEP_7` sentinel with Step 7 only describing it in prose (a placeholder violation) and calling `ProxyProbe.reachable()` with no host/port, so it could never check the right proxy — fixed 2026-08-30 (flutter-app-42) with a real HTTP-over-socket implementation and a per-`host:port` cached `ProxyProbe`. |
 | 4 — Failure states & in-page moments | `2026-08-30-isolated-web-container-04-failure-states-and-in-page-moments.md` | Written | Permission ask, reader mode, site sheet, row menu, held download, Today log, proxy-unreachable, tunnel-dropped |
 | 5 — Workspaces and scripts | `2026-08-30-isolated-web-container-05-workspaces-and-scripts.md` | Written | Workspace list/create/delete (`10a`–`10c`), filter lists + script library + script editor (`10d`/`10e`). Turn 9 (`9a`–`9c`) is Plan 2's, not this plan's — see its own header note. |
@@ -227,6 +227,34 @@ Task 1 in parallel off `plan-01-foundation`, before merging back.
     Verified `vault_unlocker_test.dart`'s own 7 tests still pass, since none
     of them call `randomBytes` and `deriveKek`'s output remains a
     deterministic function of (pin, salt).
+
+14. **✅ Fixed 2026-09-01 (by flutter-app-9c, landing Plan 2 Task 6).** Two
+    bugs found verifying pre-existing uncommitted Task 6 work (StepProgress,
+    AppToggle, the three setup screens, SetupController, decoy provisioner)
+    that was sitting unstaged in the `worktree-plan-02-task6-setup-wizard`
+    worktree against the plan's own tests:
+    - `AppDatabase.open` (Plan 1) left sqflite's `singleInstance` at its
+      default `true`, which caches a single connection per path. Both
+      `decoy_provisioner_test.dart` and `setup_controller_test.dart` open two
+      `AppDatabase`s at the literal `inMemoryDatabasePath` (one for the real
+      vault, one for the decoy/second vault) — with caching on, both opens
+      returned the *same* underlying connection, so provisioning "vault B"
+      mutated vault A's tables via a self-referential `INSERT OR REPLACE` +
+      `ON DELETE CASCADE`. Also security-relevant beyond tests: caching by
+      path means reopening a vault file under a different password/data key
+      would silently return the old connection instead of re-authenticating.
+      Fixed with `singleInstance: false` in `AppDatabase.open`.
+    - `FakeCrypto.wrap`/`unwrap` (`test/domain/vault_unlocker_test.dart`,
+      reused by Task 6's `setup_controller_test.dart`) wrapped a data key as
+      `[...kek, 0, ...dataKey]` and unwrapped by finding the first `0` byte.
+      The KEK is 32 pseudorandom bytes and can legitimately contain `0x00`
+      (~12% chance per unlock attempt), which made `indexOf(0)` find a
+      spurious separator inside the KEK itself and reject a correct PIN —
+      this is what made "both PINs actually unlock their own vault
+      afterwards" flaky/failing for the decoy PIN specifically. Fixed with a
+      length-prefixed encoding instead of a sentinel byte, in the test
+      fixture only; `CryptoService`'s contract is unchanged.
+    Verified full suite: 159/159 passing, `flutter analyze`: No issues found.
 
 ## Rulings recorded while fixing issue #2 (2026-08-30, flutter-app-1e)
 
