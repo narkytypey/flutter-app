@@ -37,20 +37,25 @@ class FakeCrypto implements CryptoService {
     return Uint8List.fromList(out);
   }
 
+  // Length-prefixed rather than sentinel-separated: [kek] is 32 pseudorandom
+  // bytes and can legitimately contain a literal 0x00, so a single `0` byte
+  // is not a safe separator — `indexOf(0)` can find one inside the KEK
+  // itself instead of the real boundary, truncating `usedKek` and rejecting
+  // a correct PIN.
   @override
   Future<Uint8List> wrap(Uint8List kek, Uint8List dataKey) async =>
-      Uint8List.fromList([...kek, 0, ...dataKey]);
+      Uint8List.fromList([kek.length, ...kek, ...dataKey]);
 
   @override
   Future<Uint8List?> unwrap(Uint8List kek, Uint8List wrapped) async {
-    final sep = wrapped.indexOf(0);
-    if (sep == -1) return null;
-    final usedKek = wrapped.sublist(0, sep);
-    if (usedKek.length != kek.length) return null;
+    if (wrapped.isEmpty) return null;
+    final kekLength = wrapped[0];
+    if (kekLength != kek.length || wrapped.length < 1 + kekLength) return null;
+    final usedKek = wrapped.sublist(1, 1 + kekLength);
     for (var i = 0; i < kek.length; i++) {
       if (usedKek[i] != kek[i]) return null;
     }
-    return Uint8List.fromList(wrapped.sublist(sep + 1));
+    return Uint8List.fromList(wrapped.sublist(1 + kekLength));
   }
 
   @override

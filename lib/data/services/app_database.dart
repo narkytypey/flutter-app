@@ -48,6 +48,12 @@ class AppDatabase {
       options: SqlCipherOpenDatabaseOptions(
         password: password,
         version: schemaVersion,
+        // The default `singleInstance: true` caches by path and silently
+        // reuses whatever connection (and password) first opened that path.
+        // Two vaults reopened under different PINs, or two in-memory test
+        // databases sharing the literal `inMemoryDatabasePath`, must never
+        // collapse onto the same handle.
+        singleInstance: false,
         onConfigure: (db) => db.execute('PRAGMA foreign_keys = ON'),
         onCreate: (db, _) async {
           await db.execute('''
