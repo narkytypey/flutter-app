@@ -1731,13 +1731,42 @@ Create `test/data/script_repository_test.dart`:
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:container/data/repositories/script_repository_sqlite.dart';
+import 'package:container/data/repositories/site_repository_sqlite.dart';
+import 'package:container/data/repositories/workspace_repository_sqlite.dart';
 import 'package:container/data/services/app_database.dart';
+import 'package:container/domain/models/site.dart';
 import 'package:container/domain/models/user_script.dart';
+import 'package:container/domain/models/workspace.dart';
 
 void main() {
   setUpAll(sqfliteFfiInit);
 
   late AppDatabase database;
+
+  // `script_sites.site_id` references `sites(id)` and the database is opened
+  // with `PRAGMA foreign_keys = ON`, so every applied site id must exist.
+  // That constraint is the design (spec `10c` keeps scripts when a workspace
+  // goes; the cascade on `site_id` is what drops an association when its site
+  // goes), so these tests seed real sites rather than inventing ids.
+  Future<void> seedSites(Iterable<String> ids) async {
+    await SqliteWorkspaceRepository(database).upsert(const Workspace(
+      id: 'w1',
+      name: 'Personal',
+      markerIndex: 0,
+      storageRule: StorageRule.keep,
+    ));
+    final sites = SqliteSiteRepository(database);
+    for (final id in ids) {
+      await sites.upsert(Site(
+        id: id,
+        workspaceId: 'w1',
+        name: id,
+        monogram: 'Xx',
+        url: 'https://$id.example.com',
+        profileId: newProfileId(),
+      ));
+    }
+  }
 
   setUp(() async {
     database = await AppDatabase.open(path: inMemoryDatabasePath, factory: databaseFactoryFfi);
@@ -1746,6 +1775,7 @@ void main() {
   tearDown(() => database.close());
 
   test('a script round-trips its fields and its site associations', () async {
+    await seedSites(['st-forum', 'st-reader']);
     final repo = SqliteScriptRepository(database);
 
     await repo.upsert(const UserScript(
@@ -1768,6 +1798,7 @@ void main() {
   });
 
   test('re-saving replaces the site associations rather than appending', () async {
+    await seedSites(['a', 'b', 'c']);
     final repo = SqliteScriptRepository(database);
     await repo.upsert(const UserScript(
       id: 'sc-1', name: 'S', kind: ScriptKind.js, code: '', runAtDocumentStart: false,
@@ -1783,6 +1814,7 @@ void main() {
   });
 
   test('all() lists every script, deleting removes it and its associations', () async {
+    await seedSites(['a']);
     final repo = SqliteScriptRepository(database);
     await repo.upsert(const UserScript(
       id: 'sc-1', name: 'One', kind: ScriptKind.css, code: '', runAtDocumentStart: false,

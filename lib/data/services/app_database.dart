@@ -35,7 +35,7 @@ class AppDatabase {
 
   final Database db;
 
-  static const schemaVersion = 3;
+  static const schemaVersion = 4;
 
   static Future<AppDatabase> open({
     required String path,
@@ -105,6 +105,8 @@ class AppDatabase {
           await db.execute(
               'CREATE INDEX idx_sites_workspace ON sites(workspace_id)');
           await db.execute(_createFilterLists);
+          await db.execute(_createScripts);
+          await db.execute(_createScriptSites);
         },
         onUpgrade: (db, from, to) async {
           if (from < 2) {
@@ -139,6 +141,10 @@ class AppDatabase {
           if (from < 3) {
             await db.execute(_createFilterLists);
           }
+          if (from < 4) {
+            await db.execute(_createScripts);
+            await db.execute(_createScriptSites);
+          }
         },
       ),
     );
@@ -158,6 +164,30 @@ const _createFilterLists = '''
     rule_count  INTEGER NOT NULL,
     updated_at  INTEGER NOT NULL,
     enabled     INTEGER NOT NULL DEFAULT 1
+  )
+''';
+
+/// Shared by `onCreate` and the v3 -> v4 `onUpgrade` step, for the same
+/// reason as [_createFilterLists]. Plan 5 Task 5 (spec `10d`).
+const _createScripts = '''
+  CREATE TABLE scripts (
+    id                    TEXT PRIMARY KEY,
+    name                  TEXT    NOT NULL,
+    kind                  TEXT    NOT NULL,
+    code                  TEXT    NOT NULL DEFAULT '',
+    run_at_document_start INTEGER NOT NULL DEFAULT 0,
+    enabled               INTEGER NOT NULL DEFAULT 1
+  )
+''';
+
+/// A script's only relationship is to the sites it is applied to. There is
+/// deliberately no `workspace_id` here: spec `10c` keeps custom scripts when
+/// a workspace is deleted, so the library must outlive any one workspace.
+const _createScriptSites = '''
+  CREATE TABLE script_sites (
+    script_id TEXT NOT NULL REFERENCES scripts(id) ON DELETE CASCADE,
+    site_id   TEXT NOT NULL REFERENCES sites(id) ON DELETE CASCADE,
+    PRIMARY KEY (script_id, site_id)
   )
 ''';
 
