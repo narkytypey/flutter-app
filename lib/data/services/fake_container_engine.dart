@@ -18,6 +18,7 @@ class FakeContainerEngine implements ContainerEngine {
   final _sessions = <String, ContainerSession>{};
   final _controller = StreamController<List<ContainerSession>>.broadcast();
   final wiped = <String>[];
+  final closed = <String>[];
 
   void _emit() => _controller.add(_sessions.values.toList());
 
@@ -51,6 +52,7 @@ class FakeContainerEngine implements ContainerEngine {
 
   @override
   Future<void> close(String siteId) async {
+    closed.add(siteId);
     _sessions.remove(siteId);
     _emit();
   }
