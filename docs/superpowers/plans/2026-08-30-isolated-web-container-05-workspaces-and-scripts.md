@@ -1024,7 +1024,9 @@ void main() {
   testWidgets('renders the spec copy and computed stats verbatim', (tester) async {
     await tester.pumpWidget(host());
 
-    expect(find.text('Delete "Work"?'), findsOneWidget);
+    // Curly quotes, not straight ones — the canvas writes this title as
+    // `Delete “Work”?`, the only curly-quoted string in the whole spec.
+    expect(find.text('Delete “Work”?'), findsOneWidget);
     expect(find.text('Sites removed'), findsOneWidget);
     expect(find.text('Logins destroyed'), findsOneWidget);
     expect(find.text('2'), findsNWidgets(2));
@@ -1048,11 +1050,16 @@ void main() {
     await tester.tap(find.text('Delete'));
     expect(deletes, 0);
 
+    // `enterText` does not pump a frame, so without these pumps the tap
+    // below lands on the previously-built, still-disabled Delete button and
+    // the matching name looks like it did nothing.
     await tester.enterText(find.byType(TextField), 'Wor');
+    await tester.pump();
     await tester.tap(find.text('Delete'));
     expect(deletes, 0);
 
     await tester.enterText(find.byType(TextField), 'Work');
+    await tester.pump();
     await tester.tap(find.text('Delete'));
     expect(deletes, 1);
   });
@@ -1129,7 +1136,9 @@ class _DeleteWorkspaceSheetState extends State<DeleteWorkspaceSheet> {
   Widget build(BuildContext context) {
     return BottomSheetSurface(
       children: [
-        Text('Delete "${widget.workspaceName}"?',
+        // Curly quotes are what the spec draws: `Delete “Work”?`. The canvas
+        // is authoritative over this plan file. Do not "normalise" them.
+        Text('Delete “${widget.workspaceName}”?',
             style: ui(size: 17, weight: 600, letterSpacing: -0.17)),
         const SizedBox(height: 16),
         ClipRRect(
