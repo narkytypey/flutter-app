@@ -7,11 +7,22 @@ import '../../../../domain/repositories/repositories.dart';
 import '../../../../domain/models/workspace.dart';
 import 'dashboard_view.dart';
 import '../views/workspace_menu.dart';
+import '../../shell/view_models/session_controller.dart'
+    show sessionProvider, SessionOpen;
 
 /// Overridden in [main] with the opened database.
-final databaseProvider = Provider<AppDatabase>(
-  (ref) => throw StateError('databaseProvider must be overridden in main()'),
-);
+/// Unlike Plan 1, nothing calls `databaseProvider.overrideWithValue` after
+/// startup — there is no single startup-time database any more. Instead
+/// this reads whichever vault `SessionController` currently has open, which
+/// is how the dashboard ends up showing the right vault with no code
+/// anywhere asking which one that is.
+final databaseProvider = Provider<AppDatabase>((ref) {
+  final session = ref.watch(sessionProvider);
+  if (session is! SessionOpen) {
+    throw StateError('databaseProvider read while no vault is open');
+  }
+  return session.database;
+});
 
 final workspaceRepositoryProvider = Provider<WorkspaceRepository>(
   (ref) => SqliteWorkspaceRepository(ref.watch(databaseProvider)),
