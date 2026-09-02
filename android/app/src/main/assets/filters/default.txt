@@ -1,0 +1,22 @@
+! Seed filter list. `||host^` domain-blocking rules only — see FilterEngine.
+! Plan 5's filter-list library replaces this with a richer, user-managed set.
+||doubleclick.net^
+||googlesyndication.com^
+||googletagmanager.com^
+||googletagservices.com^
+||google-analytics.com^
+||googleadservices.com^
+||adservice.google.com^
+||facebook.net^
+||connect.facebook.net^
+||amazon-adsystem.com^
+||scorecardresearch.com^
+||quantserve.com^
+||adnxs.com^
+||taboola.com^
+||outbrain.com^
+||criteo.com^
+||hotjar.com^
+||mixpanel.com^
+||segment.io^
+||branch.io^

@@ -37,3 +37,8 @@ migrate_working_dir/
 # Android related
 android/.gradle/
 android/local.properties
+
+# Gradle and Kotlin build output under android/.
+android/build/
+android/.kotlin/
+android/app/build/
