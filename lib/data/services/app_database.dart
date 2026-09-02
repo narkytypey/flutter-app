@@ -35,7 +35,7 @@ class AppDatabase {
 
   final Database db;
 
-  static const schemaVersion = 2;
+  static const schemaVersion = 3;
 
   static Future<AppDatabase> open({
     required String path,
@@ -104,6 +104,7 @@ class AppDatabase {
           ''');
           await db.execute(
               'CREATE INDEX idx_sites_workspace ON sites(workspace_id)');
+          await db.execute(_createFilterLists);
         },
         onUpgrade: (db, from, to) async {
           if (from < 2) {
@@ -133,6 +134,11 @@ class AppDatabase {
                   where: 'id = ?', whereArgs: [row['id']]);
             }
           }
+          // Each step stands alone so an installed database can walk every
+          // version it missed, rather than only the newest hop.
+          if (from < 3) {
+            await db.execute(_createFilterLists);
+          }
         },
       ),
     );
@@ -141,6 +147,19 @@ class AppDatabase {
 
   Future<void> close() => db.close();
 }
+
+/// One definition shared by `onCreate` and the v2 -> v3 `onUpgrade` step, so
+/// a fresh install and an upgraded one can never end up with different
+/// columns. Plan 5 Task 4 (spec `10d`).
+const _createFilterLists = '''
+  CREATE TABLE filter_lists (
+    id          TEXT PRIMARY KEY,
+    name        TEXT    NOT NULL,
+    rule_count  INTEGER NOT NULL,
+    updated_at  INTEGER NOT NULL,
+    enabled     INTEGER NOT NULL DEFAULT 1
+  )
+''';
 
 /// Inserts the workspaces and sites the design shows, so the dashboard has
 /// something real to render on a fresh install. Does nothing if any workspace
