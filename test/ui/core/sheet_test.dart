@@ -57,4 +57,18 @@ void main() {
 
     expect(find.byType(Hairline), findsNWidgets(2));
   });
+
+  testWidgets('BottomSheetSurface renders no handle by default', (tester) async {
+    await tester.pumpWidget(host(
+      const BottomSheetSurface(children: [Text('body')]),
+    ));
+    expect(find.byKey(const Key('sheet-handle')), findsNothing);
+  });
+
+  testWidgets('BottomSheetSurface renders the drag handle when asked', (tester) async {
+    await tester.pumpWidget(host(
+      const BottomSheetSurface(showHandle: true, children: [Text('body')]),
+    ));
+    expect(find.byKey(const Key('sheet-handle')), findsOneWidget);
+  });
 }

@@ -35,7 +35,7 @@ class AppDatabase {
 
   final Database db;
 
-  static const schemaVersion = 2;
+  static const schemaVersion = 4;
 
   static Future<AppDatabase> open({
     required String path,
@@ -104,6 +104,9 @@ class AppDatabase {
           ''');
           await db.execute(
               'CREATE INDEX idx_sites_workspace ON sites(workspace_id)');
+          await db.execute(_createFilterLists);
+          await db.execute(_createScripts);
+          await db.execute(_createScriptSites);
         },
         onUpgrade: (db, from, to) async {
           if (from < 2) {
@@ -133,6 +136,15 @@ class AppDatabase {
                   where: 'id = ?', whereArgs: [row['id']]);
             }
           }
+          // Each step stands alone so an installed database can walk every
+          // version it missed, rather than only the newest hop.
+          if (from < 3) {
+            await db.execute(_createFilterLists);
+          }
+          if (from < 4) {
+            await db.execute(_createScripts);
+            await db.execute(_createScriptSites);
+          }
         },
       ),
     );
@@ -141,6 +153,43 @@ class AppDatabase {
 
   Future<void> close() => db.close();
 }
+
+/// One definition shared by `onCreate` and the v2 -> v3 `onUpgrade` step, so
+/// a fresh install and an upgraded one can never end up with different
+/// columns. Plan 5 Task 4 (spec `10d`).
+const _createFilterLists = '''
+  CREATE TABLE filter_lists (
+    id          TEXT PRIMARY KEY,
+    name        TEXT    NOT NULL,
+    rule_count  INTEGER NOT NULL,
+    updated_at  INTEGER NOT NULL,
+    enabled     INTEGER NOT NULL DEFAULT 1
+  )
+''';
+
+/// Shared by `onCreate` and the v3 -> v4 `onUpgrade` step, for the same
+/// reason as [_createFilterLists]. Plan 5 Task 5 (spec `10d`).
+const _createScripts = '''
+  CREATE TABLE scripts (
+    id                    TEXT PRIMARY KEY,
+    name                  TEXT    NOT NULL,
+    kind                  TEXT    NOT NULL,
+    code                  TEXT    NOT NULL DEFAULT '',
+    run_at_document_start INTEGER NOT NULL DEFAULT 0,
+    enabled               INTEGER NOT NULL DEFAULT 1
+  )
+''';
+
+/// A script's only relationship is to the sites it is applied to. There is
+/// deliberately no `workspace_id` here: spec `10c` keeps custom scripts when
+/// a workspace is deleted, so the library must outlive any one workspace.
+const _createScriptSites = '''
+  CREATE TABLE script_sites (
+    script_id TEXT NOT NULL REFERENCES scripts(id) ON DELETE CASCADE,
+    site_id   TEXT NOT NULL REFERENCES sites(id) ON DELETE CASCADE,
+    PRIMARY KEY (script_id, site_id)
+  )
+''';
 
 /// Inserts the workspaces and sites the design shows, so the dashboard has
 /// something real to render on a fresh install. Does nothing if any workspace

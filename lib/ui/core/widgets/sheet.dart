@@ -14,10 +14,16 @@ class BottomSheetSurface extends StatelessWidget {
     super.key,
     required this.children,
     this.padding = const EdgeInsets.fromLTRB(20, 22, 20, 20),
+    this.showHandle = false,
   });
 
   final List<Widget> children;
   final EdgeInsets padding;
+
+  /// Spec `6c` draws a 36x4 handle above its header row; the other three
+  /// sheets in this plan do not. Off by default so every existing call site
+  /// is unaffected.
+  final bool showHandle;
 
   @override
   Widget build(BuildContext context) {
@@ -42,7 +48,24 @@ class BottomSheetSurface extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: children,
+        children: [
+          if (showHandle)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 16),
+              child: Center(
+                child: Container(
+                  key: const Key('sheet-handle'),
+                  width: 36,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF2C3134),
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+            ),
+          ...children,
+        ],
       ),
     );
   }
