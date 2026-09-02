@@ -2590,7 +2590,15 @@ class _ScriptEditorScreenState extends State<ScriptEditorScreen> {
                     ],
                   ),
                   const SizedBox(height: 20),
-                  Container(
+                  // The whole row is the hit target, not just the switch --
+                  // the same treatment `FilterListSection` gives its rows,
+                  // and what this task's own test asserts when it taps the
+                  // label "Run before the page paints".
+                  GestureDetector(
+                    onTap: () => setState(
+                        () => _runAtDocumentStart = !_runAtDocumentStart),
+                    behavior: HitTestBehavior.opaque,
+                    child: Container(
                     padding: const EdgeInsets.only(top: 14),
                     decoration: const BoxDecoration(
                       border: Border(top: BorderSide(color: C.line06)),
@@ -2616,6 +2624,7 @@ class _ScriptEditorScreenState extends State<ScriptEditorScreen> {
                         ),
                       ],
                     ),
+                  ),
                   ),
                 ],
               ),
