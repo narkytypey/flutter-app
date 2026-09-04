@@ -35,7 +35,7 @@ class AppDatabase {
 
   final Database db;
 
-  static const schemaVersion = 4;
+  static const schemaVersion = 5;
 
   static Future<AppDatabase> open({
     required String path,
@@ -139,11 +139,15 @@ class AppDatabase {
           // Each step stands alone so an installed database can walk every
           // version it missed, rather than only the newest hop.
           if (from < 3) {
-            await db.execute(_createFilterLists);
+            await db.execute(_createFilterListsV3);
           }
           if (from < 4) {
             await db.execute(_createScripts);
             await db.execute(_createScriptSites);
+          }
+          if (from < 5) {
+            await db.execute(
+                "ALTER TABLE filter_lists ADD COLUMN category TEXT NOT NULL DEFAULT 'trackers'");
           }
         },
       ),
@@ -154,10 +158,20 @@ class AppDatabase {
   Future<void> close() => db.close();
 }
 
-/// One definition shared by `onCreate` and the v2 -> v3 `onUpgrade` step, so
-/// a fresh install and an upgraded one can never end up with different
-/// columns. Plan 5 Task 4 (spec `10d`).
+/// The current schema for `onCreate` (fresh installs). Plan 5 Task 4 (spec `10d`).
 const _createFilterLists = '''
+  CREATE TABLE filter_lists (
+    id          TEXT PRIMARY KEY,
+    name        TEXT    NOT NULL,
+    rule_count  INTEGER NOT NULL,
+    updated_at  INTEGER NOT NULL,
+    enabled     INTEGER NOT NULL DEFAULT 1,
+    category    TEXT    NOT NULL DEFAULT 'trackers'
+  )
+''';
+
+/// Schema at v3 (no category column yet), used by the v2 -> v3 upgrade step.
+const _createFilterListsV3 = '''
   CREATE TABLE filter_lists (
     id          TEXT PRIMARY KEY,
     name        TEXT    NOT NULL,
