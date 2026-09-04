@@ -26,11 +26,12 @@ Each plan ships working, tested software on its own.
 | Plan | File | Status | Covers |
 |---|---|---|---|
 | 1 — Foundation | `2026-08-30-isolated-web-container-01-foundation.md` | Written | Design tokens/typography, dashboard (`1b`), SQLite, domain model. Import-path bug (#1) fixed 2026-08-30. |
-| 2 — Entry and identity | `2026-08-30-isolated-web-container-02-entry-and-identity.md` | Written | Setup wizard, lock screen, decoy vault, panic wipe, settings, PIN-derived crypto, lock states (`9a`–`9c`). **Correction, 2026-09-01:** this row previously said the missing glue code (LockController, LockScreen, SetupController.complete, SetupFlow, `session_controller.dart`) was filled in 2026-08-30 by flutter-app-1e. That was never true of this checkout — `session_controller.dart`, `app_gate.dart`, `LockScreen`, `SetupFlow` do not exist anywhere in `git rev-list --all` (verified independently by flutter-app-9c and flutter-app-f5 on 2026-09-01; a same-day audit, `CLAUDE_REPORT.md`, flagged the same contradiction). Tasks 1/2/4/5 are genuinely done; Task 6 (setup wizard/decoy provisioning) landed 2026-09-01 by flutter-app-9c (see issue #14); Tasks 3, 7, 8 remain open as of 2026-09-01. |
+| 2 — Entry and identity | `2026-08-30-isolated-web-container-02-entry-and-identity.md` | **Done** (2026-09-02) | Setup wizard, lock screen, decoy vault, panic wipe, settings, PIN-derived crypto, lock states (`9a`–`9c`). **Correction, 2026-09-01:** this row previously said the missing glue code (LockController, LockScreen, SetupController.complete, SetupFlow, `session_controller.dart`) was filled in 2026-08-30 by flutter-app-1e. That was never true of this checkout at the time — verified independently by flutter-app-9c and flutter-app-f5 on 2026-09-01, and by the same-day `CLAUDE_REPORT.md` audit. **Update, 2026-09-04:** all 8 tasks are now genuinely done. Tasks 1/2/4/5/6 as recorded above; Tasks 3 (Android crypto plugin — `CryptoPlugin.kt`), 7 (panic, see issue #6), and 8 (settings/lifecycle/session gate — `session_controller.dart`, `app_gate.dart`) landed 2026-09-02 in commits `261a3fd`/`883e16f`/`26540fc`, one day after this row's 2026-09-01 "remain open" note — that note was stale by the time it was read, not wrong when written. Re-verified 2026-09-04: `flutter analyze` clean, `flutter test` 223/223 passing. |
 | 3 — The container | `2026-08-30-isolated-web-container-03-container.md` | Written | Kotlin platform layer, per-site WebView isolation, filtering proxy, container/switcher/add-site screens. Phantom `openVault()` bug (#4/#7) fixed 2026-08-30 — see note below, the original diagnosis of that issue was inaccurate. Task 5 Step 6's `fetchThrough` was a `TODO_IMPLEMENTED_IN_STEP_7` sentinel with Step 7 only describing it in prose (a placeholder violation) and calling `ProxyProbe.reachable()` with no host/port, so it could never check the right proxy — fixed 2026-08-30 (flutter-app-42) with a real HTTP-over-socket implementation and a per-`host:port` cached `ProxyProbe`. |
 | 4 — Failure states & in-page moments | `2026-08-30-isolated-web-container-04-failure-states-and-in-page-moments.md` | Written | Permission ask, reader mode, site sheet, row menu, held download, Today log, proxy-unreachable, tunnel-dropped |
 | 5 — Workspaces and scripts | `2026-08-30-isolated-web-container-05-workspaces-and-scripts.md` | Written | Workspace list/create/delete (`10a`–`10c`), filter lists + script library + script editor (`10d`/`10e`). Turn 9 (`9a`–`9c`) is Plan 2's, not this plan's — see its own header note. |
-| 6 — Integration | `2026-09-02-isolated-web-container-06-integration.md` | Written 2026-09-02 | Wires the five plans into one navigable app: `ContainerRoute` navigation shell, discriminated native events (permission asks, held downloads, tunnel-drop) reaching Plan 4's screens, per-category `FilterEngine`/`BlockedTallyRecorder` feeding a live Today log, `SiteSheet` toggle persistence, and the decoy-sync correction. Implements `docs/superpowers/specs/2026-09-02-integration-design.md` (approved by the user 2026-09-02); three places deliberately correct or narrow that spec against what the tree can actually do — see the plan's own header. 7 tasks, not yet executed. Explicitly leaves search and biometric unlock unbuilt — see Unassigned Work below. |
+| 6 — Integration | `2026-09-02-isolated-web-container-06-integration.md` | Written 2026-09-02 | Wires the five plans into one navigable app: `ContainerRoute` navigation shell, discriminated native events (permission asks, held downloads, tunnel-drop) reaching Plan 4's screens, per-category `FilterEngine`/`BlockedTallyRecorder` feeding a live Today log, `SiteSheet` toggle persistence, and the decoy-sync correction. Implements `docs/superpowers/specs/2026-09-02-integration-design.md` (approved by the user 2026-09-02); three places deliberately correct or narrow that spec against what the tree can actually do — see the plan's own header. 7 tasks. Being executed 2026-09-04 by a peer session (flutter-app-0f) in its own worktree. Explicitly leaves search and biometric unlock unbuilt — see Unassigned Work below. |
+| 7 — Search | `2026-09-04-isolated-web-container-07-search.md` | Written 2026-09-04 | Wires `DashboardFooter`'s long-dead search button to a real screen: `SiteRepository.all()`, a `searchResults()` join/filter/sort across every workspace in the open vault, and a pure `SearchScreen`. Implements `docs/superpowers/specs/2026-09-04-search-screen-design.md` (brainstormed and approved by the user 2026-09-04) — that spec itself stands in for the missing canvas screen block, since search was never actually designed anywhere. 5 tasks, not yet executed. |
 
 Each plan's own **Handoff** and **Known gaps** sections at the bottom are the
 authoritative record of what it produces for later plans and what it
@@ -137,14 +138,23 @@ files before running them, not during.
 
 ### Ordering / dependency
 
-6. **Panic handoff is circular between Plan 2 and Plan 3.** Plan 2 creates
+6. **✅ Fixed 2026-09-02 (commit `883e16f`, "implement panic against real
+   containers"). Panic handoff between Plan 2 and Plan 3.** ~~Plan 2 creates
    `PanicService` as an interface; Plan 3 creates `wipe(profileId)`. Panic
    must call wipe *before* destroying data keys. No plan specifies how
    `PanicService` gains access to the profile-wipe capability after Plan 3
-   ships. Note: Plan 2's `PanicScreen`/`PanicService` (Task 7) are also not
-   wired into `AppGate` yet — `AppGate`'s `switch` has no case for a
-   panicked state. Out of scope for issue #2's fix; flagged here so it
-   isn't mistaken for done.
+   ships. Plan 2's `PanicScreen`/`PanicService` (Task 7) are also not wired
+   into `AppGate` yet — `AppGate`'s `switch` has no case for a panicked
+   state.~~ `lib/data/services/container_panic_service.dart`'s
+   `ContainerPanicService.trigger()` now does exactly that ordering:
+   `engine.close()` each live session (a profile can't be deleted while a
+   WebView is attached to it), then `engine.wipeAll()`, then
+   `closeDatabase()`/`destroyVaults()` — containers die first, while their
+   ids are still readable, keys die last. Wired via `panicServiceProvider`
+   in `lib/ui/features/container/view_models/providers.dart`, and `AppGate`
+   (`lib/ui/features/shell/views/app_gate.dart`) now has a
+   `SessionPanicked(:final report) => PanicScreen(...)` case. Verified
+   2026-09-04: `flutter analyze` clean, `flutter test` 223/223 passing.
 
 7. **✅ Fixed 2026-08-30 (by flutter-app-42).** ~~Plan 3 Task 1's test calls
    `openVault`, which is a Plan 2 concept. Plan 3's header says "Depends on
@@ -285,13 +295,14 @@ here for anyone scanning this file first.
 
 ## Unassigned work (no plan owns these)
 
-Plan 6 (Integration, written 2026-09-02) now owns most of what this section
-used to list. What's left below is genuinely unassigned; the rest is struck
-through with a pointer to the task that covers it.
+Plans 6 (Integration, written 2026-09-02) and 7 (Search, written 2026-09-04)
+now own most of what this section used to list. What's left below is
+genuinely unassigned; the rest is struck through with a pointer to the
+task that covers it.
 
-- **Search screen.** The dashboard footer has a search button (`onSearch`)
-  wired to nothing. No plan or spec screen covers search — Plan 6 explicitly
-  defers it too (design spec's own scope decision).
+- ~~Search screen.~~ — Plan 7, all 5 tasks. Plan 6 explicitly deferred it
+  (design spec's own scope decision); it now has its own plan and its own
+  design spec (`docs/superpowers/specs/2026-09-04-search-screen-design.md`).
 - **Biometric unlock.** Plan 2's settings shows the toggle; the actual
   Keystore-gated key mechanism is described in one sentence and unassigned —
   Plan 6 leaves the toggle wired to nowhere as well (see its Handoff).
