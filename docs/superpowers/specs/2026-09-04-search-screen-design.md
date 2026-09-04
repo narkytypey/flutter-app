@@ -75,6 +75,7 @@ consumes):
 class SearchResultEntry {
   const SearchResultEntry({
     required this.siteId,
+    required this.workspaceId,
     required this.name,
     required this.monogram,
     required this.host,
@@ -84,6 +85,12 @@ class SearchResultEntry {
   });
 
   final String siteId;
+
+  /// Needed by the search route's tap handler to switch
+  /// `activeWorkspaceIdProvider` before opening the site — see "Navigation
+  /// and wiring" below. Not shown in the UI; `workspaceName` is.
+  final String workspaceId;
+
   final String name;
   final String monogram;
   final String host;
