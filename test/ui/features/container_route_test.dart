@@ -1,9 +1,11 @@
 import 'package:container/data/services/fake_container_engine.dart';
 import 'package:container/domain/models/engine_events.dart';
+import 'package:container/domain/models/reader_article.dart';
 import 'package:container/domain/models/site.dart';
 import 'package:container/ui/features/container/view_models/providers.dart';
 import 'package:container/ui/features/container/views/container_route.dart';
 import 'package:container/ui/features/in_page/views/proxy_unreachable_screen.dart';
+import 'package:container/ui/features/in_page/views/reader_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -62,5 +64,30 @@ void main() {
     await tester.pump();
     await tester.pump();
     expect(find.text('Tunnel dropped'), findsOneWidget);
+  });
+
+  testWidgets('tapping reader mode with a real article pushes ReaderScreen', (tester) async {
+    final engine = FakeContainerEngine()
+      ..articleToReturn = const ReaderArticle(
+        host: 'forum.example.com', title: 'A thread', paragraphs: ['Hello.'], minutesToRead: 1,
+      );
+    await _pump(tester, engine, _site());
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('◑'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('A thread'), findsOneWidget);
+  });
+
+  testWidgets('tapping reader mode with no article does nothing', (tester) async {
+    final engine = FakeContainerEngine(); // articleToReturn stays null
+    await _pump(tester, engine, _site());
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('◑'));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(ReaderScreen), findsNothing);
   });
 }
