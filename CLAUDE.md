@@ -30,7 +30,7 @@ Each plan ships working, tested software on its own.
 | 3 — The container | `2026-08-30-isolated-web-container-03-container.md` | Written | Kotlin platform layer, per-site WebView isolation, filtering proxy, container/switcher/add-site screens. Phantom `openVault()` bug (#4/#7) fixed 2026-08-30 — see note below, the original diagnosis of that issue was inaccurate. Task 5 Step 6's `fetchThrough` was a `TODO_IMPLEMENTED_IN_STEP_7` sentinel with Step 7 only describing it in prose (a placeholder violation) and calling `ProxyProbe.reachable()` with no host/port, so it could never check the right proxy — fixed 2026-08-30 (flutter-app-42) with a real HTTP-over-socket implementation and a per-`host:port` cached `ProxyProbe`. |
 | 4 — Failure states & in-page moments | `2026-08-30-isolated-web-container-04-failure-states-and-in-page-moments.md` | Written | Permission ask, reader mode, site sheet, row menu, held download, Today log, proxy-unreachable, tunnel-dropped |
 | 5 — Workspaces and scripts | `2026-08-30-isolated-web-container-05-workspaces-and-scripts.md` | Written | Workspace list/create/delete (`10a`–`10c`), filter lists + script library + script editor (`10d`/`10e`). Turn 9 (`9a`–`9c`) is Plan 2's, not this plan's — see its own header note. |
-| — — Integration | *(not yet written)* | Not started | Wiring Plan 4's pure screens to Plan 3's live WebView events (see Unassigned Work below) |
+| 6 — Integration | `2026-09-02-isolated-web-container-06-integration.md` | Written 2026-09-02 | Wires the five plans into one navigable app: `ContainerRoute` navigation shell, discriminated native events (permission asks, held downloads, tunnel-drop) reaching Plan 4's screens, per-category `FilterEngine`/`BlockedTallyRecorder` feeding a live Today log, `SiteSheet` toggle persistence, and the decoy-sync correction. Implements `docs/superpowers/specs/2026-09-02-integration-design.md` (approved by the user 2026-09-02); three places deliberately correct or narrow that spec against what the tree can actually do — see the plan's own header. 7 tasks, not yet executed. Explicitly leaves search and biometric unlock unbuilt — see Unassigned Work below. |
 
 Each plan's own **Handoff** and **Known gaps** sections at the bottom are the
 authoritative record of what it produces for later plans and what it
@@ -285,27 +285,36 @@ here for anyone scanning this file first.
 
 ## Unassigned work (no plan owns these)
 
-These items fall between plans. They need to be assigned to a plan (or a new
-integration plan) before work on Plans 3–5 is complete.
+Plan 6 (Integration, written 2026-09-02) now owns most of what this section
+used to list. What's left below is genuinely unassigned; the rest is struck
+through with a pointer to the task that covers it.
 
 - **Search screen.** The dashboard footer has a search button (`onSearch`)
-  wired to nothing. No plan or spec screen covers search.
-- **Wiring Plan 4's screens to Plan 3's events.** Permission requests,
-  download holds, tunnel failures, reader extraction, Today log categories —
-  Plan 4 builds pure widgets, Plan 3 builds the WebView. Nothing connects
-  them.
-- **Reader mode extraction.** `ReaderArticle` is rendered (Plan 4) but
-  never produced. Turning a live page into structured content is unbuilt.
-- **FilterEngine category tagging.** Plan 3's `FilterEngine` counts total
-  blocks; Plan 4's Today log (`5c`) needs per-category breakdowns.
-- **Download interception.** `HeldDownloadSheet` renders a download; nothing
-  hooks Android's `DownloadListener`.
-- **SiteSheet toggle persistence.** Toggling force-dark or desktop-view in
-  `6c` doesn't write back to `Site`. No plan specifies the caller.
+  wired to nothing. No plan or spec screen covers search — Plan 6 explicitly
+  defers it too (design spec's own scope decision).
 - **Biometric unlock.** Plan 2's settings shows the toggle; the actual
-  Keystore-gated key mechanism is described in one sentence and unassigned.
-- **Decoy auto-sync after provisioning.** Adding a `showInDecoy` site to
-  the real vault after setup never copies it into the decoy store.
+  Keystore-gated key mechanism is described in one sentence and unassigned —
+  Plan 6 leaves the toggle wired to nowhere as well (see its Handoff).
+- ~~Wiring Plan 4's screens to Plan 3's events~~ — Plan 6 Tasks 2–4
+  (`engine_events.dart`, discriminated `EngineChannel` events, `ContainerRoute`).
+  Known gap: a backgrounded (non-foreground) site's events are dropped, not
+  queued — no notification centre exists.
+- ~~Reader mode extraction~~ — Plan 6 Task 5 (`extractArticle`). Known gap:
+  the heuristic is honestly approximate outside typical article-shaped pages.
+- ~~FilterEngine category tagging~~ — Plan 6 Task 1 (schema v5,
+  `FilterListCategory`) and Task 3 (categorized Kotlin `FilterEngine`).
+- ~~Download interception~~ — Plan 6 Task 3 (`ContainerView`'s
+  `DownloadListener` → `download` event). Known gap: downloads are held,
+  never actioned — no `DownloadManager` integration, matching the design
+  spec's own stated scope.
+- ~~SiteSheet toggle persistence~~ — Plan 6 Task 6. Known gap: the
+  desktop-view toggle only distinguishes `android` vs. `desktop`, so
+  `UserAgentMode.minimal` loses that distinction once flipped.
+- ~~Decoy auto-sync after provisioning~~ — Plan 6 Task 6 gives `syncToDecoy`
+  a real call path, but only *inside* the two-PIN setup wizard, where both
+  vaults' data keys are simultaneously in memory. Known gap: there is still
+  no reachable "re-sync with the decoy PIN" flow afterward — see the plan's
+  Handoff to a future decoy-resync plan.
 
 ## Working on this repo
 
