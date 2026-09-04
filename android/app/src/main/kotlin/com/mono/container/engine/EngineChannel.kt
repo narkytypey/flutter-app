@@ -16,10 +16,22 @@ class SideCounters {
 
 sealed class PendingPermission {
     abstract val requestId: String
+    /**
+     * [toAsk] is what the live ask is actually about — the resources with no
+     * stored `allow*` flag and no existing session grant. [granted] is the
+     * disjoint subset already pre-authorized (stored flag, or an earlier
+     * "allow while open" this session) that rode along in the same
+     * `onPermissionRequest` callback. Keeping them separate is what lets
+     * [EngineChannel.resolvePermission] answer "keep blocked" for [toAsk]
+     * without silently revoking [granted] — see issue found in Task 3
+     * review: passing the *combined* resource list into a single field made
+     * `keepBlocked` deny resources the stored config had already granted.
+     */
     data class Hardware(
         override val requestId: String,
         val request: android.webkit.PermissionRequest,
-        val resources: List<String>,
+        val toAsk: List<String>,
+        val granted: List<String> = emptyList(),
     ) : PendingPermission()
     data class Geolocation(
         override val requestId: String,
@@ -146,6 +158,7 @@ class EngineChannel(
      * permission the site's stored config does not already grant is
      * requested live. */
     fun onPermissionAskPublic(siteId: String, host: String, kind: String, requestId: String) {
+        sessions[siteId]?.counters?.permissionAsks?.incrementAndGet()
         sink?.success(mapOf(
             "type" to "permission_request",
             "siteId" to siteId, "host" to host, "kind" to kind, "requestId" to requestId,
@@ -232,12 +245,23 @@ class EngineChannel(
             val pending = session.pendingPermissions.remove(requestId) ?: continue
             when (pending) {
                 is PendingPermission.Hardware -> when (decisionName) {
-                    "keepBlocked" -> pending.request.deny()
+                    "keepBlocked" -> {
+                        // Only the resources this ask was actually about are
+                        // refused — a resource already pre-authorized by the
+                        // stored config (`granted`) is honored regardless of
+                        // this decision, per "a stored allow* flag pre-grants
+                        // silently."
+                        if (pending.granted.isNotEmpty()) {
+                            pending.request.grant(pending.granted.toTypedArray())
+                        } else {
+                            pending.request.deny()
+                        }
+                    }
                     else -> {
                         if (decisionName == "allowWhileOpen") {
-                            session.sessionGrants.addAll(pending.resources)
+                            session.sessionGrants.addAll(pending.toAsk)
                         }
-                        pending.request.grant(pending.resources.toTypedArray())
+                        pending.request.grant((pending.granted + pending.toAsk).toTypedArray())
                     }
                 }
                 is PendingPermission.Geolocation -> when (decisionName) {

@@ -64,10 +64,10 @@ object Shields {
                 return
             }
             val requestId = onAsk(PendingPermission.Hardware(
-                requestId = "", request = request, resources = request.resources.toList(),
+                requestId = "", request = request, toAsk = toAsk, granted = granted,
             ))
             session.pendingPermissions[requestId] =
-                PendingPermission.Hardware(requestId, request, request.resources.toList())
+                PendingPermission.Hardware(requestId, request, toAsk, granted)
         }
 
         override fun onGeolocationPermissionsShowPrompt(

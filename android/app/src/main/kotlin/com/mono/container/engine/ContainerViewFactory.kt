@@ -40,7 +40,7 @@ class ContainerViewFactory(
                     ?: session.config.url
                 val kind = when (pending) {
                     is PendingPermission.Geolocation -> "location"
-                    is PendingPermission.Hardware -> if (pending.resources.contains(
+                    is PendingPermission.Hardware -> if (pending.toAsk.contains(
                             android.webkit.PermissionRequest.RESOURCE_AUDIO_CAPTURE)) "microphone" else "camera"
                 }
                 engine.onPermissionAskPublic(siteId, host, kind, requestId)
