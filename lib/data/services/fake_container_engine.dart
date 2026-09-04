@@ -1,6 +1,10 @@
 import 'dart:async';
 
+import '../../domain/models/blocked_tally.dart';
 import '../../domain/models/container_session.dart';
+import '../../domain/models/engine_events.dart';
+import '../../domain/models/permissions.dart';
+import '../../domain/models/reader_article.dart';
 import '../../domain/models/route_decision.dart';
 import '../../domain/models/site.dart';
 import 'container_engine.dart';
@@ -19,6 +23,12 @@ class FakeContainerEngine implements ContainerEngine {
   final _controller = StreamController<List<ContainerSession>>.broadcast();
   final wiped = <String>[];
   final closed = <String>[];
+
+  final _permissionController = StreamController<PendingPermissionRequest>.broadcast();
+  final _downloadController = StreamController<HeldDownloadEvent>.broadcast();
+  final _tunnelDroppedController = StreamController<TunnelDroppedEvent>.broadcast();
+  final resolvedPermissions = <String, PermissionDecision>{};
+  ReaderArticle? articleToReturn;
 
   void _emit() => _controller.add(_sessions.values.toList());
 
@@ -67,6 +77,44 @@ class FakeContainerEngine implements ContainerEngine {
   @override
   Future<void> reload(String siteId) async {}
 
+  @override
+  Stream<PendingPermissionRequest> permissionRequests() => _permissionController.stream;
+
+  @override
+  Future<void> resolvePermission(String requestId, PermissionDecision decision) async {
+    resolvedPermissions[requestId] = decision;
+  }
+
+  @override
+  Stream<HeldDownloadEvent> downloads() => _downloadController.stream;
+
+  @override
+  Stream<TunnelDroppedEvent> tunnelDropped() => _tunnelDroppedController.stream;
+
+  @override
+  Future<ReaderArticle?> extractArticle(String siteId) async => articleToReturn;
+
+  /// Test helpers: push one event of each new kind.
+  void emitPermissionRequest(PendingPermissionRequest request) =>
+      _permissionController.add(request);
+  void emitDownload(HeldDownloadEvent event) => _downloadController.add(event);
+  void emitTunnelDropped(TunnelDroppedEvent event) => _tunnelDroppedController.add(event);
+
+  /// Test helper: advance a live session's category counts by [delta] and
+  /// re-emit — mirrors what a real category-tagged `FilterEngine` does over
+  /// time.
+  void addBlocked(String siteId, BlockedCategory category, int delta) {
+    final current = _sessions[siteId];
+    if (current == null) return;
+    final counts = Map<BlockedCategory, int>.from(current.categoryCounts);
+    counts[category] = (counts[category] ?? 0) + delta;
+    _sessions[siteId] = current.copyWith(
+      categoryCounts: counts,
+      blockedCount: counts.values.fold<int>(0, (a, b) => a + b),
+    );
+    _emit();
+  }
+
   /// Test helper: put a session into the background without opening a page.
   void seedBackground(String siteId, {int blockedCount = 0}) {
     _sessions[siteId] = ContainerSession(
@@ -78,5 +126,10 @@ class FakeContainerEngine implements ContainerEngine {
     _emit();
   }
 
-  void dispose() => _controller.close();
+  void dispose() {
+    _controller.close();
+    _permissionController.close();
+    _downloadController.close();
+    _tunnelDroppedController.close();
+  }
 }
