@@ -32,7 +32,23 @@ class ContainerViewFactory(
             config = session.config,
             profiles = profiles,
             interceptor = session.interceptor,
+            session = session,
             onLive = { engine.markLive(siteId) },
+            onAsk = { pending ->
+                val requestId = engine.nextRequestId()
+                val host = runCatching { java.net.URI(session.config.url).host }.getOrNull()
+                    ?: session.config.url
+                val kind = when (pending) {
+                    is PendingPermission.Geolocation -> "location"
+                    is PendingPermission.Hardware -> if (pending.resources.contains(
+                            android.webkit.PermissionRequest.RESOURCE_AUDIO_CAPTURE)) "microphone" else "camera"
+                }
+                engine.onPermissionAskPublic(siteId, host, kind, requestId)
+                requestId
+            },
+            onDownload = { fileName, sizeBytes, kindLabel ->
+                engine.onDownload(siteId, fileName, sizeBytes, kindLabel)
+            },
         )
         engine.attachView(siteId, view)
         return view

@@ -5,26 +5,66 @@ import io.flutter.plugin.common.BinaryMessenger
 import io.flutter.plugin.common.EventChannel
 import io.flutter.plugin.common.MethodCall
 import io.flutter.plugin.common.MethodChannel
+import java.util.concurrent.atomic.AtomicInteger
+
+/** Tracks fingerprinting and permission-ask blocks — the two categories
+ * `FilterEngine` never sees, because they never touch the network layer. */
+class SideCounters {
+    val fingerprinting = AtomicInteger(0)
+    val permissionAsks = AtomicInteger(0)
+}
+
+sealed class PendingPermission {
+    abstract val requestId: String
+    data class Hardware(
+        override val requestId: String,
+        val request: android.webkit.PermissionRequest,
+        val resources: List<String>,
+    ) : PendingPermission()
+    data class Geolocation(
+        override val requestId: String,
+        val origin: String,
+        val callback: android.webkit.GeolocationPermissions.Callback,
+    ) : PendingPermission()
+}
 
 /**
  * One open container. It owns its own [FilterEngine] rather than sharing one,
- * because `2c` and the Today log report a blocked count *per site*; a single
- * shared counter could only ever report an app-wide total.
+ * because `2c` and the Today log report a blocked count *per site*.
  */
-class Session(val config: SiteConfig, rules: List<String>) {
+class Session(val config: SiteConfig, rulesByCategory: Map<String, List<String>>) {
 
-    val filters = FilterEngine(rules)
-    val interceptor = RequestInterceptor(filters)
+    val filters = FilterEngine(rulesByCategory)
+    val counters = SideCounters()
+    val interceptor = RequestInterceptor(filters) { onTunnelDropped?.invoke(it) }
+    val pendingPermissions = LinkedHashMap<String, PendingPermission>()
+
+    /** Kinds granted for the rest of this session by an "allow while open"
+     * decision. Cleared implicitly when the session closes with the object. */
+    val sessionGrants = mutableSetOf<String>()
 
     var phase: String = PHASE_OPENING
     var lastActiveAtMs: Long? = null
+    var failure: String? = null
     var view: ContainerView? = null
+
+    /** Set by [EngineChannel] after construction; lets a live session's
+     * dropped tunnel reach the event sink without `Session` holding a
+     * reference to the channel itself. */
+    var onTunnelDropped: ((RouteFailure) -> Unit)? = null
 
     fun toMap(): Map<String, Any?> = mapOf(
         "siteId" to config.siteId,
         "phase" to phase,
         "lastActiveAt" to lastActiveAtMs,
-        "blockedCount" to filters.blockedCount,
+        "blockedCount" to filters.blockedCount + counters.fingerprinting.get() + counters.permissionAsks.get(),
+        "categoryCounts" to mapOf(
+            "trackers" to filters.countFor("trackers"),
+            "ads" to filters.countFor("ads"),
+            "fingerprinting" to counters.fingerprinting.get(),
+            "permissionAsks" to counters.permissionAsks.get(),
+        ),
+        "failure" to failure,
     )
 
     companion object {
@@ -52,13 +92,18 @@ class EngineChannel(
 
     private val sessions = LinkedHashMap<String, Session>()
     private var sink: EventChannel.EventSink? = null
+    private var requestCounter = 0
 
-    /** Read once. The list ships in the APK; it is never fetched. */
-    private val rules: List<String> by lazy {
-        runCatching {
-            context.assets.open("filters/default.txt").bufferedReader().readLines()
-        }.getOrDefault(emptyList())
+    private val rulesByCategory: Map<String, List<String>> by lazy {
+        mapOf(
+            "trackers" to readAsset("filters/default_trackers.txt"),
+            "ads" to readAsset("filters/default_ads.txt"),
+        )
     }
+
+    private fun readAsset(path: String): List<String> =
+        runCatching { context.assets.open(path).bufferedReader().readLines() }
+            .getOrDefault(emptyList())
 
     fun attach(messenger: BinaryMessenger) {
         MethodChannel(messenger, METHOD_CHANNEL).setMethodCallHandler(this)
@@ -80,7 +125,43 @@ class EngineChannel(
         if (session.phase == Session.PHASE_REFUSED) return
         session.phase = Session.PHASE_LIVE
         session.lastActiveAtMs = System.currentTimeMillis()
-        emit()
+        emitSessions()
+    }
+
+    /** Called by [RequestInterceptor] when a *live* session's fetch starts
+     * refusing mid-browse — spec §3's `tunnel_dropped`, distinct from an
+     * initial-connect [Session.PHASE_REFUSED]. */
+    private fun onTunnelDropped(siteId: String, failure: RouteFailure) {
+        val session = sessions[siteId] ?: return
+        if (session.phase != Session.PHASE_LIVE) return
+        sink?.success(mapOf(
+            "type" to "tunnel_dropped",
+            "siteId" to siteId,
+            "host" to (runCatching { java.net.URI(session.config.url).host }.getOrNull() ?: session.config.url),
+            "droppedAtMs" to System.currentTimeMillis(),
+        ))
+    }
+
+    /** Called by [ContainerViewFactory]'s `onAsk` callback when a hardware
+     * permission the site's stored config does not already grant is
+     * requested live. */
+    fun onPermissionAskPublic(siteId: String, host: String, kind: String, requestId: String) {
+        sink?.success(mapOf(
+            "type" to "permission_request",
+            "siteId" to siteId, "host" to host, "kind" to kind, "requestId" to requestId,
+        ))
+    }
+
+    /** Called by [ContainerView]'s `DownloadListener`. */
+    fun onDownload(siteId: String, fileName: String, sizeBytes: Long, kindLabel: String) {
+        val session = sessions[siteId] ?: return
+        val host = runCatching { java.net.URI(session.config.url).host }.getOrNull()
+            ?: session.config.url
+        sink?.success(mapOf(
+            "type" to "download",
+            "siteId" to siteId, "fileName" to fileName, "sizeBytes" to sizeBytes,
+            "sourceHost" to host, "kindLabel" to kindLabel,
+        ))
     }
 
     // --- Method channel ----------------------------------------------------
@@ -107,6 +188,11 @@ class EngineChannel(
                     result.success(null)
                 }
                 "liveSessions" -> result.success(sessions.values.map(Session::toMap))
+                "resolvePermission" -> {
+                    resolvePermission(call.argument<String>("requestId")!!, call.argument<String>("decision")!!)
+                    result.success(null)
+                }
+                "extractArticle" -> extractArticle(call.argument<String>("siteId")!!, result)
                 else -> result.notImplemented()
             }
         } catch (e: Exception) {
@@ -116,21 +202,65 @@ class EngineChannel(
 
     private fun open(call: MethodCall): Map<String, Any?> {
         val config = configFrom(call)
-        val session = Session(config, rules)
+        val session = Session(config, rulesByCategory)
+        session.onTunnelDropped = { failure -> onTunnelDropped(config.siteId, failure) }
         sessions[config.siteId] = session
 
         if (!profiles.isAvailable()) {
             // Global Constraints: refuse rather than share the default profile.
             session.phase = Session.PHASE_REFUSED
+            session.failure = null // no route was even attempted; isolation itself is unavailable
         } else {
-            // Creates the profile now so the view can attach it before its
-            // first load, and so a wipe has something to delete.
-            profiles.profileFor(config.profileId)
-            session.lastActiveAtMs = System.currentTimeMillis()
+            val route = Router.resolve(config, ProxyProbe.reachable(config.proxyHost ?: "", config.proxyPort ?: -1))
+            if (route is Route.Refused) {
+                session.phase = Session.PHASE_REFUSED
+                session.failure = route.failure.name.let(::routeFailureToDartName)
+            } else {
+                // Creates the profile now so the view can attach it before its
+                // first load, and so a wipe has something to delete.
+                profiles.profileFor(config.profileId)
+                session.lastActiveAtMs = System.currentTimeMillis()
+            }
         }
 
-        emit()
+        emitSessions()
         return session.toMap()
+    }
+
+    private fun resolvePermission(requestId: String, decisionName: String) {
+        for (session in sessions.values) {
+            val pending = session.pendingPermissions.remove(requestId) ?: continue
+            when (pending) {
+                is PendingPermission.Hardware -> when (decisionName) {
+                    "keepBlocked" -> pending.request.deny()
+                    else -> {
+                        if (decisionName == "allowWhileOpen") {
+                            session.sessionGrants.addAll(pending.resources)
+                        }
+                        pending.request.grant(pending.resources.toTypedArray())
+                    }
+                }
+                is PendingPermission.Geolocation -> when (decisionName) {
+                    "keepBlocked" -> pending.callback.invoke(pending.origin, false, false)
+                    else -> {
+                        if (decisionName == "allowWhileOpen") session.sessionGrants.add("geolocation")
+                        pending.callback.invoke(pending.origin, true, false)
+                    }
+                }
+            }
+            return
+        }
+        // The request already timed out or its site closed — a silent no-op,
+        // per this plan's Known Gaps on backgrounded events.
+    }
+
+    private fun extractArticle(siteId: String, result: MethodChannel.Result) {
+        val view = sessions[siteId]?.view
+        if (view == null) {
+            result.success(null)
+            return
+        }
+        view.extractArticle { article -> result.success(article) }
     }
 
     private fun close(siteId: String) {
@@ -139,7 +269,7 @@ class EngineChannel(
         // tree, but `close` can also arrive from `2c` while the view is
         // detached — ContainerView.dispose is idempotent for that reason.
         session.view?.dispose()
-        emit()
+        emitSessions()
     }
 
     /**
@@ -173,21 +303,23 @@ class EngineChannel(
         wipeOnExit = call.argument<Boolean>("wipeOnExit") ?: false,
     )
 
+    fun nextRequestId(): String = "req-${++requestCounter}"
+
     // --- Event channel -----------------------------------------------------
 
     override fun onListen(arguments: Any?, events: EventChannel.EventSink?) {
         sink = events
         // A subscriber that arrives after the first container opened would
         // otherwise see nothing until the next change.
-        emit()
+        emitSessions()
     }
 
     override fun onCancel(arguments: Any?) {
         sink = null
     }
 
-    private fun emit() {
-        sink?.success(sessions.values.map(Session::toMap))
+    private fun emitSessions() {
+        sink?.success(mapOf("type" to "sessions", "sessions" to sessions.values.map(Session::toMap)))
     }
 
     companion object {
@@ -196,3 +328,58 @@ class EngineChannel(
         const val VIEW_TYPE = "com.mono.container/view"
     }
 }
+
+/** Dart's `RouteFailure` enum is lowerCamelCase; Kotlin's is SCREAMING_SNAKE. */
+fun routeFailureToDartName(kotlinName: String): String = when (kotlinName) {
+    "PROXY_UNREACHABLE" -> "proxyUnreachable"
+    "PROXY_REFUSED" -> "proxyRefused"
+    "UPSTREAM_TIMEOUT" -> "upstreamTimeout"
+    "TLS_FAILURE" -> "tlsFailure"
+    else -> "misconfigured"
+}
+
+/**
+ * Reader-mode heuristic: strips obvious chrome, then picks the element with
+ * the highest text-to-tag-node-count ratio as the likely article body. This
+ * is the plan's one honestly-approximate piece — see Known Gaps.
+ */
+const val READER_JS = """
+(function(){
+  document.querySelectorAll('script,style,nav,aside,footer').forEach(e=>e.remove());
+  var candidates = document.body.querySelectorAll('article,main,div,section');
+  var best = null, bestScore = 0;
+  candidates.forEach(function(el){
+    var text = el.innerText || '';
+    var tags = el.querySelectorAll('*').length || 1;
+    var score = text.length / tags;
+    if (text.length > 200 && score > bestScore) { bestScore = score; best = el; }
+  });
+  if (!best) return null;
+  var paragraphs = [];
+  best.querySelectorAll('p,h1,h2,h3,li').forEach(function(el){
+    var t = (el.innerText || '').trim();
+    if (t.length > 20) paragraphs.push(t);
+  });
+  if (paragraphs.length === 0) return null;
+  var words = paragraphs.join(' ').split(/\s+/).length;
+  return JSON.stringify({
+    host: location.host,
+    title: document.title,
+    paragraphs: paragraphs,
+    minutesToRead: Math.max(1, Math.round(words / 200)),
+  });
+})();
+"""
+
+fun parseReaderJson(json: String): Map<String, Any?>? = runCatching {
+    // evaluateJavascript double-encodes the string result; strip one layer.
+    val unescaped = org.json.JSONTokener(json).nextValue() as String
+    val obj = org.json.JSONObject(unescaped)
+    val paragraphs = obj.getJSONArray("paragraphs")
+    mapOf(
+        "host" to obj.getString("host"),
+        "title" to obj.getString("title"),
+        "paragraphs" to (0 until paragraphs.length()).map { paragraphs.getString(it) },
+        "minutesToRead" to obj.getInt("minutesToRead"),
+    )
+}.getOrNull()
