@@ -384,7 +384,58 @@ task that covers it.
 - ~~Download interception~~ — Plan 6 Task 3 (`ContainerView`'s
   `DownloadListener` → `download` event). Known gap: downloads are held,
   never actioned — no `DownloadManager` integration, matching the design
-  spec's own stated scope.
+  spec's own stated scope. **Update, 2026-09-09:** real
+  `DownloadManager`/`MediaStore`/private-directory integration now exists
+  behind the held-download sheet's three actions (keep in container, save to
+  device, discard), implementing
+  `docs/superpowers/specs/2026-09-08-download-manager-integration-design.md`
+  via `docs/superpowers/plans/2026-09-08-download-manager-integration.md`.
+  `ProxyHttpClient` (new) centralizes the same Route-aware fetch
+  `RequestInterceptor` already used for page loads, so a download's bytes
+  always travel the site's actual route — refused exactly like a page load
+  would be, never silently sent unproxied. `DownloadFetcher` (new) resolves
+  each sheet decision: "keep in container" streams into
+  `context.filesDir/downloads/<profileId>/` and opens the result via a new
+  `FileProvider` (`res/xml/file_paths.xml`); "save to device" uses a manual
+  fetch + `MediaStore` insert on a Proxy-routed site (the system
+  `DownloadManager` cannot speak through this app's per-site proxy routing)
+  and the real system `DownloadManager` on a Direct-routed site.
+  `EngineChannel` gained a `resolveDownload` case and a `download_result`
+  event feeding `ContainerRoute`'s outcome snackbar. Every wipe path
+  (`ContainerView.dispose`'s `wipeOnExit`, the `wipe` case, and `wipeAll()`)
+  now also deletes kept-in-container downloads — note `wipeAll()` deletes the
+  whole `downloads/` tree inline rather than calling `deleteDownloadsDir`
+  per profile, so don't "simplify" that line away.
+  **Executed 2026-09-09 across three parallel sessions; Task 7 is NOT fully
+  verified and this entry deliberately does not claim it is.** What is
+  verified at `40a972f`, with a clean tree: `flutter analyze` clean,
+  `flutter test` 299/299, `flutter build apk --debug` succeeding. What is
+  not: Task 7 Step 4's two manual on-device checks were never run (no
+  emulator/device in this environment), so the feature's core path is
+  unvalidated end to end. Commits: `5a27dbf` (Tasks 1–6, recovered as
+  uncommitted orphan work — one commit rather than the plan's six, because
+  the changes interleave within shared files), `5e970f5` (the
+  `ContainerView` Context fix), `deb70aa` (defect documentation), `40a972f`
+  (Task 3's tests).
+  **Two defects remain open and unfixed — see the plan's own "Defects found
+  while executing" section:** (1) **the engine performs no TLS at all**, so
+  "keep in container" fails for every `https://` download and only
+  Direct-routed "save to device" works (the OS does its own TLS there);
+  `RouteFailure.TLS_FAILURE` has an enum entry, a channel mapping, and
+  user-facing copy, but its only producer is an `SSLException` catch that can
+  never fire — evidence it was designed and dropped, not scoped out. (2)
+  whether Android supports `Proxy.Type.HTTP` for a raw `Socket` is an open
+  question, deciding whether the HTTP-proxy route tunnels via CONNECT or is
+  non-functional. Per the user's 2026-09-09 decision these were documented
+  rather than fixed as part of this plan. **Caveat, same day:** defect 1 was
+  then picked up directly against `ProxyHttpClient`/`Router` under a separate
+  instruction to a parallel session, so if that work landed after this entry
+  was written, verify this bullet and the plan's defects section against the
+  actual code before trusting either. Defect 2 remains open and unowned.
+  Standing lesson from this plan: `flutter analyze` and `flutter test` are
+  Dart-only and never compile `engine/`, which is how Tasks 1–6 reached a
+  commit having never been compiled. `flutter build apk --debug` is the only
+  check that catches Kotlin errors here.
 - ~~SiteSheet toggle persistence~~ — Plan 6 Task 6. Known gap: the
   desktop-view toggle only distinguishes `android` vs. `desktop`, so
   `UserAgentMode.minimal` loses that distinction once flipped.
