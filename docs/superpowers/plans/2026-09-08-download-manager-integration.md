@@ -616,7 +616,7 @@ void main() {
 }
 ```
 
-- [x] **Step 2: Write the failing widget tests in `container_route_test.dart`**
+- [x] **Step 2: Write the failing widget tests in `container_route_test.dart`** — ticked for the **corrected** tests in `40a972f`, not for the reference code below, which does not work as written (wrong surface assumption; the SnackBar timing comment is factually incorrect). See "Execution record".
 
 Add imports for `held_download.dart` (`DownloadDecision`, `HeldDownload`) and `route_decision.dart` (`RouteFailure`, `refusalMessage`), then two new `testWidgets`:
 
@@ -701,7 +701,7 @@ void main() {
 }
 ```
 
-- [x] **Step 3: Verify both test files fail to compile**
+- [ ] **Step 3: Verify both test files fail to compile** — **NOT PERFORMED, and not performable.** The implementation already existed when these tests were written, so both files compiled immediately and failed on assertions, not compilation. Ticking this would assert a red-green cycle nobody ran. See "Execution record".
 
 Run `flutter test test/data/container_engine_channel_test.dart test/ui/features/container_route_test.dart` and confirm the failure is a compile error (`downloadResultFromEvent` undefined, `DownloadOutcome`/`DownloadResult` undefined, `engine.resolvedDownloads`/`engine.emitDownloadResult`/`ContainerEngine.resolveDownload` undefined) — not a runtime assertion failure. This confirms the tests actually exercise code that doesn't exist yet.
 
@@ -1781,7 +1781,7 @@ flutter build apk --debug
 
 Expected: build succeeds. This is the *only* point in the whole plan where all six Kotlin files this plan touches or creates — `Router.kt` and the new `ProxyHttpClient.kt` (Task 1), `RequestInterceptor.kt` (Task 1), `ContainerView.kt` (Tasks 2, 5's `userAgentFor` extraction, and 6), `ContainerViewFactory.kt` (Task 2), `EngineChannel.kt` (Tasks 1, 2, 4, and 6), and the new `DownloadFetcher.kt` (Tasks 4 and 5) — get compiled together as one unit, alongside the new `AndroidManifest.xml` `<provider>` entry and `res/xml/file_paths.xml` (Task 4). None of Tasks 1, 2, 4, 5, or 6 has an automated Kotlin test (no Robolectric/instrumentation setup exists in this repo — established precedent, not an oversight of this plan), so a clean build here is the strongest automated signal this plan gets that the six files are mutually consistent. Treat a build failure with the same severity as a failing test: stop and fix it, don't relax the step to "best-effort."
 
-- [ ] **Step 4: Manually re-confirm the two manual-verification notes from Tasks 5 and 6**
+- [ ] **Step 4: Manually re-confirm the two manual-verification notes from Tasks 5 and 6** — **UNREACHABLE in this environment**, not merely pending: no Android device or emulator is attached (the only connected device is `browser - Browser (Chrome)`) and this is an Android-only app. Nobody here can perform it; it needs a real Android runtime.
 
 These cannot be automated (no emulator/instrumentation harness in this repo — same precedent noted in Tasks 1, 4, and 5's own steps), so record that they were actually exercised by hand, not merely built:
 - Task 5's note: trigger a real "save to device" download on a **Direct**-routed site (no proxy configured) on a device/emulator, and confirm it appears in the system Downloads app / notification shade (not just in this app's own container storage) — this is the one path `flutter build apk --debug` cannot exercise, since it depends on the real `DownloadManager` system service actually running a download to completion.
