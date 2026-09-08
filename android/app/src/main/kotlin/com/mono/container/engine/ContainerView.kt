@@ -2,6 +2,7 @@ package com.mono.container.engine
 
 import android.content.Context
 import android.view.View
+import android.webkit.MimeTypeMap
 import android.webkit.WebView
 import android.webkit.WebSettings
 import androidx.webkit.ServiceWorkerControllerCompat
@@ -14,7 +15,10 @@ class ContainerView(
     private val config: SiteConfig,
     private val profiles: ProfileManager,
     private val interceptor: RequestInterceptor,
+    private val session: Session,
     private val onLive: () -> Unit = {},
+    private val onAsk: (PendingPermission) -> String = { "" },
+    private val onDownload: (fileName: String, sizeBytes: Long, kindLabel: String) -> Unit = { _, _, _ -> },
 ) : PlatformView {
 
     private var disposed = false
@@ -25,10 +29,10 @@ class ContainerView(
         settings.userAgentString = userAgentFor(config.userAgentMode)
         settings.setSupportMultipleWindows(false)
         settings.mediaPlaybackRequiresUserGesture = true
-        setSafeBrowsingEnabled(false)   // pings Google directly; see Constraints
+        settings.setSafeBrowsingEnabled(false)   // pings Google directly; see Constraints
 
         if (WebViewFeature.isFeatureSupported(WebViewFeature.ALGORITHMIC_DARKENING)) {
-            WebSettingsCompat.setAlgorithmicDarkeningAllowed(this, config.forceDark)
+            WebSettingsCompat.setAlgorithmicDarkeningAllowed(settings, config.forceDark)
         }
         setInitialScale(config.pageZoom)
     }
@@ -37,8 +41,16 @@ class ContainerView(
         // Must precede the first load, or the request goes to the default store.
         androidx.webkit.WebViewCompat.setProfile(webView, config.profileId)
         webView.webViewClient = interceptor.clientFor(config, onLive)
-        webView.webChromeClient = Shields.chromeClientFor(config)
-        Shields.apply(webView, config)
+        webView.webChromeClient = Shields.chromeClientFor(config, session, onAsk)
+        Shields.apply(webView, config) { session.counters.fingerprinting.incrementAndGet() }
+
+        webView.setDownloadListener { url, _, contentDisposition, mimeType, contentLength ->
+            val fileName = android.webkit.URLUtil.guessFileName(url, contentDisposition, mimeType)
+            val extension = MimeTypeMap.getFileExtensionFromUrl(url).ifEmpty {
+                mimeType?.substringAfter('/') ?: ""
+            }
+            onDownload(fileName, contentLength, extension.uppercase().ifEmpty { "FILE" })
+        }
 
         if (WebViewFeature.isFeatureSupported(WebViewFeature.SERVICE_WORKER_BASIC_USAGE)) {
             ServiceWorkerControllerCompat.getInstance()
@@ -52,6 +64,23 @@ class ContainerView(
 
     fun reload() {
         if (!disposed) webView.reload()
+    }
+
+    /** Runs the reader-mode JS heuristic and hands the parsed article back
+     * on the platform thread. `null` when nothing article-shaped was found. */
+    fun extractArticle(onResult: (Map<String, Any?>?) -> Unit) {
+        if (disposed) {
+            onResult(null)
+            return
+        }
+        webView.evaluateJavascript(READER_JS) { rawJson ->
+            val json = rawJson?.takeIf { it != "null" }
+            if (json == null) {
+                onResult(null)
+                return@evaluateJavascript
+            }
+            onResult(parseReaderJson(json))
+        }
     }
 
     /**

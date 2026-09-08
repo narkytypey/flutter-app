@@ -8,9 +8,9 @@ void main() {
   final updatedTwoDaysAgo = now.subtract(const Duration(days: 2));
 
   final lists = [
-    FilterList(id: 'fl-trackers', name: 'Trackers and ads', ruleCount: 84102, updatedAt: updatedTwoDaysAgo, enabled: true),
-    FilterList(id: 'fl-cookies', name: 'Cookie notices', ruleCount: 11430, updatedAt: updatedTwoDaysAgo, enabled: true),
-    FilterList(id: 'fl-social', name: 'Social embeds', ruleCount: 2908, updatedAt: updatedTwoDaysAgo, enabled: false),
+    FilterList(id: 'fl-trackers', name: 'Trackers and ads', ruleCount: 84102, updatedAt: updatedTwoDaysAgo, enabled: true, category: FilterListCategory.trackers),
+    FilterList(id: 'fl-cookies', name: 'Cookie notices', ruleCount: 11430, updatedAt: updatedTwoDaysAgo, enabled: true, category: FilterListCategory.trackers),
+    FilterList(id: 'fl-social', name: 'Social embeds', ruleCount: 2908, updatedAt: updatedTwoDaysAgo, enabled: false, category: FilterListCategory.ads),
   ];
 
   Widget host({ValueChanged<String>? onToggle, VoidCallback? onUpdateNow}) {
