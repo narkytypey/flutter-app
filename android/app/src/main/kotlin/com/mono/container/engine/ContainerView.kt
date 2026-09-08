@@ -18,7 +18,7 @@ class ContainerView(
     private val session: Session,
     private val onLive: () -> Unit = {},
     private val onAsk: (PendingPermission) -> String = { "" },
-    private val onDownload: (fileName: String, sizeBytes: Long, kindLabel: String) -> Unit = { _, _, _ -> },
+    private val onDownload: (url: String, mimeType: String, fileName: String, sizeBytes: Long, kindLabel: String) -> String = { _, _, _, _, _ -> "" },
 ) : PlatformView {
 
     private var disposed = false
@@ -26,7 +26,7 @@ class ContainerView(
     private val webView = WebView(context).apply {
         settings.javaScriptEnabled = true
         settings.domStorageEnabled = true
-        settings.userAgentString = userAgentFor(config.userAgentMode)
+        settings.userAgentString = userAgentFor(config.userAgentMode, context)
         settings.setSupportMultipleWindows(false)
         settings.mediaPlaybackRequiresUserGesture = true
         settings.setSafeBrowsingEnabled(false)   // pings Google directly; see Constraints
@@ -49,7 +49,8 @@ class ContainerView(
             val extension = MimeTypeMap.getFileExtensionFromUrl(url).ifEmpty {
                 mimeType?.substringAfter('/') ?: ""
             }
-            onDownload(fileName, contentLength, extension.uppercase().ifEmpty { "FILE" })
+            val resolvedMimeType = mimeType?.ifEmpty { null } ?: "application/octet-stream"
+            onDownload(url, resolvedMimeType, fileName, contentLength, extension.uppercase().ifEmpty { "FILE" })
         }
 
         if (WebViewFeature.isFeatureSupported(WebViewFeature.SERVICE_WORKER_BASIC_USAGE)) {
@@ -93,14 +94,10 @@ class ContainerView(
         disposed = true
         webView.stopLoading()
         webView.destroy()
-        if (config.wipeOnExit) profiles.wipe(config.profileId)
+        if (config.wipeOnExit) {
+            deleteDownloadsDir(context, config.profileId)
+            profiles.wipe(config.profileId)
+        }
     }
 
-    private fun userAgentFor(mode: String): String = when (mode) {
-        "desktop" -> "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 " +
-            "(KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36"
-        "minimal" -> "Mozilla/5.0 (Linux; Android 13) AppleWebKit/537.36 " +
-            "(KHTML, like Gecko) Chrome/126.0.0.0 Mobile Safari/537.36"
-        else -> WebSettings.getDefaultUserAgent(webView.context)
-    }
 }

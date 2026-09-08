@@ -44,6 +44,12 @@ PermissionKind _kind(String name) => switch (name) {
       'location' => PermissionKind.location,
       'clipboard' => PermissionKind.clipboard,
       _ => PermissionKind.camera,
+};
+
+DownloadOutcome _downloadOutcome(String name) => switch (name) {
+      'saved' => DownloadOutcome.saved,
+      'kept' => DownloadOutcome.kept,
+      _ => DownloadOutcome.failed,
     };
 
 Map<BlockedCategory, int> _categoryCountsFrom(Object? raw) {
@@ -85,12 +91,19 @@ PendingPermissionRequest permissionRequestFromEvent(Map<Object?, Object?> event)
 /// Exposed for testing — decodes a `type: "download"` event.
 HeldDownloadEvent downloadFromEvent(Map<Object?, Object?> event) => HeldDownloadEvent(
       siteId: event['siteId']! as String,
+      requestId: event['requestId']! as String,
       download: HeldDownload(
         fileName: event['fileName']! as String,
         sizeBytes: event['sizeBytes']! as int,
         sourceHost: event['sourceHost']! as String,
         kindLabel: event['kindLabel']! as String,
       ),
+    );
+
+DownloadResult downloadResultFromEvent(Map<Object?, Object?> event) => DownloadResult(
+      requestId: event['requestId']! as String,
+      outcome: _downloadOutcome(event['outcome']! as String),
+      reason: _failure(event['reason'] as String?),
     );
 
 /// Exposed for testing — decodes a `type: "tunnel_dropped"` event.
@@ -109,6 +122,8 @@ class ChannelContainerEngine implements ContainerEngine {
           _permissionController.add(permissionRequestFromEvent(map));
         case 'download':
           _downloadController.add(downloadFromEvent(map));
+        case 'download_result':
+          _downloadResultController.add(downloadResultFromEvent(map));
         case 'tunnel_dropped':
           _tunnelDroppedController.add(tunnelDroppedFromEvent(map));
         default:
@@ -120,6 +135,7 @@ class ChannelContainerEngine implements ContainerEngine {
   final _sessionsController = StreamController<List<ContainerSession>>.broadcast();
   final _permissionController = StreamController<PendingPermissionRequest>.broadcast();
   final _downloadController = StreamController<HeldDownloadEvent>.broadcast();
+  final _downloadResultController = StreamController<DownloadResult>.broadcast();
   final _tunnelDroppedController = StreamController<TunnelDroppedEvent>.broadcast();
 
   @override
@@ -190,6 +206,13 @@ class ChannelContainerEngine implements ContainerEngine {
 
   @override
   Stream<HeldDownloadEvent> downloads() => _downloadController.stream;
+
+  @override
+  Future<void> resolveDownload(String requestId, DownloadDecision decision) =>
+      _method.invokeMethod('resolveDownload', {'requestId': requestId, 'decision': decision.name});
+
+  @override
+  Stream<DownloadResult> downloadResults() => _downloadResultController.stream;
 
   @override
   Stream<TunnelDroppedEvent> tunnelDropped() => _tunnelDroppedController.stream;

@@ -1,5 +1,6 @@
 import '../../domain/models/container_session.dart';
 import '../../domain/models/engine_events.dart';
+import '../../domain/models/held_download.dart' show DownloadDecision;
 import '../../domain/models/permissions.dart';
 import '../../domain/models/reader_article.dart';
 import '../../domain/models/site.dart';
@@ -56,6 +57,8 @@ abstract interface class ContainerEngine {
   Future<void> resolvePermission(String requestId, PermissionDecision decision);
 
   Stream<HeldDownloadEvent> downloads();
+  Future<void> resolveDownload(String requestId, DownloadDecision decision);
+  Stream<DownloadResult> downloadResults();
 
   /// A *live* session's tunnel failing mid-browse. Distinct from
   /// [SessionPhase.refused], which only ever happens before a session goes

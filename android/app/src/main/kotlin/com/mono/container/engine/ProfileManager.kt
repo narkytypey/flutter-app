@@ -55,3 +55,8 @@ class ProfileManager {
         }
     }
 }
+
+/** Removes files kept by the download manager for one isolated profile. */
+fun deleteDownloadsDir(context: android.content.Context, profileId: String) {
+    java.io.File(context.filesDir, "downloads/$profileId").deleteRecursively()
+}

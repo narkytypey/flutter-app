@@ -7,6 +7,7 @@ import '../../../../domain/models/container_session.dart';
 import '../../../../domain/models/engine_events.dart';
 import '../../../../domain/models/open_step.dart';
 import '../../../../domain/models/route_failure_copy.dart';
+import '../../../../domain/models/route_decision.dart' show refusalMessage;
 import '../../../../domain/models/site.dart';
 import '../../in_page/views/held_download_sheet.dart';
 import '../../in_page/views/permission_request_sheet.dart';
@@ -38,7 +39,9 @@ class _ContainerRouteState extends ConsumerState<ContainerRoute> {
   bool _tunnelDropped = false;
   StreamSubscription<PendingPermissionRequest>? _permissionSub;
   StreamSubscription<HeldDownloadEvent>? _downloadSub;
+  StreamSubscription<DownloadResult>? _downloadResultSub;
   StreamSubscription<TunnelDroppedEvent>? _tunnelSub;
+  final _myDownloadRequestIds = <String>{};
 
   String get _host => Uri.tryParse(widget.site.url)?.host ?? widget.site.url;
 
@@ -54,6 +57,10 @@ class _ContainerRouteState extends ConsumerState<ContainerRoute> {
         .downloads()
         .where((d) => d.siteId == widget.site.id)
         .listen(_showDownloadSheet);
+    _downloadResultSub = engine
+        .downloadResults()
+        .where((r) => _myDownloadRequestIds.contains(r.requestId))
+        .listen(_showDownloadResult);
     _tunnelSub = engine
         .tunnelDropped()
         .where((t) => t.siteId == widget.site.id)
@@ -71,6 +78,7 @@ class _ContainerRouteState extends ConsumerState<ContainerRoute> {
   void dispose() {
     _permissionSub?.cancel();
     _downloadSub?.cancel();
+    _downloadResultSub?.cancel();
     _tunnelSub?.cancel();
     super.dispose();
   }
@@ -92,14 +100,30 @@ class _ContainerRouteState extends ConsumerState<ContainerRoute> {
   }
 
   void _showDownloadSheet(HeldDownloadEvent event) {
+    _myDownloadRequestIds.add(event.requestId);
     showModalBottomSheet<void>(
       context: context,
       backgroundColor: Colors.transparent,
       builder: (_) => HeldDownloadSheet(
         download: event.download,
-        onDecision: (_) => Navigator.pop(context),
+        onDecision: (decision) {
+          Navigator.pop(context);
+          ref.read(containerEngineProvider).resolveDownload(event.requestId, decision);
+        },
       ),
     );
+  }
+
+  void _showDownloadResult(DownloadResult result) {
+    if (!mounted) return;
+    final message = switch (result.outcome) {
+      DownloadOutcome.saved => 'Saved to Downloads',
+      DownloadOutcome.kept => 'Kept in this container',
+      DownloadOutcome.failed => result.reason != null
+          ? refusalMessage(result.reason!)
+          : 'Download failed',
+    };
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
   }
 
   Future<void> _openReader() async {

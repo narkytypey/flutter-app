@@ -3,6 +3,7 @@ import 'dart:async';
 import '../../domain/models/blocked_tally.dart';
 import '../../domain/models/container_session.dart';
 import '../../domain/models/engine_events.dart';
+import '../../domain/models/held_download.dart' show DownloadDecision;
 import '../../domain/models/permissions.dart';
 import '../../domain/models/reader_article.dart';
 import '../../domain/models/route_decision.dart';
@@ -26,8 +27,10 @@ class FakeContainerEngine implements ContainerEngine {
 
   final _permissionController = StreamController<PendingPermissionRequest>.broadcast();
   final _downloadController = StreamController<HeldDownloadEvent>.broadcast();
+  final _downloadResultController = StreamController<DownloadResult>.broadcast();
   final _tunnelDroppedController = StreamController<TunnelDroppedEvent>.broadcast();
   final resolvedPermissions = <String, PermissionDecision>{};
+  final resolvedDownloads = <({String requestId, DownloadDecision decision})>[];
   ReaderArticle? articleToReturn;
 
   void _emit() => _controller.add(_sessions.values.toList());
@@ -87,6 +90,12 @@ class FakeContainerEngine implements ContainerEngine {
 
   @override
   Stream<HeldDownloadEvent> downloads() => _downloadController.stream;
+  @override
+  Future<void> resolveDownload(String requestId, DownloadDecision decision) async {
+    resolvedDownloads.add((requestId: requestId, decision: decision));
+  }
+  @override
+  Stream<DownloadResult> downloadResults() => _downloadResultController.stream;
 
   @override
   Stream<TunnelDroppedEvent> tunnelDropped() => _tunnelDroppedController.stream;
@@ -98,6 +107,7 @@ class FakeContainerEngine implements ContainerEngine {
   void emitPermissionRequest(PendingPermissionRequest request) =>
       _permissionController.add(request);
   void emitDownload(HeldDownloadEvent event) => _downloadController.add(event);
+  void emitDownloadResult(DownloadResult result) => _downloadResultController.add(result);
   void emitTunnelDropped(TunnelDroppedEvent event) => _tunnelDroppedController.add(event);
 
   /// Test helper: advance a live session's category counts by [delta] and
@@ -130,6 +140,7 @@ class FakeContainerEngine implements ContainerEngine {
     _controller.close();
     _permissionController.close();
     _downloadController.close();
+    _downloadResultController.close();
     _tunnelDroppedController.close();
   }
 }

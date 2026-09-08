@@ -48,4 +48,16 @@ void main() {
     expect(request.host, 'meet.example.com');
     expect(request.kind, PermissionKind.camera);
   });
+
+  test('a download event decodes its requestId', () {
+    final event = <Object?, Object?>{
+      'type': 'download',
+      'siteId': 's1', 'fileName': 'report.pdf', 'sizeBytes': 1024,
+      'sourceHost': 'forum.example.com', 'kindLabel': 'PDF',
+      'requestId': 'r1',
+    };
+    final download = downloadFromEvent(event);
+    expect(download.requestId, 'r1');
+    expect(download.download.fileName, 'report.pdf');
+  });
 }

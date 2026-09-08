@@ -46,8 +46,10 @@ class ContainerViewFactory(
                 engine.onPermissionAskPublic(siteId, host, kind, requestId)
                 requestId
             },
-            onDownload = { fileName, sizeBytes, kindLabel ->
-                engine.onDownload(siteId, fileName, sizeBytes, kindLabel)
+            onDownload = { url, mimeType, fileName, sizeBytes, kindLabel ->
+                val requestId = engine.nextRequestId()
+                engine.onDownload(siteId, requestId, url, mimeType, fileName, sizeBytes, kindLabel)
+                requestId
             },
         )
         engine.attachView(siteId, view)

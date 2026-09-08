@@ -40,6 +40,14 @@ sealed class PendingPermission {
     ) : PendingPermission()
 }
 
+data class PendingDownload(
+    val url: String,
+    val mimeType: String,
+    val fileName: String,
+    val sizeBytes: Long,
+    val kindLabel: String,
+)
+
 /**
  * One open container. It owns its own [FilterEngine] rather than sharing one,
  * because `2c` and the Today log report a blocked count *per site*.
@@ -50,6 +58,7 @@ class Session(val config: SiteConfig, rulesByCategory: Map<String, List<String>>
     val counters = SideCounters()
     val interceptor = RequestInterceptor(filters) { onTunnelDropped?.invoke(it) }
     val pendingPermissions = LinkedHashMap<String, PendingPermission>()
+    val pendingDownloads = LinkedHashMap<String, PendingDownload>()
 
     /** Kinds granted for the rest of this session by an "allow while open"
      * decision. Cleared implicitly when the session closes with the object. */
@@ -105,6 +114,9 @@ class EngineChannel(
     private val sessions = LinkedHashMap<String, Session>()
     private var sink: EventChannel.EventSink? = null
     private var requestCounter = 0
+    private val downloadExecutor = java.util.concurrent.Executors.newCachedThreadPool()
+    private val mainHandler = android.os.Handler(android.os.Looper.getMainLooper())
+    private val downloadFetcher = DownloadFetcher(context)
 
     private val rulesByCategory: Map<String, List<String>> by lazy {
         mapOf(
@@ -166,14 +178,15 @@ class EngineChannel(
     }
 
     /** Called by [ContainerView]'s `DownloadListener`. */
-    fun onDownload(siteId: String, fileName: String, sizeBytes: Long, kindLabel: String) {
+    fun onDownload(siteId: String, requestId: String, url: String, mimeType: String, fileName: String, sizeBytes: Long, kindLabel: String) {
         val session = sessions[siteId] ?: return
+        session.pendingDownloads[requestId] = PendingDownload(url, mimeType, fileName, sizeBytes, kindLabel)
         val host = runCatching { java.net.URI(session.config.url).host }.getOrNull()
             ?: session.config.url
         sink?.success(mapOf(
             "type" to "download",
             "siteId" to siteId, "fileName" to fileName, "sizeBytes" to sizeBytes,
-            "sourceHost" to host, "kindLabel" to kindLabel,
+            "sourceHost" to host, "kindLabel" to kindLabel, "requestId" to requestId,
         ))
     }
 
@@ -193,7 +206,9 @@ class EngineChannel(
                     result.success(null)
                 }
                 "wipe" -> {
-                    profiles.wipe(call.argument<String>("profileId")!!)
+                    val profileId = call.argument<String>("profileId")!!
+                    deleteDownloadsDir(context, profileId)
+                    profiles.wipe(profileId)
                     result.success(null)
                 }
                 "wipeAll" -> {
@@ -203,6 +218,10 @@ class EngineChannel(
                 "liveSessions" -> result.success(sessions.values.map(Session::toMap))
                 "resolvePermission" -> {
                     resolvePermission(call.argument<String>("requestId")!!, call.argument<String>("decision")!!)
+                    result.success(null)
+                }
+                "resolveDownload" -> {
+                    resolveDownload(call.argument<String>("requestId")!!, call.argument<String>("decision")!!)
                     result.success(null)
                 }
                 "extractArticle" -> extractArticle(call.argument<String>("siteId")!!, result)
@@ -224,7 +243,7 @@ class EngineChannel(
             session.phase = Session.PHASE_REFUSED
             session.failure = null // no route was even attempted; isolation itself is unavailable
         } else {
-            val route = Router.resolve(config, ProxyProbe.reachable(config.proxyHost ?: "", config.proxyPort ?: -1))
+            val route = config.currentRoute()
             if (route is Route.Refused) {
                 session.phase = Session.PHASE_REFUSED
                 session.failure = route.failure.name.let(::routeFailureToDartName)
@@ -278,6 +297,25 @@ class EngineChannel(
         // per this plan's Known Gaps on backgrounded events.
     }
 
+    private fun resolveDownload(requestId: String, decisionName: String) {
+        for (session in sessions.values) {
+            val pending = session.pendingDownloads.remove(requestId) ?: continue
+            if (decisionName == "discard") return
+            downloadExecutor.execute {
+                val outcome = downloadFetcher.run(session.config, pending, decisionName)
+                val (name, reason) = when (outcome) {
+                    is DownloadOutcome.Saved -> "saved" to null
+                    is DownloadOutcome.Kept -> "kept" to null
+                    is DownloadOutcome.Failed -> "failed" to outcome.reason?.name?.let(::routeFailureToDartName)
+                }
+                mainHandler.post {
+                    sink?.success(mapOf("type" to "download_result", "requestId" to requestId, "outcome" to name, "reason" to reason))
+                }
+            }
+            return
+        }
+    }
+
     private fun extractArticle(siteId: String, result: MethodChannel.Result) {
         val view = sessions[siteId]?.view
         if (view == null) {
@@ -302,6 +340,7 @@ class EngineChannel(
      */
     private fun wipeAll() {
         for (siteId in sessions.keys.toList()) close(siteId)
+        java.io.File(context.filesDir, "downloads").deleteRecursively()
         profiles.wipeAll()
     }
 

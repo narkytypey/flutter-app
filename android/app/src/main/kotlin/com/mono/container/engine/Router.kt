@@ -42,3 +42,7 @@ object Router {
             is Route.Refused -> error("connect() called for a refused route")
         }
 }
+
+/** Resolves a site's live route consistently for pages and downloads. */
+fun SiteConfig.currentRoute(): Route =
+    Router.resolve(this, ProxyProbe.reachable(proxyHost ?: "", proxyPort ?: -1))
