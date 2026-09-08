@@ -7,10 +7,19 @@ import '../../../core/widgets/setting_row.dart';
 
 /// Spec `2d`.
 ///
-/// The VAULT section is present only when a decoy has been configured. From
-/// inside a decoy session this screen is never reachable at all — settings are
-/// a real-vault surface, because a decoy that offers to manage a decoy is a
-/// decoy that has announced itself.
+/// The VAULT section is present only when a decoy has been configured. This
+/// screen is *meant* to be a real-vault surface — a decoy that offers to
+/// manage a decoy would announce itself — but that is a design intent, not
+/// something any code enforces: `DashboardScreen`'s `⋯` icon (which pushes
+/// this screen) is wired identically for every open session, and nothing
+/// anywhere asks a `SessionOpen` which vault it holds before deciding what
+/// to show it (see `dashboard/view_models/providers.dart`'s
+/// `databaseProvider` doc comment — "no code anywhere asking which one that
+/// is" is deliberate, existing architecture). So today a decoy session can
+/// reach this screen, including the biometrics toggle added 2026-09-08,
+/// exactly like a real one can. Actually restricting that would mean
+/// teaching the UI layer to distinguish vaults for the first time — a real
+/// design decision, left for a future task rather than assumed here.
 class SettingsScreen extends StatelessWidget {
   const SettingsScreen({
     super.key,
