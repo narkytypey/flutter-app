@@ -9,7 +9,7 @@ void main() {
 
   final filterLists = [
     FilterList(id: 'fl-1', name: 'Trackers and ads', ruleCount: 84102,
-        updatedAt: now.subtract(const Duration(days: 2)), enabled: true),
+        updatedAt: now.subtract(const Duration(days: 2)), enabled: true, category: FilterListCategory.trackers),
   ];
 
   final scripts = [

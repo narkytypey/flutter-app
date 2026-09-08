@@ -1,4 +1,7 @@
 import '../../domain/models/container_session.dart';
+import '../../domain/models/engine_events.dart';
+import '../../domain/models/permissions.dart';
+import '../../domain/models/reader_article.dart';
 import '../../domain/models/site.dart';
 
 /// Everything Dart is allowed to know about the platform. No WebView type
@@ -42,4 +45,24 @@ abstract interface class ContainerEngine {
   Future<List<ContainerSession>> liveSessions();
 
   Future<void> reload(String siteId);
+
+  /// Hardware asks the platform is holding, waiting on the user's decision.
+  /// Filtered to the foreground site by whoever listens — see Task 4.
+  Stream<PendingPermissionRequest> permissionRequests();
+
+  /// Tells the platform what the user picked for [requestId]. A decision for
+  /// a request that already timed out or whose site closed is a silent
+  /// no-op on the platform side, not an error here.
+  Future<void> resolvePermission(String requestId, PermissionDecision decision);
+
+  Stream<HeldDownloadEvent> downloads();
+
+  /// A *live* session's tunnel failing mid-browse. Distinct from
+  /// [SessionPhase.refused], which only ever happens before a session goes
+  /// live — see Plan 6's design spec §3.
+  Stream<TunnelDroppedEvent> tunnelDropped();
+
+  /// Runs the reader-mode heuristic against the page currently loaded for
+  /// [siteId]. Returns `null` when extraction finds nothing article-shaped.
+  Future<ReaderArticle?> extractArticle(String siteId);
 }

@@ -1,4 +1,4 @@
-import '../../domain/models/filter_list.dart';
+import '../../domain/models/filter_list.dart' show FilterList, FilterListCategory;
 import '../../domain/repositories/filter_list_repository.dart';
 import '../services/app_database.dart';
 
@@ -31,6 +31,9 @@ class SqliteFilterListRepository implements FilterListRepository {
             row['updated_at']! as int,
             isUtc: true),
         enabled: (row['enabled']! as int) == 1,
+        category: (row['category']! as String) == 'ads'
+            ? FilterListCategory.ads
+            : FilterListCategory.trackers,
       );
 }
 
@@ -50,7 +53,7 @@ Future<void> seedFilterListsIfEmpty(
   final rows = <Map<String, Object?>>[
     {'id': 'fl-trackers', 'name': 'Trackers and ads', 'rule_count': 84102, 'updated_at': updatedAt, 'enabled': 1},
     {'id': 'fl-cookies', 'name': 'Cookie notices', 'rule_count': 11430, 'updated_at': updatedAt, 'enabled': 1},
-    {'id': 'fl-social', 'name': 'Social embeds', 'rule_count': 2908, 'updated_at': updatedAt, 'enabled': 0},
+    {'id': 'fl-social', 'name': 'Social embeds', 'rule_count': 2908, 'updated_at': updatedAt, 'enabled': 0, 'category': 'ads'},
   ];
   for (final row in rows) {
     await db.insert('filter_lists', row);

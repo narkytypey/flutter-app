@@ -11,6 +11,7 @@ abstract interface class WorkspaceRepository {
 abstract interface class SiteRepository {
   Future<List<Site>> inWorkspace(String workspaceId);
   Future<List<Site>> all();
+  Future<Site?> byId(String id);
   Future<void> upsert(Site site);
   Future<void> delete(String id);
 

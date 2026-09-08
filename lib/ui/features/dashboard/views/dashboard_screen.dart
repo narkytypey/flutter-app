@@ -2,8 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/tokens.dart';
+import '../../add_site/views/add_site_screen.dart';
+import '../../container/views/container_route.dart';
 import '../view_models/providers.dart';
 import 'dashboard_body.dart';
+import 'site_row_menu.dart';
 import '../views/workspace_menu.dart';
 
 class DashboardScreen extends ConsumerStatefulWidget {
@@ -31,15 +34,74 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
           DashboardBody(
             view: view,
             onWorkspaceTap: () => setState(() => _menuOpen = !_menuOpen),
-            // The screens behind these callbacks arrive in later plans.
-            onAddSite: () {},
+            onAddSite: () async {
+              final workspaces = await ref.read(workspacesProvider.future);
+              if (!context.mounted) return;
+              await Navigator.push(context, MaterialPageRoute(
+                builder: (_) => AddSiteScreen(
+                  workspaces: workspaces,
+                  onSave: (site) async {
+                    await ref.read(siteRepositoryProvider).upsert(site);
+                    ref.invalidate(dashboardProvider);
+                    if (!context.mounted) return;
+                    Navigator.pop(context);
+                  },
+                ),
+              ));
+            },
             onSearch: () {},
-            onOpenSite: (siteId) {
+            onOpenSite: (siteId) async {
               ref.read(openSiteIdsProvider.notifier).update((ids) => {...ids, siteId});
               ref.read(siteRepositoryProvider).touch(siteId, DateTime.now());
               ref.invalidate(dashboardProvider);
+              final site = await ref.read(siteRepositoryProvider).byId(siteId);
+              if (site == null || !context.mounted) return;
+              await Navigator.push(context, MaterialPageRoute(
+                builder: (_) => ContainerRoute(site: site),
+              ));
+              ref.invalidate(dashboardProvider);
             },
-            onSiteMenu: (_) {},
+            onSiteMenu: (siteId) async {
+              final site = await ref.read(siteRepositoryProvider).byId(siteId);
+              if (site == null || !context.mounted) return;
+              showModalBottomSheet<void>(
+                context: context,
+                backgroundColor: Colors.transparent,
+                builder: (_) => SiteRowMenu(
+                  monogram: site.monogram,
+                  name: site.name,
+                  subtitle: site.url,
+                  ephemeralWorkspaceName: 'Ephemeral',
+                  duplicateTargetName: 'Work',
+                  onCancel: () => Navigator.pop(context),
+                  onAction: (action) async {
+                    Navigator.pop(context);
+                    if (action == SiteRowAction.editSettings) {
+                      final workspaces = await ref.read(workspacesProvider.future);
+                      if (!context.mounted) return;
+                      await Navigator.push(context, MaterialPageRoute(
+                        builder: (_) => AddSiteScreen(
+                          initial: site,
+                          workspaces: workspaces,
+                          onSave: (updated) async {
+                            await ref.read(siteRepositoryProvider).upsert(updated);
+                            ref.invalidate(dashboardProvider);
+                            if (!context.mounted) return;
+                            Navigator.pop(context);
+                          },
+                        ),
+                      ));
+                    } else if (action == SiteRowAction.removeSite) {
+                      await ref.read(siteRepositoryProvider).delete(siteId);
+                      ref.invalidate(dashboardProvider);
+                    }
+                    // openEphemeral, duplicate, requirePin, wipeData: Known Gap,
+                    // see this plan's Known Gaps section — none has a target
+                    // workspace/wipe-confirmation flow built anywhere yet.
+                  },
+                ),
+              );
+            },
           ),
           if (_menuOpen) _menu(),
         ],

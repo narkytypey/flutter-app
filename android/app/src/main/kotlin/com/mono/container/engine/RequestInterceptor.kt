@@ -7,7 +7,10 @@ import android.webkit.WebViewClient
 import androidx.webkit.ServiceWorkerClientCompat
 import java.io.ByteArrayInputStream
 
-class RequestInterceptor(private val filters: FilterEngine) {
+class RequestInterceptor(
+    private val filters: FilterEngine,
+    private val onRefused: (RouteFailure) -> Unit = {},
+) {
 
     /** One client per site. This is what `ProxyController` could never do. */
     fun clientFor(
@@ -40,12 +43,12 @@ class RequestInterceptor(private val filters: FilterEngine) {
     private fun intercept(config: SiteConfig, request: WebResourceRequest): WebResourceResponse? {
         val url = request.url.toString()
 
-        if (config.blockTrackers && filters.matches(url)) return blocked()
+        if (config.blockTrackers && filters.matches(url) != null) return blocked()
 
         return when (val route = Router.resolve(config, proxyReachable(config))) {
             is Route.Direct -> null   // let WebView fetch it itself
             is Route.Proxy -> fetchThrough(route, request)
-            is Route.Refused -> refused(route.failure)
+            is Route.Refused -> { onRefused(route.failure); refused(route.failure) }
         }
     }
 
@@ -81,7 +84,7 @@ class RequestInterceptor(private val filters: FilterEngine) {
             val socket = Router.connect(route, host, targetPort)
             socket.soTimeout = 15_000
             val out = socket.getOutputStream()
-            val path = url.path.ifEmpty { "/" } + (url.query?.let { "?$it" } ?: "")
+            val path = (url.path?.ifEmpty { "/" } ?: "/") + (url.query?.let { "?$it" } ?: "")
             out.write("${request.method} $path HTTP/1.1\r\n".toByteArray(Charsets.US_ASCII))
             out.write("Host: $host\r\n".toByteArray(Charsets.US_ASCII))
             request.requestHeaders.forEach { (k, v) ->

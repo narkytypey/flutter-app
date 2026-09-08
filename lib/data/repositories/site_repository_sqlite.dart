@@ -27,6 +27,14 @@ class SqliteSiteRepository implements SiteRepository {
   }
 
   @override
+  Future<Site?> byId(String id) async {
+    final rows =
+        await _database.db.query('sites', where: 'id = ?', whereArgs: [id]);
+    if (rows.isEmpty) return null;
+    return siteFromRow(rows.first);
+  }
+
+  @override
   Future<void> upsert(Site site) async {
     await _database.db.insert(
       'sites',
