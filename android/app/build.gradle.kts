@@ -27,6 +27,8 @@ android {
         // flag during build.
         versionCode = flutter.versionCode
         versionName = flutter.versionName
+
+        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
     buildTypes {
@@ -46,4 +48,10 @@ kotlin {
 
 flutter {
     source = "../.."
+}
+
+dependencies {
+    implementation("org.bouncycastle:bcprov-jdk18on:1.78.1")
+    androidTestImplementation("androidx.test.ext:junit:1.2.1")
+    androidTestImplementation("androidx.test:runner:1.6.2")
 }
