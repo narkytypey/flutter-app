@@ -314,6 +314,33 @@ task that covers it.
   navigation for the first time (a `⋯` icon on `WorkspaceBar`) — every other
   row on that screen stays exactly as inert as it is today. No implementation
   plan yet.
+  **Update, 2026-09-08 (done):** implemented, all 8 tasks —
+  `docs/superpowers/plans/2026-09-08-biometric-unlock.md` — on branch
+  `plan-08-biometric-unlock` off `plan-01-foundation` @ `af9f780`. `3d49654`
+  fixed two pre-flight defects; `b538e85` added the `app_settings` table and
+  `SettingsRepository` (Task 1); `35d238c`/`f0b3b1e`/`bb83fc2` added the
+  Keystore-backed `BiometricPlugin` and its Dart bridge, including a
+  `MainActivity` base-class fix found during review (Task 2); `6825d83`
+  wired resume-only biometric unlock into `SessionController` (Task 3);
+  `a5a34a2` gated `LockBody`'s fingerprint prompt to `welcomeBack` resume
+  only (Task 4); `61809ae` added `SettingsController` for the biometrics
+  toggle (Task 5); `c3d88f8` reached Settings from the dashboard via the new
+  `⋯` overflow icon (Task 6); `6051730` made panic also destroy the
+  biometric Keystore key (Task 7). Task 8's full verification pass
+  (2026-09-08) re-ran the suite clean: `flutter test` 270/270 passing,
+  `flutter analyze` "No issues found!". Two of the design's three "known
+  gaps" held up on re-read (every other `SettingsScreen` row is still inert;
+  no "unavailable"/"invalidated" copy exists anywhere) — the third didn't:
+  the design and `SettingsScreen`'s own doc comment claimed the screen (and
+  so the biometrics toggle) is unreachable from a decoy session, but Task
+  6's `⋯` icon is wired identically for every open session and nothing
+  anywhere checks `SessionOpen.vault` first — consistent with
+  `databaseProvider`'s existing "no code anywhere asking which one that is"
+  principle in `dashboard/view_models/providers.dart`, which a vault check
+  would have broken. Task 8 corrected `SettingsScreen`'s doc comment to say
+  so plainly rather than add new vault-distinguishing code no task
+  specified; whether to actually restrict decoy reachability is left as an
+  open design question for a future task, not decided here.
 - ~~Wiring Plan 4's screens to Plan 3's events~~ — Plan 6 Tasks 2–4
   (`engine_events.dart`, discriminated `EngineChannel` events, `ContainerRoute`).
   Known gap: a backgrounded (non-foreground) site's events are dropped, not
