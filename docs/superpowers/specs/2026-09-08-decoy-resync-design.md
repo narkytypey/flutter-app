@@ -20,6 +20,28 @@ function `syncToDecoy(site:, decoyDatabase:)`, but that name and signature
 never actually existed in the tree; this design corrects that and builds
 against what's really there.
 
+## Prerequisite: `decoyEnabled` has to become real
+
+`SettingsScreen`'s `decoyEnabled`/`decoySiteCount` props are hardcoded
+`false`/`0` at the one place that constructs the screen for real
+(`dashboard_screen.dart`'s `_SettingsRoute`) — a pre-existing gap that
+predates this design (the biometric-unlock plan's own stated boundary:
+"every other row on that screen stays exactly as inert as it is today").
+Left as-is, this new row would be exactly as unreachable as the VAULT
+section's existing rows already are, in a shipped build.
+
+Confirmed with the user: this plan also makes `decoyEnabled` real, since
+otherwise the feature this design builds is unreachable outside tests.
+`SetupController.complete` gains one write — a `decoy_configured` bool in
+the real vault's own `app_settings` table (the same generic key-value
+table `biometrics_enabled` already lives in; no schema change) — set to
+`decoyPin != null`. `decoyEnabled`/`decoySiteCount` become real
+`FutureProvider`s (`decoy_configured`'s value; a live count of sites with
+`showInDecoy: true`) that `_SettingsRoute` reads instead of the hardcoded
+literals. This only makes the VAULT section's visibility correct — it does
+not build out `workspaces`, `scripts`, or `decoySites`'s own destination
+screens, which remain the no-ops they are today.
+
 ## Decision: a Settings row that briefly opens the decoy vault under its own PIN
 
 A new row, "Re-sync decoy now," in `SettingsScreen`'s existing VAULT
@@ -89,8 +111,17 @@ this flow calls — see Task breakdown) does, in order:
 
 1. Read every real-vault workspace and site (not filtered by the flag) —
    this is the full universe of ids sync is ever allowed to own.
-2. Upsert every currently-flagged workspace/site into the decoy vault,
-   exactly as `provisionDecoy` does today (fresh `profileId` per site).
+2. Upsert every currently-flagged workspace/site into the decoy vault. For
+   a site with no existing decoy-side row (a genuinely new addition), mint
+   a fresh `profileId`, exactly as `provisionDecoy` does today. For a site
+   that already has a decoy-side row (already synced by a prior call),
+   **keep that row's existing `profileId`** rather than regenerating it —
+   `profileId` is what Plan 3's WebView isolation keys cookies, cache, and
+   history to, so regenerating it on every call would silently wipe an
+   unchanged site's accumulated decoy browsing state each time, working
+   against the entire point of a decoy that looks lived-in. This departs
+   from `provisionDecoy`'s one-shot behavior deliberately; `provisionDecoy`
+   itself is unaffected since every site is new on that one-shot path.
 3. Delete every decoy-vault workspace whose id is in that owned universe
    but is no longer flagged. `sites.workspace_id REFERENCES workspaces(id)
    ON DELETE CASCADE` (already enforced — `PRAGMA foreign_keys = ON` is set
