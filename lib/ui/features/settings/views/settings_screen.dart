@@ -106,6 +106,9 @@ class SettingsScreen extends StatelessWidget {
                         value: '$decoySiteCount selected',
                         onTap: () => onTap('decoySites')),
                     SettingRow(
+                        title: 'Re-sync decoy now',
+                        onTap: () => onTap('resyncDecoy')),
+                    SettingRow(
                       title: 'Hide from app switcher',
                       subtitle: 'Blurs previews, blocks screenshots',
                       trailing: AppToggle(

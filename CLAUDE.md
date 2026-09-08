@@ -32,6 +32,7 @@ Each plan ships working, tested software on its own.
 | 5 — Workspaces and scripts | `2026-08-30-isolated-web-container-05-workspaces-and-scripts.md` | Written | Workspace list/create/delete (`10a`–`10c`), filter lists + script library + script editor (`10d`/`10e`). Turn 9 (`9a`–`9c`) is Plan 2's, not this plan's — see its own header note. |
 | 6 — Integration | `2026-09-02-isolated-web-container-06-integration.md` | Written 2026-09-02 | Wires the five plans into one navigable app: `ContainerRoute` navigation shell, discriminated native events (permission asks, held downloads, tunnel-drop) reaching Plan 4's screens, per-category `FilterEngine`/`BlockedTallyRecorder` feeding a live Today log, `SiteSheet` toggle persistence, and the decoy-sync correction. Implements `docs/superpowers/specs/2026-09-02-integration-design.md` (approved by the user 2026-09-02); three places deliberately correct or narrow that spec against what the tree can actually do — see the plan's own header. 7 tasks. Being executed 2026-09-04 by a peer session (flutter-app-0f) in its own worktree. Explicitly leaves search and biometric unlock unbuilt — see Unassigned Work below. |
 | 7 — Search | `2026-09-04-isolated-web-container-07-search.md` | **Done** (2026-09-08) | Wires `DashboardFooter`'s long-dead search button to a real screen: `SiteRepository.all()`, a `searchResults()` join/filter/sort across every workspace in the open vault, and a pure `SearchScreen`. Implements `docs/superpowers/specs/2026-09-04-search-screen-design.md` (brainstormed and approved by the user 2026-09-04) — that spec itself stands in for the missing canvas screen block, since search was never actually designed anywhere. 5 tasks, all executed; final-review fix wave (2026-09-08) made tapping a search result push a real `ContainerRoute` (it previously only marked the site open and popped back to the dashboard) and fixed `allSitesProvider` never being invalidated, so search now sees adds/deletes/touches made after it first loaded. |
+| 9 — Decoy re-sync | `2026-09-08-decoy-resync.md` | **Done** (2026-09-08) | Gives the owner a reachable "re-sync with the decoy PIN" flow from Settings, replacing the setup-time-only `provisionDecoy` with `resyncDecoy` (`lib/data/repositories/decoy_provisioner.dart`) — a real add-and-remove sync that preserves an already-synced site's `profileId` so its decoy-side cookies/history survive repeated syncs. Persists `decoy_configured` on the real vault (`SetupController.complete`) and wires it to `decoyEnabledProvider`/`decoySiteCountProvider`, so `SettingsScreen`'s VAULT section — hardcoded invisible before this plan — now actually shows or hides based on whether a decoy was configured. Adds `DecoyResyncPinScreen` (pure widget, reuses `PinDots`/`PinKeypad`) and `DecoyResyncRoute` (reuses `LockController`, calls the new `SettingsController.resyncDecoyVault`, which checks the entered PIN against both vault slots via the existing `VaultUnlocker`/attempt-gate before opening the decoy vault just long enough to sync and close it). Implements `docs/superpowers/specs/2026-09-08-decoy-resync-design.md`. 5 tasks, all executed. |
 
 Each plan's own **Handoff** and **Known gaps** sections at the bottom are the
 authoritative record of what it produces for later plans and what it
@@ -387,11 +388,17 @@ task that covers it.
 - ~~SiteSheet toggle persistence~~ — Plan 6 Task 6. Known gap: the
   desktop-view toggle only distinguishes `android` vs. `desktop`, so
   `UserAgentMode.minimal` loses that distinction once flipped.
-- ~~Decoy auto-sync after provisioning~~ — Plan 6 Task 6 gives `syncToDecoy`
-  a real call path, but only *inside* the two-PIN setup wizard, where both
-  vaults' data keys are simultaneously in memory. Known gap: there is still
-  no reachable "re-sync with the decoy PIN" flow afterward — see the plan's
-  Handoff to a future decoy-resync plan.
+- ~~Decoy auto-sync after provisioning~~ — Plan 6 Task 6 gives `provisionDecoy`
+  (not `syncToDecoy`, which never existed under that name) a real call path,
+  but only *inside* the two-PIN setup wizard, where both vaults' data keys
+  are simultaneously in memory. **Update, 2026-09-08 (done):** the
+  reachable "re-sync with the decoy PIN" flow this bullet pointed to is now
+  built — Plan 9, `docs/superpowers/plans/2026-09-08-decoy-resync.md`, all 5
+  tasks. A new `resyncDecoy` function (add-and-remove, not `provisionDecoy`'s
+  add-only) is reachable from a "Re-sync decoy now" row in Settings' VAULT
+  section, gated behind a PIN-entry screen that checks the decoy PIN via the
+  existing `VaultUnlocker`/attempt-gate before opening the decoy vault just
+  long enough to sync and close it again.
 
 ## Working on this repo
 

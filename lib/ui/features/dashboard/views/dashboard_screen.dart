@@ -15,6 +15,7 @@ import '../../settings/view_models/providers.dart'
         decoyEnabledProvider,
         decoySiteCountProvider,
         settingsControllerProvider;
+import '../../settings/views/decoy_resync_route.dart';
 import '../../settings/views/settings_screen.dart';
 import '../view_models/providers.dart';
 import 'dashboard_body.dart';
@@ -219,7 +220,12 @@ class _SettingsRoute extends ConsumerWidget {
           ref.read(settingsControllerProvider).setBiometricsEnabled(value);
         }
       },
-      onTap: (_) {},
+      onTap: (key) {
+        if (key == 'resyncDecoy') {
+          Navigator.push(context,
+              MaterialPageRoute(builder: (_) => const DecoyResyncRoute()));
+        }
+      },
     );
   }
 }
