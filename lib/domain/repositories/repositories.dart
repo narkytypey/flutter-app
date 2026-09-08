@@ -18,3 +18,8 @@ abstract interface class SiteRepository {
   /// Records that a site was just opened, which drives its dashboard age.
   Future<void> touch(String id, DateTime at);
 }
+
+abstract interface class SettingsRepository {
+  Future<bool> getBool(String key, {bool fallback = false});
+  Future<void> setBool(String key, bool value);
+}

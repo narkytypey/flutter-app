@@ -35,7 +35,7 @@ class AppDatabase {
 
   final Database db;
 
-  static const schemaVersion = 5;
+  static const schemaVersion = 6;
 
   static Future<AppDatabase> open({
     required String path,
@@ -107,6 +107,7 @@ class AppDatabase {
           await db.execute(_createFilterLists);
           await db.execute(_createScripts);
           await db.execute(_createScriptSites);
+          await db.execute(_createAppSettings);
         },
         onUpgrade: (db, from, to) async {
           if (from < 2) {
@@ -148,6 +149,9 @@ class AppDatabase {
           if (from < 5) {
             await db.execute(
                 "ALTER TABLE filter_lists ADD COLUMN category TEXT NOT NULL DEFAULT 'trackers'");
+          }
+          if (from < 6) {
+            await db.execute(_createAppSettings);
           }
         },
       ),
@@ -202,6 +206,16 @@ const _createScriptSites = '''
     script_id TEXT NOT NULL REFERENCES scripts(id) ON DELETE CASCADE,
     site_id   TEXT NOT NULL REFERENCES sites(id) ON DELETE CASCADE,
     PRIMARY KEY (script_id, site_id)
+  )
+''';
+
+/// One row per key. Lives inside each vault's own encrypted database, never
+/// in the plaintext-visible `vault_store.json` — see the biometric-unlock
+/// design spec's "New pieces" section for why that boundary matters.
+const _createAppSettings = '''
+  CREATE TABLE app_settings (
+    key   TEXT PRIMARY KEY,
+    value TEXT NOT NULL
   )
 ''';
 
