@@ -45,6 +45,17 @@ void main() {
     expect((decision as RouteRefused).failure, RouteFailure.misconfigured);
   });
 
+  test('an http-proxy site refuses, because Android cannot open one at all', () {
+    // AOSP removed HTTP-proxy support from java.net.Socket, so the native
+    // Router cannot honour ProxyMode.http on any device. Refusing at resolve
+    // time keeps this model honest with the engine, and means the user is
+    // told the configuration is wrong instead of being shown a spurious
+    // "destination did not respond" after the request fails late.
+    final decision = resolveRoute(_site(mode: ProxyMode.http), proxyReachable: true);
+    expect(decision, isA<RouteRefused>());
+    expect((decision as RouteRefused).failure, RouteFailure.misconfigured);
+  });
+
   test('unreachable and refused read differently to the user', () {
     expect(refusalMessage(RouteFailure.proxyUnreachable),
         isNot(refusalMessage(RouteFailure.proxyRefused)));

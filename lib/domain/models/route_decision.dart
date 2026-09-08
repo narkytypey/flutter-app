@@ -41,6 +41,16 @@ class RouteRefused extends RouteDecision {
 RouteDecision resolveRoute(Site site, {required bool proxyReachable}) {
   if (site.proxyMode == ProxyMode.direct) return const RouteDirect();
 
+  // Android removed HTTP-proxy support from `java.net.Socket` (AOSP deleted
+  // `HttpConnectSocketImpl`), so the native Router cannot open one on any
+  // device — `Socket(Proxy(Type.HTTP, ...))` throws at construction. Refuse
+  // here rather than let the request fail late and be reported as a timeout.
+  // Anything that is not socks5 is caught, not just http, so a future mode
+  // cannot silently inherit the broken path.
+  if (site.proxyMode != ProxyMode.socks5) {
+    return const RouteRefused(RouteFailure.misconfigured);
+  }
+
   final host = site.proxyHost;
   final port = site.proxyPort;
   if (host == null || host.isEmpty || port == null) {

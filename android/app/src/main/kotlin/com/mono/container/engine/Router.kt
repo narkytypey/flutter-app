@@ -18,6 +18,18 @@ object Router {
     fun resolve(config: SiteConfig, proxyReachable: Boolean): Route {
         if (config.proxyMode == "direct") return Route.Direct
 
+        // Android removed HTTP-proxy support from java.net.Socket (AOSP
+        // deleted HttpConnectSocketImpl), so connect() below would throw
+        // IllegalArgumentException("Invalid Proxy") at construction for
+        // Proxy.Type.HTTP. Refusing here means the user is told the site is
+        // misconfigured immediately, instead of seeing "The destination did
+        // not respond" after ProxyProbe made the proxy look reachable.
+        // Everything that is not socks5 is refused, so an unrecognised mode
+        // cannot silently fall into the same broken path.
+        if (config.proxyMode != "socks5") {
+            return Route.Refused(RouteFailure.MISCONFIGURED)
+        }
+
         val host = config.proxyHost
         val port = config.proxyPort
         if (host.isNullOrEmpty() || port == null) {

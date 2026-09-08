@@ -48,6 +48,10 @@ class RequestInterceptor(private val filters: FilterEngine, private val onRefuse
                 is java.net.SocketTimeoutException -> RouteFailure.UPSTREAM_TIMEOUT
                 is javax.net.ssl.SSLException -> RouteFailure.TLS_FAILURE
                 is java.net.ConnectException -> RouteFailure.PROXY_UNREACHABLE
+                // Unreachable while Router.resolve refuses non-socks5 modes up
+                // front, but kept so an unsupported Proxy.Type can never again
+                // surface to the user as a bogus upstream timeout.
+                is IllegalArgumentException -> RouteFailure.MISCONFIGURED
                 else -> RouteFailure.UPSTREAM_TIMEOUT
             })
         }
