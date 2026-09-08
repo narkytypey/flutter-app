@@ -2078,7 +2078,30 @@ Two things make it worse than plain breakage:
 This is a different shape from defects 1-4: not "designed and forgotten" but
 **designed, implemented, and impossible on the target platform.**
 
-**Not fixed here.** A real fix means implementing CONNECT by hand in
+**Update, 2026-09-09 — interim fix landed; the mode is still unusable.**
+`Router.resolve` (and its Dart mirror `resolveRoute`) now refuse any
+`proxyMode` that is not `socks5` up front, returning
+`RouteFailure.MISCONFIGURED` before any socket is constructed. Everything
+non-socks5 is caught rather than `http` specifically, so a future mode cannot
+silently inherit the broken path. `RequestInterceptor` also maps
+`IllegalArgumentException` to `MISCONFIGURED` as defence in depth, unreachable
+while the resolve-time refusal stands.
+
+This fixes the *reporting* and the *timing*, not the feature: an HTTP-proxy
+site now fails immediately with "This site has no proxy configured" instead of
+failing late with "The destination did not respond" after `ProxyProbe` made it
+look healthy. The site still does not work, and the copy is still not right —
+the site *has* a proxy configured, it is simply one Android cannot open.
+Better copy would need a new string, and this repo's rule is that a string not
+in the spec is a design question, not something to invent.
+
+**The "HTTP" chip in the add-site Network tab was deliberately left in place.**
+It appears in the authoritative canvas spec, so removing it is a design change
+to be decided, not an opportunistic edit. The consequence is that a user can
+still select a mode that cannot work — they now just get an honest,
+immediate refusal instead of a misleading timeout.
+
+**Still not fixed.** A real fix means implementing CONNECT by hand in
 `ProxyHttpClient` — write `CONNECT host:port HTTP/1.1`, parse the 200
 response, then hand the socket to `startTls` — which carries its own proxy
 auth, error-mapping and TLS-ordering questions and deserves a plan rather than

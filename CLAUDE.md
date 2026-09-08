@@ -454,7 +454,17 @@ task that covers it.
   `UPSTREAM_TIMEOUT`, "The destination did not respond," for a destination
   never contacted — and **fails late**, since `ProxyProbe` opens a plain
   socket to the proxy and succeeds, so the site looks healthy until it
-  doesn't. Fixing it means implementing CONNECT by hand. (b)
+  doesn't. **Interim fix, same day:** `Router.resolve` and its Dart mirror
+  `resolveRoute` now refuse any non-`socks5` mode up front as `MISCONFIGURED`,
+  so the failure is immediate and honestly labelled rather than a late bogus
+  timeout; `RequestInterceptor` maps `IllegalArgumentException` the same way as
+  defence in depth. This fixes the reporting, **not the feature** — an HTTP
+  proxy still cannot work, and the reused "This site has no proxy configured"
+  copy is still inaccurate (it has one; Android just cannot open it). Better
+  copy would be a new string, which the spec does not provide. The "HTTP" chip
+  in the Network tab was left in place because it is in the authoritative
+  canvas spec — removing it is a design decision, not a bug fix. A real fix
+  means implementing CONNECT by hand. (b)
   `DownloadFetcher.fetchTo` passes no request headers, so keep-in-container
   sends neither `User-Agent` nor `Cookie` while `saveViaDownloadManager` sends
   both — a cookie-gated download succeeds via Direct save-to-device and fails
