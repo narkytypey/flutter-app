@@ -30,6 +30,9 @@ class MainActivity : FlutterActivity() {
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, SecureWindowPlugin.CHANNEL)
             .setMethodCallHandler(SecureWindowPlugin(this))
 
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, BiometricPlugin.CHANNEL)
+            .setMethodCallHandler(BiometricPlugin(this))
+
         val profiles = ProfileManager()
         val engine = EngineChannel(applicationContext, profiles)
         engine.attach(flutterEngine.dartExecutor.binaryMessenger)

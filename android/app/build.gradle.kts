@@ -43,6 +43,7 @@ android {
 dependencies {
     implementation("org.bouncycastle:bcprov-jdk18on:1.78.1")
     implementation("androidx.webkit:webkit:1.12.0")
+    implementation("androidx.biometric:biometric:1.1.0")
     testImplementation("junit:junit:4.13.2")
     androidTestImplementation("androidx.test.ext:junit:1.2.1")
     androidTestImplementation("androidx.test:runner:1.6.2")
