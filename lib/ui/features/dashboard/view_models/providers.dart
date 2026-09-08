@@ -101,3 +101,13 @@ final workspaceOptionsProvider = FutureProvider<List<WorkspaceOption>>((ref) asy
   }
   return options;
 });
+
+/// Marks [siteId] open and records the visit. Shared by `DashboardScreen`'s
+/// own row tap and the search screen's result tap, so both always agree on
+/// what "opening a site" means — today this in-memory badge, later Plan 6's
+/// real `ContainerEngine` session, without either caller needing to change.
+void openSite(WidgetRef ref, String siteId) {
+  ref.read(openSiteIdsProvider.notifier).update((ids) => {...ids, siteId});
+  ref.read(siteRepositoryProvider).touch(siteId, DateTime.now());
+  ref.invalidate(dashboardProvider);
+}

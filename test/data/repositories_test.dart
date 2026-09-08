@@ -127,4 +127,24 @@ void main() {
     expect(await SqliteSiteRepository(database).inWorkspace(personal.id), isEmpty);
     expect((await workspaces.all()).length, 2);
   });
+
+  test('all returns every site across every workspace', () async {
+    final workspaces = SqliteWorkspaceRepository(database);
+    final sites = SqliteSiteRepository(database);
+
+    await workspaces.upsert(const Workspace(
+        id: 'w1', name: 'Personal', markerIndex: 0, storageRule: StorageRule.keep));
+    await workspaces.upsert(const Workspace(
+        id: 'w2', name: 'Work', markerIndex: 1, storageRule: StorageRule.keep));
+    await sites.upsert(Site(
+        id: 's1', workspaceId: 'w1', name: 'Forum', monogram: 'Fr',
+        url: 'https://forum.example.com', profileId: newProfileId()));
+    await sites.upsert(Site(
+        id: 's2', workspaceId: 'w2', name: 'Bank', monogram: 'Bk',
+        url: 'https://bank.example.com', profileId: newProfileId()));
+
+    final all = await sites.all();
+
+    expect(all.map((s) => s.id).toSet(), {'s1', 's2'});
+  });
 }

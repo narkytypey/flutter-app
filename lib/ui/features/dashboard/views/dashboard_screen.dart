@@ -4,6 +4,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/tokens.dart';
 import '../../add_site/views/add_site_screen.dart';
 import '../../container/views/container_route.dart';
+import '../../search/view_models/providers.dart'
+    show allSitesProvider, searchQueryProvider, searchResultsProvider;
+import '../../search/view_models/search_view.dart' show SearchResultEntry;
+import '../../search/views/search_screen.dart';
 import '../view_models/providers.dart';
 import 'dashboard_body.dart';
 import 'site_row_menu.dart';
@@ -49,11 +53,13 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                 ),
               ));
             },
-            onSearch: () {},
+            onSearch: () {
+              ref.invalidate(searchQueryProvider);
+              ref.invalidate(allSitesProvider);
+              Navigator.push(context, MaterialPageRoute(builder: (_) => const _SearchRoute()));
+            },
             onOpenSite: (siteId) async {
-              ref.read(openSiteIdsProvider.notifier).update((ids) => {...ids, siteId});
-              ref.read(siteRepositoryProvider).touch(siteId, DateTime.now());
-              ref.invalidate(dashboardProvider);
+              openSite(ref, siteId);
               final site = await ref.read(siteRepositoryProvider).byId(siteId);
               if (site == null || !context.mounted) return;
               await Navigator.push(context, MaterialPageRoute(
@@ -129,6 +135,53 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
           ),
         ),
       ),
+    );
+  }
+}
+
+class _SearchRoute extends ConsumerStatefulWidget {
+  const _SearchRoute();
+
+  @override
+  ConsumerState<_SearchRoute> createState() => _SearchRouteState();
+}
+
+class _SearchRouteState extends ConsumerState<_SearchRoute> {
+  final _controller = TextEditingController();
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final results = ref.watch(searchResultsProvider);
+
+    return SearchScreen(
+      controller: _controller,
+      results: results.value ?? const [],
+      onQueryChanged: (value) => ref.read(searchQueryProvider.notifier).state = value,
+      onOpen: (siteId) async {
+        final entries = results.value ?? const [];
+        SearchResultEntry? entry;
+        for (final candidate in entries) {
+          if (candidate.siteId == siteId) {
+            entry = candidate;
+            break;
+          }
+        }
+        if (entry == null) return;
+        ref.read(activeWorkspaceIdProvider.notifier).state = entry.workspaceId;
+        openSite(ref, siteId);
+        final site = await ref.read(siteRepositoryProvider).byId(siteId);
+        if (site == null || !context.mounted) return;
+        Navigator.pushReplacement(context, MaterialPageRoute(
+          builder: (_) => ContainerRoute(site: site),
+        ));
+      },
+      onBack: () => Navigator.pop(context),
     );
   }
 }

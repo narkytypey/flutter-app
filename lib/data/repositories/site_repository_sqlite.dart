@@ -21,6 +21,12 @@ class SqliteSiteRepository implements SiteRepository {
   }
 
   @override
+  Future<List<Site>> all() async {
+    final rows = await _database.db.query('sites', orderBy: 'sort_index');
+    return rows.map(siteFromRow).toList();
+  }
+
+  @override
   Future<Site?> byId(String id) async {
     final rows =
         await _database.db.query('sites', where: 'id = ?', whereArgs: [id]);

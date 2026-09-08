@@ -1010,10 +1010,19 @@ git commit -m "feat: wire the dashboard's search button to the search screen"
 
 ## Handoff
 
-- **To whoever finishes Plan 6's `ContainerRoute` wiring:** `openSite`
-  (Task 5) is now the one place "opening a site" happens for both the
-  dashboard and search. When real container opening replaces the
-  in-memory `openSiteIdsProvider` badge, change it there — both surfaces
-  pick up the new behavior with no further changes.
+- **To whoever touches how "opening a site" works next:** `openSite` (Task
+  5) is the one shared place the "mark open" step happens — it updates
+  `openSiteIdsProvider` and records the visit, for both the dashboard and
+  search. It is not the one place a container session gets pushed, though:
+  final review (2026-09-08) found search's original `onOpen` called
+  `openSite` and popped back to the dashboard without ever pushing
+  `ContainerRoute`, leaving a phantom "open" site with no real session
+  behind it. Fixed so `_SearchRoute.onOpen` now mirrors the dashboard's own
+  `onOpenSite` — look the site up by id and `Navigator.pushReplacement` to
+  `ContainerRoute` after calling `openSite`. The two call sites
+  (`onOpenSite` in `dashboard_screen.dart` and `_SearchRoute.onOpen` in the
+  same file) each push `ContainerRoute` independently; a future change to
+  *how* a container session gets opened (e.g. routing through a different
+  screen, or adding a transition) needs updating in both places, not one.
 - **To a future "search workspaces too" plan:** see the known gap above —
   `searchResults()`'s signature does not need to change, only its body.
