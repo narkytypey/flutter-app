@@ -226,15 +226,36 @@ class SessionController extends Notifier<Session> {
   }
 
   /// Every fresh PIN unlock is self-healing: if biometrics is on for this
-  /// vault, re-wrap under whatever Keystore key currently exists. This is
-  /// how a key invalidated by new biometric enrollment (see
-  /// `BiometricPlugin.unwrap`'s `KeyPermanentlyInvalidatedException`
-  /// handling) repairs itself with no dedicated recovery flow.
+  /// vault, re-wrap under whatever Keystore key currently exists — and if
+  /// no usable key currently exists (missing, or invalidated by new
+  /// biometric enrollment; see `BiometricPlugin.unwrap`'s
+  /// `KeyPermanentlyInvalidatedException` handling, which already deletes
+  /// the dangling alias), regenerate the keypair and retry once. This must
+  /// never throw: a correct-PIN unlock cannot be allowed to fail just
+  /// because a *convenience* key is broken, so a failure on both attempts
+  /// fails closed by returning null, same as `BiometricService.unwrap`'s
+  /// own "nothing usable right now" convention.
   Future<Uint8List?> _rewrapIfEnabled(AppDatabase database, Uint8List dataKey) async {
     final enabled =
         await SqliteSettingsRepository(database).getBool('biometrics_enabled');
     if (!enabled) return null;
-    return ref.read(biometricServiceProvider).wrap(dataKey);
+    final biometrics = ref.read(biometricServiceProvider);
+    try {
+      return await biometrics.wrap(dataKey);
+    } catch (_) {
+      // The alias may be gone — invalidated by new biometric enrollment and
+      // already deleted by BiometricPlugin.unwrap, or missing for any other
+      // reason. Regenerate and retry: this is the self-heal the design spec
+      // requires. A correct-PIN unlock must never fail because a
+      // *convenience* key is missing — see the spec's "Failure modes"
+      // section.
+      try {
+        await biometrics.generateKeyPair();
+        return await biometrics.wrap(dataKey);
+      } catch (_) {
+        return null;
+      }
+    }
   }
 
   /// `LockBody.onBiometric`'s target once `LockScreen` decides biometrics is

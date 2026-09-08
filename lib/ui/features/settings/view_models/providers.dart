@@ -16,6 +16,14 @@ final biometricsEnabledProvider = FutureProvider<bool>(
   (ref) => ref.watch(settingsRepositoryProvider).getBool('biometrics_enabled'),
 );
 
+/// Gates whether `SettingsScreen`'s biometrics toggle is interactive at
+/// all — no biometric hardware or nothing enrolled means the toggle is
+/// shown disabled, not hidden, and the spec deliberately invents no
+/// "unavailable" copy for this state.
+final biometricsAvailableProvider = FutureProvider<bool>(
+  (ref) => ref.watch(biometricServiceProvider).isAvailable(),
+);
+
 class SettingsController {
   SettingsController(this._ref);
 

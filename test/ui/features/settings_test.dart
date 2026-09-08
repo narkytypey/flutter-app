@@ -1,9 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:container/ui/core/widgets/app_toggle.dart';
 import 'package:container/ui/features/settings/views/settings_screen.dart';
 
 void main() {
-  Future<void> pump(WidgetTester tester, {required bool decoyConfigured}) {
+  Future<void> pump(
+    WidgetTester tester, {
+    required bool decoyConfigured,
+    bool biometricsAvailable = true,
+  }) {
     // `2d` is a long scrolling list. The default 800x600 test surface is
     // shorter than its content, so the sliver never builds the PANIC rows or
     // the footer into the Element tree and `find.text` sees zero of them —
@@ -16,6 +21,7 @@ void main() {
     return tester.pumpWidget(MaterialApp(
       home: SettingsScreen(
         biometrics: true,
+        biometricsAvailable: biometricsAvailable,
         autoLockLabel: 'After 1 min',
         decoyEnabled: decoyConfigured,
         decoySiteCount: 4,
@@ -43,6 +49,24 @@ void main() {
     expect(find.text('Uses the accelerometer'), findsOneWidget);
     expect(find.text('On panic'), findsOneWidget);
     expect(find.text('Wipe + lock'), findsOneWidget);
+  });
+
+  testWidgets(
+      'the biometrics toggle is non-interactive when biometrics is unavailable',
+      (tester) async {
+    await pump(tester, decoyConfigured: true, biometricsAvailable: false);
+
+    final toggle = tester.widget<AppToggle>(find.byType(AppToggle).first);
+    expect(toggle.onChanged, isNull);
+  });
+
+  testWidgets(
+      'the biometrics toggle is interactive when biometrics is available',
+      (tester) async {
+    await pump(tester, decoyConfigured: true, biometricsAvailable: true);
+
+    final toggle = tester.widget<AppToggle>(find.byType(AppToggle).first);
+    expect(toggle.onChanged, isNotNull);
   });
 
   testWidgets('the vault section appears when a decoy is configured',

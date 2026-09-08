@@ -9,7 +9,10 @@ import '../../search/view_models/providers.dart'
 import '../../search/view_models/search_view.dart' show SearchResultEntry;
 import '../../search/views/search_screen.dart';
 import '../../settings/view_models/providers.dart'
-    show biometricsEnabledProvider, settingsControllerProvider;
+    show
+        biometricsAvailableProvider,
+        biometricsEnabledProvider,
+        settingsControllerProvider;
 import '../../settings/views/settings_screen.dart';
 import '../view_models/providers.dart';
 import 'dashboard_body.dart';
@@ -197,8 +200,10 @@ class _SettingsRoute extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final biometrics = ref.watch(biometricsEnabledProvider);
+    final biometricsAvailable = ref.watch(biometricsAvailableProvider);
     return SettingsScreen(
       biometrics: biometrics.value ?? false,
+      biometricsAvailable: biometricsAvailable.value ?? false,
       autoLockLabel: 'After 1 min',
       decoyEnabled: false,
       decoySiteCount: 0,

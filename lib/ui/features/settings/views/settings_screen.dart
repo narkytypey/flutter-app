@@ -24,6 +24,7 @@ class SettingsScreen extends StatelessWidget {
   const SettingsScreen({
     super.key,
     required this.biometrics,
+    required this.biometricsAvailable,
     required this.autoLockLabel,
     required this.decoyEnabled,
     required this.decoySiteCount,
@@ -35,6 +36,7 @@ class SettingsScreen extends StatelessWidget {
   });
 
   final bool biometrics;
+  final bool biometricsAvailable;
   final String autoLockLabel;
   final bool decoyEnabled;
   final int decoySiteCount;
@@ -72,7 +74,9 @@ class SettingsScreen extends StatelessWidget {
                     subtitle: 'PIN always available as fallback',
                     trailing: AppToggle(
                       value: biometrics,
-                      onChanged: (v) => onChanged('biometrics', v),
+                      onChanged: biometricsAvailable
+                          ? (v) => onChanged('biometrics', v)
+                          : null,
                     ),
                   ),
                   SettingRow(

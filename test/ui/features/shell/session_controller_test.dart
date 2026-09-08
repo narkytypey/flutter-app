@@ -23,6 +23,12 @@ class FakeBiometricService implements BiometricService {
   bool unwrapSucceeds = true;
   bool keyPairGenerated = false;
 
+  /// Simulates a Keystore alias that's missing or was just invalidated by
+  /// new biometric enrollment: [wrap] throws until [generateKeyPair] has
+  /// been called, then succeeds — modeling `_rewrapIfEnabled`'s regenerate
+  /// -and-retry self-heal.
+  bool wrapThrowsUntilRegenerated = false;
+
   @override
   Future<bool> isAvailable() async => available;
 
@@ -30,7 +36,12 @@ class FakeBiometricService implements BiometricService {
   Future<void> generateKeyPair() async => keyPairGenerated = true;
 
   @override
-  Future<Uint8List> wrap(Uint8List dataKey) async => dataKey;
+  Future<Uint8List> wrap(Uint8List dataKey) async {
+    if (wrapThrowsUntilRegenerated && !keyPairGenerated) {
+      throw Exception('alias missing');
+    }
+    return dataKey;
+  }
 
   @override
   Future<Uint8List?> unwrap(Uint8List wrapped) async =>
@@ -196,6 +207,36 @@ void main() {
 
     final session = container.read(sessionProvider) as SessionOpen;
     expect(session.biometricWrappedKey, isNotNull);
+  });
+
+  test(
+      'a correct PIN still opens the vault when the biometric Keystore key is '
+      'missing or invalidated, by regenerating it', () async {
+    await vaultStore.provision(pin: '111111', vault: VaultId.a);
+    await vaultStore.provisionUnopenable(VaultId.b);
+    final db = await AppDatabase.open(
+        path: inMemoryDatabasePath, factory: databaseFactoryFfi);
+    await SqliteSettingsRepository(db).setBool('biometrics_enabled', true);
+    final biometrics = FakeBiometricService()..wrapThrowsUntilRegenerated = true;
+
+    final container = ProviderContainer(overrides: [
+      cryptoServiceProvider.overrideWithValue(crypto),
+      vaultStoreProvider.overrideWithValue(vaultStore),
+      documentsDirectoryProvider.overrideWithValue(dir),
+      initialSessionProvider.overrideWithValue(
+          SessionLocked(mood: LockMood.normal, gate: await vaultStore.gate())),
+      biometricServiceProvider.overrideWithValue(biometrics),
+      vaultOpenerProvider.overrideWithValue(
+          ({required String path, required Uint8List dataKey}) async => db),
+    ]);
+    addTearDown(container.dispose);
+
+    await container.read(sessionProvider.notifier).unlock('111111');
+
+    final session = container.read(sessionProvider);
+    expect(session, isA<SessionOpen>());
+    expect((session as SessionOpen).vault, VaultId.a);
+    expect(biometrics.keyPairGenerated, isTrue);
   });
 
   test('a wrong PIN during welcomeBack keeps the pending biometric ciphertext',
