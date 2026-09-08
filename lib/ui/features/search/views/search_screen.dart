@@ -6,7 +6,7 @@ import '../../../core/widgets/monogram.dart';
 import '../../../core/widgets/status_rail.dart';
 import '../view_models/search_view.dart';
 
-class SearchScreen extends StatelessWidget {
+class SearchScreen extends StatefulWidget {
   const SearchScreen({
     super.key,
     required this.controller,
@@ -23,8 +23,21 @@ class SearchScreen extends StatelessWidget {
   final VoidCallback onBack;
 
   @override
+  State<SearchScreen> createState() => _SearchScreenState();
+}
+
+class _SearchScreenState extends State<SearchScreen> {
+  late final _focusNode = FocusNode();
+
+  @override
+  void dispose() {
+    _focusNode.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final showNoMatch = results.isEmpty && controller.text.isNotEmpty;
+    final showNoMatch = widget.results.isEmpty && widget.controller.text.isNotEmpty;
 
     return Scaffold(
       backgroundColor: C.bg,
@@ -39,39 +52,47 @@ class SearchScreen extends StatelessWidget {
               child: Row(
                 children: [
                   GestureDetector(
-                    onTap: onBack,
+                    onTap: widget.onBack,
                     child: const Text('‹', style: TextStyle(fontSize: 16, color: C.icon)),
                   ),
                   const SizedBox(width: 10),
                   Expanded(
-                    child: Container(
-                      height: 46,
-                      padding: const EdgeInsets.symmetric(horizontal: 13),
-                      decoration: BoxDecoration(
-                        color: C.surface,
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: C.line09),
-                      ),
-                      child: Row(
-                        children: [
-                          const Icon(Icons.search, size: 18, color: C.icon),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: TextField(
-                              key: const Key('search-field'),
-                              controller: controller,
-                              autofocus: true,
-                              onChanged: onQueryChanged,
-                              style: ui(size: 14, color: C.textSecondary),
-                              decoration: InputDecoration(
-                                border: InputBorder.none,
-                                isDense: true,
-                                hintText: 'Search sites',
-                                hintStyle: ui(size: 14, color: C.textFaint),
+                    child: ListenableBuilder(
+                      listenable: _focusNode,
+                      builder: (context, _) => Container(
+                        height: 46,
+                        padding: const EdgeInsets.symmetric(horizontal: 13),
+                        decoration: BoxDecoration(
+                          color: C.surface,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: _focusNode.hasFocus
+                                ? C.jade.withValues(alpha: 0.35)
+                                : C.line09,
+                          ),
+                        ),
+                        child: Row(
+                          children: [
+                            const Icon(Icons.search, size: 18, color: C.icon),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: TextField(
+                                key: const Key('search-field'),
+                                controller: widget.controller,
+                                focusNode: _focusNode,
+                                autofocus: true,
+                                onChanged: widget.onQueryChanged,
+                                style: ui(size: 14, color: C.textSecondary),
+                                decoration: InputDecoration(
+                                  border: InputBorder.none,
+                                  isDense: true,
+                                  hintText: 'Search sites',
+                                  hintStyle: ui(size: 14, color: C.textFaint),
+                                ),
                               ),
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
                     ),
                   ),
@@ -81,14 +102,14 @@ class SearchScreen extends StatelessWidget {
             Expanded(
               child: showNoMatch
                   ? Center(
-                      child: Text('No sites match "${controller.text}"',
+                      child: Text('No sites match "${widget.controller.text}"',
                           style: ui(size: 13, color: C.textDim)),
                     )
                   : ListView(
                       padding: const EdgeInsets.symmetric(horizontal: 18),
                       children: [
-                        for (final entry in results)
-                          _SearchResultRow(entry: entry, onTap: () => onOpen(entry.siteId)),
+                        for (final entry in widget.results)
+                          _SearchResultRow(entry: entry, onTap: () => widget.onOpen(entry.siteId)),
                       ],
                     ),
             ),
@@ -113,48 +134,50 @@ class _SearchResultRow extends StatelessWidget {
         decoration: const BoxDecoration(
           border: Border(bottom: BorderSide(color: C.line05)),
         ),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 12),
-          child: Row(
-            children: [
-              StatusRail(live: entry.live),
-              const SizedBox(width: 12),
-              Monogram(entry.monogram, open: entry.live),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
+        child: IntrinsicHeight(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 12),
+            child: Row(
+              children: [
+                StatusRail(live: entry.live),
+                const SizedBox(width: 12),
+                Monogram(entry.monogram, open: entry.live),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(entry.name, style: entry.live ? T.rowTitle : T.rowTitleIdle),
+                      const SizedBox(height: 3),
+                      Text(
+                        entry.host,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: entry.live ? T.meta : T.metaIdle,
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
                   mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(entry.name, style: entry.live ? T.rowTitle : T.rowTitleIdle),
-                    const SizedBox(height: 3),
-                    Text(
-                      entry.host,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: entry.live ? T.meta : T.metaIdle,
+                    Container(
+                      width: 8,
+                      height: 8,
+                      decoration: BoxDecoration(
+                        color: C.markers[entry.markerIndex],
+                        borderRadius: BorderRadius.circular(2),
+                      ),
                     ),
+                    const SizedBox(height: 4),
+                    Text(entry.workspaceName, style: ui(size: 11, color: C.textFaint)),
                   ],
                 ),
-              ),
-              const SizedBox(width: 12),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Container(
-                    width: 8,
-                    height: 8,
-                    decoration: BoxDecoration(
-                      color: C.markers[entry.markerIndex],
-                      borderRadius: BorderRadius.circular(2),
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(entry.workspaceName, style: ui(size: 11, color: C.textFaint)),
-                ],
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
