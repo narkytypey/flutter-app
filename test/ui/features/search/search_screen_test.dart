@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:container/ui/core/tokens.dart';
+import 'package:container/ui/core/widgets/status_rail.dart';
 import 'package:container/ui/features/search/view_models/search_view.dart';
 import 'package:container/ui/features/search/views/search_screen.dart';
 
@@ -40,6 +42,21 @@ void main() {
     expect(find.text('Bank'), findsOneWidget);
     expect(find.text('bank.example.com'), findsOneWidget);
     expect(find.text('Work'), findsOneWidget);
+
+    // A zero-height StatusRail would render but be invisible — assert every
+    // rail actually occupies vertical space.
+    for (final rail in tester.widgetList(find.byType(StatusRail))) {
+      final size = tester.getSize(find.byWidget(rail));
+      expect(size.height, greaterThan(0));
+    }
+
+    // The bank entry's markerIndex is 1 — its marker dot must be painted in
+    // C.markers[1], not some other/default color.
+    final markerFinder = find.byWidgetPredicate((widget) =>
+        widget is Container &&
+        widget.decoration is BoxDecoration &&
+        (widget.decoration! as BoxDecoration).color == C.markers[1]);
+    expect(markerFinder, findsOneWidget);
   });
 
   testWidgets('typing reports the new text', (tester) async {

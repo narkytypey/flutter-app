@@ -5,7 +5,8 @@ import '../../../core/tokens.dart';
 import '../../add_site/views/add_site_screen.dart';
 import '../../container/views/container_route.dart';
 import '../../search/view_models/providers.dart'
-    show searchQueryProvider, searchResultsProvider;
+    show allSitesProvider, searchQueryProvider, searchResultsProvider;
+import '../../search/view_models/search_view.dart' show SearchResultEntry;
 import '../../search/views/search_screen.dart';
 import '../view_models/providers.dart';
 import 'dashboard_body.dart';
@@ -54,6 +55,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
             },
             onSearch: () {
               ref.invalidate(searchQueryProvider);
+              ref.invalidate(allSitesProvider);
               Navigator.push(context, MaterialPageRoute(builder: (_) => const _SearchRoute()));
             },
             onOpenSite: (siteId) async {
@@ -161,12 +163,23 @@ class _SearchRouteState extends ConsumerState<_SearchRoute> {
       controller: _controller,
       results: results.value ?? const [],
       onQueryChanged: (value) => ref.read(searchQueryProvider.notifier).state = value,
-      onOpen: (siteId) {
+      onOpen: (siteId) async {
         final entries = results.value ?? const [];
-        final entry = entries.firstWhere((r) => r.siteId == siteId);
+        SearchResultEntry? entry;
+        for (final candidate in entries) {
+          if (candidate.siteId == siteId) {
+            entry = candidate;
+            break;
+          }
+        }
+        if (entry == null) return;
         ref.read(activeWorkspaceIdProvider.notifier).state = entry.workspaceId;
         openSite(ref, siteId);
-        Navigator.pop(context);
+        final site = await ref.read(siteRepositoryProvider).byId(siteId);
+        if (site == null || !context.mounted) return;
+        Navigator.pushReplacement(context, MaterialPageRoute(
+          builder: (_) => ContainerRoute(site: site),
+        ));
       },
       onBack: () => Navigator.pop(context),
     );
