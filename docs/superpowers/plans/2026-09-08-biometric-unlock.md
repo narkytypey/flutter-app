@@ -1026,7 +1026,7 @@ Expected: PASS — all tests in both files.
 - [ ] **Step 10: Run the full test suite to check for fallout**
 
 Run: `flutter test`
-Expected: everything passes except `test/ui/features/lock_body_test.dart` and `test/ui/features/shell/lock_screen_test.dart`, which Task 4 fixes — confirm those are the *only* failures, and that they fail for the reason this task predicts (`SessionOpen`'s new required `dataKey` parameter, or `LockBody`'s not-yet-added `biometricAvailable` parameter), not some other regression.
+Expected: PASS everywhere, with zero failures. Neither `test/ui/features/lock_body_test.dart` nor `test/ui/features/shell/lock_screen_test.dart` construct `SessionOpen` or depend on any field this task added, so this task's changes do not touch them — Task 4 changes `LockBody`/`LockScreen` themselves, not in reaction to breakage from this task. If the suite shows any failure here, it is a real regression this task introduced — investigate and fix it before moving on, not a known/expected gap Task 4 will paper over.
 
 - [ ] **Step 11: Commit**
 
@@ -1541,6 +1541,7 @@ git commit -m "feat: add SettingsController for the biometrics toggle"
 - Modify: `lib/ui/features/dashboard/views/workspace_bar.dart`
 - Modify: `lib/ui/features/dashboard/views/dashboard_body.dart`
 - Modify: `lib/ui/features/dashboard/views/dashboard_screen.dart`
+- Modify: `test/ui/features/dashboard_body_test.dart` (pre-existing test, needs the new required `onOverflow` argument — note this path is directly under `test/ui/features/`, not `test/ui/features/dashboard/`)
 - Test: `test/ui/features/dashboard/workspace_bar_test.dart`
 
 **Interfaces:**
@@ -1725,20 +1726,49 @@ class _SettingsRoute extends ConsumerWidget {
 }
 ```
 
-- [ ] **Step 7: Run the full suite**
+- [ ] **Step 7: Fix `test/ui/features/dashboard_body_test.dart`'s `_pump` helper**
+
+This file (note the path — directly under `test/ui/features/`, not under
+`test/ui/features/dashboard/`) constructs `DashboardBody` directly and
+predates this task; it does not yet pass the new required `onOverflow`.
+Update its `_pump` helper:
+
+```dart
+Future<void> _pump(WidgetTester tester, DashboardView view,
+    {void Function(String)? onOpenSite, VoidCallback? onAddSite}) {
+  return tester.pumpWidget(MaterialApp(
+    home: DashboardBody(
+      view: view,
+      onWorkspaceTap: () {},
+      onAddSite: onAddSite ?? () {},
+      onSearch: () {},
+      onOpenSite: onOpenSite ?? (_) {},
+      onSiteMenu: (_) {},
+      onOverflow: () {},
+    ),
+  ));
+}
+```
+
+(Only the added `onOverflow: () {},` line is new — everything else in this
+helper is unchanged.)
+
+- [ ] **Step 8: Run the full suite**
 
 Run: `flutter test`
-Expected: PASS everywhere — `dashboard_screen.dart`/`dashboard_body.dart` have no existing dedicated widget test file to update (checked: none exists), so this step's only job is confirming nothing else broke.
+Expected: PASS everywhere. Before Step 7's fix, `test/ui/features/dashboard_body_test.dart`
+would fail to compile (missing required argument) — confirm that file specifically
+passes now, alongside everything else.
 
-- [ ] **Step 8: Manual sanity check of the analyzer**
+- [ ] **Step 9: Manual sanity check of the analyzer**
 
 Run: `flutter analyze`
 Expected: No issues found.
 
-- [ ] **Step 9: Commit**
+- [ ] **Step 10: Commit**
 
 ```bash
-git add lib/ui/features/dashboard/views/workspace_bar.dart lib/ui/features/dashboard/views/dashboard_body.dart lib/ui/features/dashboard/views/dashboard_screen.dart test/ui/features/dashboard/workspace_bar_test.dart
+git add lib/ui/features/dashboard/views/workspace_bar.dart lib/ui/features/dashboard/views/dashboard_body.dart lib/ui/features/dashboard/views/dashboard_screen.dart test/ui/features/dashboard/workspace_bar_test.dart test/ui/features/dashboard_body_test.dart
 git commit -m "feat: reach Settings from the dashboard via a new overflow icon"
 ```
 
