@@ -11,7 +11,7 @@ import androidx.webkit.WebViewFeature
 import io.flutter.plugin.platform.PlatformView
 
 class ContainerView(
-    context: Context,
+    private val context: Context,
     private val config: SiteConfig,
     private val profiles: ProfileManager,
     private val interceptor: RequestInterceptor,
