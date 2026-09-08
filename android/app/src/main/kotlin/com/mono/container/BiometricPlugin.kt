@@ -92,7 +92,7 @@ class BiometricCore {
 
 /** Bridges [BiometricCore] to Dart and owns the [BiometricPrompt] UI, which
  * needs a [FragmentActivity] — `MainActivity` already is one via
- * `FlutterActivity`. */
+ * `FlutterFragmentActivity`. */
 class BiometricPlugin(
     private val activity: FragmentActivity,
     private val core: BiometricCore = BiometricCore(),

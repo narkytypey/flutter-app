@@ -5,11 +5,11 @@ import android.view.WindowManager
 import com.mono.container.engine.ContainerViewFactory
 import com.mono.container.engine.EngineChannel
 import com.mono.container.engine.ProfileManager
-import io.flutter.embedding.android.FlutterActivity
+import io.flutter.embedding.android.FlutterFragmentActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
 
-class MainActivity : FlutterActivity() {
+class MainActivity : FlutterFragmentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         // Set before the Flutter view exists. A flag toggled per screen has a
@@ -31,7 +31,7 @@ class MainActivity : FlutterActivity() {
             .setMethodCallHandler(SecureWindowPlugin(this))
 
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, BiometricPlugin.CHANNEL)
-            .setMethodCallHandler(BiometricPlugin(this as androidx.fragment.app.FragmentActivity))
+            .setMethodCallHandler(BiometricPlugin(this))
 
         val profiles = ProfileManager()
         val engine = EngineChannel(applicationContext, profiles)
