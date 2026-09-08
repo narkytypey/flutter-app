@@ -1,11 +1,22 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../data/repositories/decoy_provisioner.dart' show resyncDecoy;
 import '../../../../data/repositories/settings_repository_sqlite.dart';
+import '../../../../domain/models/vault.dart';
 import '../../../../domain/repositories/repositories.dart' show SettingsRepository;
+import '../../../../domain/services/vault_unlocker.dart';
 import '../../dashboard/view_models/providers.dart'
     show databaseProvider, siteRepositoryProvider;
 import '../../shell/view_models/session_controller.dart'
-    show biometricServiceProvider, sessionProvider, SessionOpen;
+    show
+        biometricServiceProvider,
+        sessionProvider,
+        SessionOpen,
+        vaultStoreProvider,
+        cryptoServiceProvider,
+        vaultOpenerProvider,
+        documentsDirectoryProvider,
+        vaultDatabasePath;
 
 final settingsRepositoryProvider = Provider<SettingsRepository>(
   (ref) => SqliteSettingsRepository(ref.watch(databaseProvider)),
@@ -40,6 +51,24 @@ final decoySiteCountProvider = FutureProvider<int>((ref) async {
   return sites.where((site) => site.showInDecoy).length;
 });
 
+sealed class DecoyResyncOutcome {
+  const DecoyResyncOutcome();
+}
+
+class DecoyResyncSucceeded extends DecoyResyncOutcome {
+  const DecoyResyncSucceeded();
+}
+
+class DecoyResyncRejected extends DecoyResyncOutcome {
+  const DecoyResyncRejected(this.triesLeft);
+  final int triesLeft;
+}
+
+class DecoyResyncThrottled extends DecoyResyncOutcome {
+  const DecoyResyncThrottled(this.remaining);
+  final Duration remaining;
+}
+
 class SettingsController {
   SettingsController(this._ref);
 
@@ -68,6 +97,58 @@ class SettingsController {
 
     await repository.setBool('biometrics_enabled', value);
     _ref.invalidate(biometricsEnabledProvider);
+  }
+
+  /// Verifies [pin] against both vault slots the same way the lock screen
+  /// does, sharing its attempt-gate — a wrong guess here locks out the lock
+  /// screen too, and vice versa, rather than opening a second independent
+  /// brute-force surface. A match against the vault already open this
+  /// session (re-entering the main PIN by mistake) is folded into the same
+  /// generic rejection as a non-match: this is the same PIN-guessing
+  /// surface [VaultUnlocker] itself never distinguishes, so this method
+  /// does not either. Only a match against the *other* vault opens it, runs
+  /// [resyncDecoy], and closes it again — its key and connection never
+  /// outlive this one call.
+  Future<DecoyResyncOutcome> resyncDecoyVault(String pin) async {
+    final vaultStore = _ref.read(vaultStoreProvider);
+    final unlocker = VaultUnlocker(_ref.read(cryptoServiceProvider));
+    final now = DateTime.now();
+    final beforeGate = await vaultStore.gate();
+    final slots = await vaultStore.slots();
+    final outcome = await unlocker.attempt(
+      pin: pin,
+      slots: slots,
+      gate: beforeGate,
+      now: now,
+    );
+
+    final session = _ref.read(sessionProvider);
+    if (session is! SessionOpen) {
+      return DecoyResyncRejected(beforeGate.triesLeft);
+    }
+
+    switch (outcome) {
+      case Throttled(:final remaining):
+        return DecoyResyncThrottled(remaining);
+      case Rejected(:final gate):
+        await vaultStore.saveGate(gate);
+        return DecoyResyncRejected(gate.triesLeft);
+      case Unlocked(:final vault, :final dataKey, :final gate):
+        if (vault == session.vault) {
+          final failedGate = beforeGate.recordFailure(now);
+          await vaultStore.saveGate(failedGate);
+          return DecoyResyncRejected(failedGate.triesLeft);
+        }
+        await vaultStore.saveGate(gate);
+        final decoyDatabase = await _ref.read(vaultOpenerProvider)(
+          path: vaultDatabasePath(_ref.read(documentsDirectoryProvider), vault),
+          dataKey: dataKey,
+        );
+        await resyncDecoy(from: session.database, into: decoyDatabase);
+        await decoyDatabase.close();
+        _ref.invalidate(decoySiteCountProvider);
+        return const DecoyResyncSucceeded();
+    }
   }
 }
 
