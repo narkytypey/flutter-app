@@ -22,6 +22,7 @@ class LockBody extends StatelessWidget {
     this.triesLeft = 5,
     this.openSessions = 0,
     this.secondsUntilLock = 0,
+    this.biometricAvailable = false,
   });
 
   final LockMood mood;
@@ -31,8 +32,15 @@ class LockBody extends StatelessWidget {
   final int triesLeft;
   final int openSessions;
   final int secondsUntilLock;
+  final bool biometricAvailable;
 
   bool get _wrong => mood == LockMood.wrong;
+
+  /// Resume-only: the fingerprint prompt only ever appears for a vault this
+  /// session already opened once with a PIN and is now re-confirming
+  /// during the welcome-back grace window — never for a cold lock. See the
+  /// biometric-unlock design spec's "Decision" section for why.
+  bool get _showBiometric => mood == LockMood.welcomeBack && biometricAvailable;
 
   @override
   Widget build(BuildContext context) {
@@ -57,7 +65,7 @@ class LockBody extends StatelessWidget {
                 ),
               ),
               PinKeypad(onKey: onKey),
-              _biometric(),
+              if (_showBiometric) _biometric(),
             ],
           ),
         ),
@@ -139,17 +147,13 @@ class LockBody extends StatelessWidget {
   Widget _biometric() => Padding(
         padding: const EdgeInsets.only(top: 26, bottom: 30),
         child: GestureDetector(
-          onTap: _wrong ? null : onBiometric,
+          onTap: onBiometric,
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text('☉',
-                  style: ui(size: 24, color: _wrong ? C.knobOff : C.jade)),
+              Text('☉', style: ui(size: 24, color: C.jade)),
               const SizedBox(height: 8),
-              Text(
-                _wrong ? 'Fingerprint unavailable' : 'Use fingerprint',
-                style: ui(size: 12, color: _wrong ? C.textDim : C.textFaint),
-              ),
+              Text('Use fingerprint', style: ui(size: 12, color: C.textFaint)),
             ],
           ),
         ),

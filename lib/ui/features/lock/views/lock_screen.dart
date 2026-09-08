@@ -39,6 +39,9 @@ class _LockScreenState extends ConsumerState<LockScreen> {
   Future<void> _submit(String pin) =>
       ref.read(sessionProvider.notifier).unlock(pin);
 
+  Future<void> _resumeWithBiometric() =>
+      ref.read(sessionProvider.notifier).resumeWithBiometric();
+
   @override
   Widget build(BuildContext context) {
     final session = ref.watch(sessionProvider);
@@ -60,10 +63,11 @@ class _LockScreenState extends ConsumerState<LockScreen> {
       openSessions: session.openSessionCount,
       secondsUntilLock: secondsUntilLock,
       onKey: _pin.onKey,
-      // Known gap (see this plan's "Known gaps"): biometric unlock is not
-      // wired to a Keystore-gated key yet, so there is nothing safe for
-      // this to do.
-      onBiometric: () {},
+      onBiometric: _resumeWithBiometric,
+      // `biometricWrappedKey`, not `biometricVault`: only the wrapped key
+      // being present means biometrics was actually enabled for the vault
+      // that just backgrounded. `biometricVault` can be non-null on its own.
+      biometricAvailable: session.biometricWrappedKey != null,
     );
   }
 

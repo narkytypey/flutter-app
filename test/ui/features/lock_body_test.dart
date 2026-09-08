@@ -15,22 +15,31 @@ Future<void> _pump(WidgetTester tester, LockBody body) {
   return tester.pumpWidget(MaterialApp(home: body));
 }
 
-LockBody _body(LockMood mood, {int triesLeft = 5, int filled = 0}) => LockBody(
+LockBody _body(
+  LockMood mood, {
+  int triesLeft = 5,
+  int filled = 0,
+  bool biometricAvailable = false,
+  VoidCallback onBiometric = _defaultOnBiometric,
+}) => LockBody(
       mood: mood,
       filled: filled,
       triesLeft: triesLeft,
       openSessions: 3,
       secondsUntilLock: 40,
       onKey: (_) {},
-      onBiometric: () {},
+      onBiometric: onBiometric,
+      biometricAvailable: biometricAvailable,
     );
+
+void _defaultOnBiometric() {}
 
 void main() {
   testWidgets('the normal lock says nothing about vaults', (tester) async {
     await _pump(tester, _body(LockMood.normal));
 
     expect(find.text('Enter your PIN'), findsOneWidget);
-    expect(find.text('Use fingerprint'), findsOneWidget);
+    expect(find.text('Use fingerprint'), findsNothing);
     expect(find.textContaining('vault', findRichText: true), findsNothing);
     expect(find.textContaining('decoy'), findsNothing);
     expect(find.textContaining('second'), findsNothing);
@@ -46,7 +55,7 @@ void main() {
           'accepting another.'),
       findsOneWidget,
     );
-    expect(find.text('Fingerprint unavailable'), findsOneWidget);
+    expect(find.text('Use fingerprint'), findsNothing);
     expect(find.textContaining('vault'), findsNothing);
   });
 
@@ -77,5 +86,32 @@ void main() {
           'reopen where you left them.'),
       findsOneWidget,
     );
+    expect(find.text('Use fingerprint'), findsNothing);
+  });
+
+  testWidgets('welcomeBack offers fingerprint only when biometrics is available',
+      (tester) async {
+    await _pump(tester, _body(LockMood.welcomeBack, biometricAvailable: true));
+
+    expect(find.text('Use fingerprint'), findsOneWidget);
+  });
+
+  testWidgets('welcomeBack hides fingerprint when biometrics is unavailable',
+      (tester) async {
+    await _pump(tester, _body(LockMood.welcomeBack));
+
+    expect(find.text('Use fingerprint'), findsNothing);
+  });
+
+  testWidgets('tapping the fingerprint prompt calls onBiometric', (tester) async {
+    var tapped = false;
+    await _pump(
+      tester,
+      _body(LockMood.welcomeBack,
+          biometricAvailable: true, onBiometric: () => tapped = true),
+    );
+
+    await tester.tap(find.text('Use fingerprint'));
+    expect(tapped, isTrue);
   });
 }
