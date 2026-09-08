@@ -224,7 +224,7 @@ class EngineChannel(
             session.phase = Session.PHASE_REFUSED
             session.failure = null // no route was even attempted; isolation itself is unavailable
         } else {
-            val route = Router.resolve(config, ProxyProbe.reachable(config.proxyHost ?: "", config.proxyPort ?: -1))
+            val route = config.currentRoute()
             if (route is Route.Refused) {
                 session.phase = Session.PHASE_REFUSED
                 session.failure = route.failure.name.let(::routeFailureToDartName)

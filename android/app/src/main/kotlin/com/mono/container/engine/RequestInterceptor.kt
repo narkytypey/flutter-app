@@ -45,7 +45,7 @@ class RequestInterceptor(
 
         if (config.blockTrackers && filters.matches(url) != null) return blocked()
 
-        return when (val route = Router.resolve(config, proxyReachable(config))) {
+        return when (val route = config.currentRoute()) {
             is Route.Direct -> null   // let WebView fetch it itself
             is Route.Proxy -> fetchThrough(route, request)
             is Route.Refused -> { onRefused(route.failure); refused(route.failure) }
@@ -68,9 +68,9 @@ class RequestInterceptor(
     )
 
     /**
-     * Opens the socket, writes a bare HTTP/1.1 request line, and streams the
-     * response straight back to WebView. Never returns null on failure — see
-     * the class doc — every exit is either a real response or [refused].
+     * Fetches via [ProxyHttpClient] and streams the response straight back to
+     * WebView. Never returns null on failure — see the class doc — every exit
+     * is either a real response or [refused].
      */
     private fun fetchThrough(
         route: Route.Proxy,
@@ -81,26 +81,18 @@ class RequestInterceptor(
         val targetPort = if (url.port != -1) url.port else if (url.scheme == "https") 443 else 80
 
         return runCatching {
-            val socket = Router.connect(route, host, targetPort)
-            socket.soTimeout = 15_000
-            val out = socket.getOutputStream()
             val path = (url.path?.ifEmpty { "/" } ?: "/") + (url.query?.let { "?$it" } ?: "")
-            out.write("${request.method} $path HTTP/1.1\r\n".toByteArray(Charsets.US_ASCII))
-            out.write("Host: $host\r\n".toByteArray(Charsets.US_ASCII))
-            request.requestHeaders.forEach { (k, v) ->
-                out.write("$k: $v\r\n".toByteArray(Charsets.US_ASCII))
-            }
-            out.write("Connection: close\r\n\r\n".toByteArray(Charsets.US_ASCII))
-            out.flush()
-
-            val input = socket.getInputStream()
-            val (status, reason, headers) = readStatusAndHeaders(input)
-            val contentType = headers["Content-Type"]
+            val response = ProxyHttpClient.fetch(
+                route, host, targetPort, request.method, path, request.requestHeaders,
+            )
+            val contentType = response.headers["Content-Type"]
             val mimeType = contentType?.substringBefore(';')?.trim()
                 ?: "application/octet-stream"
             val charset = contentType?.substringAfter("charset=", "")?.trim()
                 ?.ifEmpty { null } ?: "utf-8"
-            WebResourceResponse(mimeType, charset, status, reason, headers, input)
+            WebResourceResponse(
+                mimeType, charset, response.status, response.reason, response.headers, response.body,
+            )
         }.getOrElse { error ->
             refused(
                 when (error) {
@@ -111,46 +103,5 @@ class RequestInterceptor(
                 }
             )
         }
-    }
-
-    /**
-     * Reads one CRLF-terminated line a byte at a time. A [java.io.BufferedReader]
-     * would over-read into its own buffer and swallow the first bytes of the
-     * response body along with the headers; this stops exactly at the blank
-     * line so [input] is positioned at byte zero of the body for the caller.
-     */
-    private fun readLine(input: java.io.InputStream): String {
-        val line = StringBuilder()
-        while (true) {
-            val b = input.read()
-            if (b == -1 || b == '\n'.code) break
-            if (b != '\r'.code) line.append(b.toChar())
-        }
-        return line.toString()
-    }
-
-    private fun readStatusAndHeaders(
-        input: java.io.InputStream,
-    ): Triple<Int, String, Map<String, String>> {
-        val statusLine = readLine(input)
-        val parts = statusLine.split(' ', limit = 3)
-        val status = parts.getOrNull(1)?.toIntOrNull() ?: 502
-        val reason = parts.getOrNull(2) ?: "OK"
-
-        val headers = mutableMapOf<String, String>()
-        while (true) {
-            val line = readLine(input)
-            if (line.isEmpty()) break
-            val idx = line.indexOf(':')
-            if (idx > 0) headers[line.substring(0, idx).trim()] = line.substring(idx + 1).trim()
-        }
-        return Triple(status, reason, headers)
-    }
-
-    /** `config`, not a bare host/port: each site can point at a different proxy. */
-    private fun proxyReachable(config: SiteConfig): Boolean {
-        val host = config.proxyHost ?: return false
-        val port = config.proxyPort ?: return false
-        return ProxyProbe.reachable(host, port)
     }
 }

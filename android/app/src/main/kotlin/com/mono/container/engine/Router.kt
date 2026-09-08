@@ -42,3 +42,11 @@ object Router {
             is Route.Refused -> error("connect() called for a refused route")
         }
 }
+
+/**
+ * The one place a [SiteConfig] is turned into a [Route] — wraps
+ * [Router.resolve] with the live [ProxyProbe.reachable] check so every call
+ * site (page loads, downloads) asks the same question the same way.
+ */
+fun SiteConfig.currentRoute(): Route =
+    Router.resolve(this, proxyReachable = ProxyProbe.reachable(proxyHost ?: "", proxyPort ?: -1))
