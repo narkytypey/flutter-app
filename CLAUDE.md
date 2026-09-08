@@ -306,6 +306,14 @@ task that covers it.
 - **Biometric unlock.** Plan 2's settings shows the toggle; the actual
   Keystore-gated key mechanism is described in one sentence and unassigned —
   Plan 6 leaves the toggle wired to nowhere as well (see its Handoff).
+  **Update, 2026-09-08:** design spec written and approved —
+  `docs/superpowers/specs/2026-09-08-biometric-unlock-design.md`. Resume-only
+  (never cold-unlocks, to avoid conflicting with the coerced-unlock threat
+  model), Keystore RSA keypair with the private key gated by biometric auth,
+  ciphertext held in memory only. Also wires `SettingsScreen` itself into
+  navigation for the first time (a `⋯` icon on `WorkspaceBar`) — every other
+  row on that screen stays exactly as inert as it is today. No implementation
+  plan yet.
 - ~~Wiring Plan 4's screens to Plan 3's events~~ — Plan 6 Tasks 2–4
   (`engine_events.dart`, discriminated `EngineChannel` events, `ContainerRoute`).
   Known gap: a backgrounded (non-foreground) site's events are dropped, not
