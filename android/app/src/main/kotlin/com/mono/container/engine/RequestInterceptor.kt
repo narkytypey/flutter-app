@@ -38,7 +38,7 @@ class RequestInterceptor(private val filters: FilterEngine, private val onRefuse
         val port = if (url.port != -1) url.port else if (url.scheme == "https") 443 else 80
         return runCatching {
             val path = (url.path?.ifEmpty { "/" } ?: "/") + (url.query?.let { "?$it" } ?: "")
-            val response = ProxyHttpClient.fetch(route, host, port, request.method, path, request.requestHeaders)
+            val response = ProxyHttpClient.fetch(route, host, port, url.scheme == "https", request.method, path, request.requestHeaders)
             val contentType = response.headers["Content-Type"]
             val mimeType = contentType?.substringBefore(';')?.trim() ?: "application/octet-stream"
             val charset = contentType?.substringAfter("charset=", "")?.trim()?.ifEmpty { null } ?: "utf-8"

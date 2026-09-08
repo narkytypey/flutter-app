@@ -6,9 +6,18 @@ import java.io.InputStream
 object ProxyHttpClient {
     data class FetchedResponse(val status: Int, val reason: String, val headers: Map<String, String>, val body: InputStream)
 
-    fun fetch(route: Route, host: String, port: Int, method: String, path: String, requestHeaders: Map<String, String>): FetchedResponse {
-        val socket = Router.connect(route, host, port)
-        socket.soTimeout = 15_000
+    fun fetch(
+        route: Route,
+        host: String,
+        port: Int,
+        secure: Boolean,
+        method: String,
+        path: String,
+        requestHeaders: Map<String, String>,
+    ): FetchedResponse {
+        val connected = Router.connect(route, host, port)
+        connected.soTimeout = 15_000
+        val socket = startTls(connected, host, port, secure)
         val out = socket.getOutputStream()
         out.write("$method $path HTTP/1.1\r\n".toByteArray(Charsets.US_ASCII))
         out.write("Host: $host\r\n".toByteArray(Charsets.US_ASCII))
@@ -27,6 +36,30 @@ object ProxyHttpClient {
             if (separator > 0) headers[line.substring(0, separator).trim()] = line.substring(separator + 1).trim()
         }
         return FetchedResponse(status, reason, headers, input)
+    }
+
+    /**
+     * Wraps a connected socket in TLS for https targets, and returns it
+     * unchanged for http ones.
+     *
+     * This layers on top of whatever [Router.connect] produced — a direct
+     * socket, a SOCKS-routed one, or an HTTP proxy's CONNECT tunnel — because
+     * in all three cases the socket already speaks end to end with the target.
+     *
+     * `endpointIdentificationAlgorithm` is not optional. The default
+     * [javax.net.ssl.SSLSocketFactory] validates the certificate chain but does
+     * **not** check that the certificate belongs to [host], so omitting it
+     * would accept any valid certificate from any server — an encrypted
+     * connection to possibly the wrong peer, which is worse than an honest
+     * plaintext failure because it looks safe. Requires API 24+; minSdk is 29.
+     */
+    private fun startTls(socket: java.net.Socket, host: String, port: Int, secure: Boolean): java.net.Socket {
+        if (!secure) return socket
+        val factory = javax.net.ssl.SSLSocketFactory.getDefault() as javax.net.ssl.SSLSocketFactory
+        val tls = factory.createSocket(socket, host, port, true) as javax.net.ssl.SSLSocket
+        tls.sslParameters = tls.sslParameters.apply { endpointIdentificationAlgorithm = "HTTPS" }
+        tls.startHandshake()
+        return tls
     }
 
     private fun readLine(input: InputStream): String {

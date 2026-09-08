@@ -71,7 +71,7 @@ class DownloadFetcher(private val context: android.content.Context) {
         val url = java.net.URL(pending.url)
         val port = if (url.port != -1) url.port else if (url.protocol == "https") 443 else 80
         val path = (url.path?.ifEmpty { "/" } ?: "/") + (url.query?.let { "?$it" } ?: "")
-        val response = ProxyHttpClient.fetch(route, url.host, port, "GET", path, emptyMap())
+        val response = ProxyHttpClient.fetch(route, url.host, port, url.protocol == "https", "GET", path, emptyMap())
         java.io.FileOutputStream(target).use { output -> response.body.use { it.copyTo(output) } }
     }
 
