@@ -1883,3 +1883,93 @@ Expected: the commit's diffstat shows only `CLAUDE.md` changed. This closes out 
 - **Range/partial-content requests are not specially handled**, matching this app's already-accepted "range/media interception is lossy" limitation.
 - **No virus/content scanning, no file-size cap.**
 - **A `MediaStore`-saved or `DownloadManager`-saved file is intentionally left alone by wipe/panic** — it already left the container onto the shared device Downloads surface, same as any other browser's downloads.
+
+---
+
+## Defects found while executing (2026-09-09) — NOT accepted, and NOT fixed by this plan
+
+These are distinct from the accepted gaps above: none of them was a design
+decision, and none should be read as signed off. Recorded here by the
+session that executed Tasks 1-6 and 7, with the user's explicit decision to
+document now and fix under a dedicated plan.
+
+### 1. BLOCKING (feature-level): the engine performs no TLS, so "keep in container" fails for every `https://` download
+
+`Router.connect` returns a plain `java.net.Socket` and `ProxyHttpClient.fetch`
+writes a cleartext `GET <path> HTTP/1.1` into it. For an `https://` URL this
+opens a raw TCP socket to port 443 and speaks plaintext at a server waiting
+for a handshake. `grep -rn "SSLSocket\|SSLContext\|HttpsURLConnection\|createSocket" android/app/src/main/kotlin/`
+returns zero hits.
+
+`DownloadFetcher.fetchTo` is on the critical path for two of the three sheet
+outcomes:
+
+| Sheet action | Route | Mechanism | `https://` result |
+|---|---|---|---|
+| Keep in container | **any** | `fetchTo` → `ProxyHttpClient` | **broken** |
+| Save to device | Proxy | `saveViaMediaStore` → `fetchTo` | **broken** |
+| Save to device | Direct | system `DownloadManager` | works — the OS does its own TLS |
+
+So this plan's headline feature is inoperative for essentially every real
+download URL, and the only reliable path is Direct-routed "save to device".
+Page loads are largely insulated because `RequestInterceptor.intercept`
+returns `null` for `Route.Direct` and lets WebView do its own TLS; **proxied**
+`https` page loads have the same flaw, but that is pre-existing Plan 3
+behavior, not something this plan introduced.
+
+**Evidence this was intended and forgotten, rather than deliberately scoped
+out:** `RouteFailure.TLS_FAILURE` exists in the Kotlin enum (`Router.kt:4`),
+is mapped across the channel to Dart `tlsFailure` (`EngineChannel.kt:400`),
+and has user-facing copy ready to display — `'The secure connection failed'`
+(`route_decision.dart:58`). Its only producer is the `SSLException` catch at
+`RequestInterceptor.kt:49`, which can never fire because nothing on the path
+ever attempts a handshake; that catch is also the sole `javax.net.ssl`
+reference in the entire engine. A failure mode is not given an enum, a
+channel mapping, and display copy if it was knowingly skipped.
+
+**Not fixed here, deliberately.** Adding TLS responsibly means certificate
+validation, hostname verification, and correct interaction with the CONNECT
+tunnel in item 2 below — getting any of those wrong is materially worse than
+the current honest breakage, and none of it should be written without a spec
+or a device to test against. Needs its own brainstorm → spec → plan, per this
+repo's convention. **Owner: unassigned.**
+
+### 2. OPEN QUESTION (not a finding): whether Android supports `Proxy.Type.HTTP` for a raw `Socket`
+
+`Router.connect` builds `java.net.Socket(java.net.Proxy(Type.HTTP, ...))` and
+then calls `connect(targetAddress)`. On OpenJDK 8+ that path uses
+`HttpConnectSocketImpl` and issues a real CONNECT tunnel, which would make the
+origin-form `GET /path` the code sends correct. If Android's libcore does not
+support `Proxy.Type.HTTP` for raw sockets, the constructor throws
+`IllegalArgumentException` and the HTTP-proxy route is entirely non-functional;
+if it instead yielded a plain socket to the proxy, origin-form would be wrong
+there too, since HTTP proxies expect absolute-form (`GET http://host/path`).
+
+Deliberately recorded as an open question, not asserted either way — nobody
+has run it on a device. Same subsystem and same manual check as item 1, so
+whichever plan takes the TLS work should settle this in the same pass.
+
+### 3. FIXED (`5e970f5`): `ContainerView`'s Context was not retained, so Task 6 Step 2 could not compile
+
+Task 6 Step 2's `deleteDownloadsDir(context, config.profileId)` inside
+`dispose()` did not compile: `ContainerView`'s constructor declared
+`context: Context` with no `val`, making it a plain constructor parameter, in
+scope only in property initializers and the `init` block. The two pre-existing
+uses (`WebView(context)`, `userAgentFor(..., context)`) are both property
+initializers and compiled fine; the new call in a member function did not.
+Kotlin's diagnostic is misleading — it parses the bare identifier as the
+`context(...)` context-parameters keyword rather than reporting an unresolved
+name.
+
+This is a **plan defect, not a transcription slip**: Task 6 Step 1 reasoned
+explicitly about `ProfileManager` not having a `Context` and chose a top-level
+function to avoid threading one through it — then Step 2 assumed
+`ContainerView` had a usable one without checking. Fixed with `private val` on
+that parameter, the minimal correct change.
+
+**Why it survived to a commit:** `flutter analyze` and `flutter test` are
+Dart-only. Nothing in this repo's normal verification pipeline ever compiles
+the `engine/` package, so Tasks 1/2/4/5/6 were committed at `5a27dbf` having
+never once been compiled. `flutter build apk --debug` is the only check that
+would have caught it, and it is not part of any routine loop. Worth treating
+as a standing lesson for any future Kotlin work here, not just this plan.
