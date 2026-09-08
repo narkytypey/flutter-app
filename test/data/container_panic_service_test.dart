@@ -24,13 +24,14 @@ void main() {
       engine: engine,
       closeDatabase: () async => order.add('close:${engine.wipedAll}'),
       destroyVaults: () async => order.add('destroy:${engine.wipedAll}'),
+      destroyBiometricKey: () async => order.add('biometric:${engine.wipedAll}'),
     );
 
     await service.trigger();
 
     expect(engine.wipedAll, isTrue);
-    // Both later steps observed the profiles as already gone.
-    expect(order, ['close:true', 'destroy:true']);
+    // All three later steps observed the profiles as already gone.
+    expect(order, ['close:true', 'destroy:true', 'biometric:true']);
   });
 
   test('live sessions are closed before the profiles are wiped', () async {
@@ -42,6 +43,7 @@ void main() {
       engine: engine,
       closeDatabase: () async {},
       destroyVaults: () async {},
+      destroyBiometricKey: () async {},
     ).trigger();
 
     expect(engine.closed, ['a', 'b']);
@@ -57,6 +59,7 @@ void main() {
       engine: engine,
       closeDatabase: () async {},
       destroyVaults: () async {},
+      destroyBiometricKey: () async {},
     ).trigger();
 
     expect(report.sessionsDestroyed, 3);
@@ -70,6 +73,7 @@ void main() {
       engine: engine,
       closeDatabase: () async {},
       destroyVaults: () async => destroyed = true,
+      destroyBiometricKey: () async {},
     ).trigger();
 
     expect(report.sessionsDestroyed, 0);

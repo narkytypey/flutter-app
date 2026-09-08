@@ -17,19 +17,20 @@ class ContainerPanicService implements PanicService {
     required ContainerEngine engine,
     required Future<void> Function() closeDatabase,
     required Future<void> Function() destroyVaults,
+    required Future<void> Function() destroyBiometricKey,
   })  : _engine = engine,
         _closeDatabase = closeDatabase,
-        _destroyVaults = destroyVaults;
+        _destroyVaults = destroyVaults,
+        _destroyBiometricKey = destroyBiometricKey;
 
-  // ignore_for_file: prefer_initializing_formals — an initializing formal
-  // requires the parameter name to equal the field name, which would force
-  // callers to pass `_engine:`/`_closeDatabase:`/`_destroyVaults:` instead
-  // of the readable `engine:`/`closeDatabase:`/`destroyVaults:` this
-  // class's own test (and the plan's reference code) uses.
+  // ignore_for_file: prefer_initializing_formals — see the constructor's
+  // existing rationale above for the other three fields; the same applies
+  // to `_destroyBiometricKey`.
 
   final ContainerEngine _engine;
   final Future<void> Function() _closeDatabase;
   final Future<void> Function() _destroyVaults;
+  final Future<void> Function() _destroyBiometricKey;
 
   @override
   Future<PanicReport> trigger() async {
@@ -45,6 +46,7 @@ class ContainerPanicService implements PanicService {
     await _engine.wipeAll();
     await _closeDatabase();
     await _destroyVaults();
+    await _destroyBiometricKey();
 
     return PanicReport(sessionsDestroyed: live.length);
   }

@@ -6,7 +6,7 @@ import '../../../../data/services/container_panic_service.dart';
 import '../../../../domain/models/container_session.dart';
 import '../../../../domain/services/panic_service.dart';
 import '../../shell/view_models/session_controller.dart'
-    show sessionProvider, vaultStoreProvider, SessionOpen;
+    show sessionProvider, vaultStoreProvider, biometricServiceProvider, SessionOpen;
 
 final containerEngineProvider =
     Provider<ContainerEngine>((ref) => ChannelContainerEngine());
@@ -56,6 +56,7 @@ final panicServiceProvider = Provider<PanicService>((ref) {
       if (session is SessionOpen) await session.database.close();
     },
     destroyVaults: () => ref.read(vaultStoreProvider).destroy(),
+    destroyBiometricKey: () => ref.read(biometricServiceProvider).destroyKeyPair(),
   );
 });
 
