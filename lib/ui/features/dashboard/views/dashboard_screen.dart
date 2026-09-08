@@ -8,6 +8,9 @@ import '../../search/view_models/providers.dart'
     show allSitesProvider, searchQueryProvider, searchResultsProvider;
 import '../../search/view_models/search_view.dart' show SearchResultEntry;
 import '../../search/views/search_screen.dart';
+import '../../settings/view_models/providers.dart'
+    show biometricsEnabledProvider, settingsControllerProvider;
+import '../../settings/views/settings_screen.dart';
 import '../view_models/providers.dart';
 import 'dashboard_body.dart';
 import 'site_row_menu.dart';
@@ -108,6 +111,8 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                 ),
               );
             },
+            onOverflow: () => Navigator.push(
+                context, MaterialPageRoute(builder: (_) => const _SettingsRoute())),
           ),
           if (_menuOpen) _menu(),
         ],
@@ -182,6 +187,30 @@ class _SearchRouteState extends ConsumerState<_SearchRoute> {
         ));
       },
       onBack: () => Navigator.pop(context),
+    );
+  }
+}
+
+class _SettingsRoute extends ConsumerWidget {
+  const _SettingsRoute();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final biometrics = ref.watch(biometricsEnabledProvider);
+    return SettingsScreen(
+      biometrics: biometrics.value ?? false,
+      autoLockLabel: 'After 1 min',
+      decoyEnabled: false,
+      decoySiteCount: 0,
+      hideFromSwitcher: true,
+      panicOnFlip: false,
+      onPanicLabel: 'Wipe + lock',
+      onChanged: (key, value) {
+        if (key == 'biometrics') {
+          ref.read(settingsControllerProvider).setBiometricsEnabled(value);
+        }
+      },
+      onTap: (_) {},
     );
   }
 }

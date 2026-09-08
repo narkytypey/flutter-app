@@ -49,6 +49,7 @@ Future<void> _pump(WidgetTester tester, DashboardView view,
       onSearch: () {},
       onOpenSite: onOpenSite ?? (_) {},
       onSiteMenu: (_) {},
+      onOverflow: () {},
     ),
   ));
 }

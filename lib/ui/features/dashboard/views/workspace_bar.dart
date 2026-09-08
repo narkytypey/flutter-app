@@ -13,12 +13,14 @@ class WorkspaceBar extends StatelessWidget {
     required this.trailing,
     required this.trailingIsBadge,
     required this.onTap,
+    required this.onOverflow,
   });
 
   final String name;
   final String trailing;
   final bool trailingIsBadge;
   final VoidCallback onTap;
+  final VoidCallback onOverflow;
 
   @override
   Widget build(BuildContext context) {
@@ -41,9 +43,23 @@ class WorkspaceBar extends StatelessWidget {
                   ],
                 ),
               ),
-              Text(
-                trailing,
-                style: trailingIsBadge ? T.barBadge : T.barSummary,
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    trailing,
+                    style: trailingIsBadge ? T.barBadge : T.barSummary,
+                  ),
+                  const SizedBox(width: 10),
+                  InkWell(
+                    onTap: onOverflow,
+                    borderRadius: BorderRadius.circular(8),
+                    child: const Padding(
+                      padding: EdgeInsets.all(4),
+                      child: Text('⋯', style: TextStyle(fontSize: 15, color: C.chevron)),
+                    ),
+                  ),
+                ],
               ),
             ],
           ),
