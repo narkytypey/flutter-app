@@ -341,6 +341,37 @@ task that covers it.
   so plainly rather than add new vault-distinguishing code no task
   specified; whether to actually restrict decoy reachability is left as an
   open design question for a future task, not decided here.
+  **Update, 2026-09-08 (final review — merged):** the whole-branch review
+  this table entry never recorded a verdict for (the reviewing session
+  ended before writing one) found the implementation above **not** safe to
+  merge as-is: `SessionController._rewrapIfEnabled` called
+  `BiometricService.wrap` with no error handling and never regenerated the
+  Keystore keypair, so a correct PIN entered after Android invalidates the
+  key (e.g. a new fingerprint enrolled) threw out of `unlock()` and left
+  the user **permanently locked out of a correct-PIN vault**, with no
+  in-app recovery — the design spec's own "Failure modes" section specifies
+  exactly the self-heal (regenerate-then-retry) that was missing. Separately,
+  `BiometricService.isAvailable()` had zero call sites, so the spec's
+  "hide/disable the toggle when unavailable" requirement was unimplemented.
+  Both fixed in `6ce2a04`: `_rewrapIfEnabled` now retries once after
+  regenerating the keypair and fails closed (returns null, never throws)
+  if that also fails; a new `biometricsAvailableProvider` gates
+  `SettingsScreen`'s toggle via `AppToggle`'s existing nullable `onChanged`.
+  Re-reviewed clean, no new breakage, merged to `plan-01-foundation` at
+  `6ce2a04`; `flutter test` 273/273 passing, `flutter analyze` clean on the
+  merged result. The review also corrected the decoy-reachability finding
+  above: **endorsed** as documentation-only (an identical Settings surface
+  for both vaults is required by the coerced-unlock threat model, not a gap
+  in it — divergence would itself be the tell), but flagged that the shared
+  global Keystore alias (`container.biometric`) does let a decoy session's
+  biometrics toggle delete the *real* vault's Keystore key — correcting this
+  entry's earlier claim that decoy actions "cannot cross-affect the real
+  vault" (true for confidentiality/data exposure, false for this one
+  availability side-channel). The regenerate-on-demand fix above already
+  neutralizes the practical damage (the real vault repairs itself on its
+  next correct-PIN unlock); a per-vault Keystore alias
+  (`container.biometric.a`/`.b`) is logged as a follow-up, not required for
+  this merge.
 - ~~Wiring Plan 4's screens to Plan 3's events~~ — Plan 6 Tasks 2–4
   (`engine_events.dart`, discriminated `EngineChannel` events, `ContainerRoute`).
   Known gap: a backgrounded (non-foreground) site's events are dropped, not
