@@ -34,7 +34,7 @@
 - Consumes: existing `Router.resolve(config, proxyReachable)`, `Router.connect(route, host, port)`, `ProxyProbe.reachable(host, port)`, `SiteConfig` (all pre-existing, unchanged).
 - Produces: `fun SiteConfig.currentRoute(): Route` (Router.kt) — consumed directly by this task's own `RequestInterceptor`/`EngineChannel` call sites, and by Task 4's `DownloadFetcher.run`. `object ProxyHttpClient` with `fun fetch(route: Route, host: String, port: Int, method: String, path: String, requestHeaders: Map<String,String>): ProxyHttpClient.FetchedResponse` and `data class FetchedResponse(val status: Int, val reason: String, val headers: Map<String,String>, val body: java.io.InputStream)` (ProxyHttpClient.kt) — consumed by this task's own `RequestInterceptor.fetchThrough`, and by Task 4's `DownloadFetcher.fetchTo`.
 
-- [ ] **Step 1: Create `ProxyHttpClient.kt`, extracting the socket/HTTP plumbing out of `RequestInterceptor.fetchThrough`**
+- [x] **Step 1: Create `ProxyHttpClient.kt`, extracting the socket/HTTP plumbing out of `RequestInterceptor.fetchThrough`**
 
 No automated test exists for this file — Kotlin JVM/Robolectric tests are out of scope for this repo's current test setup (established precedent for the whole `engine/` package). Verification is `flutter analyze` + `flutter build apk --debug` succeeding, confirming the extraction compiles and the app's existing behavior (page loads, proxy routing) is unaffected — write the code directly, then verify in Step 4.
 
@@ -128,7 +128,7 @@ object ProxyHttpClient {
 }
 ```
 
-- [ ] **Step 2: Add `SiteConfig.currentRoute()` to `Router.kt`**
+- [x] **Step 2: Add `SiteConfig.currentRoute()` to `Router.kt`**
 
 Append to the end of `android/app/src/main/kotlin/com/mono/container/engine/Router.kt` (the file currently ends at line 44 with the closing brace of `object Router`):
 
@@ -143,7 +143,7 @@ fun SiteConfig.currentRoute(): Route =
     Router.resolve(this, proxyReachable = ProxyProbe.reachable(proxyHost ?: "", proxyPort ?: -1))
 ```
 
-- [ ] **Step 3: Rewrite `RequestInterceptor.kt` to call `ProxyHttpClient.fetch` and `config.currentRoute()`**
+- [x] **Step 3: Rewrite `RequestInterceptor.kt` to call `ProxyHttpClient.fetch` and `config.currentRoute()`**
 
 Replace the full contents of `android/app/src/main/kotlin/com/mono/container/engine/RequestInterceptor.kt`:
 
@@ -259,7 +259,7 @@ class RequestInterceptor(
 
 This deletes `readLine`, `readStatusAndHeaders`, and `proxyReachable(config)` from this file (moved into `ProxyHttpClient` / replaced by `currentRoute()`), and swaps `Router.resolve(config, proxyReachable(config))` for `config.currentRoute()`. Observable behavior (mimeType/charset parsing, error-to-`RouteFailure` mapping, the 204/523 shapes) is unchanged.
 
-- [ ] **Step 4: Point `EngineChannel.open()` at `config.currentRoute()`**
+- [x] **Step 4: Point `EngineChannel.open()` at `config.currentRoute()`**
 
 In `android/app/src/main/kotlin/com/mono/container/engine/EngineChannel.kt`, line 227:
 
@@ -275,7 +275,7 @@ becomes:
 
 No other line in this file changes for this task.
 
-- [ ] **Step 5: Verify**
+- [x] **Step 5: Verify**
 
 Run:
 
@@ -286,7 +286,7 @@ flutter build apk --debug
 
 Expect `flutter analyze` to report no new issues and the debug APK build to succeed. This is the verification for this task in place of an automated Kotlin test — no JVM/Robolectric test harness exists for the `engine/` package (established precedent), so there is nothing to TDD here; a clean analyze + successful build is the evidence that the extraction preserved `RequestInterceptor`'s and `EngineChannel.open()`'s observable behavior (page loads and proxy routing unaffected).
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```
 git add android/app/src/main/kotlin/com/mono/container/engine/ProxyHttpClient.kt android/app/src/main/kotlin/com/mono/container/engine/Router.kt android/app/src/main/kotlin/com/mono/container/engine/RequestInterceptor.kt android/app/src/main/kotlin/com/mono/container/engine/EngineChannel.kt
@@ -308,7 +308,7 @@ git commit -m "refactor: extract shared proxy-fetch client and route resolution"
 - Consumes: nothing new from Task 1 — this task's own note in the plan's shared contract says it lands after Task 1 in file history only because both touch files in the `engine/` package, not because it calls anything Task 1 produces. Consumes the pre-existing `EngineChannel.nextRequestId()` and `Session` class (both already in the tree).
 - Produces: `ContainerView`'s `onDownload` callback field with signature `(url: String, mimeType: String, fileName: String, sizeBytes: Long, kindLabel: String) -> String`. `EngineChannel.PendingDownload` data class and `Session.pendingDownloads: LinkedHashMap<String, PendingDownload>`. `EngineChannel.onDownload(siteId, requestId, url, mimeType, fileName, sizeBytes, kindLabel)`. Dart `HeldDownloadEvent.requestId` (required `String` field) and `downloadFromEvent` decoding it. Task 3 depends on `HeldDownloadEvent.requestId` existing. Task 4 depends on `Session.pendingDownloads` and the `"download"` event carrying `"requestId"`.
 
-- [ ] **Step 1: Write the failing Dart decode test first**
+- [x] **Step 1: Write the failing Dart decode test first**
 
 There is currently no test in `test/data/container_engine_channel_test.dart` that decodes a `"download"` event at all (only `sessions` and `permission_request` events are covered today). Add one, following the file's existing style exactly (see `'a permission_request event decodes the pending ask'`):
 
@@ -330,7 +330,7 @@ Add this as a new `test(...)` block inside the existing `main()` in `test/data/c
 
 Run `flutter test test/data/container_engine_channel_test.dart` and confirm it fails to compile — `HeldDownloadEvent` has no `requestId` constructor parameter yet, so `download.requestId` doesn't resolve.
 
-- [ ] **Step 2: Add `requestId` to `HeldDownloadEvent` (Dart)**
+- [x] **Step 2: Add `requestId` to `HeldDownloadEvent` (Dart)**
 
 In `lib/domain/models/engine_events.dart`, replace:
 
@@ -361,7 +361,7 @@ class HeldDownloadEvent {
 
 (Confirmed by grep before drafting this task: the only two places in the whole repo that construct `HeldDownloadEvent(...)` are this definition and `downloadFromEvent` below — no other call site needs updating.)
 
-- [ ] **Step 3: Decode `requestId` in `downloadFromEvent` (Dart)**
+- [x] **Step 3: Decode `requestId` in `downloadFromEvent` (Dart)**
 
 In `lib/data/services/container_engine_channel.dart`, replace:
 
@@ -396,7 +396,7 @@ HeldDownloadEvent downloadFromEvent(Map<Object?, Object?> event) => HeldDownload
 
 Run `flutter test test/data/container_engine_channel_test.dart` and confirm all tests, including the new one, now pass.
 
-- [ ] **Step 4: Widen `ContainerView`'s `onDownload` callback and its `DownloadListener` (Kotlin)**
+- [x] **Step 4: Widen `ContainerView`'s `onDownload` callback and its `DownloadListener` (Kotlin)**
 
 In `android/app/src/main/kotlin/com/mono/container/engine/ContainerView.kt`, replace the constructor field (line 21):
 
@@ -437,7 +437,7 @@ with:
 
 (`onDownload(...)` now returns a `String`, discarded here as a statement — `DownloadListener.onDownloadStart` itself returns `Unit`. The returned request id is only meaningful to `ContainerViewFactory`'s own wiring, which supplies the real lambda in Step 5.)
 
-- [ ] **Step 5: Update `ContainerViewFactory`'s `onDownload` wiring (Kotlin)**
+- [x] **Step 5: Update `ContainerViewFactory`'s `onDownload` wiring (Kotlin)**
 
 In `android/app/src/main/kotlin/com/mono/container/engine/ContainerViewFactory.kt`, replace (lines 49–51):
 
@@ -457,7 +457,7 @@ with:
             },
 ```
 
-- [ ] **Step 6: Add `PendingDownload` and `Session.pendingDownloads` (Kotlin)**
+- [x] **Step 6: Add `PendingDownload` and `Session.pendingDownloads` (Kotlin)**
 
 In `android/app/src/main/kotlin/com/mono/container/engine/EngineChannel.kt`, add a new data class right after the `PendingPermission` sealed class (after its closing brace, before the `Session` class doc comment):
 
@@ -483,7 +483,7 @@ Then, in the `Session` class body, add a field immediately after the existing `p
     val pendingDownloads = LinkedHashMap<String, PendingDownload>()
 ```
 
-- [ ] **Step 7: Widen `EngineChannel.onDownload` (Kotlin)**
+- [x] **Step 7: Widen `EngineChannel.onDownload` (Kotlin)**
 
 Replace the existing method:
 
@@ -528,7 +528,7 @@ with:
     }
 ```
 
-- [ ] **Step 8: Verify**
+- [x] **Step 8: Verify**
 
 No Kotlin JVM test exists for this file — established precedent for this whole `engine/` package (Robolectric/instrumentation is out of scope for this repo's current test setup). Verify the Kotlin changes with:
 
@@ -543,7 +543,7 @@ Both must succeed, confirming `ContainerView.kt`, `ContainerViewFactory.kt`, and
 flutter test
 ```
 
-- [ ] **Step 9: Commit**
+- [x] **Step 9: Commit**
 
 ```
 git add android/app/src/main/kotlin/com/mono/container/engine/ContainerView.kt android/app/src/main/kotlin/com/mono/container/engine/ContainerViewFactory.kt android/app/src/main/kotlin/com/mono/container/engine/EngineChannel.kt lib/domain/models/engine_events.dart lib/data/services/container_engine_channel.dart test/data/container_engine_channel_test.dart
@@ -570,7 +570,7 @@ Two discrepancies from the shared contract, corrected against the real files bel
 1. `container_engine_channel.dart` already imports `held_download.dart` as a bare import (no `show` clause) — `DownloadDecision` is already visible, so that import line needs no edit at all.
 2. The contract writes `_downloadOutcome` and `downloadResultFromEvent` as if `_downloadOutcome` were a method on `ChannelContainerEngine`. The file's actual established convention is top-level private decode helpers (`_phase`, `_failure`, `_category`, `_kind` are all top-level functions above the class, and `downloadFromEvent`/`permissionRequestFromEvent`/`tunnelDroppedFromEvent` are top-level "Exposed for testing" functions that call them). `_downloadOutcome` and `downloadResultFromEvent` are written top-level below to match that convention exactly, not as class members.
 
-- [ ] **Step 1: Write the failing decode tests in `container_engine_channel_test.dart`**
+- [x] **Step 1: Write the failing decode tests in `container_engine_channel_test.dart`**
 
 Add an import for `engine_events.dart` (for `DownloadOutcome`/`DownloadResult`) and three tests for `downloadResultFromEvent`, following the file's exact existing style (see `'a refused session decodes its failure reason'` for how `RouteFailure` string decode is asserted):
 
@@ -616,7 +616,7 @@ void main() {
 }
 ```
 
-- [ ] **Step 2: Write the failing widget tests in `container_route_test.dart`**
+- [x] **Step 2: Write the failing widget tests in `container_route_test.dart`**
 
 Add imports for `held_download.dart` (`DownloadDecision`, `HeldDownload`) and `route_decision.dart` (`RouteFailure`, `refusalMessage`), then two new `testWidgets`:
 
@@ -701,11 +701,11 @@ void main() {
 }
 ```
 
-- [ ] **Step 3: Verify both test files fail to compile**
+- [x] **Step 3: Verify both test files fail to compile**
 
 Run `flutter test test/data/container_engine_channel_test.dart test/ui/features/container_route_test.dart` and confirm the failure is a compile error (`downloadResultFromEvent` undefined, `DownloadOutcome`/`DownloadResult` undefined, `engine.resolvedDownloads`/`engine.emitDownloadResult`/`ContainerEngine.resolveDownload` undefined) — not a runtime assertion failure. This confirms the tests actually exercise code that doesn't exist yet.
 
-- [ ] **Step 4: Add `DownloadOutcome` and `DownloadResult` to `engine_events.dart`**
+- [x] **Step 4: Add `DownloadOutcome` and `DownloadResult` to `engine_events.dart`**
 
 Current file has no `route_decision.dart` import. Add it, and append the new types after `TunnelDroppedEvent`:
 
@@ -751,7 +751,7 @@ class DownloadResult {
 }
 ```
 
-- [ ] **Step 5: Add `resolveDownload`/`downloadResults` to the `ContainerEngine` interface**
+- [x] **Step 5: Add `resolveDownload`/`downloadResults` to the `ContainerEngine` interface**
 
 `container_engine.dart` currently has no import of `held_download.dart` (only `engine_events.dart`, which does not re-export it). Add the import and the two methods, placed right after the existing `downloads()` method:
 
@@ -786,7 +786,7 @@ import '../../domain/models/site.dart';
 }
 ```
 
-- [ ] **Step 6: Implement the channel side in `container_engine_channel.dart`**
+- [x] **Step 6: Implement the channel side in `container_engine_channel.dart`**
 
 Add a top-level `_downloadOutcome` helper next to the file's other top-level decode helpers (`_phase`/`_failure`/`_category`/`_kind`), a top-level `downloadResultFromEvent` next to `downloadFromEvent`/`tunnelDroppedFromEvent`, a new switch case in the constructor, a new controller field, and the two new interface methods:
 
@@ -883,7 +883,7 @@ class ChannelContainerEngine implements ContainerEngine {
 
 (No import edit needed on `held_download.dart` — see the discrepancy note above; `DownloadDecision` is already in scope via the existing bare `import '../../domain/models/held_download.dart';`.)
 
-- [ ] **Step 7: Implement the fake side in `fake_container_engine.dart`**
+- [x] **Step 7: Implement the fake side in `fake_container_engine.dart`**
 
 Add the `held_download.dart` import (not currently present in this file — `DownloadDecision` is needed for `resolveDownload`'s parameter type), a recording list, a new controller, the two new overrides, and a test helper:
 
@@ -958,7 +958,7 @@ class FakeContainerEngine implements ContainerEngine {
 }
 ```
 
-- [ ] **Step 8: Wire `ContainerRoute` to resolve downloads and show the result**
+- [x] **Step 8: Wire `ContainerRoute` to resolve downloads and show the result**
 
 `container_route.dart` currently has no `route_decision.dart` import (only `route_failure_copy.dart`, which re-exports `RouteFailure` but not `refusalMessage`). Add it, add the subscription/tracking fields, subscribe/cancel alongside the existing three, and rewrite `_showDownloadSheet` plus add `_showDownloadResult`:
 
@@ -1081,7 +1081,7 @@ class _ContainerRouteState extends ConsumerState<ContainerRoute> {
 }
 ```
 
-- [ ] **Step 9: Run the full suite and confirm green**
+- [x] **Step 9: Run the full suite and confirm green**
 
 ```
 flutter test test/data/container_engine_channel_test.dart test/ui/features/container_route_test.dart
@@ -1091,7 +1091,7 @@ flutter analyze
 
 Expect all decode tests and both new widget tests passing, the full suite green, and `flutter analyze` reporting no issues. This task touches no Kotlin files, so no `flutter build apk` is needed here — Task 4 exercises the native side this plumbing assumes.
 
-- [ ] **Step 10: Commit**
+- [x] **Step 10: Commit**
 
 ```
 git add lib/domain/models/engine_events.dart lib/data/services/container_engine.dart lib/data/services/container_engine_channel.dart lib/data/services/fake_container_engine.dart lib/ui/features/container/views/container_route.dart test/data/container_engine_channel_test.dart test/ui/features/container_route_test.dart
@@ -1117,7 +1117,7 @@ git commit -m "feat: add download-result plumbing and wire ContainerRoute to res
   - `EngineChannel.kt`: new `"resolveDownload"` method-channel case, new private `resolveDownload(requestId, decisionName)`, new fields `downloadExecutor`, `mainHandler`, `downloadFetcher` — consumed by Dart's `resolveDownload` invoke (Task 3) and by Task 6 (which adds `deleteDownloadsDir` calls alongside the pre-existing `"wipe"` case and `wipeAll()`, both left otherwise untouched by this task)
   - `com.mono.container.fileprovider` `<provider>` authority + `@xml/file_paths` — consumed by `DownloadFetcher.keepInContainer`'s own `FileProvider.getUriForFile` call in this same task; no later task needs to reference the authority string directly
 
-- [ ] **Step 1: Write `DownloadFetcher.kt`**
+- [x] **Step 1: Write `DownloadFetcher.kt`**
 
   Read `android/app/src/main/kotlin/com/mono/container/engine/Router.kt` and `RequestInterceptor.kt` first (already done while drafting this task) — `Route`/`RouteFailure` live in `Router.kt` with no package-qualification needed since `DownloadFetcher` sits in the same `com.mono.container.engine` package, and `RequestInterceptor.fetchThrough`'s existing host/port/path derivation (line 79–87 as of this read) is the pattern `fetchTo` below follows, just sourced from a `java.net.URL` string (`pending.url`) instead of a `WebResourceRequest.url`.
 
@@ -1280,7 +1280,7 @@ git commit -m "feat: add download-result plumbing and wire ContainerRoute to res
   }
   ```
 
-- [ ] **Step 2: Wire `resolveDownload` into `EngineChannel`**
+- [x] **Step 2: Wire `resolveDownload` into `EngineChannel`**
 
   `android/app/src/main/kotlin/com/mono/container/engine/EngineChannel.kt` currently declares its mutable state at lines 105–107:
   ```kotlin
@@ -1360,7 +1360,7 @@ git commit -m "feat: add download-result plumbing and wire ContainerRoute to res
   ```
   Note: this reads `session.pendingDownloads` and `PendingDownload` (Task 2) and `session.config` (pre-existing `Session.config`) — all already landed by the time this task runs, per this task's `Depends on`.
 
-- [ ] **Step 3: Declare the `FileProvider` in the manifest**
+- [x] **Step 3: Declare the `FileProvider` in the manifest**
 
   `android/app/src/main/AndroidManifest.xml` currently has one `<application>` child block ending with the `flutterEmbedding` meta-data (lines 30–32) before the closing `</application>` tag (line 33). Add the `<provider>` block right after that meta-data, still inside `<application>`:
   ```xml
@@ -1380,7 +1380,7 @@ git commit -m "feat: add download-result plumbing and wire ContainerRoute to res
   ```
   (`com.mono.container` is the confirmed `applicationId` in `android/app/build.gradle.kts:19`, so `${applicationId}.fileprovider` used in `DownloadFetcher.keepInContainer` resolves to exactly this authority string.)
 
-- [ ] **Step 4: Add the FileProvider path spec**
+- [x] **Step 4: Add the FileProvider path spec**
 
   `android/app/src/main/res/xml/` does not exist yet in this tree. Create `android/app/src/main/res/xml/file_paths.xml`:
   ```xml
@@ -1391,7 +1391,7 @@ git commit -m "feat: add download-result plumbing and wire ContainerRoute to res
   ```
   `<files-path>` maps to `context.filesDir`, matching `keepInContainer`'s `File(context.filesDir, "downloads/${config.profileId}")` target exactly — anything written under `filesDir/downloads/` is coverable by this provider, and nothing else is exposed.
 
-- [ ] **Step 5: Verify**
+- [x] **Step 5: Verify**
 
   No Kotlin JVM test exists for this file (same precedent as Tasks 1 and 2 — Robolectric/instrumentation is out of scope for this repo's current test setup, and `androidx.core.content.FileProvider`, `MediaStore`, and `Intent`/`startActivity` all require a real Android runtime to exercise). Verification here is:
   ```
@@ -1402,7 +1402,7 @@ git commit -m "feat: add download-result plumbing and wire ContainerRoute to res
 
   Manual verification note (not automated, record as a step for whoever runs this task for real): after building, install the debug APK, open a site with a downloadable file, choose "Keep in this container" from the download sheet, and confirm a chooser/viewer opens for the file; separately choose "Save to device" and confirm the file appears in the system Downloads / Files app under the exact `fileName` guessed from the URL (with a numeric collision suffix if repeated).
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
   ```
   git add android/app/src/main/kotlin/com/mono/container/engine/DownloadFetcher.kt android/app/src/main/kotlin/com/mono/container/engine/EngineChannel.kt android/app/src/main/AndroidManifest.xml android/app/src/main/res/xml/file_paths.xml
@@ -1423,7 +1423,7 @@ git commit -m "feat: add download-result plumbing and wire ContainerRoute to res
 - Consumes: `DownloadFetcher.run(config: SiteConfig, pending: PendingDownload, decisionName: String): DownloadOutcome` and its `sealed class DownloadOutcome { Saved, Kept, Failed(reason) }`, `PendingDownload`, `SiteConfig.currentRoute()`, `Route`/`Route.Direct`/`Route.Proxy`/`Route.Refused`/`RouteFailure` (Task 1), `ProxyHttpClient` (Task 1, used internally by Task 4's already-written `saveViaMediaStore`/`fetchTo` — untouched by this task) — all from Task 4.
 - Produces: `DownloadFetcher.run`'s `"saveToDevice"` branch becomes route-dependent (`Route.Direct` → real `android.app.DownloadManager`; `Route.Proxy` → unchanged `saveViaMediaStore` manual fetch, since `DownloadManager` cannot be pointed through this app's own SOCKS/HTTP proxy routing); a new top-level `fun userAgentFor(mode: String, context: android.content.Context): String` in `SiteConfig.kt`, consumed by both `ContainerView.kt` (delegates instead of its old private method) and `DownloadFetcher.kt`'s new `saveViaDownloadManager`. No later task in this plan consumes anything new from this task — Task 6 only touches wipe paths.
 
-- [ ] **Step 1: Extract `userAgentFor` into a shared top-level function in `SiteConfig.kt`**
+- [x] **Step 1: Extract `userAgentFor` into a shared top-level function in `SiteConfig.kt`**
 
   `ContainerView.kt` currently defines this as a private instance method (lines 99–105) that reads `webView.context` in its `else` branch — a property being read during its own initializer's evaluation (line 29 calls it from inside `WebView(context).apply { ... }`, before the `webView` val has actually been assigned), which is fragile. Making the function take `context` as an explicit parameter, sourced from the constructor parameter already in scope at the call site, sidesteps that as a side effect of the extraction — not something this task set out to fix, but worth calling out since the diff removes the fragile reference.
 
@@ -1450,7 +1450,7 @@ git commit -m "feat: add download-result plumbing and wire ContainerRoute to res
 
   No automated test — same precedent as every Kotlin-only task in this plan (Tasks 1/2/4/6): Robolectric/instrumentation is out of scope for this repo's current test setup.
 
-- [ ] **Step 2: Delete `ContainerView`'s private `userAgentFor` and delegate to the shared one**
+- [x] **Step 2: Delete `ContainerView`'s private `userAgentFor` and delegate to the shared one**
 
   In `android/app/src/main/kotlin/com/mono/container/engine/ContainerView.kt`, delete the private method at the current end of the class (lines 99–105):
 
@@ -1480,7 +1480,7 @@ git commit -m "feat: add download-result plumbing and wire ContainerRoute to res
 
   The `import android.webkit.WebSettings` at the top of the file is still needed elsewhere (`WebView(context).apply { ... }`'s `settings` block references `WebSettings`-typed APIs only through `settings.*`, not the `WebSettings` class name directly outside the deleted method) — check after deleting: if `flutter analyze`/the Kotlin compiler flags it as an unused import once the private method is gone, remove the `import android.webkit.WebSettings` line; otherwise leave it. State the outcome in the commit.
 
-- [ ] **Step 3: Make `DownloadFetcher.run`'s `"saveToDevice"` branch route-dependent**
+- [x] **Step 3: Make `DownloadFetcher.run`'s `"saveToDevice"` branch route-dependent**
 
   In `android/app/src/main/kotlin/com/mono/container/engine/DownloadFetcher.kt` (written by Task 4), replace the `"saveToDevice"` line inside `run`'s `when (decisionName)`:
 
@@ -1520,7 +1520,7 @@ git commit -m "feat: add download-result plumbing and wire ContainerRoute to res
 
   No automated test — same precedent as Tasks 1/2/4/6 (Kotlin `engine/` package has no JVM test harness in this repo). This path specifically cannot be exercised even by instrumentation without a real `DownloadManager` service and notification shade, so it is unusually manual even by this plan's existing standard.
 
-- [ ] **Step 4: Verify**
+- [x] **Step 4: Verify**
 
   Run:
 
@@ -1533,7 +1533,7 @@ git commit -m "feat: add download-result plumbing and wire ContainerRoute to res
 
   **Manual verification note** (no automated test can cover this): install the debug APK on a device or emulator, open a site whose proxy mode is `"direct"`, trigger a download (e.g. tap a PDF/image link on a page that serves one), choose "Save to device" on the held-download sheet, then confirm two things by hand: (1) the system notification shade shows a completed download notification for the site's `DownloadManager` request, and (2) the file appears in the device's Downloads app/folder with the correct file name and that it opens correctly (confirming `pending.mimeType` and the `User-Agent`/`Cookie` headers were accepted by the origin server). Separately, repeat with a site whose proxy mode is `"socks5"`/`"http"` and confirm "Save to device" still goes through the Task 4 manual `saveViaMediaStore` path (unchanged), i.e. that only the Direct case's behavior changed.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
   ```
   git add android/app/src/main/kotlin/com/mono/container/engine/DownloadFetcher.kt android/app/src/main/kotlin/com/mono/container/engine/ContainerView.kt android/app/src/main/kotlin/com/mono/container/engine/SiteConfig.kt
@@ -1552,7 +1552,7 @@ git commit -m "feat: add download-result plumbing and wire ContainerRoute to res
 - Consumes: `DownloadFetcher.keepInContainer`'s on-disk layout from Task 4 — `File(context.filesDir, "downloads/${config.profileId}")` is the directory kept-in-container files land in. This task's code is also safe to land before Task 4 in isolation: `File.deleteRecursively()` on a directory that doesn't exist yet is a documented no-op, it just has nothing to do until Task 4 exists. Sequenced after Task 4 anyway for narrative clarity (build the directory before shipping the code that deletes it).
 - Produces: `fun deleteDownloadsDir(context: android.content.Context, profileId: String)` (top-level, in `ProfileManager.kt`) — no later task in this plan calls it, but it's the one place "delete a profile's kept downloads" is decided, matching this plan's own precedent (Task 1's `SiteConfig.currentRoute()`, Task 5's `userAgentFor`) of extracting shared logic into a single top-level function rather than repeating it at each call site.
 
-- [ ] **Step 1: Add `deleteDownloadsDir` to `ProfileManager.kt`**
+- [x] **Step 1: Add `deleteDownloadsDir` to `ProfileManager.kt`**
 
 `ProfileManager` has no `Context` field today (confirmed by reading the file — its constructor takes nothing, and both `profileFor` and `wipe`/`wipeAll` only ever touch `ProfileStore`). Adding a `Context` parameter to the class itself would mean touching every one of its existing call sites' construction (`ContainerView`, `EngineChannel`, wherever `ProfileManager()` is instantiated) for a capability only this one function needs. A standalone top-level function next to the class avoids that entirely, since Kotlin lets a file hold both a class and free functions.
 
@@ -1632,7 +1632,7 @@ fun deleteDownloadsDir(context: Context, profileId: String) {
 }
 ```
 
-- [ ] **Step 2: Call it from `ContainerView.dispose()`**
+- [x] **Step 2: Call it from `ContainerView.dispose()`**
 
 Current code (`ContainerView.kt`, read in full — the file has no `import java.io.File` and doesn't need one since it only calls the shared function):
 
@@ -1665,7 +1665,7 @@ Edit to:
 
 `deleteDownloadsDir` needs no import — same package (`com.mono.container.engine`) as `ContainerView`.
 
-- [ ] **Step 3: Call it from `EngineChannel`'s `"wipe"` method-channel case**
+- [x] **Step 3: Call it from `EngineChannel`'s `"wipe"` method-channel case**
 
 Current code (`EngineChannel.kt`, read in full):
 
@@ -1687,7 +1687,7 @@ Current code (`EngineChannel.kt`, read in full):
                 }
 ```
 
-- [ ] **Step 4: Call it from `EngineChannel.wipeAll()`, enumerating every profile's downloads directory**
+- [x] **Step 4: Call it from `EngineChannel.wipeAll()`, enumerating every profile's downloads directory**
 
 Current code (`EngineChannel.kt`, read in full):
 
@@ -1722,7 +1722,7 @@ Edit to (add `import java.io.File` to `EngineChannel.kt`'s existing import block
     }
 ```
 
-- [ ] **Step 5: Verify**
+- [x] **Step 5: Verify**
 
 No Kotlin JVM test exists for this file or its neighbors (same precedent as Tasks 1/2/4/5 — Robolectric/instrumentation is out of scope for this repo's current test setup). Verify with:
 
@@ -1738,7 +1738,7 @@ Both must succeed — this confirms `deleteDownloadsDir`, its three call sites, 
 2. Trigger a normal per-site wipe (whatever UI path calls the `"wipe"` method channel case for that site's `profileId`) and confirm `.../app_flutter/downloads/<profileId>/` no longer exists.
 3. Repeat step 1, then trigger panic / "close all and wipe" (which calls `wipeAll()`) and confirm `.../app_flutter/downloads/` has no subdirectories left for any profile that had kept files.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```
 git add android/app/src/main/kotlin/com/mono/container/engine/ProfileManager.kt android/app/src/main/kotlin/com/mono/container/engine/ContainerView.kt android/app/src/main/kotlin/com/mono/container/engine/EngineChannel.kt
@@ -1757,7 +1757,7 @@ git commit -m "feat: delete kept-in-container downloads on every wipe path"
 - Consumes: Tasks 1–6 fully landed (`ProxyHttpClient`/`SiteConfig.currentRoute()` from Task 1; `HeldDownloadEvent.requestId`/`EngineChannel.pendingDownloads` from Task 2; `DownloadResult`/`ContainerEngine.resolveDownload`/`downloadResults()`/`ContainerRoute`'s snackbar wiring from Task 3; `DownloadFetcher`/FileProvider/`resolveDownload` method-channel case from Task 4; `saveViaDownloadManager`/shared `userAgentFor` from Task 5; `deleteDownloadsDir` wired into all three wipe sites from Task 6).
 - Produces: nothing consumed by any later plan — this task only runs verification and records the outcome in `CLAUDE.md`.
 
-- [ ] **Step 1: Run the full Dart test suite**
+- [x] **Step 1: Run the full Dart test suite**
 
 ```bash
 flutter test
@@ -1765,7 +1765,7 @@ flutter test
 
 Expected: every existing test still passes, plus the new tests Task 2 added to `test/data/container_engine_channel_test.dart` (the `HeldDownloadEvent.requestId` decode case) and the new tests Task 3 added to `test/data/container_engine_channel_test.dart` (`downloadResultFromEvent` for `saved`/`kept`/`failed`-with-reason) and `test/ui/features/container_route_test.dart` (the held-download-sheet-decision test and the download-result-snackbar test for all three `DownloadOutcome` values). If anything fails, stop and fix it before proceeding — do not paper over a failure by editing the test's expectation without first confirming the implementation is actually correct per the design spec.
 
-- [ ] **Step 2: Run static analysis**
+- [x] **Step 2: Run static analysis**
 
 ```bash
 flutter analyze
@@ -1773,7 +1773,7 @@ flutter analyze
 
 Expected output: `No issues found!`. This is the first point some of Task 4/5/6's Kotlin-adjacent Dart glue (if any) and every Dart file touched across Tasks 2–3 get analyzed together as one tree — treat any warning as a real defect to fix, not a pre-existing condition to ignore, since Tasks 1–6 were each verified individually but never as one merged whole until this step.
 
-- [ ] **Step 3: Build the debug APK**
+- [x] **Step 3: Build the debug APK**
 
 ```bash
 flutter build apk --debug
@@ -1789,7 +1789,7 @@ These cannot be automated (no emulator/instrumentation harness in this repo — 
 
 If either manual check fails, treat it as a blocking defect in the task that produced it (5 or 6 respectively) — fix there, then re-run Steps 1–3 before returning to this step.
 
-- [ ] **Step 5: Update `CLAUDE.md`'s "Unassigned work" section**
+- [x] **Step 5: Update `CLAUDE.md`'s "Unassigned work" section**
 
 Read the file's current "Download interception" bullet first to confirm it still reads as below (it was last touched by Plan 6's own landing) — if the wording has drifted, adapt the `old_string` match accordingly rather than forcing this edit to fail silently.
 
@@ -1854,7 +1854,7 @@ with:
 
 Do not invent a real date or real commit SHAs while drafting this plan — those placeholders are filled in by whoever actually executes this task, from the real `git log` and the real calendar date at that time. Leaving them as bracketed placeholders here is correct; silently making up plausible-looking values would not be.
 
-- [ ] **Step 6: Commit the `CLAUDE.md` update**
+- [x] **Step 6: Commit the `CLAUDE.md` update**
 
 ```bash
 git add CLAUDE.md
@@ -1866,7 +1866,7 @@ EOF
 )"
 ```
 
-- [ ] **Step 7: Confirm the commit landed**
+- [x] **Step 7: Confirm the commit landed**
 
 ```bash
 git log -1 --stat
@@ -1973,3 +1973,62 @@ the `engine/` package, so Tasks 1/2/4/5/6 were committed at `5a27dbf` having
 never once been compiled. `flutter build apk --debug` is the only check that
 would have caught it, and it is not part of any routine loop. Worth treating
 as a standing lesson for any future Kotlin work here, not just this plan.
+
+---
+
+## Execution record (2026-09-09)
+
+Executed across three parallel Claude sessions working in the same
+non-worktree checkout. Checkboxes above are ticked where a step was actually
+performed — with these deviations, recorded so the ticks are not read as
+"executed exactly as written":
+
+- **Tasks 1-6 landed as one commit (`5a27dbf`), not the plan's six.** The work
+  was found already written but uncommitted and unowned, predating every live
+  session. Its changes interleave within shared files (`EngineChannel.kt`
+  alone carries Tasks 1/2/4/6; `ContainerView.kt` carries 2/5/6), so splitting
+  it into the six specified commits would have meant inventing hunk boundaries
+  and asserting a history that did not happen. The per-task Commit steps are
+  ticked as "the work is committed," not "committed under that task's own
+  message."
+
+- **Task 3 Steps 1-2's reference test code does not work as written.** Both
+  fixes were test-harness only, no production code changed:
+  1. The plan's `_pump` surface assumption is wrong. A modal bottom sheet is
+     capped at 9/16 of surface height, so the default 800x600 canvas gives
+     `HeldDownloadSheet` ~294px where its fixed column needs ~357px —
+     `RenderFlex overflowed by 63 pixels`. Fixed with an 800x1600 surface.
+     Only the height is raised: the phone-portrait 400x800 used by
+     `lock_body_test` overflows the five older tests in the file, which need
+     the default 800 width.
+  2. The plan's SnackBar comment is factually incorrect. It claims a single
+     `pump()` per emit "matches how the earlier tunnel_dropped test times its
+     own pumps"; that test actually uses two, and two are required, because
+     the broadcast stream delivers as a microtask after the current frame is
+     built. Further, `pump(Duration(seconds: 5))` does not dismiss a SnackBar
+     that is still animating in — that frame completes the entrance animation,
+     and only then is the 4s display timer scheduled, measured from that
+     frame. Correct order is settle the entrance, jump the timer, settle the
+     exit; extracted as `_drainSnackBar`.
+
+  These tests are **retroactive, not TDD**. The implementation already existed
+  when they were written, so they pin current behavior but cannot demonstrate
+  they would have caught its absence. The plan's Step 3 ("verify both test
+  files fail to compile") was therefore not performed as intended.
+
+- **Task 7 Step 4 (the two manual on-device checks) was NOT performed** and is
+  left unticked. No emulator or device was available. This is the only step in
+  the plan that could have caught defect 1 above, since a plaintext socket to
+  port 443 compiles cleanly and passes every automated check.
+
+**Final automated verification**, at `40a972f` with a clean tree, run
+independently by two sessions with identical results:
+
+```
+flutter analyze           → No issues found!
+flutter test              → 299/299, All tests passed!
+flutter build apk --debug → 0 Kotlin errors, Built app-debug.apk
+```
+
+Green here is necessary and not sufficient: all three checks pass with the
+TLS defect fully present.
