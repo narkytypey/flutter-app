@@ -433,18 +433,32 @@ task that covers it.
   `endpointIdentificationAlgorithm = "HTTPS"` set before the handshake —
   the load-bearing line, since Android's default `SSLSocketFactory` validates
   the cert chain but not that the cert belongs to the host. Wrapping on top
-  of `Router.connect`'s socket makes it correct for Direct, SOCKS and a
-  CONNECT tunnel alike, and makes defect 2 fail *safe* (a plain socket to the
-  proxy is rejected by hostname verification rather than silently exposed).
+  of `Router.connect`'s socket makes it correct for Direct and SOCKS.
   The previously-unreachable `SSLException → TLS_FAILURE` branch is now live.
   **But TLS is compiled, not proven:** nothing in this repo has ever opened a
   socket to a real server, so the handshake and
   `endpointIdentificationAlgorithm`'s behavior on Android's provider are
-  untested. Defect 2 remains open and unowned. A third defect is also open
-  and unowned: `DownloadFetcher.fetchTo` passes no request headers, so the
-  keep-in-container path sends neither `User-Agent` nor `Cookie` while
-  `saveViaDownloadManager` sends both — a cookie-gated download therefore
-  succeeds via Direct save-to-device and fails via keep-in-container.
+  untested. (An earlier version of this entry claimed the TLS wrap also made
+  the HTTP-proxy defect fail *safe* via hostname verification. That was
+  **wrong** — an HTTP-proxy route never reaches TLS at all; see below.)
+  **Two further defects are open and unowned.** (a) **HTTP proxy mode is
+  non-functional on Android.** `Router.connect` builds
+  `Socket(Proxy(Type.HTTP, ...))`, and AOSP removed HTTP-proxy support from
+  `java.net.Socket` — verified in
+  `$LOCALAPPDATA/Android/Sdk/sources/android-36/java/net/Socket.java`, which
+  throws `IllegalArgumentException("Invalid Proxy")` at construction. It is
+  user-reachable (`ProxyMode.http`, and an "HTTP" chip in the add-site
+  Network tab beside SOCKS5), so every such site fails on every page load and
+  download; SOCKS5 and direct are unaffected. It is also **misreported** — the
+  throw lands in `RequestInterceptor`'s catch-all and surfaces as
+  `UPSTREAM_TIMEOUT`, "The destination did not respond," for a destination
+  never contacted — and **fails late**, since `ProxyProbe` opens a plain
+  socket to the proxy and succeeds, so the site looks healthy until it
+  doesn't. Fixing it means implementing CONNECT by hand. (b)
+  `DownloadFetcher.fetchTo` passes no request headers, so keep-in-container
+  sends neither `User-Agent` nor `Cookie` while `saveViaDownloadManager` sends
+  both — a cookie-gated download succeeds via Direct save-to-device and fails
+  via keep-in-container.
   Standing lesson from this plan: `flutter analyze` and `flutter test` are
   Dart-only and never compile `engine/`, which is how Tasks 1–6 reached a
   commit having never been compiled. `flutter build apk --debug` is the only

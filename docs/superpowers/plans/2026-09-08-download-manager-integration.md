@@ -1950,10 +1950,15 @@ encrypted connection to possibly the wrong peer — worse than plaintext,
 because it looks safe.
 
 Because the wrap layers on top of whatever `Router.connect` returned, it is
-correct for Direct, SOCKS and an HTTP-proxy CONNECT tunnel alike. It also
-makes defect 2 fail *safe*: if Android's libcore hands back a plain socket to
-the proxy rather than a tunnel, hostname verification rejects the handshake
-instead of silently exposing the request.
+correct for Direct and SOCKS alike.
+
+**Correction, same day.** An earlier version of this note also claimed the
+wrap made defect 2 fail *safe*, reasoning that hostname verification would
+reject a handshake made against the proxy rather than the target. **That
+reasoning is void.** As defect 5 below establishes, an HTTP-proxy route never
+reaches TLS at all — `Socket(Proxy(Type.HTTP))` throws at construction. The
+outcome is still safe, in that there is no silent MITM, but for an entirely
+different reason than the one originally given.
 
 Confirmation the fix matches the original design rather than inventing one:
 the `SSLException -> TLS_FAILURE` branch at `RequestInterceptor.kt:49`,
@@ -1968,20 +1973,15 @@ provider, remain untested. The manual on-device check in Task 7 Step 4 is
 therefore **more** necessary than before, not less, and should specifically
 cover a proxied `https` download — and it remains unreachable here.
 
-### 2. OPEN QUESTION (not a finding): whether Android supports `Proxy.Type.HTTP` for a raw `Socket`
+### 2. RESOLVED — folded into defect 5
 
-`Router.connect` builds `java.net.Socket(java.net.Proxy(Type.HTTP, ...))` and
-then calls `connect(targetAddress)`. On OpenJDK 8+ that path uses
-`HttpConnectSocketImpl` and issues a real CONNECT tunnel, which would make the
-origin-form `GET /path` the code sends correct. If Android's libcore does not
-support `Proxy.Type.HTTP` for raw sockets, the constructor throws
-`IllegalArgumentException` and the HTTP-proxy route is entirely non-functional;
-if it instead yielded a plain socket to the proxy, origin-form would be wrong
-there too, since HTTP proxies expect absolute-form (`GET http://host/path`).
+This was recorded as an open question: whether Android supports
+`Proxy.Type.HTTP` for a raw `Socket`, and therefore whether `Router.connect`
+issues a real CONNECT tunnel. It was expected to need a device.
 
-Deliberately recorded as an open question, not asserted either way — nobody
-has run it on a device. Same subsystem and same manual check as item 1, so
-whichever plan takes the TLS work should settle this in the same pass.
+It did not. The answer came from Android's own SDK sources on the build
+machine and is unambiguous: it is **not** supported, and the consequence is
+larger than a routing detail. See defect 5.
 
 ### 3. FIXED (`5e970f5`): `ContainerView`'s Context was not retained, so Task 6 Step 2 could not compile
 
@@ -2028,6 +2028,64 @@ Pre-existing from Task 4, confirmed against `git diff`; not introduced by the
 TLS work, and independent of defects 1 and 2. Not fixed here. Any fix should
 also decide whether cookies *should* cross into a kept file, which is a
 container-isolation question rather than plumbing. **Owner: unassigned.**
+
+### 5. BLOCKING: HTTP proxy mode is non-functional on Android
+
+`Router.connect` builds `java.net.Socket(java.net.Proxy(Type.HTTP, ...))` for
+any site whose `proxyMode` is not `socks5`. On Android that constructor
+**throws** — AOSP removed HTTP-proxy support from `java.net.Socket` and
+deleted `HttpConnectSocketImpl`, leaving the OpenJDK lines commented out in
+place. Verified directly in
+`$LOCALAPPDATA/Android/Sdk/sources/android-36/java/net/Socket.java`:
+
+```java
+// Android-changed: Removed HTTP proxy support.
+// if (type == Proxy.Type.SOCKS || type == Proxy.Type.HTTP) {
+if (type == Proxy.Type.SOCKS) {
+    ...
+    impl = new SocksSocketImpl(p);
+} else {
+    if (p == Proxy.NO_PROXY) { ... }
+    else throw new IllegalArgumentException("Invalid Proxy");
+}
+```
+
+`Type.HTTP` is not SOCKS and is not `NO_PROXY`, so it reaches the `else` and
+throws `IllegalArgumentException("Invalid Proxy")` at **construction**, before
+any connection is attempted. No device is needed to confirm this; the platform
+source is dispositive and is on this machine.
+
+**It is user-reachable, not theoretical.** `ProxyMode.http` is a real enum
+value (`site.dart:6`), serializes as `'http'` (`site_descriptor.dart:15`), and
+is offered as an **"HTTP" chip in the add-site Network tab**
+(`network_tab.dart:61`), sitting beside SOCKS5. Any site configured that way
+fails on every page load and every download. SOCKS5 and direct are unaffected.
+
+Two things make it worse than plain breakage:
+
+1. **It is misreported to the user.** The throw happens inside `runCatching`
+   in `RequestInterceptor.fetchThrough`, and `IllegalArgumentException` is
+   none of `SocketTimeoutException`, `SSLException` or `ConnectException`, so
+   it falls to `else -> RouteFailure.UPSTREAM_TIMEOUT` — "The destination did
+   not respond." The destination was never contacted. A permanent,
+   platform-level impossibility is presented as a transient, retry-shaped
+   error. `MISCONFIGURED` would be closer, though neither is really right.
+2. **It fails late, after looking healthy.** `ProxyProbe.reachable` opens a
+   plain `Socket()` to the proxy's host:port, which succeeds for a real HTTP
+   proxy. So `Router.resolve` returns `Route.Proxy` and the site appears
+   correctly configured right up until every request fails.
+
+This is a different shape from defects 1-4: not "designed and forgotten" but
+**designed, implemented, and impossible on the target platform.**
+
+**Not fixed here.** A real fix means implementing CONNECT by hand in
+`ProxyHttpClient` — write `CONNECT host:port HTTP/1.1`, parse the 200
+response, then hand the socket to `startTls` — which carries its own proxy
+auth, error-mapping and TLS-ordering questions and deserves a plan rather than
+an opportunistic patch. The minimum honest interim step is mapping
+`IllegalArgumentException` to `MISCONFIGURED` so the error stops claiming a
+timeout, and/or removing the HTTP chip from the Network tab so users cannot
+select a mode that cannot work. **Owner: unassigned.**
 
 ## Execution record (2026-09-09)
 
