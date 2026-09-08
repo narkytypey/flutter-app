@@ -1,5 +1,6 @@
 import 'package:container/data/services/container_engine_channel.dart';
 import 'package:container/domain/models/blocked_tally.dart';
+import 'package:container/domain/models/engine_events.dart';
 import 'package:container/domain/models/permissions.dart';
 import 'package:container/domain/models/route_decision.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -59,5 +60,34 @@ void main() {
     final download = downloadFromEvent(event);
     expect(download.requestId, 'r1');
     expect(download.download.fileName, 'report.pdf');
+  });
+
+  test('a download_result event decodes a saved outcome', () {
+    final event = <Object?, Object?>{
+      'type': 'download_result', 'requestId': 'req-1',
+      'outcome': 'saved', 'reason': null,
+    };
+    final result = downloadResultFromEvent(event);
+    expect(result.requestId, 'req-1');
+    expect(result.outcome, DownloadOutcome.saved);
+    expect(result.reason, isNull);
+  });
+
+  test('a download_result event decodes a kept outcome', () {
+    final event = <Object?, Object?>{
+      'type': 'download_result', 'requestId': 'req-2',
+      'outcome': 'kept', 'reason': null,
+    };
+    expect(downloadResultFromEvent(event).outcome, DownloadOutcome.kept);
+  });
+
+  test('a download_result event decodes a failed outcome with its reason', () {
+    final event = <Object?, Object?>{
+      'type': 'download_result', 'requestId': 'req-3',
+      'outcome': 'failed', 'reason': 'proxyUnreachable',
+    };
+    final result = downloadResultFromEvent(event);
+    expect(result.outcome, DownloadOutcome.failed);
+    expect(result.reason, RouteFailure.proxyUnreachable);
   });
 }
