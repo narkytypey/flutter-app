@@ -4,6 +4,7 @@ import '../../../../data/services/app_database.dart';
 import '../../../../data/services/vault_store.dart';
 import '../../../../domain/models/vault.dart';
 import '../../../../data/repositories/decoy_provisioner.dart';
+import '../../../../data/repositories/settings_repository_sqlite.dart';
 
 /// Opens (or creates) the vault database at [path] under [dataKey]. Injected
 /// so this file — and Task 8's `SessionController` — never import
@@ -57,6 +58,7 @@ class SetupController {
     final mainKey = await _vaultStore.provision(pin: mainPin, vault: VaultId.a);
     final mainDb = await _openVault(path: _pathFor(VaultId.a), dataKey: mainKey);
     await seedIfEmpty(mainDb);
+    await SqliteSettingsRepository(mainDb).setBool('decoy_configured', decoyPin != null);
 
     if (decoyPin != null) {
       final decoyKey =

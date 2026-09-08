@@ -10,6 +10,7 @@ import 'package:container/domain/models/attempt_gate.dart';
 import 'package:container/domain/models/vault.dart';
 import 'package:container/domain/services/vault_unlocker.dart';
 import 'package:container/ui/features/setup/view_models/setup_controller.dart';
+import 'package:container/data/repositories/settings_repository_sqlite.dart';
 
 import '../../../domain/vault_unlocker_test.dart' show FakeCrypto;
 
@@ -96,5 +97,27 @@ void main() {
     final decoyOutcome = await unlocker.attempt(
         pin: '222222', slots: slots, gate: const AttemptGate(), now: DateTime(2026));
     expect((decoyOutcome as Unlocked).vault, VaultId.b);
+  });
+
+  test('a decoy PIN persists decoy_configured=true on the real vault',
+      () async {
+    await controller().complete(mainPin: '111111', decoyPin: '222222');
+
+    final mainDb = opened['${dir.path}/a.db']!;
+    expect(
+      await SqliteSettingsRepository(mainDb).getBool('decoy_configured'),
+      isTrue,
+    );
+  });
+
+  test('no decoy PIN persists decoy_configured=false on the real vault',
+      () async {
+    await controller().complete(mainPin: '111111');
+
+    final mainDb = opened['${dir.path}/a.db']!;
+    expect(
+      await SqliteSettingsRepository(mainDb).getBool('decoy_configured'),
+      isFalse,
+    );
   });
 }

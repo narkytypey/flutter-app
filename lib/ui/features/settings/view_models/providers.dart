@@ -2,7 +2,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../data/repositories/settings_repository_sqlite.dart';
 import '../../../../domain/repositories/repositories.dart' show SettingsRepository;
-import '../../dashboard/view_models/providers.dart' show databaseProvider;
+import '../../dashboard/view_models/providers.dart'
+    show databaseProvider, siteRepositoryProvider;
 import '../../shell/view_models/session_controller.dart'
     show biometricServiceProvider, sessionProvider, SessionOpen;
 
@@ -23,6 +24,21 @@ final biometricsEnabledProvider = FutureProvider<bool>(
 final biometricsAvailableProvider = FutureProvider<bool>(
   (ref) => ref.watch(biometricServiceProvider).isAvailable(),
 );
+
+/// Backs `SettingsScreen`'s VAULT section visibility. `false` until
+/// `SetupController.complete` (this plan's Task 2) has run with a non-null
+/// `decoyPin`.
+final decoyEnabledProvider = FutureProvider<bool>(
+  (ref) => ref.watch(settingsRepositoryProvider).getBool('decoy_configured'),
+);
+
+/// Backs `SettingsScreen`'s "Sites shown in decoy" row. Counts sites in the
+/// currently open (real) vault flagged `showInDecoy` — never touches the
+/// decoy vault itself, which this session does not have open.
+final decoySiteCountProvider = FutureProvider<int>((ref) async {
+  final sites = await ref.watch(siteRepositoryProvider).all();
+  return sites.where((site) => site.showInDecoy).length;
+});
 
 class SettingsController {
   SettingsController(this._ref);

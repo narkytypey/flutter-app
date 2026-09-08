@@ -12,6 +12,8 @@ import '../../settings/view_models/providers.dart'
     show
         biometricsAvailableProvider,
         biometricsEnabledProvider,
+        decoyEnabledProvider,
+        decoySiteCountProvider,
         settingsControllerProvider;
 import '../../settings/views/settings_screen.dart';
 import '../view_models/providers.dart';
@@ -201,12 +203,14 @@ class _SettingsRoute extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final biometrics = ref.watch(biometricsEnabledProvider);
     final biometricsAvailable = ref.watch(biometricsAvailableProvider);
+    final decoyEnabled = ref.watch(decoyEnabledProvider);
+    final decoySiteCount = ref.watch(decoySiteCountProvider);
     return SettingsScreen(
       biometrics: biometrics.value ?? false,
       biometricsAvailable: biometricsAvailable.value ?? false,
       autoLockLabel: 'After 1 min',
-      decoyEnabled: false,
-      decoySiteCount: 0,
+      decoyEnabled: decoyEnabled.value ?? false,
+      decoySiteCount: decoySiteCount.value ?? 0,
       hideFromSwitcher: true,
       panicOnFlip: false,
       onPanicLabel: 'Wipe + lock',
