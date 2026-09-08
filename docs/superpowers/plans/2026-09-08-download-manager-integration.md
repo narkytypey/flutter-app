@@ -1886,14 +1886,14 @@ Expected: the commit's diffstat shows only `CLAUDE.md` changed. This closes out 
 
 ---
 
-## Defects found while executing (2026-09-09) — NOT accepted, and NOT fixed by this plan
+## Defects found while executing (2026-09-09) — NOT accepted design limitations
 
 These are distinct from the accepted gaps above: none of them was a design
 decision, and none should be read as signed off. Recorded here by the
 session that executed Tasks 1-6 and 7, with the user's explicit decision to
 document now and fix under a dedicated plan.
 
-### 1. BLOCKING (feature-level): the engine performs no TLS, so "keep in container" fails for every `https://` download
+### 1. FIXED same day (see Update below) — the engine performed no TLS, so "keep in container" failed for every `https://` download
 
 `Router.connect` returns a plain `java.net.Socket` and `ProxyHttpClient.fetch`
 writes a cleartext `GET <path> HTTP/1.1` into it. For an `https://` URL this
@@ -1933,6 +1933,40 @@ tunnel in item 2 below — getting any of those wrong is materially worse than
 the current honest breakage, and none of it should be written without a spec
 or a device to test against. Needs its own brainstorm → spec → plan, per this
 repo's convention. **Owner: unassigned.**
+
+**Update, 2026-09-09 — FIXED, but not verified against a live server.** After
+this defect was documented, the user reversed the "document now, fix later"
+decision and TLS was implemented directly: `ProxyHttpClient.fetch` gained a
+`secure: Boolean` and a private `startTls` that wraps the connected socket in
+an `SSLSocket` for https targets, with
+`sslParameters.endpointIdentificationAlgorithm = "HTTPS"` set before
+`startHandshake()`. Callers pass `url.scheme == "https"`
+(`RequestInterceptor`) and `url.protocol == "https"` (`DownloadFetcher`).
+
+The hostname-verification line is the load-bearing one: Android's default
+`SSLSocketFactory` validates the certificate chain but does **not** check that
+the certificate belongs to the host, so wrapping without it would give an
+encrypted connection to possibly the wrong peer — worse than plaintext,
+because it looks safe.
+
+Because the wrap layers on top of whatever `Router.connect` returned, it is
+correct for Direct, SOCKS and an HTTP-proxy CONNECT tunnel alike. It also
+makes defect 2 fail *safe*: if Android's libcore hands back a plain socket to
+the proxy rather than a tunnel, hostname verification rejects the handshake
+instead of silently exposing the request.
+
+Confirmation the fix matches the original design rather than inventing one:
+the `SSLException -> TLS_FAILURE` branch at `RequestInterceptor.kt:49`,
+described above as unreachable, is now live. Enum, catch and handshake finally
+line up.
+
+**Still unverified.** `flutter analyze` clean, `flutter test` 299/299, and
+`flutter build apk --debug` succeeding prove only that this compiles. Nothing
+in this repo has ever opened a socket to a real server, so the handshake
+itself, and `endpointIdentificationAlgorithm`'s behavior on Android's
+provider, remain untested. The manual on-device check in Task 7 Step 4 is
+therefore **more** necessary than before, not less, and should specifically
+cover a proxied `https` download — and it remains unreachable here.
 
 ### 2. OPEN QUESTION (not a finding): whether Android supports `Proxy.Type.HTTP` for a raw `Socket`
 
@@ -1975,6 +2009,25 @@ would have caught it, and it is not part of any routine loop. Worth treating
 as a standing lesson for any future Kotlin work here, not just this plan.
 
 ---
+
+### 4. OPEN: the keep-in-container path sends no `User-Agent` and no `Cookie`
+
+`DownloadFetcher.fetchTo` calls `ProxyHttpClient.fetch(..., emptyMap())` — no
+request headers at all — while `saveViaDownloadManager` explicitly attaches
+both the site's `userAgentFor` mode and its cookies via
+`CookieManager.getInstance().getCookie(url)`.
+
+Consequence: a download sitting behind a session cookie **succeeds** on the
+Direct-routed "save to device" path and **fails** on the keep-in-container
+path, for the same file on the same site. Servers that vary responses by
+`User-Agent` can also return different bytes than the page the user was
+looking at. This is the common case for any authenticated site — exactly the
+kind of site a per-container private download exists for.
+
+Pre-existing from Task 4, confirmed against `git diff`; not introduced by the
+TLS work, and independent of defects 1 and 2. Not fixed here. Any fix should
+also decide whether cookies *should* cross into a kept file, which is a
+container-isolation question rather than plumbing. **Owner: unassigned.**
 
 ## Execution record (2026-09-09)
 

@@ -426,12 +426,25 @@ task that covers it.
   never fire — evidence it was designed and dropped, not scoped out. (2)
   whether Android supports `Proxy.Type.HTTP` for a raw `Socket` is an open
   question, deciding whether the HTTP-proxy route tunnels via CONNECT or is
-  non-functional. Per the user's 2026-09-09 decision these were documented
-  rather than fixed as part of this plan. **Caveat, same day:** defect 1 was
-  then picked up directly against `ProxyHttpClient`/`Router` under a separate
-  instruction to a parallel session, so if that work landed after this entry
-  was written, verify this bullet and the plan's defects section against the
-  actual code before trusting either. Defect 2 remains open and unowned.
+  non-functional. Defect 1 was documented first and then, the same day, fixed
+  at `9c598a1` after the user reversed the "document now, fix later"
+  decision: `ProxyHttpClient.fetch` takes a `secure` flag and wraps the
+  connected socket in an `SSLSocket` for https, with
+  `endpointIdentificationAlgorithm = "HTTPS"` set before the handshake —
+  the load-bearing line, since Android's default `SSLSocketFactory` validates
+  the cert chain but not that the cert belongs to the host. Wrapping on top
+  of `Router.connect`'s socket makes it correct for Direct, SOCKS and a
+  CONNECT tunnel alike, and makes defect 2 fail *safe* (a plain socket to the
+  proxy is rejected by hostname verification rather than silently exposed).
+  The previously-unreachable `SSLException → TLS_FAILURE` branch is now live.
+  **But TLS is compiled, not proven:** nothing in this repo has ever opened a
+  socket to a real server, so the handshake and
+  `endpointIdentificationAlgorithm`'s behavior on Android's provider are
+  untested. Defect 2 remains open and unowned. A third defect is also open
+  and unowned: `DownloadFetcher.fetchTo` passes no request headers, so the
+  keep-in-container path sends neither `User-Agent` nor `Cookie` while
+  `saveViaDownloadManager` sends both — a cookie-gated download therefore
+  succeeds via Direct save-to-device and fails via keep-in-container.
   Standing lesson from this plan: `flutter analyze` and `flutter test` are
   Dart-only and never compile `engine/`, which is how Tasks 1–6 reached a
   commit having never been compiled. `flutter build apk --debug` is the only
