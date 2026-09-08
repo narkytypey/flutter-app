@@ -82,4 +82,85 @@ void main() {
             'sharing a WebView profile across vaults would share cookies '
             'and cache between the real and decoy copies of the same site');
   });
+
+  group('resyncDecoy', () {
+    test('adds a newly flagged site with a fresh profileId', () async {
+      final copied = await resyncDecoy(from: real, into: decoy);
+
+      expect(copied, 1);
+      final sites = await SqliteSiteRepository(decoy).inWorkspace('ws');
+      expect(sites.map((s) => s.name), ['News']);
+    });
+
+    test('keeps an already-synced site\'s existing profileId on a second call',
+        () async {
+      await resyncDecoy(from: real, into: decoy);
+      final firstProfile =
+          (await SqliteSiteRepository(decoy).byId('s1'))!.profileId;
+
+      final copied = await resyncDecoy(from: real, into: decoy);
+
+      expect(copied, 0, reason: 'nothing new was flagged the second time');
+      final secondProfile =
+          (await SqliteSiteRepository(decoy).byId('s1'))!.profileId;
+      expect(secondProfile, firstProfile,
+          reason: 'regenerating it would silently wipe decoy-side cookies '
+              'and history for a site that did not actually change');
+    });
+
+    test('removes a decoy site whose flag was turned off since the last sync',
+        () async {
+      await resyncDecoy(from: real, into: decoy);
+      await SqliteSiteRepository(real).upsert(
+        (await SqliteSiteRepository(real).byId('s1'))!.copyWith(showInDecoy: false),
+      );
+
+      await resyncDecoy(from: real, into: decoy);
+
+      final sites = await SqliteSiteRepository(decoy).inWorkspace('ws');
+      expect(sites, isEmpty);
+    });
+
+    test('removes every site of a workspace whose flag was turned off',
+        () async {
+      await resyncDecoy(from: real, into: decoy);
+      await SqliteWorkspaceRepository(real).upsert(
+        (await SqliteWorkspaceRepository(real).byId('ws'))!
+            .copyWith(showInDecoy: false),
+      );
+
+      await resyncDecoy(from: real, into: decoy);
+
+      expect(await SqliteWorkspaceRepository(decoy).byId('ws'), isNull);
+      expect(await SqliteSiteRepository(decoy).inWorkspace('ws'), isEmpty);
+    });
+
+    test('never touches a site the owner added directly inside the decoy '
+        'session', () async {
+      await resyncDecoy(from: real, into: decoy);
+      await SqliteWorkspaceRepository(decoy).upsert(const Workspace(
+          id: 'decoy-only-ws', name: 'Recipes', markerIndex: 2,
+          storageRule: StorageRule.keep));
+      await SqliteSiteRepository(decoy).upsert(Site(
+          id: 'decoy-only-site', workspaceId: 'decoy-only-ws', name: 'Blog',
+          monogram: 'Bl', url: 'https://blog.example.com',
+          profileId: newProfileId()));
+
+      await resyncDecoy(from: real, into: decoy);
+
+      expect(await SqliteWorkspaceRepository(decoy).byId('decoy-only-ws'),
+          isNotNull);
+      expect(await SqliteSiteRepository(decoy).byId('decoy-only-site'),
+          isNotNull);
+    });
+
+    test('an unflagged site in an otherwise-flagged workspace is left '
+        'unflagged in the decoy copy', () async {
+      await resyncDecoy(from: real, into: decoy);
+
+      final bank = await SqliteSiteRepository(decoy).byId('s2');
+      expect(bank, isNull, reason: 's2 was never flagged, so it was never '
+          'copied and there is nothing to remove');
+    });
+  });
 }
