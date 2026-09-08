@@ -19,7 +19,7 @@ android {
         applicationId = "com.mono.container"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
-        minSdk = 26
+        minSdk = 29          // was 26; multi-profile WebView needs it
         targetSdk = 36
         // Uses the version code from pubspec.yaml. When using split APKs, 1000 * ABI_VERSION
         // is added automatically by Flutter. (https://developer.android.com/studio/build/configure-apk-splits#configure-APK-versions)
@@ -42,6 +42,11 @@ kotlin {
     compilerOptions {
         jvmTarget = org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17
     }
+}
+
+dependencies {
+    implementation("androidx.webkit:webkit:1.12.0")
+    testImplementation("junit:junit:4.13.2")
 }
 
 flutter {
