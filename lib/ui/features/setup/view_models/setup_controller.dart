@@ -24,6 +24,7 @@ typedef VaultPath = String Function(VaultId vault);
 typedef SessionOpener = void Function({
   required VaultId vault,
   required AppDatabase database,
+  required Uint8List dataKey,
 });
 
 /// Runs the setup wizard's side effects: provisions both vault slots
@@ -67,6 +68,6 @@ class SetupController {
       await _vaultStore.provisionUnopenable(VaultId.b);
     }
 
-    _openSession(vault: VaultId.a, database: mainDb);
+    _openSession(vault: VaultId.a, database: mainDb, dataKey: mainKey);
   }
 }

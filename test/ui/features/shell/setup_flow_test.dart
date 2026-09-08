@@ -20,7 +20,7 @@ void main() {
 
   late Directory dir;
   late VaultStore vaultStore;
-  final sessions = <({VaultId vault, AppDatabase database})>[];
+  final sessions = <({VaultId vault, AppDatabase database, Uint8List dataKey})>[];
 
   setUp(() async {
     dir = await Directory.systemTemp.createTemp('setup-flow-test');
@@ -38,8 +38,11 @@ void main() {
           openVault: ({required String path, required Uint8List dataKey}) =>
               AppDatabase.open(path: inMemoryDatabasePath, factory: databaseFactoryFfi),
           pathFor: (vault) => '${dir.path}/${vault.name}.db',
-          openSession: ({required VaultId vault, required AppDatabase database}) =>
-              sessions.add((vault: vault, database: database)),
+          openSession: (
+                  {required VaultId vault,
+                  required AppDatabase database,
+                  required Uint8List dataKey}) =>
+              sessions.add((vault: vault, database: database, dataKey: dataKey)),
         )),
       ],
       child: const MaterialApp(home: SetupFlow()),
@@ -106,7 +109,10 @@ void main() {
           openVault: ({required String path, required Uint8List dataKey}) =>
               throw StateError('not reached'),
           pathFor: (vault) => '${dir.path}/${vault.name}.db',
-          openSession: ({required VaultId vault, required AppDatabase database}) {},
+          openSession: (
+              {required VaultId vault,
+              required AppDatabase database,
+              required Uint8List dataKey}) {},
           calls: calls,
         )),
       ],

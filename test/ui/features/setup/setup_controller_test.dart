@@ -20,7 +20,7 @@ void main() {
   late VaultStore vaultStore;
   late FakeCrypto crypto;
   final opened = <String, AppDatabase>{};
-  final sessions = <({VaultId vault, AppDatabase database})>[];
+  final sessions = <({VaultId vault, AppDatabase database, Uint8List dataKey})>[];
 
   Future<AppDatabase> fakeOpen({required String path, required Uint8List dataKey}) async {
     final db =
@@ -33,8 +33,11 @@ void main() {
         vaultStore: vaultStore,
         openVault: fakeOpen,
         pathFor: (vault) => '${dir.path}/${vault.name}.db',
-        openSession: ({required VaultId vault, required AppDatabase database}) =>
-            sessions.add((vault: vault, database: database)),
+        openSession: (
+                {required VaultId vault,
+                required AppDatabase database,
+                required Uint8List dataKey}) =>
+            sessions.add((vault: vault, database: database, dataKey: dataKey)),
       );
 
   setUp(() async {

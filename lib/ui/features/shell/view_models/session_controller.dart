@@ -5,6 +5,8 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path/path.dart' as p;
 
+import '../../../../data/repositories/settings_repository_sqlite.dart';
+import '../../../../data/services/android_biometric_service.dart';
 import '../../../../data/services/android_crypto_service.dart';
 import '../../../../data/services/app_database.dart';
 import '../../../../data/services/encrypted_database.dart';
@@ -12,6 +14,7 @@ import '../../../../data/services/vault_store.dart';
 import '../../../../domain/models/attempt_gate.dart';
 import '../../../../domain/models/lock_state.dart';
 import '../../../../domain/models/vault.dart';
+import '../../../../domain/services/biometric_service.dart';
 import '../../../../domain/services/crypto_service.dart';
 import '../../../../domain/services/panic_service.dart';
 import '../../../../domain/services/vault_unlocker.dart';
@@ -39,27 +42,51 @@ class SessionUnconfigured extends Session {
 /// [LockMood.welcomeBack] — `LockScreen` ticks its own timer against it and
 /// calls [SessionController.graceExpired] once it passes; this class never
 /// runs a `Timer` of its own.
+///
+/// [biometricVault] and [biometricWrappedKey] are non-null only while
+/// [mood] is [LockMood.welcomeBack] and biometrics was enabled for the
+/// vault that just backgrounded — never during a cold lock. This is what
+/// makes biometric unlock resume-only: nothing here can open a vault this
+/// session hasn't already opened once with a PIN.
 class SessionLocked extends Session {
   const SessionLocked({
     required this.mood,
     required this.gate,
     this.openSessionCount = 0,
     this.lockDeadline,
+    this.biometricVault,
+    this.biometricWrappedKey,
   });
 
   final LockMood mood;
   final AttemptGate gate;
   final int openSessionCount;
   final DateTime? lockDeadline;
+  final VaultId? biometricVault;
+  final Uint8List? biometricWrappedKey;
 }
 
 /// A vault is open. Read by `databaseProvider` below — nothing else in the
 /// app ever asks which vault that is.
+///
+/// [dataKey] is not a new exposure: the SQLCipher connection [database]
+/// already holds the equivalent key material resident for as long as the
+/// session is open, so a second reference to the same bytes here adds
+/// nothing. [biometricWrappedKey], once set, is ciphertext the vault's
+/// public Keystore key produced — safe to hold indefinitely, since reading
+/// it back requires a successful fingerprint.
 class SessionOpen extends Session {
-  const SessionOpen({required this.vault, required this.database});
+  const SessionOpen({
+    required this.vault,
+    required this.database,
+    required this.dataKey,
+    this.biometricWrappedKey,
+  });
 
   final VaultId vault;
   final AppDatabase database;
+  final Uint8List dataKey;
+  final Uint8List? biometricWrappedKey;
 }
 
 /// Panic has run: no store, no keys, nothing to open. `3c` renders [report].
@@ -85,6 +112,9 @@ final initialSessionProvider = Provider<Session>(
 
 final cryptoServiceProvider =
     Provider<CryptoService>((ref) => const AndroidCryptoService());
+
+final biometricServiceProvider =
+    Provider<BiometricService>((ref) => const AndroidBiometricService());
 
 final documentsDirectoryProvider = Provider<Directory>(
   (ref) =>
@@ -150,6 +180,7 @@ class SessionController extends Notifier<Session> {
       state = const SessionLocked(mood: LockMood.normal, gate: AttemptGate());
 
   Future<void> unlock(String pin) async {
+    final previous = state;
     final currentGate = await _vaultStore.gate();
     final slots = await _vaultStore.slots();
     final outcome = await _unlocker.attempt(
@@ -166,23 +197,100 @@ class SessionController extends Notifier<Session> {
           path: vaultDatabasePath(ref.read(documentsDirectoryProvider), vault),
           dataKey: dataKey,
         );
-        state = SessionOpen(vault: vault, database: database);
+        state = SessionOpen(
+          vault: vault,
+          database: database,
+          dataKey: dataKey,
+          biometricWrappedKey: await _rewrapIfEnabled(database, dataKey),
+        );
       case Rejected(:final gate):
         await _vaultStore.saveGate(gate);
         state = SessionLocked(
-            mood: LockMood.wrong, gate: gate, openSessionCount: _openCount());
+          mood: LockMood.wrong,
+          gate: gate,
+          openSessionCount: _openCount(),
+          biometricVault: previous is SessionLocked ? previous.biometricVault : null,
+          biometricWrappedKey:
+              previous is SessionLocked ? previous.biometricWrappedKey : null,
+        );
       case Throttled():
         state = SessionLocked(
-            mood: LockMood.wrong,
-            gate: currentGate,
-            openSessionCount: _openCount());
+          mood: LockMood.wrong,
+          gate: currentGate,
+          openSessionCount: _openCount(),
+          biometricVault: previous is SessionLocked ? previous.biometricVault : null,
+          biometricWrappedKey:
+              previous is SessionLocked ? previous.biometricWrappedKey : null,
+        );
     }
+  }
+
+  /// Every fresh PIN unlock is self-healing: if biometrics is on for this
+  /// vault, re-wrap under whatever Keystore key currently exists. This is
+  /// how a key invalidated by new biometric enrollment (see
+  /// `BiometricPlugin.unwrap`'s `KeyPermanentlyInvalidatedException`
+  /// handling) repairs itself with no dedicated recovery flow.
+  Future<Uint8List?> _rewrapIfEnabled(AppDatabase database, Uint8List dataKey) async {
+    final enabled =
+        await SqliteSettingsRepository(database).getBool('biometrics_enabled');
+    if (!enabled) return null;
+    return ref.read(biometricServiceProvider).wrap(dataKey);
+  }
+
+  /// `LockBody.onBiometric`'s target once `LockScreen` decides biometrics is
+  /// on offer (`biometricAvailable`, Task 4). A no-op — the lock screen
+  /// stays up with the PIN keypad still available — on cancel, a failed
+  /// match, or an invalidated key, since [BiometricService.unwrap] returns
+  /// null for all three.
+  Future<void> resumeWithBiometric() async {
+    final current = state;
+    if (current is! SessionLocked ||
+        current.mood != LockMood.welcomeBack ||
+        current.biometricWrappedKey == null ||
+        current.biometricVault == null) {
+      return;
+    }
+    final dataKey = await ref
+        .read(biometricServiceProvider)
+        .unwrap(current.biometricWrappedKey!);
+    if (dataKey == null) return;
+    final database = await ref.read(vaultOpenerProvider)(
+      path: vaultDatabasePath(
+          ref.read(documentsDirectoryProvider), current.biometricVault!),
+      dataKey: dataKey,
+    );
+    state = SessionOpen(
+      vault: current.biometricVault!,
+      database: database,
+      dataKey: dataKey,
+      biometricWrappedKey: current.biometricWrappedKey,
+    );
+  }
+
+  /// Called by `SettingsController` (Task 5) right after enabling or
+  /// disabling biometrics. A no-op if the vault has since closed from
+  /// under it.
+  void setBiometricWrapped(Uint8List? wrapped) {
+    final current = state;
+    if (current is! SessionOpen) return;
+    state = SessionOpen(
+      vault: current.vault,
+      database: current.database,
+      dataKey: current.dataKey,
+      biometricWrappedKey: wrapped,
+    );
   }
 
   /// Called once by `SetupController` (Task 6), via `setupControllerProvider`
   /// below, when setup has just provisioned and seeded the real vault.
-  void completeSetup({required VaultId vault, required AppDatabase database}) {
-    state = SessionOpen(vault: vault, database: database);
+  /// Biometrics can't be enabled yet at this point — Settings is
+  /// unreachable during setup — so this never wraps anything.
+  void completeSetup({
+    required VaultId vault,
+    required AppDatabase database,
+    required Uint8List dataKey,
+  }) {
+    state = SessionOpen(vault: vault, database: database, dataKey: dataKey);
   }
 
   /// Called by `LockScreen`'s own timer once `SessionLocked.lockDeadline`
@@ -224,6 +332,8 @@ class SessionController extends Notifier<Session> {
           gate: const AttemptGate(),
           openSessionCount: ref.read(openSiteIdsProvider).length,
           lockDeadline: DateTime.now().add(AutoLockPolicy.oneMinute.grace),
+          biometricVault: current.vault,
+          biometricWrappedKey: current.biometricWrappedKey,
         );
       case ReturnDestination.pin:
         ref.read(openSiteIdsProvider.notifier).state = {};
@@ -242,10 +352,14 @@ final setupControllerProvider = Provider<SetupController>((ref) {
     vaultStore: ref.read(vaultStoreProvider),
     openVault: ref.read(vaultOpenerProvider),
     pathFor: (vault) => vaultDatabasePath(documents, vault),
-    openSession: ({required VaultId vault, required AppDatabase database}) =>
+    openSession: (
+            {required VaultId vault,
+            required AppDatabase database,
+            required Uint8List dataKey}) =>
         ref.read(sessionProvider.notifier).completeSetup(
               vault: vault,
               database: database,
+              dataKey: dataKey,
             ),
   );
 });
