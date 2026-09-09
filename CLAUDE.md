@@ -536,8 +536,11 @@ task that covers it.
     — but the ordering is unchanged.
 
   Two further gaps came out of the branch review rather than the plan, both
-  verified against the tree at `5e42dd5` and both left unfixed because Plan 10
-  Task 4 changes documentation only:
+  verified against the tree at `5e42dd5`. Task 4 recorded them unfixed because
+  that task changes documentation only; **both were then fixed at `81a69f2`**,
+  after an independent re-run of the four verification commands. The findings
+  are kept as written because they record what the review actually caught —
+  each carries its own resolution:
   - **`ProxyHttpClient.startTls`'s doc comment now asserts the opposite of what
     the code does.** It still reads "There is deliberately no CONNECT-tunnel
     case here … a `Route.Proxy` with `socks = false` throws
@@ -549,6 +552,9 @@ task that covers it.
     destination — but the stale sentence sits on the one function whose
     `endpointIdentificationAlgorithm` line the tunnel's security depends on,
     telling a future auditor the case cannot exist. A comment-only fix.
+    **Fixed at `81a69f2`:** the enumeration now names all three socket kinds and
+    the paragraph says the HTTP-proxy case does reach the function, and why that
+    makes the certificate check meaningful on a proxied route. No code changed.
   - **`DownloadFetcher.failureFor` mis-names a direct site's `ConnectException`.**
     It mirrors `RequestInterceptor`'s mapping, but the two have different
     preconditions: `RequestInterceptor.fetchThrough` runs only for
@@ -561,6 +567,13 @@ task that covers it.
     on `route is Route.Proxy` would fix it. Not a routing-constraint violation
     — nothing goes direct that should not — only copy accuracy on a path this
     branch newly made reachable.
+    **Fixed at `81a69f2`:** `failureFor` now takes the route and maps a
+    `ConnectException` to `PROXY_UNREACHABLE` only for a `Route.Proxy`, falling
+    back to `UPSTREAM_TIMEOUT` ("The destination did not respond") for a direct
+    one. That is the honest member of the five existing `RouteFailure` strings —
+    a direct site's refused connection genuinely is the destination failing to
+    answer. No copy was reworded and no enum value was added, since either would
+    be a spec question rather than a bug fix.
 
 ## Working on this repo
 
