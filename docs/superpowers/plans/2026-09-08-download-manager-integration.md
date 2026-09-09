@@ -2029,7 +2029,11 @@ TLS work, and independent of defects 1 and 2. Not fixed here. Any fix should
 also decide whether cookies *should* cross into a kept file, which is a
 container-isolation question rather than plumbing. **Owner: unassigned.**
 
-### 5. BLOCKING: HTTP proxy mode is non-functional on Android
+### 5. FIXED (`64c0fa6`, `f6bd41b`, `5e42dd5`; see Update below) — HTTP proxy mode was non-functional on Android
+
+*The description that follows is the original defect record, kept as written.
+It says what was wrong and how it was found; the Update at the end of this
+entry says how it was fixed and what that fix does not prove.*
 
 `Router.connect` builds `java.net.Socket(java.net.Proxy(Type.HTTP, ...))` for
 any site whose `proxyMode` is not `socks5`. On Android that constructor
@@ -2101,14 +2105,98 @@ to be decided, not an opportunistic edit. The consequence is that a user can
 still select a mode that cannot work — they now just get an honest,
 immediate refusal instead of a misleading timeout.
 
-**Still not fixed.** A real fix means implementing CONNECT by hand in
+**Still not fixed** *(as of the interim fix; superseded by the Update below).*
+A real fix means implementing CONNECT by hand in
 `ProxyHttpClient` — write `CONNECT host:port HTTP/1.1`, parse the 200
 response, then hand the socket to `startTls` — which carries its own proxy
 auth, error-mapping and TLS-ordering questions and deserves a plan rather than
 an opportunistic patch. The minimum honest interim step is mapping
 `IllegalArgumentException` to `MISCONFIGURED` so the error stops claiming a
 timeout, and/or removing the HTTP chip from the Network tab so users cannot
-select a mode that cannot work. **Owner: unassigned.**
+select a mode that cannot work. **Owner: unassigned** *(it was taken up the
+same day — see below).*
+
+**Update, 2026-09-09 — FIXED, in exactly the way the paragraph above said a
+real fix would have to be done: CONNECT is now implemented by hand.** Landed
+on branch `plan-10-http-connect-tunnel` via
+`docs/superpowers/plans/2026-09-09-http-connect-tunnel.md` (whose design
+decisions — hand-rolled CONNECT rather than a new dependency, no proxy
+authentication, `PROXY_REFUSED` as the failure mapping — the user approved
+explicitly on 2026-09-09, that approval being the gate the plan was blocked
+on). Three commits:
+
+- **`64c0fa6`** adds
+  `android/app/src/main/kotlin/com/mono/container/engine/HttpConnectTunnel.kt`.
+  `HttpConnectTunnel.open(proxyHost, proxyPort, targetHost, targetPort)` opens
+  a plain socket to the proxy, writes `CONNECT host:port HTTP/1.1` with a
+  matching `Host:` header, requires a 2xx status, and drains the header block
+  so the socket it returns sits at the first byte of tunnel payload rather
+  than a leftover header line. Anything else throws the new
+  `ProxyTunnelException(statusCode, message) : IOException`, after closing the
+  socket, so no half-open connection to the proxy leaks. Note the placement:
+  the CONNECT lives in its own object, not inside `ProxyHttpClient` as the
+  paragraph above guessed, because `Router.connect` — not the HTTP client — is
+  where a socket is opened.
+- **`f6bd41b`** makes it reachable. `Router.connect`'s `Route.Proxy` branch
+  now splits on `route.socks`: SOCKS still goes to the platform's
+  `Proxy.Type.SOCKS` socket, and the other branch calls the tunnel. No
+  executable reference to `java.net.Proxy.Type.HTTP` survives anywhere in the
+  tree — the only remaining occurrences are prose explaining why the tunnel
+  exists. The same commit undoes the interim guard on **both** sides, which is
+  what turns the tunnel from dead code into a working feature:
+  `Router.resolve` now refuses only a mode that is neither `socks5` nor
+  `http`, re-admitting `http` *by name* so an unrecognised mode is still
+  `MISCONFIGURED` — the property the interim fix existed to protect — and the
+  Dart mirror in `resolveRoute` is deleted outright, since `ProxyMode` is a
+  closed enum whose three values are now all handled.
+- **`5e42dd5`** reports a refused tunnel honestly. `RequestInterceptor`
+  and `DownloadFetcher` map `ProxyTunnelException` to
+  `RouteFailure.PROXY_REFUSED`, which had no producer anywhere in this repo's
+  history until now; it surfaces through the already-existing copy
+  `'The proxy refused the destination'`, which was not reworded. The
+  `IllegalArgumentException -> MISCONFIGURED` branch the interim fix added is
+  deliberately kept rather than deleted as dead code: it is now the catch-all
+  for any future unsupported `Proxy.Type` instead of belt-and-braces behind a
+  resolve-time refusal.
+
+`ProxyHttpClient` needed no code change — `startTls` already wraps whatever
+socket `Router.connect` hands it, and it wraps against the **target** host, so
+hostname verification is against the destination and not the proxy. Its doc
+comment, however, still asserts that an HTTP-proxy socket "never reaches this
+function"; that sentence is now false and is recorded as a known gap in
+`CLAUDE.md` rather than fixed here, since this entry's task changed no code.
+
+**What the verification is, and what it is not.** Observed directly on the
+branch with a clean tree, at `5e42dd5`:
+
+```
+android/ ./gradlew :app:testDebugUnitTest --rerun → BUILD SUCCESSFUL
+    HttpConnectTunnelTest tests="3" skipped="0" failures="0" errors="0"
+    RouterTest            tests="5" skipped="0" failures="0" errors="0"
+    FilterEngineTest      tests="4" skipped="0" failures="0" errors="0"
+flutter analyze           → No issues found!
+flutter test              → 00:18 +300: All tests passed!
+flutter build apk --debug → ✓ Built build\app\outputs\flutter-apk\app-debug.apk, 0 lines matching ^e:
+```
+
+The Kotlin counts are read from the JUnit XML under
+`build/app/test-results/testDebugUnitTest/`, not inferred from
+`BUILD SUCCESSFUL`, which Gradle prints without any pass count. The APK build
+is the only one of the four that compiles any Kotlin at all.
+
+**It has never run against a real HTTP proxy on a real device.** Every test in
+that plan talks to a `ServerSocket` on localhost replying with a canned status
+line. There is no Android device or emulator in this environment and none was
+attempted. Worse for confidence: the failure this whole entry is about,
+`IllegalArgumentException("Invalid Proxy")`, is Android-specific and does not
+reproduce on the desktop JVM the unit tests run on — the plan's Task 2 Step 2
+expected to see it as its red test and did not, and the test had to be
+rewritten to assert on the CONNECT request line instead. So the fix is
+established by the platform source and by construction, not by watching the
+original symptom disappear. Task 7 Step 4's manual on-device check remains
+UNREACHABLE here and is **more** necessary because of this change, not less;
+a proxied `https` load through an HTTP proxy is now the single most valuable
+thing to check on a device.
 
 ## Execution record (2026-09-09)
 

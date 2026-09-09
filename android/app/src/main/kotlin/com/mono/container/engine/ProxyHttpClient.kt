@@ -43,15 +43,17 @@ object ProxyHttpClient {
      * unchanged for http ones.
      *
      * This layers on top of whatever [Router.connect] produced — a direct
-     * socket or a SOCKS-routed one — because both already speak end to end
-     * with the target.
+     * socket, a SOCKS-routed one, or an HTTP-proxy socket already tunnelled by
+     * [HttpConnectTunnel] — because all three already speak end to end with
+     * the target.
      *
-     * There is deliberately no CONNECT-tunnel case here. Android removed
+     * The HTTP-proxy case reaches this function. Android removed
      * `Proxy.Type.HTTP` support from [java.net.Socket] (see the
      * `// Android-changed: Removed HTTP proxy support.` marker in libcore), so
-     * a [Route.Proxy] with `socks = false` throws `IllegalArgumentException`
-     * at socket construction and never reaches this function. Implementing
-     * CONNECT by hand is what would make an HTTP-proxy socket arrive here.
+     * [HttpConnectTunnel] issues the CONNECT by hand and returns a socket whose
+     * payload is relayed to the target. Wrapping that socket therefore
+     * negotiates TLS with the destination, not with the proxy — which is what
+     * makes the certificate check below meaningful on a proxied route.
      *
      * `endpointIdentificationAlgorithm` is not optional. The default
      * [javax.net.ssl.SSLSocketFactory] validates the certificate chain but does

@@ -18,15 +18,11 @@ object Router {
     fun resolve(config: SiteConfig, proxyReachable: Boolean): Route {
         if (config.proxyMode == "direct") return Route.Direct
 
-        // Android removed HTTP-proxy support from java.net.Socket (AOSP
-        // deleted HttpConnectSocketImpl), so connect() below would throw
-        // IllegalArgumentException("Invalid Proxy") at construction for
-        // Proxy.Type.HTTP. Refusing here means the user is told the site is
-        // misconfigured immediately, instead of seeing "The destination did
-        // not respond" after ProxyProbe made the proxy look reachable.
-        // Everything that is not socks5 is refused, so an unrecognised mode
-        // cannot silently fall into the same broken path.
-        if (config.proxyMode != "socks5") {
+        // Only these two proxy modes exist. Anything else is a mode this
+        // build does not understand, and is refused rather than allowed to
+        // fall through to connect() — http reaches HttpConnectTunnel, socks5
+        // is delegated to the platform.
+        if (config.proxyMode != "socks5" && config.proxyMode != "http") {
             return Route.Refused(RouteFailure.MISCONFIGURED)
         }
 
@@ -40,17 +36,27 @@ object Router {
         return Route.Proxy(host, port, socks = config.proxyMode == "socks5")
     }
 
-    /** Opens a socket for [route]. Never called for [Route.Refused]. */
+    /**
+     * Opens a socket for [route]. Never called for [Route.Refused].
+     *
+     * SOCKS is delegated to the platform, which still supports it. HTTP proxies
+     * go through [HttpConnectTunnel] because Android removed `Proxy.Type.HTTP`
+     * from [java.net.Socket]; passing it here throws `IllegalArgumentException`.
+     */
     fun connect(route: Route, targetHost: String, targetPort: Int): java.net.Socket =
         when (route) {
             is Route.Direct -> java.net.Socket(targetHost, targetPort)
-            is Route.Proxy -> {
-                val type = if (route.socks) java.net.Proxy.Type.SOCKS
-                           else java.net.Proxy.Type.HTTP
-                java.net.Socket(
-                    java.net.Proxy(type, java.net.InetSocketAddress(route.host, route.port))
-                ).apply { connect(java.net.InetSocketAddress(targetHost, targetPort), 15_000) }
-            }
+            is Route.Proxy ->
+                if (route.socks) {
+                    java.net.Socket(
+                        java.net.Proxy(
+                            java.net.Proxy.Type.SOCKS,
+                            java.net.InetSocketAddress(route.host, route.port),
+                        )
+                    ).apply { connect(java.net.InetSocketAddress(targetHost, targetPort), 15_000) }
+                } else {
+                    HttpConnectTunnel.open(route.host, route.port, targetHost, targetPort)
+                }
             is Route.Refused -> error("connect() called for a refused route")
         }
 }

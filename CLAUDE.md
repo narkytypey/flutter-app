@@ -33,6 +33,7 @@ Each plan ships working, tested software on its own.
 | 6 — Integration | `2026-09-02-isolated-web-container-06-integration.md` | Written 2026-09-02 | Wires the five plans into one navigable app: `ContainerRoute` navigation shell, discriminated native events (permission asks, held downloads, tunnel-drop) reaching Plan 4's screens, per-category `FilterEngine`/`BlockedTallyRecorder` feeding a live Today log, `SiteSheet` toggle persistence, and the decoy-sync correction. Implements `docs/superpowers/specs/2026-09-02-integration-design.md` (approved by the user 2026-09-02); three places deliberately correct or narrow that spec against what the tree can actually do — see the plan's own header. 7 tasks. Being executed 2026-09-04 by a peer session (flutter-app-0f) in its own worktree. Explicitly leaves search and biometric unlock unbuilt — see Unassigned Work below. |
 | 7 — Search | `2026-09-04-isolated-web-container-07-search.md` | **Done** (2026-09-08) | Wires `DashboardFooter`'s long-dead search button to a real screen: `SiteRepository.all()`, a `searchResults()` join/filter/sort across every workspace in the open vault, and a pure `SearchScreen`. Implements `docs/superpowers/specs/2026-09-04-search-screen-design.md` (brainstormed and approved by the user 2026-09-04) — that spec itself stands in for the missing canvas screen block, since search was never actually designed anywhere. 5 tasks, all executed; final-review fix wave (2026-09-08) made tapping a search result push a real `ContainerRoute` (it previously only marked the site open and popped back to the dashboard) and fixed `allSitesProvider` never being invalidated, so search now sees adds/deletes/touches made after it first loaded. |
 | 9 — Decoy re-sync | `2026-09-08-decoy-resync.md` | **Done** (2026-09-08) | Gives the owner a reachable "re-sync with the decoy PIN" flow from Settings, replacing the setup-time-only `provisionDecoy` with `resyncDecoy` (`lib/data/repositories/decoy_provisioner.dart`) — a real add-and-remove sync that preserves an already-synced site's `profileId` so its decoy-side cookies/history survive repeated syncs. Persists `decoy_configured` on the real vault (`SetupController.complete`) and wires it to `decoyEnabledProvider`/`decoySiteCountProvider`, so `SettingsScreen`'s VAULT section — hardcoded invisible before this plan — now actually shows or hides based on whether a decoy was configured. Adds `DecoyResyncPinScreen` (pure widget, reuses `PinDots`/`PinKeypad`) and `DecoyResyncRoute` (reuses `LockController`, calls the new `SettingsController.resyncDecoyVault`, which checks the entered PIN against both vault slots via the existing `VaultUnlocker`/attempt-gate before opening the decoy vault just long enough to sync and close it). Implements `docs/superpowers/specs/2026-09-08-decoy-resync-design.md`. 5 tasks, all executed. |
+| 10 — HTTP CONNECT tunnel | `2026-09-09-http-connect-tunnel.md` | **Done** (2026-09-09) | Makes `ProxyMode.http` actually work by hand-writing the CONNECT tunnel AOSP removed from `java.net.Socket`. New `android/app/src/main/kotlin/com/mono/container/engine/HttpConnectTunnel.kt`: `HttpConnectTunnel.open(proxyHost, proxyPort, targetHost, targetPort)` opens a plain socket to the proxy, writes `CONNECT host:port HTTP/1.1`, requires a 2xx, drains the header block so the returned socket sits at the first byte of tunnel payload, and otherwise throws the new `ProxyTunnelException(statusCode, message)` after closing the socket. `Router.connect`'s `Route.Proxy` branch now splits on `route.socks` — SOCKS still delegated to the platform, `http` to the tunnel — and no executable `java.net.Proxy.Type.HTTP` remains in the tree. Undoes the `ca9552c` interim guard on both sides (`Router.resolve` re-admits `http` **by name**, so an unrecognised mode is still `MISCONFIGURED`; the Dart mirror in `resolveRoute` is deleted, `ProxyMode` being a closed enum). Gives `RouteFailure.PROXY_REFUSED` its first producer in this repo's history, via `RequestInterceptor` and `DownloadFetcher` mapping `ProxyTunnelException` — the existing copy `'The proxy refused the destination'` was not reworded. `ProxyHttpClient` needed no code change: `startTls` already wraps whatever socket `Router.connect` returns, against the target host. This plan has **no design spec** — it was written from defect 5 of the download-manager plan, and the user approved its three design decisions inline on 2026-09-09 (hand-rolled CONNECT over a new dependency, no proxy authentication, `PROXY_REFUSED` as the mapping). 4 tasks, all executed; commits `64c0fa6`/`f6bd41b`/`5e42dd5` plus this documentation pass. Verified 2026-09-09 on a clean tree: Kotlin JVM tests 12/12 (`HttpConnectTunnelTest` 3, `RouterTest` 5, `FilterEngineTest` 4, counts read from the JUnit XML, not from `BUILD SUCCESSFUL`), `flutter analyze` clean, `flutter test` 300/300, `flutter build apk --debug` succeeding with zero `e:` lines. **Not verified: it has never spoken to a real HTTP proxy on a real device** — every test replies from a localhost `ServerSocket` with a canned status line, and the `IllegalArgumentException("Invalid Proxy")` this work exists to fix is Android-only and cannot be reproduced on the desktop JVM the unit tests run on. See its Known gaps below. |
 
 Each plan's own **Handoff** and **Known gaps** sections at the bottom are the
 authoritative record of what it produces for later plans and what it
@@ -426,7 +427,9 @@ task that covers it.
   never fire — evidence it was designed and dropped, not scoped out. (2)
   whether Android supports `Proxy.Type.HTTP` for a raw `Socket` is an open
   question, deciding whether the HTTP-proxy route tunnels via CONNECT or is
-  non-functional. Defect 1 was documented first and then, the same day, fixed
+  non-functional. *(That question is answered: it does not support it. It
+  became defect (a) below, and Plan 10 then wrote the CONNECT by hand.)*
+  Defect 1 was documented first and then, the same day, fixed
   at `9c598a1` after the user reversed the "document now, fix later"
   decision: `ProxyHttpClient.fetch` takes a `secure` flag and wraps the
   connected socket in an `SSLSocket` for https, with
@@ -440,22 +443,31 @@ task that covers it.
   `endpointIdentificationAlgorithm`'s behavior on Android's provider are
   untested. (An earlier version of this entry claimed the TLS wrap also made
   the HTTP-proxy defect fail *safe* via hostname verification. That was
-  **wrong** — an HTTP-proxy route never reaches TLS at all; see below.)
-  **Two further defects are open and unowned.** (a) **HTTP proxy mode is
-  non-functional on Android.** `Router.connect` builds
+  **wrong** — an HTTP-proxy route never reaches TLS at all; see below. That
+  correction described the tree as it stood; since Plan 10 an HTTP-proxy route
+  *does* reach TLS, over the CONNECT tunnel, and `startTls` wraps against the
+  target host — so hostname verification is against the destination, not the
+  proxy.)
+  **Two further defects were found here: (a) is fixed, (b) is open and
+  unowned.** (a) **✅ Fixed 2026-09-09 by Plan 10 — HTTP proxy mode *was*
+  non-functional on Android.** The original record is kept below because it is
+  how the defect was found and why the interim fix exists; the fix note
+  follows it. `Router.connect` built
   `Socket(Proxy(Type.HTTP, ...))`, and AOSP removed HTTP-proxy support from
   `java.net.Socket` — verified in
   `$LOCALAPPDATA/Android/Sdk/sources/android-36/java/net/Socket.java`, which
-  throws `IllegalArgumentException("Invalid Proxy")` at construction. It is
+  throws `IllegalArgumentException("Invalid Proxy")` at construction. It was
   user-reachable (`ProxyMode.http`, and an "HTTP" chip in the add-site
-  Network tab beside SOCKS5), so every such site fails on every page load and
-  download; SOCKS5 and direct are unaffected. It is also **misreported** — the
+  Network tab beside SOCKS5), so every such site failed on every page load and
+  download; SOCKS5 and direct were unaffected. It was also **misreported** — the
   throw lands in `RequestInterceptor`'s catch-all and surfaces as
   `UPSTREAM_TIMEOUT`, "The destination did not respond," for a destination
   never contacted — and **fails late**, since `ProxyProbe` opens a plain
   socket to the proxy and succeeds, so the site looks healthy until it
-  doesn't. **Interim fix, same day:** `Router.resolve` and its Dart mirror
-  `resolveRoute` now refuse any non-`socks5` mode up front as `MISCONFIGURED`,
+  doesn't. **Interim fix, same day** *(since undone by Plan 10 — see the Real
+  fix below; described here in the present tense it was written in)***:**
+  `Router.resolve` and its Dart mirror
+  `resolveRoute` refuse any non-`socks5` mode up front as `MISCONFIGURED`,
   so the failure is immediate and honestly labelled rather than a late bogus
   timeout; `RequestInterceptor` maps `IllegalArgumentException` the same way as
   defence in depth. This fixes the reporting, **not the feature** — an HTTP
@@ -464,7 +476,21 @@ task that covers it.
   copy would be a new string, which the spec does not provide. The "HTTP" chip
   in the Network tab was left in place because it is in the authoritative
   canvas spec — removing it is a design decision, not a bug fix. A real fix
-  means implementing CONNECT by hand. (b)
+  means implementing CONNECT by hand.
+  **Real fix, 2026-09-09 (Plan 10, commits `64c0fa6`/`f6bd41b`/`5e42dd5`):**
+  CONNECT is now implemented by hand in `HttpConnectTunnel.kt`, `Router.connect`
+  routes `socks = false` proxies through it, and the `ca9552c` interim guard is
+  undone on both sides — `Router.resolve` re-admits `http` **by name** (an
+  unrecognised mode is still `MISCONFIGURED`, which is the property that guard
+  protected), and the Dart mirror is deleted. So the inaccurate "This site has
+  no proxy configured" copy is no longer shown for an http site, and a proxy
+  that refuses CONNECT now reports `PROXY_REFUSED`, "The proxy refused the
+  destination" — that failure's first producer ever. The "HTTP" chip is still
+  in place and now backed by something that works. **Verified only by JVM unit
+  tests against a localhost fake proxy and a clean APK build; it has never run
+  against a real HTTP proxy on a real device**, and the Android-only
+  `IllegalArgumentException` it fixes cannot even be reproduced on the desktop
+  JVM those tests run on. See Plan 10's row and its known gaps. (b)
   `DownloadFetcher.fetchTo` passes no request headers, so keep-in-container
   sends neither `User-Agent` nor `Cookie` while `saveViaDownloadManager` sends
   both — a cookie-gated download succeeds via Direct save-to-device and fails
@@ -487,6 +513,67 @@ task that covers it.
   section, gated behind a PIN-entry screen that checks the decoy PIN via the
   existing `VaultUnlocker`/attempt-gate before opening the decoy vault just
   long enough to sync and close it again.
+- **Gaps Plan 10 (HTTP CONNECT tunnel) leaves open.** The mode works now; these
+  are the edges it deliberately does not cover, recorded verbatim from that
+  plan's Task 4 Step 3 so they are not rediscovered as bugs:
+  - **No proxy authentication.** A proxy answering `407 Proxy Authentication
+    Required` is reported as `PROXY_REFUSED` and the request fails. There is no
+    credential storage, no `Proxy-Authorization` header, and no UI for either.
+    Authenticated HTTP proxies do not work.
+  - **No CONNECT for SOCKS.** Unchanged and correct — SOCKS is still delegated
+    to the platform, which supports it.
+  - **Untested against a real proxy.** Every test in Tasks 1 and 2 talks to a
+    `ServerSocket` on localhost that replies with a canned status line. Real
+    proxies vary in header handling, keep-alive behaviour and error bodies.
+    This shares the limitation of the whole engine: **Task 7 Step 4 of the
+    download-manager plan is recorded UNREACHABLE because no Android device is
+    available here.**
+  - **`ProxyProbe` still probes the proxy, not the tunnel.** `ProxyProbe.reachable`
+    opens a plain socket to `host:port`, so a proxy that is up but refuses
+    CONNECT to a given destination still reports reachable, and the site reads
+    as correctly configured until the request fails. Narrower than before this
+    plan — the failure is now named correctly rather than reported as a timeout
+    — but the ordering is unchanged.
+
+  Two further gaps came out of the branch review rather than the plan, both
+  verified against the tree at `5e42dd5`. Task 4 recorded them unfixed because
+  that task changes documentation only; **both were then fixed at `81a69f2`**,
+  after an independent re-run of the four verification commands. The findings
+  are kept as written because they record what the review actually caught —
+  each carries its own resolution:
+  - **`ProxyHttpClient.startTls`'s doc comment now asserts the opposite of what
+    the code does.** It still reads "There is deliberately no CONNECT-tunnel
+    case here … a `Route.Proxy` with `socks = false` throws
+    `IllegalArgumentException` at socket construction and never reaches this
+    function." Since `f6bd41b` that socket arrives on every `https` load through
+    an HTTP proxy, and the enumeration just above it ("a direct socket or a
+    SOCKS-routed one") is missing its third case. Behaviour is correct — the
+    wrap uses the target host, so hostname verification is against the
+    destination — but the stale sentence sits on the one function whose
+    `endpointIdentificationAlgorithm` line the tunnel's security depends on,
+    telling a future auditor the case cannot exist. A comment-only fix.
+    **Fixed at `81a69f2`:** the enumeration now names all three socket kinds and
+    the paragraph says the HTTP-proxy case does reach the function, and why that
+    makes the certificate check meaningful on a proxied route. No code changed.
+  - **`DownloadFetcher.failureFor` mis-names a direct site's `ConnectException`.**
+    It mirrors `RequestInterceptor`'s mapping, but the two have different
+    preconditions: `RequestInterceptor.fetchThrough` runs only for
+    `Route.Proxy`, while `DownloadFetcher` applies the same lambda to
+    `keepInContainer`, which runs for any route including `Route.Direct`. A
+    refused connection on a direct-routed keep-in-container download therefore
+    reports `PROXY_UNREACHABLE` and renders as "Cannot reach the proxy" for a
+    site that has no proxy at all; before `5e42dd5` the reason was null and the
+    user saw the accurate "Download failed". Gating the proxy-flavoured entries
+    on `route is Route.Proxy` would fix it. Not a routing-constraint violation
+    — nothing goes direct that should not — only copy accuracy on a path this
+    branch newly made reachable.
+    **Fixed at `81a69f2`:** `failureFor` now takes the route and maps a
+    `ConnectException` to `PROXY_UNREACHABLE` only for a `Route.Proxy`, falling
+    back to `UPSTREAM_TIMEOUT` ("The destination did not respond") for a direct
+    one. That is the honest member of the five existing `RouteFailure` strings —
+    a direct site's refused connection genuinely is the destination failing to
+    answer. No copy was reworded and no enum value was added, since either would
+    be a spec question rather than a bug fix.
 
 ## Working on this repo
 
