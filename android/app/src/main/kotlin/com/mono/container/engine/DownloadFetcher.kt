@@ -13,24 +13,37 @@ class DownloadFetcher(private val context: android.content.Context) {
         val fileName = sanitizeFileName(pending.fileName)
         return when (decisionName) {
             "keepInContainer" -> runCatching { keepInContainer(route, config, pending, fileName) }
-                .getOrElse { DownloadOutcome.Failed(failureFor(it)) }
+                .getOrElse { DownloadOutcome.Failed(failureFor(it, route)) }
             "saveToDevice" -> when (route) {
                 is Route.Direct -> runCatching { saveViaDownloadManager(config, pending, fileName) }
-                    .getOrElse { DownloadOutcome.Failed(failureFor(it)) }
+                    .getOrElse { DownloadOutcome.Failed(failureFor(it, route)) }
                 is Route.Proxy -> runCatching { saveViaMediaStore(route, pending, fileName) }
-                    .getOrElse { DownloadOutcome.Failed(failureFor(it)) }
+                    .getOrElse { DownloadOutcome.Failed(failureFor(it, route)) }
                 is Route.Refused -> error("handled above")
             }
             else -> error("unsupported download decision")
         }
     }
 
-    /** Mirrors [RequestInterceptor]'s mapping so a download names the same cause a page load would. */
-    private fun failureFor(error: Throwable): RouteFailure? = when (error) {
+    /**
+     * Mirrors [RequestInterceptor]'s mapping so a download names the same cause
+     * a page load would.
+     *
+     * [route] is why this is not a verbatim copy of that mapping. `fetchThrough`
+     * only ever runs for a [Route.Proxy], so it can read a
+     * [java.net.ConnectException] as "the proxy is down". This function also
+     * runs for [Route.Direct], where there is no proxy to be unreachable and the
+     * same exception means the destination refused the connection — reporting
+     * PROXY_UNREACHABLE there would show "Cannot reach the proxy" for a site
+     * that has no proxy configured.
+     */
+    private fun failureFor(error: Throwable, route: Route): RouteFailure? = when (error) {
         is ProxyTunnelException -> RouteFailure.PROXY_REFUSED
         is java.net.SocketTimeoutException -> RouteFailure.UPSTREAM_TIMEOUT
         is javax.net.ssl.SSLException -> RouteFailure.TLS_FAILURE
-        is java.net.ConnectException -> RouteFailure.PROXY_UNREACHABLE
+        is java.net.ConnectException ->
+            if (route is Route.Proxy) RouteFailure.PROXY_UNREACHABLE
+            else RouteFailure.UPSTREAM_TIMEOUT
         else -> null
     }
 
