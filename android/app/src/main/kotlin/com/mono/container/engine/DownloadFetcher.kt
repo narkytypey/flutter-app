@@ -13,16 +13,25 @@ class DownloadFetcher(private val context: android.content.Context) {
         val fileName = sanitizeFileName(pending.fileName)
         return when (decisionName) {
             "keepInContainer" -> runCatching { keepInContainer(route, config, pending, fileName) }
-                .getOrElse { DownloadOutcome.Failed(null) }
+                .getOrElse { DownloadOutcome.Failed(failureFor(it)) }
             "saveToDevice" -> when (route) {
                 is Route.Direct -> runCatching { saveViaDownloadManager(config, pending, fileName) }
-                    .getOrElse { DownloadOutcome.Failed(null) }
+                    .getOrElse { DownloadOutcome.Failed(failureFor(it)) }
                 is Route.Proxy -> runCatching { saveViaMediaStore(route, pending, fileName) }
-                    .getOrElse { DownloadOutcome.Failed(null) }
+                    .getOrElse { DownloadOutcome.Failed(failureFor(it)) }
                 is Route.Refused -> error("handled above")
             }
             else -> error("unsupported download decision")
         }
+    }
+
+    /** Mirrors [RequestInterceptor]'s mapping so a download names the same cause a page load would. */
+    private fun failureFor(error: Throwable): RouteFailure? = when (error) {
+        is ProxyTunnelException -> RouteFailure.PROXY_REFUSED
+        is java.net.SocketTimeoutException -> RouteFailure.UPSTREAM_TIMEOUT
+        is javax.net.ssl.SSLException -> RouteFailure.TLS_FAILURE
+        is java.net.ConnectException -> RouteFailure.PROXY_UNREACHABLE
+        else -> null
     }
 
     private fun keepInContainer(route: Route, config: SiteConfig, pending: PendingDownload, fileName: String): DownloadOutcome {

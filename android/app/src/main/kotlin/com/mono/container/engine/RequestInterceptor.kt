@@ -45,12 +45,14 @@ class RequestInterceptor(private val filters: FilterEngine, private val onRefuse
             WebResourceResponse(mimeType, charset, response.status, response.reason, response.headers, response.body)
         }.getOrElse { error ->
             refused(when (error) {
+                is ProxyTunnelException -> RouteFailure.PROXY_REFUSED
                 is java.net.SocketTimeoutException -> RouteFailure.UPSTREAM_TIMEOUT
                 is javax.net.ssl.SSLException -> RouteFailure.TLS_FAILURE
                 is java.net.ConnectException -> RouteFailure.PROXY_UNREACHABLE
-                // Unreachable while Router.resolve refuses non-socks5 modes up
-                // front, but kept so an unsupported Proxy.Type can never again
-                // surface to the user as a bogus upstream timeout.
+                // Router.resolve admits only the modes connect() can open, so
+                // nothing reaches this today. Kept so that any future
+                // unsupported Proxy.Type can never again surface to the user
+                // as a bogus upstream timeout.
                 is IllegalArgumentException -> RouteFailure.MISCONFIGURED
                 else -> RouteFailure.UPSTREAM_TIMEOUT
             })
