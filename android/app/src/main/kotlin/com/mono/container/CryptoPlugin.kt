@@ -133,7 +133,7 @@ class CryptoPlugin(private val core: CryptoCore = CryptoCore()) :
 
             main.post {
                 reply.fold(
-                    onSuccess = { result.success(it) },
+                    onSuccess = { result.success(channelReply(it)) },
                     onFailure = {
                         if (it is UnsupportedOperationException) result.notImplemented()
                         else result.error("crypto", it.message, null)
@@ -147,3 +147,11 @@ class CryptoPlugin(private val core: CryptoCore = CryptoCore()) :
         const val CHANNEL = "com.mono.container/crypto"
     }
 }
+
+/**
+ * What a method-channel reply may carry. A method with nothing to return
+ * yields `Unit` in Kotlin, which `StandardMessageCodec` cannot encode: the
+ * reply throws on the main thread and kills the process. `destroyDeviceKey`
+ * did exactly that, mid-panic.
+ */
+internal fun channelReply(value: Any?): Any? = if (value == Unit) null else value
