@@ -33,7 +33,7 @@ Each plan ships working, tested software on its own.
 | 6 — Integration | `2026-09-02-isolated-web-container-06-integration.md` | Written 2026-09-02 | Wires the five plans into one navigable app: `ContainerRoute` navigation shell, discriminated native events (permission asks, held downloads, tunnel-drop) reaching Plan 4's screens, per-category `FilterEngine`/`BlockedTallyRecorder` feeding a live Today log, `SiteSheet` toggle persistence, and the decoy-sync correction. Implements `docs/superpowers/specs/2026-09-02-integration-design.md` (approved by the user 2026-09-02); three places deliberately correct or narrow that spec against what the tree can actually do — see the plan's own header. 7 tasks. Being executed 2026-09-04 by a peer session (flutter-app-0f) in its own worktree. Explicitly leaves search and biometric unlock unbuilt — see Unassigned Work below. |
 | 7 — Search | `2026-09-04-isolated-web-container-07-search.md` | **Done** (2026-09-08) | Wires `DashboardFooter`'s long-dead search button to a real screen: `SiteRepository.all()`, a `searchResults()` join/filter/sort across every workspace in the open vault, and a pure `SearchScreen`. Implements `docs/superpowers/specs/2026-09-04-search-screen-design.md` (brainstormed and approved by the user 2026-09-04) — that spec itself stands in for the missing canvas screen block, since search was never actually designed anywhere. 5 tasks, all executed; final-review fix wave (2026-09-08) made tapping a search result push a real `ContainerRoute` (it previously only marked the site open and popped back to the dashboard) and fixed `allSitesProvider` never being invalidated, so search now sees adds/deletes/touches made after it first loaded. |
 | 9 — Decoy re-sync | `2026-09-08-decoy-resync.md` | **Done** (2026-09-08) | Gives the owner a reachable "re-sync with the decoy PIN" flow from Settings, replacing the setup-time-only `provisionDecoy` with `resyncDecoy` (`lib/data/repositories/decoy_provisioner.dart`) — a real add-and-remove sync that preserves an already-synced site's `profileId` so its decoy-side cookies/history survive repeated syncs. Persists `decoy_configured` on the real vault (`SetupController.complete`) and wires it to `decoyEnabledProvider`/`decoySiteCountProvider`, so `SettingsScreen`'s VAULT section — hardcoded invisible before this plan — now actually shows or hides based on whether a decoy was configured. Adds `DecoyResyncPinScreen` (pure widget, reuses `PinDots`/`PinKeypad`) and `DecoyResyncRoute` (reuses `LockController`, calls the new `SettingsController.resyncDecoyVault`, which checks the entered PIN against both vault slots via the existing `VaultUnlocker`/attempt-gate before opening the decoy vault just long enough to sync and close it). Implements `docs/superpowers/specs/2026-09-08-decoy-resync-design.md`. 5 tasks, all executed. |
-| 10 — HTTP CONNECT tunnel | `2026-09-09-http-connect-tunnel.md` | **Done** (2026-09-09) | Makes `ProxyMode.http` actually work by hand-writing the CONNECT tunnel AOSP removed from `java.net.Socket`. New `android/app/src/main/kotlin/com/mono/container/engine/HttpConnectTunnel.kt`: `HttpConnectTunnel.open(proxyHost, proxyPort, targetHost, targetPort)` opens a plain socket to the proxy, writes `CONNECT host:port HTTP/1.1`, requires a 2xx, drains the header block so the returned socket sits at the first byte of tunnel payload, and otherwise throws the new `ProxyTunnelException(statusCode, message)` after closing the socket. `Router.connect`'s `Route.Proxy` branch now splits on `route.socks` — SOCKS still delegated to the platform, `http` to the tunnel — and no executable `java.net.Proxy.Type.HTTP` remains in the tree. Undoes the `ca9552c` interim guard on both sides (`Router.resolve` re-admits `http` **by name**, so an unrecognised mode is still `MISCONFIGURED`; the Dart mirror in `resolveRoute` is deleted, `ProxyMode` being a closed enum). Gives `RouteFailure.PROXY_REFUSED` its first producer in this repo's history, via `RequestInterceptor` and `DownloadFetcher` mapping `ProxyTunnelException` — the existing copy `'The proxy refused the destination'` was not reworded. `ProxyHttpClient` needed no code change: `startTls` already wraps whatever socket `Router.connect` returns, against the target host. This plan has **no design spec** — it was written from defect 5 of the download-manager plan, and the user approved its three design decisions inline on 2026-09-09 (hand-rolled CONNECT over a new dependency, no proxy authentication, `PROXY_REFUSED` as the mapping). 4 tasks, all executed; commits `64c0fa6`/`f6bd41b`/`5e42dd5` plus this documentation pass. Verified 2026-09-09 on a clean tree: Kotlin JVM tests 12/12 (`HttpConnectTunnelTest` 3, `RouterTest` 5, `FilterEngineTest` 4, counts read from the JUnit XML, not from `BUILD SUCCESSFUL`), `flutter analyze` clean, `flutter test` 300/300, `flutter build apk --debug` succeeding with zero `e:` lines. **Not verified: it has never spoken to a real HTTP proxy on a real device** — every test replies from a localhost `ServerSocket` with a canned status line, and the `IllegalArgumentException("Invalid Proxy")` this work exists to fix is Android-only and cannot be reproduced on the desktop JVM the unit tests run on. See its Known gaps below. |
+| 10 — HTTP CONNECT tunnel | `2026-09-09-http-connect-tunnel.md` | **Done** (2026-09-09) | Makes `ProxyMode.http` actually work by hand-writing the CONNECT tunnel AOSP removed from `java.net.Socket`. New `android/app/src/main/kotlin/com/mono/container/engine/HttpConnectTunnel.kt`: `HttpConnectTunnel.open(proxyHost, proxyPort, targetHost, targetPort)` opens a plain socket to the proxy, writes `CONNECT host:port HTTP/1.1`, requires a 2xx, drains the header block so the returned socket sits at the first byte of tunnel payload, and otherwise throws the new `ProxyTunnelException(statusCode, message)` after closing the socket. `Router.connect`'s `Route.Proxy` branch now splits on `route.socks` — SOCKS still delegated to the platform, `http` to the tunnel — and no executable `java.net.Proxy.Type.HTTP` remains in the tree. Undoes the `ca9552c` interim guard on both sides (`Router.resolve` re-admits `http` **by name**, so an unrecognised mode is still `MISCONFIGURED`; the Dart mirror in `resolveRoute` is deleted, `ProxyMode` being a closed enum). Gives `RouteFailure.PROXY_REFUSED` its first producer in this repo's history, via `RequestInterceptor` and `DownloadFetcher` mapping `ProxyTunnelException` — the existing copy `'The proxy refused the destination'` was not reworded. `ProxyHttpClient` needed no code change: `startTls` already wraps whatever socket `Router.connect` returns, against the target host. This plan has **no design spec** — it was written from defect 5 of the download-manager plan, and the user approved its three design decisions inline on 2026-09-09 (hand-rolled CONNECT over a new dependency, no proxy authentication, `PROXY_REFUSED` as the mapping). 4 tasks, all executed; commits `64c0fa6`/`f6bd41b`/`5e42dd5` plus this documentation pass. Verified 2026-09-09 on a clean tree: Kotlin JVM tests 12/12 (`HttpConnectTunnelTest` 3, `RouterTest` 5, `FilterEngineTest` 4, counts read from the JUnit XML, not from `BUILD SUCCESSFUL`), `flutter analyze` clean, `flutter test` 300/300, `flutter build apk --debug` succeeding with zero `e:` lines. **Not verified: it has never spoken to a real HTTP proxy on a real device** — every test replies from a localhost `ServerSocket` with a canned status line, and the `IllegalArgumentException("Invalid Proxy")` this work exists to fix is Android-only and cannot be reproduced on the desktop JVM the unit tests run on. See its Known gaps below. **Update, 2026-09-28:** exercised on an Android emulator (not a physical phone) through a minimal local CONNECT proxy (a Python script, not a real-world proxy): an http-mode Google site went live with every request tunnelled, and a destination the proxy deliberately routed to the wrong server was refused with `SSLHandshakeException: No subjectAltNames on the certificate match` — hostname verification against the target, over the tunnel, on Android's provider. See "Device verification" below. |
 
 Each plan's own **Handoff** and **Known gaps** sections at the bottom are the
 authoritative record of what it produces for later plans and what it
@@ -592,6 +592,50 @@ task that covers it.
     a direct site's refused connection genuinely is the destination failing to
     answer. No copy was reworded and no enum value was added, since either would
     be a spec question rather than a bug fix.
+
+## Device verification (2026-09-28, branch `device-verification-fixes`)
+
+First time the app ran on Android at all: an `sdk_gphone64_x86_64` emulator,
+driven through `adb`/`uiautomator`. Screenshots come back solid black because
+the app sets `FLAG_SECURE` (`secure_window.dart`) — read the UI tree instead.
+Every bug below passed `flutter test` and the JVM tests; each was invisible to
+them for the reason given.
+
+Fixed, each with a regression test except the manifest:
+- `3d0a778` — **no `INTERNET` permission in the main manifest.** Flutter's
+  template declares it only for debug/profile, so a release build could load
+  nothing.
+- `a42896d` — **`EngineChannel.open` probed the proxy on the main thread.**
+  Android throws `NetworkOnMainThreadException`, `ProxyProbe` read that as
+  unreachable, and every proxied site was refused. The probe now runs on the
+  network executor; `PendingOpens` tickets stop an open overtaken by `close`
+  or panic's `wipeAll` from registering late (and from recreating a profile
+  panic just deleted).
+- `7996a17` — **every site hung on the opening checklist.** `ContainerRoute`
+  waited for `live` before building the view whose first load is what reports
+  `live`; and `sessionForSiteProvider` read its snapshot before subscribing,
+  losing a registration that landed in between. `FakeContainerEngine` had
+  reported sessions as `live` immediately, hiding both — it now has
+  `opensLive: false`/`markLive` for tests that need the real handoff.
+- `339afcf` — **a failed keep-in-container download left a truncated file**,
+  one more per retry. `writeDownload` writes a `.part`, checks
+  `Content-Length`, rejects non-2xx, and renames only on success.
+
+Seen working on the emulator: setup wizard with both PINs, lock/wrong-PIN/
+unlock (`9a`), the encrypted vault surviving a reinstall, a direct HTTPS site,
+an http-proxy site over the CONNECT tunnel (see Plan 10's row), the held
+download sheet, and a direct-route save to device via `DownloadManager`.
+
+Still open:
+- **Keep-in-container over HTTPS fails mid-body on the emulator** with
+  `SSLProtocolException: Read error` (BoringSSL `BAD_RECORD_MAC`), now
+  reported as `TLS_FAILURE` with nothing left on disk. A standalone probe
+  reproduced it on the emulator with a plain `SSLSocket` too, and the same
+  probe on the host JVM succeeded 6/6 — so it is most likely the emulator's
+  network, but that is unproven until it is tried on a physical phone.
+- **The held-download sheet showed "0 B"** for a 190 KB PDF. The size is
+  `DownloadListener`'s `contentLength`, passed through unchanged; why it was 0
+  was not investigated.
 
 ## Working on this repo
 
