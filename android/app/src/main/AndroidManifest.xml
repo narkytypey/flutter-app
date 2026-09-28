@@ -1,4 +1,8 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- The app is a browser. Flutter's template puts INTERNET only in the
+         debug and profile manifests (for hot reload), so without this line a
+         release build ships unable to load a single page. -->
+    <uses-permission android:name="android.permission.INTERNET"/>
     <application
         android:label="Container"
         android:name="${applicationName}"

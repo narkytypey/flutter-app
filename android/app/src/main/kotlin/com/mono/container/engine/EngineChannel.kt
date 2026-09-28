@@ -97,6 +97,33 @@ class Session(val config: SiteConfig, rulesByCategory: Map<String, List<String>>
 }
 
 /**
+ * One ticket per `open` whose route is still being decided off the main
+ * thread. `close` and panic's `wipeAll` revoke tickets, and an open whose
+ * ticket was revoked must not register: it would bring back a session nobody
+ * holds, and after panic its `profileFor` would recreate a profile panic had
+ * just deleted. Main-thread only, like the session map it guards.
+ */
+class PendingOpens {
+    private val tickets = HashMap<String, Any>()
+
+    /** A newer open of the same site supersedes any older one still in flight. */
+    fun begin(siteId: String): Any = Any().also { tickets[siteId] = it }
+
+    fun cancel(siteId: String) {
+        tickets.remove(siteId)
+    }
+
+    fun cancelAll() = tickets.clear()
+
+    /** True, once, if [ticket] is still the current open for [siteId]. */
+    fun finish(siteId: String, ticket: Any): Boolean {
+        if (tickets[siteId] !== ticket) return false
+        tickets.remove(siteId)
+        return true
+    }
+}
+
+/**
  * Routes `com.mono.container/engine` and pushes the live session list to
  * `com.mono.container/sessions`.
  *
@@ -112,9 +139,11 @@ class EngineChannel(
 ) : MethodChannel.MethodCallHandler, EventChannel.StreamHandler {
 
     private val sessions = LinkedHashMap<String, Session>()
+    private val pendingOpens = PendingOpens()
     private var sink: EventChannel.EventSink? = null
     private var requestCounter = 0
-    private val downloadExecutor = java.util.concurrent.Executors.newCachedThreadPool()
+    /** Blocking network work: route probes and download fetches. Never the main thread. */
+    private val networkExecutor = java.util.concurrent.Executors.newCachedThreadPool()
     private val mainHandler = android.os.Handler(android.os.Looper.getMainLooper())
     private val downloadFetcher = DownloadFetcher(context, profiles)
 
@@ -196,7 +225,7 @@ class EngineChannel(
         try {
             when (call.method) {
                 "isolationAvailable" -> result.success(profiles.isAvailable())
-                "open" -> result.success(open(call))
+                "open" -> open(call, result)
                 "close" -> {
                     close(call.argument<String>("siteId")!!)
                     result.success(null)
@@ -232,22 +261,63 @@ class EngineChannel(
         }
     }
 
-    private fun open(call: MethodCall): Map<String, Any?> {
+    /**
+     * Decides the route off the main thread, then registers the session back
+     * on it.
+     *
+     * The split is load-bearing. `currentRoute()` probes a proxy with a
+     * blocking connect, and Android throws `NetworkOnMainThreadException` for
+     * any socket opened on this thread — which [ProxyProbe]'s `runCatching`
+     * reads as "unreachable". Deciding the route here therefore refused every
+     * proxied site on a device, with copy claiming nothing was listening,
+     * while the JVM unit tests (which have no such rule) all passed. The
+     * session map and `ProfileStore` are main-thread state, so everything
+     * except the probe stays here.
+     *
+     * An open that [close] or [wipeAll] overtook while its probe ran is
+     * answered without being registered — see [PendingOpens].
+     */
+    private fun open(call: MethodCall, result: MethodChannel.Result) {
         val config = configFrom(call)
+        if (!profiles.isAvailable()) {
+            result.success(register(config, route = null))
+            return
+        }
+        val ticket = pendingOpens.begin(config.siteId)
+        networkExecutor.execute {
+            val route = runCatching { config.currentRoute() }
+            mainHandler.post {
+                if (!pendingOpens.finish(config.siteId, ticket)) {
+                    result.success(Session(config, rulesByCategory).toMap())
+                    return@post
+                }
+                // Off onMethodCall's try/catch now, so a throw here would
+                // crash the main thread rather than reach Dart as an error.
+                route.mapCatching { register(config, it) }.fold(
+                    onSuccess = { result.success(it) },
+                    onFailure = { result.error("engine", it.message, null) },
+                )
+            }
+        }
+    }
+
+    /** [route] is null only when isolation itself is unavailable. */
+    private fun register(config: SiteConfig, route: Route?): Map<String, Any?> {
         val session = Session(config, rulesByCategory)
         session.onTunnelDropped = { failure -> onTunnelDropped(config.siteId, failure) }
         sessions[config.siteId] = session
 
-        if (!profiles.isAvailable()) {
-            // Global Constraints: refuse rather than share the default profile.
-            session.phase = Session.PHASE_REFUSED
-            session.failure = null // no route was even attempted; isolation itself is unavailable
-        } else {
-            val route = config.currentRoute()
-            if (route is Route.Refused) {
+        when (route) {
+            null -> {
+                // Global Constraints: refuse rather than share the default profile.
+                session.phase = Session.PHASE_REFUSED
+                session.failure = null // no route was even attempted; isolation itself is unavailable
+            }
+            is Route.Refused -> {
                 session.phase = Session.PHASE_REFUSED
                 session.failure = route.failure.name.let(::routeFailureToDartName)
-            } else {
+            }
+            else -> {
                 // Creates the profile now so the view can attach it before its
                 // first load, and so a wipe has something to delete.
                 profiles.profileFor(config.profileId)
@@ -309,7 +379,7 @@ class EngineChannel(
                     emitDownloadResult(requestId, DownloadOutcome.Failed(null))
                     return
                 }
-            downloadExecutor.execute {
+            networkExecutor.execute {
                 val outcome = downloadFetcher.run(session.config, pending, request, decisionName)
                 mainHandler.post { emitDownloadResult(requestId, outcome) }
             }
@@ -336,6 +406,7 @@ class EngineChannel(
     }
 
     private fun close(siteId: String) {
+        pendingOpens.cancel(siteId)
         val session = sessions.remove(siteId) ?: return
         // Flutter disposes the platform view when its AndroidView leaves the
         // tree, but `close` can also arrive from `2c` while the view is
@@ -349,6 +420,7 @@ class EngineChannel(
      * a live WebView, so every session closes before the store is emptied.
      */
     private fun wipeAll() {
+        pendingOpens.cancelAll()
         for (siteId in sessions.keys.toList()) close(siteId)
         java.io.File(context.filesDir, "downloads").deleteRecursively()
         profiles.wipeAll()

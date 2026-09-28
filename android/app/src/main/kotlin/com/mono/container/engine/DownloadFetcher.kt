@@ -47,6 +47,46 @@ fun downloadRequest(url: String, userAgent: String, cookie: String?): DownloadRe
     )
 }
 
+/** The origin answered, but not with the file — a login page, a 404. */
+class DownloadRejectedException(val status: Int) : java.io.IOException("download answered $status")
+
+/** The connection closed cleanly before [expected] bytes arrived. */
+class IncompleteDownloadException(val received: Long, val expected: Long) :
+    java.io.IOException("download ended at $received of $expected bytes")
+
+/**
+ * Streams [response]'s body into [target], and leaves [target] in place only
+ * if the download is whole.
+ *
+ * Found on a device: a TLS read error partway through left a truncated PDF in
+ * the container, and every retry added another beside it, none openable. So
+ * the body goes to a `.part` sibling that is renamed only on success and
+ * deleted on any failure, a short body is refused against `Content-Length`
+ * (a clean early close is otherwise indistinguishable from the end), and a
+ * non-2xx answer never becomes the file at all — a 401 login page kept as
+ * `report.pdf` would read as a success.
+ *
+ * A read error is rethrown unchanged so `failureFor` can still name it.
+ */
+fun writeDownload(response: ProxyHttpClient.FetchedResponse, target: java.io.File) {
+    if (response.status !in 200..299) {
+        response.body.close()
+        throw DownloadRejectedException(response.status)
+    }
+    val expected = response.headers.entries
+        .firstOrNull { it.key.equals("Content-Length", ignoreCase = true) }
+        ?.value?.trim()?.toLongOrNull()
+    val part = java.io.File(target.parentFile, "${target.name}.part")
+    try {
+        val received = java.io.FileOutputStream(part).use { out -> response.body.use { it.copyTo(out) } }
+        if (expected != null && received != expected) throw IncompleteDownloadException(received, expected)
+        if (!part.renameTo(target)) throw java.io.IOException("could not move ${part.name} into place")
+    } catch (e: Throwable) {
+        part.delete()
+        throw e
+    }
+}
+
 class DownloadFetcher(
     private val context: android.content.Context,
     private val profiles: ProfileManager,
@@ -142,7 +182,7 @@ class DownloadFetcher(
         val response = ProxyHttpClient.fetch(
             route, request.host, request.port, request.secure, "GET", request.path, request.headers,
         )
-        java.io.FileOutputStream(target).use { output -> response.body.use { it.copyTo(output) } }
+        writeDownload(response, target)
     }
 
     /**

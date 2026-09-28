@@ -6,6 +6,7 @@ import 'package:container/domain/models/route_decision.dart';
 import 'package:container/domain/models/site.dart';
 import 'package:container/ui/features/container/view_models/providers.dart';
 import 'package:container/ui/features/container/views/container_route.dart';
+import 'package:container/ui/features/container/views/container_web_view.dart';
 import 'package:container/ui/features/in_page/views/proxy_unreachable_screen.dart';
 import 'package:container/ui/features/in_page/views/reader_screen.dart';
 import 'package:flutter/material.dart';
@@ -47,6 +48,38 @@ void main() {
     await tester.pump();
     await tester.pump();
     expect(find.text('forum.example.com'), findsOneWidget);
+  });
+
+  // The real engine reports `opening` until the native view's first load
+  // finishes, and that view only exists once ContainerWebView is built. A
+  // route that waits for `live` before building it never gets there — on a
+  // device every site sat on the checklist forever.
+  testWidgets('while opening, the page view is already built under the checklist', (tester) async {
+    final engine = FakeContainerEngine(opensLive: false);
+    await _pump(tester, engine, _site());
+    await tester.pump();
+    await tester.pump();
+
+    expect(find.text('Starting a clean container'), findsOneWidget);
+    expect(find.byType(ContainerWebView), findsOneWidget);
+  });
+
+  // Rebuilding the view on the handoff would dispose the native WebView —
+  // which, for a wipe-on-exit site, destroys its profile — and load the page
+  // a second time.
+  testWidgets('going live reveals the same page view rather than a new one', (tester) async {
+    final engine = FakeContainerEngine(opensLive: false);
+    await _pump(tester, engine, _site());
+    await tester.pump();
+    await tester.pump();
+    final before = tester.state(find.byType(PlatformViewLink));
+
+    engine.markLive('s1');
+    await tester.pump();
+    await tester.pump();
+
+    expect(find.text('Starting a clean container'), findsNothing);
+    expect(tester.state(find.byType(PlatformViewLink)), same(before));
   });
 
   testWidgets('a refused route pushes ProxyUnreachableScreen', (tester) async {

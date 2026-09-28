@@ -175,7 +175,11 @@ class _ContainerRouteState extends ConsumerState<ContainerRoute> {
         onCancel: () => Navigator.pop(context),
       ),
       data: (session) {
-        if (session == null || session.phase == SessionPhase.opening) {
+        // No session yet means `open` has not registered this site natively,
+        // and the platform refuses a view for an unregistered site — so only
+        // the checklist here. Once it exists, the page view is built even
+        // while `opening` (see the overlay below).
+        if (session == null) {
           return OpeningBody(
             host: _host, steps: openStepsFor(widget.site), progress: 0.6,
             onCancel: () => Navigator.pop(context),
@@ -233,6 +237,20 @@ class _ContainerRouteState extends ConsumerState<ContainerRoute> {
                 if (!context.mounted) return;
                 Navigator.pop(context);
               },
+            ),
+          // The checklist covers the page rather than replacing it. The
+          // native view only reports `live` once its first load finishes, and
+          // it only exists once ContainerWebView above is built — so the page
+          // must be building underneath while this shows, or it never
+          // arrives. Keeping ContainerScreen at the same position in this
+          // Stack is what lets going live remove the overlay without
+          // rebuilding the view (a rebuild disposes the native WebView).
+          if (session.phase == SessionPhase.opening)
+            Positioned.fill(
+              child: OpeningBody(
+                host: _host, steps: openStepsFor(widget.site), progress: 0.6,
+                onCancel: () => Navigator.pop(context),
+              ),
             ),
         ]);
       },

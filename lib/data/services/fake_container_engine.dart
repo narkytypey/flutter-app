@@ -15,10 +15,17 @@ class FakeContainerEngine implements ContainerEngine {
   FakeContainerEngine({
     this.isolation = true,
     this.proxyReachable = true,
+    this.opensLive = true,
   });
 
   bool isolation;
   bool proxyReachable;
+
+  /// Whether [open] reports a routable session as already `live`. The real
+  /// engine never does: it reports `opening`, and only the native view's
+  /// first finished load moves it to `live` (see [markLive]). Pass `false` to
+  /// test anything that depends on that handoff.
+  bool opensLive;
 
   final _sessions = <String, ContainerSession>{};
   final _controller = StreamController<List<ContainerSession>>.broadcast();
@@ -43,7 +50,9 @@ class FakeContainerEngine implements ContainerEngine {
     final decision = resolveRoute(site, proxyReachable: proxyReachable);
     final session = ContainerSession(
       siteId: site.id,
-      phase: decision is RouteRefused ? SessionPhase.refused : SessionPhase.live,
+      phase: decision is RouteRefused
+          ? SessionPhase.refused
+          : (opensLive ? SessionPhase.live : SessionPhase.opening),
       lastActiveAt: DateTime(2026, 8, 30, 12),
     );
     _sessions[site.id] = session;
@@ -122,6 +131,15 @@ class FakeContainerEngine implements ContainerEngine {
       categoryCounts: counts,
       blockedCount: counts.values.fold<int>(0, (a, b) => a + b),
     );
+    _emit();
+  }
+
+  /// Test helper: what the native `ContainerView` does when its first load
+  /// finishes — `EngineChannel.markLive` moves an `opening` session to `live`.
+  void markLive(String siteId) {
+    final current = _sessions[siteId];
+    if (current == null || current.phase == SessionPhase.refused) return;
+    _sessions[siteId] = current.copyWith(phase: SessionPhase.live);
     _emit();
   }
 
