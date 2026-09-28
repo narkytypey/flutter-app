@@ -18,6 +18,7 @@ import '../../settings/view_models/providers.dart'
         settingsControllerProvider;
 import '../../settings/views/decoy_resync_route.dart';
 import '../../settings/views/settings_screen.dart';
+import '../../workspaces/views/workspaces_route.dart';
 import '../view_models/providers.dart';
 import 'dashboard_body.dart';
 import 'site_row_menu.dart';
@@ -229,9 +230,13 @@ class _SettingsRoute extends ConsumerWidget {
         }
       },
       onTap: (key) {
-        if (key == 'resyncDecoy') {
-          Navigator.push(context,
-              MaterialPageRoute(builder: (_) => const DecoyResyncRoute()));
+        final Widget? destination = switch (key) {
+          'resyncDecoy' => const DecoyResyncRoute(),
+          'workspaces' => const WorkspacesRoute(),
+          _ => null,
+        };
+        if (destination != null) {
+          Navigator.push(context, MaterialPageRoute(builder: (_) => destination));
         }
       },
     );

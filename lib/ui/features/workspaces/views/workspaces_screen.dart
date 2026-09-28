@@ -23,12 +23,17 @@ class WorkspacesScreen extends StatelessWidget {
     super.key,
     required this.items,
     required this.onOpen,
+    this.onDelete,
     required this.onNewWorkspace,
     required this.onBack,
   });
 
   final List<WorkspaceListItem> items;
   final void Function(String id) onOpen;
+
+  /// Long-press on a row. Spec `10c` draws the delete confirmation but not
+  /// what leads to it; long-press is how a dashboard site row opens its menu.
+  final void Function(String id)? onDelete;
   final VoidCallback onNewWorkspace;
   final VoidCallback onBack;
 
@@ -61,7 +66,12 @@ class WorkspacesScreen extends StatelessWidget {
                 padding: const EdgeInsets.fromLTRB(18, 8, 18, 18),
                 children: [
                   for (final item in items)
-                    _WorkspaceRow(item: item, onTap: () => onOpen(item.id)),
+                    _WorkspaceRow(
+                      item: item,
+                      onTap: () => onOpen(item.id),
+                      onLongPress:
+                          onDelete == null ? null : () => onDelete!(item.id),
+                    ),
                   Padding(
                     padding: const EdgeInsets.only(top: 20),
                     child: GestureDetector(
@@ -97,15 +107,17 @@ class WorkspacesScreen extends StatelessWidget {
 }
 
 class _WorkspaceRow extends StatelessWidget {
-  const _WorkspaceRow({required this.item, required this.onTap});
+  const _WorkspaceRow({required this.item, required this.onTap, this.onLongPress});
 
   final WorkspaceListItem item;
   final VoidCallback onTap;
+  final VoidCallback? onLongPress;
 
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: onTap,
+      onLongPress: onLongPress,
       behavior: HitTestBehavior.opaque,
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 16),

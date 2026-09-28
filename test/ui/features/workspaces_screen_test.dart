@@ -14,6 +14,7 @@ void main() {
 
   Widget host({
     void Function(String id)? onOpen,
+    void Function(String id)? onDelete,
     VoidCallback? onNewWorkspace,
     VoidCallback? onBack,
   }) {
@@ -21,6 +22,7 @@ void main() {
       home: WorkspacesScreen(
         items: items,
         onOpen: onOpen ?? (_) {},
+        onDelete: onDelete,
         onNewWorkspace: onNewWorkspace ?? () {},
         onBack: onBack ?? () {},
       ),
@@ -57,5 +59,16 @@ void main() {
 
     expect(opened, ['ws-work']);
     expect(newTaps, 1);
+  });
+
+  testWidgets('long-pressing a row asks to delete that workspace', (tester) async {
+    final deleted = <String>[];
+    final opened = <String>[];
+    await tester.pumpWidget(host(onDelete: deleted.add, onOpen: opened.add));
+
+    await tester.longPress(find.text('Work'));
+
+    expect(deleted, ['ws-work']);
+    expect(opened, isEmpty);
   });
 }
