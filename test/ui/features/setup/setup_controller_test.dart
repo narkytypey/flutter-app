@@ -21,9 +21,11 @@ void main() {
   late VaultStore vaultStore;
   late FakeCrypto crypto;
   final opened = <String, AppDatabase>{};
+  final existedAtOpen = <String, bool>{};
   final sessions = <({VaultId vault, AppDatabase database, Uint8List dataKey})>[];
 
   Future<AppDatabase> fakeOpen({required String path, required Uint8List dataKey}) async {
+    existedAtOpen[path] = File(path).existsSync();
     final db =
         await AppDatabase.open(path: inMemoryDatabasePath, factory: databaseFactoryFfi);
     opened[path] = db;
@@ -46,7 +48,23 @@ void main() {
     crypto = FakeCrypto();
     vaultStore = VaultStore(crypto, File('${dir.path}/meta.bin'));
     opened.clear();
+    existedAtOpen.clear();
     sessions.clear();
+  });
+
+  // A panic interrupted before it deleted the stores (or the build before
+  // panic deleted them at all) leaves an encrypted file whose key is gone.
+  // Opening it with the new vault's key failed with "file is not a database"
+  // and setup hung with no message.
+  test('a store left by an earlier vault is removed before the new one opens',
+      () async {
+    final leftover = File('${dir.path}/a.db')..writeAsStringSync('old ciphertext');
+    File('${leftover.path}-wal').writeAsStringSync('old wal');
+
+    await controller().complete(mainPin: '111111');
+
+    expect(existedAtOpen['${dir.path}/a.db'], isFalse);
+    expect(File('${leftover.path}-wal').existsSync(), isFalse);
   });
 
   tearDown(() async {

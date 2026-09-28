@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../data/services/app_database.dart' show deleteVaultStore;
 import '../../../../data/services/bundled_filter_lists.dart';
 import '../../../../data/services/container_engine.dart';
 import '../../../../data/services/container_engine_channel.dart';
@@ -10,11 +11,18 @@ import '../../../../data/services/engine_extras_builder.dart';
 import '../../../../domain/models/container_session.dart';
 import '../../../../domain/models/engine_extras.dart';
 import '../../../../domain/models/site.dart';
+import '../../../../domain/models/vault.dart';
 import '../../../../domain/services/panic_service.dart';
 import '../../scripts/view_models/providers.dart'
     show filterListRepositoryProvider, scriptRepositoryProvider;
 import '../../shell/view_models/session_controller.dart'
-    show sessionProvider, vaultStoreProvider, biometricServiceProvider, SessionOpen;
+    show
+        sessionProvider,
+        vaultStoreProvider,
+        biometricServiceProvider,
+        documentsDirectoryProvider,
+        vaultDatabasePath,
+        SessionOpen;
 
 final containerEngineProvider =
     Provider<ContainerEngine>((ref) => ChannelContainerEngine());
@@ -101,7 +109,15 @@ final panicServiceProvider = Provider<PanicService>((ref) {
       final session = ref.read(sessionProvider);
       if (session is SessionOpen) await session.database.close();
     },
-    destroyVaults: () => ref.read(vaultStoreProvider).destroy(),
+    // PanicService's step 3, "delete the store files", after the keys: a
+    // store left behind outlives its key and blocks the next setup.
+    destroyVaults: () async {
+      await ref.read(vaultStoreProvider).destroy();
+      final documents = ref.read(documentsDirectoryProvider);
+      for (final vault in VaultId.values) {
+        await deleteVaultStore(vaultDatabasePath(documents, vault));
+      }
+    },
     destroyBiometricKey: () => ref.read(biometricServiceProvider).destroyKeyPair(),
   );
 });

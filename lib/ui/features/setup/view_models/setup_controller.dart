@@ -55,6 +55,11 @@ class SetupController {
   final SessionOpener _openSession;
 
   Future<void> complete({required String mainPin, String? decoyPin}) async {
+    // Setup only runs with no `meta.bin`, so any store still on disk belongs
+    // to keys that no longer exist — an interrupted panic's leftovers.
+    for (final vault in VaultId.values) {
+      await deleteVaultStore(_pathFor(vault));
+    }
     final mainKey = await _vaultStore.provision(pin: mainPin, vault: VaultId.a);
     final mainDb = await _openVault(path: _pathFor(VaultId.a), dataKey: mainKey);
     await seedIfEmpty(mainDb);
