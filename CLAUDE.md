@@ -624,6 +624,19 @@ Fixed, each with a regression test except the manifest:
 - `339afcf` — **a failed keep-in-container download left a truncated file**,
   one more per retry. `writeDownload` writes a `.part`, checks
   `Content-Length`, rejects non-2xx, and renames only on success.
+- `6a5f013` (branch `fix-lock-covers-routes`) — **locking or panicking left
+  every pushed screen on top of the lock and panic screens.** `AppGate` is
+  `MaterialApp.home` and the dashboard pushed containers, Settings, Search and
+  Today onto the root navigator above it, so leaving `SessionOpen` swapped only
+  the bottom route: a site stayed live over `LockScreen` with no PIN asked, and
+  queued snackbars (`Decoy vault synced`) carried over too. The open vault now
+  gets its own `Navigator` and `ScaffoldMessenger` inside `AppGate`
+  (`_OpenVault`), so leaving `SessionOpen` tears everything down. **Accepted
+  cost (user's call):** a `9b` return closes the open sites and lands on the
+  dashboard after the PIN, not back inside the site. Seen on the emulator:
+  `9b` covers a container and Settings, and Android back still pops a
+  container. Don't move pushes back onto the root navigator, and don't add a
+  `useRootNavigator: true` sheet or dialog — either reopens the hole.
 
 Seen working on the emulator: setup wizard with both PINs, lock/wrong-PIN/
 unlock (`9a`), the encrypted vault surviving a reinstall, a direct HTTPS site,
@@ -631,6 +644,16 @@ an http-proxy site over the CONNECT tunnel (see Plan 10's row), the held
 download sheet, and a direct-route save to device via `DownloadManager`.
 
 Still open:
+- **Panic fails, and fails open, when pressed with a site open.**
+  `ContainerPanicService.trigger`'s `engine.wipeAll()` throws
+  `PlatformException(engine, Cannot delete in-use profile <id>)`
+  (`container_panic_service.dart:46`), so `closeDatabase`, `destroyVaults` and
+  `destroyBiometricKey` never run and the session never reaches
+  `SessionPanicked` — the vault and its keys survive a panic the user believes
+  happened, and nothing on screen says otherwise (the call is fire-and-forget
+  from `ContainerRoute`'s `onPanic`). Seen twice in emulator logcat
+  (2026-09-28 20:38 on an older build, 21:37 on `6a5f013`), so it predates the
+  lock fix. Root cause not yet investigated; unowned.
 - **Keep-in-container over HTTPS fails mid-body on the emulator** with
   `SSLProtocolException: Read error` (BoringSSL `BAD_RECORD_MAC`), now
   reported as `TLS_FAILURE` with nothing left on disk. A standalone probe
