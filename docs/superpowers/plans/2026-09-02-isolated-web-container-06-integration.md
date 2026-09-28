@@ -2881,6 +2881,54 @@ git commit -m "feat: live blocked tally, real leak count, and management entry p
   tracked anywhere in the app; a real value needs a persisted
   last-connected timestamp this plan does not add.
 
+### Executing Tasks 6 and 7 (2026-09-28, branch `plan-06-tasks-6-7`)
+
+Tasks 1–5 landed 2026-09-04; 6 and 7 were never executed until now. The
+tree had moved on since this plan was written (Plans 8 and 9 landed), so
+several steps were ruled against rather than transcribed:
+
+- **Task 6's `syncToDecoy`/`decoyDatabaseProvider` were not built.** Plan 9's
+  `resyncDecoy` superseded them; its spec calls `syncToDecoy` never-real. The
+  "To a future decoy-resync plan" handoff below is therefore closed.
+- **`ContainerRoute` keeps the site in its own state** and rebuilds the sheet
+  from it. `SiteSheet` is stateless and Step 5's closures read `widget.site`,
+  so a switch would not visibly flip and a second change would overwrite the
+  first.
+- **The sheet's rows use spec `6c`'s copy**, not enum names: `SOCKS5 ·
+  host:port` / `HTTP · host:port`, "Direct" for no proxy (no spec copy exists),
+  "Wipe on exit" / "Keep for this site", subtitle `host · Workspace`.
+- **Edit opens `AddSiteScreen` on this site**, not a bare pop: `6c` and
+  `SiteSheet`'s own doc call Edit the escape hatch into the full form.
+- **Changes apply on the next open.** `ContainerEngine` has no call to
+  re-apply force-dark or user agent to a live view.
+- **`BlockedTallyController` serializes emissions**, counts a session only
+  when its site is in the open vault, and drops work queued under a previous
+  vault. Step 3's code double-counted when two sessions' emissions interleaved
+  across the async lookup, and recorded categories for any session at all —
+  an aggregate across both vaults, since the engine is process-wide.
+- **`WorkspaceMenu` gets one management row, Today**, not four. Settings was
+  made reachable by Plan 8's `⋯` icon after this plan was written, and Plan 5
+  Task 1 had already placed Workspaces and Scripts in Settings' MANAGE
+  section; those rows are what now open them (`settingsDestination`).
+- **Step 6's unspecified routes:** a workspace row tap opens the `10b` form in
+  edit mode, titled with the workspace's own name; a **long-press** opens the
+  `10c` delete sheet. The spec draws no path into `10c` — long-press follows
+  the dashboard site row's menu. Deleting closes and wipes every site's
+  profile before the rows go, since `10c` promises "Logins destroyed" and the
+  database cascade alone leaves profiles on disk.
+- **Scripts:** the route shows what the vault holds and does not call
+  `seedFilterListsIfEmpty` (its rule counts are the spec's mock values), so a
+  fresh vault's FILTER LISTS section is empty. "Next check in N days" counts
+  down a 7-day cadence from the newest list — spec `10d`'s own "2 days ago" /
+  "5 days" pair — though nothing actually checks. A new script is named "New
+  script" and created only on Save. The editor's "+ Add site" does nothing.
+
+Still open after this pass, beyond Plan 5's own Known gaps (lists and scripts
+change nothing a page loads; storage bytes are always 0, so `10a`/`10c` read
+"0 MB"): no Settings row besides biometrics, re-sync, Workspaces and Scripts
+does anything; the filters `≡` and overflow `⋯` in the container toolbar are
+still no-ops.
+
 ## Handoff
 
 - **To a future search plan:** nothing in this plan touches
@@ -2888,7 +2936,7 @@ git commit -m "feat: live blocked tally, real leak count, and management entry p
 - **To a future biometric-unlock plan:** unaffected; `SettingsScreen`'s
   biometrics toggle is still a no-op `onChanged('biometrics', ...)` call the
   settings route (Task 7) forwards to nowhere in particular.
-- **To a future decoy-resync plan:** `syncToDecoy(site:, decoyDatabase:)`
+- **~~To a future decoy-resync plan~~ (closed — Plan 9's `resyncDecoy`; `syncToDecoy` was never built):** `syncToDecoy(site:, decoyDatabase:)`
   (Task 6) is the exact function to call once a flow exists that can open
   the decoy vault under its own PIN — override `decoyDatabaseProvider` with
   that live connection for the duration of the sync and this plan's call
