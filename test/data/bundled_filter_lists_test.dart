@@ -1,6 +1,5 @@
 // test/data/bundled_filter_lists_test.dart
 import 'dart:convert';
-import 'dart:typed_data';
 
 import 'package:container/data/services/bundled_filter_lists.dart';
 import 'package:container/domain/models/filter_list.dart';
