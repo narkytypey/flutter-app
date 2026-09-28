@@ -116,7 +116,7 @@ class EngineChannel(
     private var requestCounter = 0
     private val downloadExecutor = java.util.concurrent.Executors.newCachedThreadPool()
     private val mainHandler = android.os.Handler(android.os.Looper.getMainLooper())
-    private val downloadFetcher = DownloadFetcher(context)
+    private val downloadFetcher = DownloadFetcher(context, profiles)
 
     private val rulesByCategory: Map<String, List<String>> by lazy {
         mapOf(
@@ -301,19 +301,29 @@ class EngineChannel(
         for (session in sessions.values) {
             val pending = session.pendingDownloads.remove(requestId) ?: continue
             if (decisionName == "discard") return
+            // Built here, on the platform thread, because it reads the site's
+            // profile through androidx.webkit's UI-thread-only ProfileStore.
+            // Only the network and disk work below goes to the executor.
+            val request = runCatching { downloadFetcher.requestFor(session.config, pending) }
+                .getOrElse {
+                    emitDownloadResult(requestId, DownloadOutcome.Failed(null))
+                    return
+                }
             downloadExecutor.execute {
-                val outcome = downloadFetcher.run(session.config, pending, decisionName)
-                val (name, reason) = when (outcome) {
-                    is DownloadOutcome.Saved -> "saved" to null
-                    is DownloadOutcome.Kept -> "kept" to null
-                    is DownloadOutcome.Failed -> "failed" to outcome.reason?.name?.let(::routeFailureToDartName)
-                }
-                mainHandler.post {
-                    sink?.success(mapOf("type" to "download_result", "requestId" to requestId, "outcome" to name, "reason" to reason))
-                }
+                val outcome = downloadFetcher.run(session.config, pending, request, decisionName)
+                mainHandler.post { emitDownloadResult(requestId, outcome) }
             }
             return
         }
+    }
+
+    private fun emitDownloadResult(requestId: String, outcome: DownloadOutcome) {
+        val (name, reason) = when (outcome) {
+            is DownloadOutcome.Saved -> "saved" to null
+            is DownloadOutcome.Kept -> "kept" to null
+            is DownloadOutcome.Failed -> "failed" to outcome.reason?.name?.let(::routeFailureToDartName)
+        }
+        sink?.success(mapOf("type" to "download_result", "requestId" to requestId, "outcome" to name, "reason" to reason))
     }
 
     private fun extractArticle(siteId: String, result: MethodChannel.Result) {

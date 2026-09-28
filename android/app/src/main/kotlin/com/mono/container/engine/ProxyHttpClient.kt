@@ -20,7 +20,7 @@ object ProxyHttpClient {
         val socket = startTls(connected, host, port, secure)
         val out = socket.getOutputStream()
         out.write("$method $path HTTP/1.1\r\n".toByteArray(Charsets.US_ASCII))
-        out.write("Host: $host\r\n".toByteArray(Charsets.US_ASCII))
+        out.write("Host: ${hostHeader(host, port, secure)}\r\n".toByteArray(Charsets.US_ASCII))
         requestHeaders.forEach { (key, value) -> out.write("$key: $value\r\n".toByteArray(Charsets.US_ASCII)) }
         out.write("Connection: close\r\n\r\n".toByteArray(Charsets.US_ASCII))
         out.flush()
@@ -37,6 +37,15 @@ object ProxyHttpClient {
         }
         return FetchedResponse(status, reason, headers, input)
     }
+
+    /**
+     * The `Host` value for [host]:[port]. RFC 9110 §7.2 requires the port
+     * whenever it is not the scheme's default, and an origin serving several
+     * sites on one non-default port routes by exactly this line — without it
+     * the request can reach the wrong virtual host.
+     */
+    internal fun hostHeader(host: String, port: Int, secure: Boolean): String =
+        if (port == (if (secure) 443 else 80)) host else "$host:$port"
 
     /**
      * Wraps a connected socket in TLS for https targets, and returns it
