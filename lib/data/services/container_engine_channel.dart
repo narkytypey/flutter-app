@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import '../../domain/models/blocked_tally.dart';
 import '../../domain/models/container_session.dart';
 import '../../domain/models/engine_events.dart';
+import '../../domain/models/engine_extras.dart';
 import '../../domain/models/held_download.dart';
 import '../../domain/models/permissions.dart';
 import '../../domain/models/reader_article.dart';
@@ -143,7 +144,7 @@ class ChannelContainerEngine implements ContainerEngine {
       await _method.invokeMethod<bool>('isolationAvailable') ?? false;
 
   @override
-  Future<ContainerSession> open(Site site) async {
+  Future<ContainerSession> open(Site site, {EngineExtras extras = EngineExtras.none}) async {
     final result = await _method.invokeMapMethod<Object?, Object?>('open', {
       'siteId': site.id,
       'profileId': site.profileId,
@@ -164,6 +165,8 @@ class ChannelContainerEngine implements ContainerEngine {
       'customCss': site.customCss,
       'customJs': site.customJs,
       'wipeOnExit': site.cookiePolicy == CookiePolicy.wipeOnExit,
+      'filterRules': extras.filterRules,
+      'userScripts': [for (final script in extras.userScripts) script.toMap()],
     });
     return _sessionFrom(result!);
   }

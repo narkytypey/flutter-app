@@ -2,16 +2,37 @@ import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../data/services/bundled_filter_lists.dart';
 import '../../../../data/services/container_engine.dart';
 import '../../../../data/services/container_engine_channel.dart';
 import '../../../../data/services/container_panic_service.dart';
+import '../../../../data/services/engine_extras_builder.dart';
 import '../../../../domain/models/container_session.dart';
+import '../../../../domain/models/engine_extras.dart';
+import '../../../../domain/models/site.dart';
 import '../../../../domain/services/panic_service.dart';
+import '../../scripts/view_models/providers.dart'
+    show filterListRepositoryProvider, scriptRepositoryProvider;
 import '../../shell/view_models/session_controller.dart'
     show sessionProvider, vaultStoreProvider, biometricServiceProvider, SessionOpen;
 
 final containerEngineProvider =
     Provider<ContainerEngine>((ref) => ChannelContainerEngine());
+
+final bundledFilterRulesProvider =
+    Provider<BundledFilterRules>((ref) => defaultBundledFilterRules);
+
+/// What a site opens with from the open vault — its enabled filter lists'
+/// rules and its library scripts. A function rather than a value so every
+/// open reads the vault as it is now; widget tests with no vault override it.
+final engineExtrasBuilderProvider = Provider<Future<EngineExtras> Function(Site)>((ref) {
+  return (site) => engineExtrasFor(
+        site,
+        filterLists: ref.read(filterListRepositoryProvider),
+        scripts: ref.read(scriptRepositoryProvider),
+        rules: ref.read(bundledFilterRulesProvider),
+      );
+});
 
 ContainerSession? _findSite(List<ContainerSession> sessions, String siteId) {
   for (final session in sessions) {

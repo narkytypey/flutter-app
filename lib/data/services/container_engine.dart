@@ -1,5 +1,6 @@
 import '../../domain/models/container_session.dart';
 import '../../domain/models/engine_events.dart';
+import '../../domain/models/engine_extras.dart';
 import '../../domain/models/held_download.dart' show DownloadDecision;
 import '../../domain/models/permissions.dart';
 import '../../domain/models/reader_article.dart';
@@ -14,7 +15,8 @@ abstract interface class ContainerEngine {
 
   /// Creates the profile if absent and begins loading. Emits progress on
   /// [sessions]. Completes when the page is live or the route was refused.
-  Future<ContainerSession> open(Site site);
+  /// [extras] is the open vault's filter rules and scripts for this site.
+  Future<ContainerSession> open(Site site, {EngineExtras extras = EngineExtras.none});
 
   /// Destroys the profile's cookies, cache and storage. Called for
   /// `CookiePolicy.wipeOnExit` and by "Close all and wipe" in `2c`.

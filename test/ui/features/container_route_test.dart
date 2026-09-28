@@ -1,23 +1,36 @@
+import 'package:container/data/repositories/filter_list_repository_sqlite.dart';
+import 'package:container/data/repositories/script_repository_sqlite.dart';
+import 'package:container/data/repositories/site_repository_sqlite.dart';
+import 'package:container/data/repositories/workspace_repository_sqlite.dart';
+import 'package:container/data/services/app_database.dart';
+import 'package:container/data/services/bundled_filter_lists.dart';
 import 'package:container/data/services/fake_container_engine.dart';
 import 'package:container/domain/models/engine_events.dart';
+import 'package:container/domain/models/engine_extras.dart';
+import 'package:container/domain/models/filter_list.dart';
 import 'package:container/domain/models/held_download.dart';
 import 'package:container/domain/models/reader_article.dart';
 import 'package:container/domain/models/route_decision.dart';
 import 'package:container/domain/models/site.dart';
+import 'package:container/domain/models/user_script.dart';
 import 'package:container/domain/models/workspace.dart';
 import 'package:container/domain/repositories/repositories.dart';
 import 'package:container/ui/core/widgets/app_toggle.dart';
 import 'package:container/ui/features/add_site/views/add_site_screen.dart';
 import 'package:container/ui/features/dashboard/view_models/providers.dart'
-    show siteRepositoryProvider, workspacesProvider;
+    show databaseProvider, siteRepositoryProvider, workspacesProvider;
 import 'package:container/ui/features/container/view_models/providers.dart';
 import 'package:container/ui/features/container/views/container_route.dart';
 import 'package:container/ui/features/container/views/container_web_view.dart';
 import 'package:container/ui/features/in_page/views/proxy_unreachable_screen.dart';
 import 'package:container/ui/features/in_page/views/reader_screen.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:sqflite_common_ffi/sqflite_ffi.dart';
+
+import '../../data/bundled_filter_lists_test.dart' show FakeBundle;
 
 Site _site() => Site(
       id: 's1', workspaceId: 'w', name: 'Forum', monogram: 'Fr',
@@ -51,6 +64,8 @@ Future<void> _pump(
   FakeContainerEngine engine,
   Site site, {
   SiteRepository? sites,
+  bool realExtras = false,
+  List<Override> overrides = const [],
 }) async {
   // A modal bottom sheet is capped at 9/16 of the surface height, so the
   // default 800x600 canvas leaves HeldDownloadSheet ~294px where its fixed
@@ -65,12 +80,70 @@ Future<void> _pump(
       containerEngineProvider.overrideWithValue(engine),
       if (sites != null) siteRepositoryProvider.overrideWithValue(sites),
       workspacesProvider.overrideWith((ref) async => const [_workspace]),
+      if (!realExtras)
+        engineExtrasBuilderProvider.overrideWithValue((site) async => EngineExtras.none),
+      ...overrides,
     ],
     child: MaterialApp(home: ContainerRoute(site: site)),
   ));
 }
 
 void main() {
+  testWidgets("opening sends the vault's enabled rules and this site's scripts", (tester) async {
+    sqfliteFfiInit();
+    final database = (await tester.runAsync(
+        () => AppDatabase.open(path: inMemoryDatabasePath, factory: databaseFactoryFfi)))!;
+    addTearDown(() => tester.runAsync(database.close));
+    final lists = [
+      BundledFilterList(
+        id: 'fl-a', name: 'A', enabledByDefault: true,
+        category: FilterListCategory.trackers, asset: 'a.txt',
+        updatedAt: DateTime.utc(2026, 9, 28),
+      ),
+    ];
+    final rules = BundledFilterRules(FakeBundle({'a.txt': '||t.example^\n'}), lists: lists);
+    await tester.runAsync(() async {
+      await syncBundledFilterLists(database, rules);
+      // script_sites.site_id has a foreign key on sites(id); the site this
+      // script is applied to must exist in this same database first.
+      await SqliteWorkspaceRepository(database).upsert(_workspace);
+      await SqliteSiteRepository(database).upsert(_site());
+      await SqliteScriptRepository(database).upsert(const UserScript(
+        id: 'sc', name: 'Hide', kind: ScriptKind.css, code: 'header{display:none}',
+        runAtDocumentStart: true, enabled: true, appliedSiteIds: ['s1'],
+      ));
+    });
+
+    // This test's `_open` awaits a real database round trip before the
+    // session goes live, so the loop below drives it via `runAsync`. That
+    // moves ContainerWebView's `PlatformViewLink.create()` call onto a real
+    // async gap too, where its normally-forever-pending platform channel
+    // call actually settles — with no handler registered, as
+    // MissingPluginException, unhandled, and fatal to the test. No other
+    // test in this file awaits real IO before going live, so none of them
+    // hit this. What this test asserts on is `engine.openedExtras`, not
+    // native view creation, so it stands in for the platform here.
+    const platformViews = MethodChannel('flutter/platform_views');
+    tester.binding.defaultBinaryMessenger
+        .setMockMethodCallHandler(platformViews, (call) async => null);
+    addTearDown(() =>
+        tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(platformViews, null));
+
+    final engine = FakeContainerEngine();
+    await _pump(tester, engine, _site(), realExtras: true, overrides: [
+      databaseProvider.overrideWithValue(database),
+      bundledFilterRulesProvider.overrideWithValue(rules),
+    ]);
+    for (var i = 0; i < 5; i++) {
+      await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 20)));
+      await tester.pump();
+    }
+
+    final extras = engine.openedExtras['s1']!;
+    expect(extras.filterRules, {'trackers': ['||t.example^']});
+    expect(extras.userScripts.single.code, 'header{display:none}');
+  });
+
   testWidgets('the site sheet describes the route as spec 6c does', (tester) async {
     final engine = FakeContainerEngine();
     await _pump(tester, engine, _site().copyWith(

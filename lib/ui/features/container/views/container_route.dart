@@ -83,7 +83,11 @@ class _ContainerRouteState extends ConsumerState<ContainerRoute> {
   Future<void> _open() async {
     if (_opened) return;
     _opened = true;
-    await ref.read(containerEngineProvider).open(widget.site);
+    // Read before opening, and a failure here stops the open: a site is
+    // never opened without the lists and scripts its vault says it gets.
+    final extras = await ref.read(engineExtrasBuilderProvider)(widget.site);
+    if (!mounted) return;
+    await ref.read(containerEngineProvider).open(widget.site, extras: extras);
   }
 
   @override

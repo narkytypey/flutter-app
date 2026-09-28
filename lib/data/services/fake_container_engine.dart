@@ -3,6 +3,7 @@ import 'dart:async';
 import '../../domain/models/blocked_tally.dart';
 import '../../domain/models/container_session.dart';
 import '../../domain/models/engine_events.dart';
+import '../../domain/models/engine_extras.dart';
 import '../../domain/models/held_download.dart' show DownloadDecision;
 import '../../domain/models/permissions.dart';
 import '../../domain/models/reader_article.dart';
@@ -32,6 +33,9 @@ class FakeContainerEngine implements ContainerEngine {
   final wiped = <String>[];
   final closed = <String>[];
 
+  /// The extras each site was last opened with, by site id.
+  final openedExtras = <String, EngineExtras>{};
+
   final _permissionController = StreamController<PendingPermissionRequest>.broadcast();
   final _downloadController = StreamController<HeldDownloadEvent>.broadcast();
   final _downloadResultController = StreamController<DownloadResult>.broadcast();
@@ -46,7 +50,8 @@ class FakeContainerEngine implements ContainerEngine {
   Future<bool> isolationAvailable() async => isolation;
 
   @override
-  Future<ContainerSession> open(Site site) async {
+  Future<ContainerSession> open(Site site, {EngineExtras extras = EngineExtras.none}) async {
+    openedExtras[site.id] = extras;
     final decision = resolveRoute(site, proxyReachable: proxyReachable);
     final session = ContainerSession(
       siteId: site.id,
