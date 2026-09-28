@@ -1,10 +1,12 @@
 import 'package:container/data/repositories/filter_list_repository_sqlite.dart';
 import 'package:container/data/services/app_database.dart';
+import 'package:container/data/services/bundled_filter_lists.dart';
 import 'package:container/domain/models/filter_list.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
   sqfliteFfiInit();
 
   test('seeded filter lists carry a real category, not all trackers', () async {
@@ -12,7 +14,7 @@ void main() {
       path: inMemoryDatabasePath,
       factory: databaseFactoryFfi,
     );
-    await seedFilterListsIfEmpty(database);
+    await syncBundledFilterLists(database, defaultBundledFilterRules);
 
     final lists = await SqliteFilterListRepository(database).all();
     final byId = {for (final l in lists) l.id: l};

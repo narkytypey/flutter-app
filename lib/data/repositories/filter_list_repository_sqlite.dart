@@ -1,6 +1,7 @@
 import '../../domain/models/filter_list.dart' show FilterList, FilterListCategory;
 import '../../domain/repositories/filter_list_repository.dart';
 import '../services/app_database.dart';
+import '../services/bundled_filter_lists.dart' show BundledFilterRules;
 
 class SqliteFilterListRepository implements FilterListRepository {
   SqliteFilterListRepository(this._database);
@@ -37,25 +38,29 @@ class SqliteFilterListRepository implements FilterListRepository {
       );
 }
 
-/// Seeds the three lists spec `10d` shows. Real values need a downloaded
-/// filter list this app does not yet fetch (see this plan's Global
-/// Constraints on "no network requests"); these are the spec's own numbers.
-Future<void> seedFilterListsIfEmpty(
-  AppDatabase database, {
-  DateTime Function() now = DateTime.now,
-}) async {
+/// Brings [database]'s `filter_lists` rows into line with the lists that
+/// ship in the app. A missing list is added with its default switch; an
+/// existing one takes the bundle's name, rule count, date and category but
+/// keeps the switch the owner set. Rows the bundle does not know are left
+/// alone. Runs on every vault open, so an app update reaches every vault —
+/// the decoy included, which is its own store.
+Future<void> syncBundledFilterLists(AppDatabase database, BundledFilterRules rules) async {
   final db = database.db;
-  final existing = await db.query('filter_lists', limit: 1);
-  if (existing.isNotEmpty) return;
-
-  final updatedAt =
-      now().toUtc().subtract(const Duration(days: 2)).millisecondsSinceEpoch;
-  final rows = <Map<String, Object?>>[
-    {'id': 'fl-trackers', 'name': 'Trackers and ads', 'rule_count': 84102, 'updated_at': updatedAt, 'enabled': 1},
-    {'id': 'fl-cookies', 'name': 'Cookie notices', 'rule_count': 11430, 'updated_at': updatedAt, 'enabled': 1},
-    {'id': 'fl-social', 'name': 'Social embeds', 'rule_count': 2908, 'updated_at': updatedAt, 'enabled': 0, 'category': 'ads'},
-  ];
-  for (final row in rows) {
-    await db.insert('filter_lists', row);
+  for (final list in rules.lists) {
+    final fields = <String, Object>{
+      'name': list.name,
+      'rule_count': await rules.ruleCount(list),
+      'updated_at': list.updatedAt.millisecondsSinceEpoch,
+      'category': list.category.name,
+    };
+    final updated =
+        await db.update('filter_lists', fields, where: 'id = ?', whereArgs: [list.id]);
+    if (updated == 0) {
+      await db.insert('filter_lists', {
+        'id': list.id,
+        ...fields,
+        'enabled': list.enabledByDefault ? 1 : 0,
+      });
+    }
   }
 }

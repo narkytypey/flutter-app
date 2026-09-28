@@ -4,8 +4,10 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:container/data/repositories/filter_list_repository_sqlite.dart';
 import 'package:container/data/services/app_database.dart';
+import 'package:container/data/services/bundled_filter_lists.dart';
 
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
   setUpAll(sqfliteFfiInit);
 
   late AppDatabase database;
@@ -16,26 +18,8 @@ void main() {
 
   tearDown(() => database.close());
 
-  DateTime fixedNow() => DateTime.utc(2026, 8, 30, 9);
-
-  test('a fresh database seeds the three lists from the spec', () async {
-    await seedFilterListsIfEmpty(database, now: fixedNow);
-    final lists = await SqliteFilterListRepository(database).all();
-
-    expect(lists.map((l) => l.name), ['Trackers and ads', 'Cookie notices', 'Social embeds']);
-    expect(lists.map((l) => l.ruleCount), [84102, 11430, 2908]);
-    expect(lists.map((l) => l.enabled), [true, true, false]);
-  });
-
-  test('seeding twice does not duplicate anything', () async {
-    await seedFilterListsIfEmpty(database, now: fixedNow);
-    await seedFilterListsIfEmpty(database, now: fixedNow);
-
-    expect((await SqliteFilterListRepository(database).all()).length, 3);
-  });
-
   test('toggling persists the enabled bit without touching anything else', () async {
-    await seedFilterListsIfEmpty(database, now: fixedNow);
+    await syncBundledFilterLists(database, defaultBundledFilterRules);
     final repo = SqliteFilterListRepository(database);
     final socialEmbeds = (await repo.all()).firstWhere((l) => l.name == 'Social embeds');
 
@@ -96,7 +80,7 @@ void main() {
     expect(await upgraded.db.getVersion(), AppDatabase.schemaVersion);
 
     // The new table exists and works...
-    await seedFilterListsIfEmpty(upgraded, now: fixedNow);
+    await syncBundledFilterLists(upgraded, defaultBundledFilterRules);
     expect((await SqliteFilterListRepository(upgraded).all()).length, 3);
 
     // ...and the pre-existing row survived the upgrade.

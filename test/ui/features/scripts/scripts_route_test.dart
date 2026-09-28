@@ -3,6 +3,7 @@ import 'package:container/data/repositories/script_repository_sqlite.dart';
 import 'package:container/data/repositories/site_repository_sqlite.dart';
 import 'package:container/data/repositories/workspace_repository_sqlite.dart';
 import 'package:container/data/services/app_database.dart';
+import 'package:container/data/services/bundled_filter_lists.dart';
 import 'package:container/domain/models/filter_list.dart';
 import 'package:container/domain/models/site.dart';
 import 'package:container/domain/models/user_script.dart';
@@ -53,7 +54,7 @@ void main() {
     tester.view.physicalSize = const Size(800, 1600);
     tester.view.devicePixelRatio = 1;
     await tester.runAsync(() async {
-      await seedFilterListsIfEmpty(database);
+      await syncBundledFilterLists(database, defaultBundledFilterRules);
       await SqliteWorkspaceRepository(database).upsert(const Workspace(
           id: 'w', name: 'Personal', markerIndex: 0, storageRule: StorageRule.keep));
       for (final id in ['forum', 'news']) {
