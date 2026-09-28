@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'dart:math';
 
 import 'package:sqflite_sqlcipher/sqflite.dart';
@@ -22,6 +23,20 @@ String vaultFileName(VaultId vault) => switch (vault) {
       VaultId.a => 'store-1.db',
       VaultId.b => 'store-2.db',
     };
+
+/// Deletes a vault's store and SQLite's sidecar files beside it. A no-op for
+/// anything already gone.
+///
+/// Only ever for a store whose key no longer exists — panic, after the keys
+/// are destroyed, and setup, where no `meta.bin` means any store on disk is
+/// ciphertext nothing can open. Left in place, such a file made the next setup
+/// open it with a fresh key, fail with "file is not a database", and hang.
+Future<void> deleteVaultStore(String path) async {
+  for (final suffix in const ['', '-wal', '-shm', '-journal']) {
+    final file = File('$path$suffix');
+    if (await file.exists()) await file.delete();
+  }
+}
 
 /// One vault's store. Nothing here leaves the device.
 ///
