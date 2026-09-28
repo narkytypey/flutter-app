@@ -185,8 +185,9 @@ Expected: FAIL — compile error, `bundled_filter_lists.dart` does not exist.
 
 - [ ] **Step 3: Write the three rule files**
 
+`assets/filters/trackers_and_ads.txt`:
+
 ```text
-# assets/filters/trackers_and_ads.txt
 ! Trackers and ads (spec 10d). `||host^` domain rules only — see FilterEngine.kt.
 ! Bump this list's updatedAt in bundled_filter_lists.dart whenever it changes.
 ! category: trackers
@@ -215,10 +216,9 @@ Expected: FAIL — compile error, `bundled_filter_lists.dart` does not exist.
 ||rubiconproject.com^
 ```
 
-(Remove the leading `# path` line — it only labels the block here. Same for the next two.)
+`assets/filters/cookie_notices.txt`:
 
 ```text
-# assets/filters/cookie_notices.txt
 ! Cookie notices (spec 10d). Consent-management platforms: blocking the
 ! loader removes the banner. Specific hosts, so a CMP vendor's own website
 ! and the privacy policies some host (iubenda) keep working.
@@ -247,8 +247,9 @@ Expected: FAIL — compile error, `bundled_filter_lists.dart` does not exist.
 ||cmp.inmobi.com^
 ```
 
+`assets/filters/social_embeds.txt`:
+
 ```text
-# assets/filters/social_embeds.txt
 ! Social embeds (spec 10d). Widget and SDK hosts only — the networks'
 ! own sites stay reachable; this stops their embeds on other pages.
 ! Bump this list's updatedAt in bundled_filter_lists.dart whenever it changes.
@@ -992,6 +993,12 @@ and change the existing dashboard-providers import's `show` list to `show databa
 ```
 
 and give `_pump` one more parameter, `List<Override> overrides = const [],`, spread into its `overrides` list with `...overrides,`. Import `FilterListCategory` via `import 'package:container/domain/models/filter_list.dart';`.
+
+Note: `_open` now awaits the extras before calling `open`, one more
+microtask than before. If the existing first test ("opening a site shows the
+checklist, then the container") then needs a third `pump()` to see the
+container, add it and extend that test's comment to name the extra hop — the
+behaviour it checks is unchanged.
 
 Run: `flutter test test/ui/features/container_route_test.dart`
 Expected: FAIL — `engineExtrasBuilderProvider` / `bundledFilterRulesProvider` are not defined.
