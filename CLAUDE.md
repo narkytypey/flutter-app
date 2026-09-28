@@ -637,6 +637,39 @@ Fixed, each with a regression test except the manifest:
   `9b` covers a container and Settings, and Android back still pops a
   container. Don't move pushes back onto the root navigator, and don't add a
   `useRootNavigator: true` sheet or dialog — either reopens the hole.
+- `cec9e45`..`56483c1` (branch `fix-panic-fails-open`) — **panic failed open,
+  and no wipe of a used site ever worked.** Four bugs, each hidden behind the
+  one before it because panic had never completed on a device:
+  1. `cec9e45` — **WebView will not delete a profile this process has
+     loaded.** Chromium's `AwBrowserContextStore::Delete` returns `kInUse` for
+     any context with a live instance and never releases one, so every wipe of
+     a site used since start threw "Cannot delete in-use profile": panic's
+     `wipeAll`, `2c`'s "Close all and wipe", and — silently, swallowed in
+     Flutter's platform-view dispose — every ephemeral site's wipe on exit.
+     (It is not about the view being attached: detaching first was tried on
+     the emulator and changed nothing.) `ProfileManager.wipe` now deletes when
+     it can, otherwise journals the profile in
+     `filesDir/pending-profile-deletions` (`PendingDeletions.kt`) and clears
+     its cookies, web storage and geolocation grants in place;
+     `MainActivity` sweeps the journal before anything can load a profile; a
+     profile used again (`profileFor`) drops out of it. **Accepted gap:** what
+     the profile APIs cannot clear (history, network state) stays on disk
+     until the next start — unreachable from the app meanwhile. Don't
+     "simplify" `wipe` back to a bare `deleteProfile`.
+  2. `4f02968` — **panic's order was absolute.** A throwing container step
+     aborted it before any key died. `ContainerPanicService.trigger` now runs
+     container steps best-effort and always runs the three key steps.
+  3. `66b5fad` — **`CryptoPlugin` replied `Unit`** for `destroyDeviceKey`,
+     which `StandardMessageCodec` cannot encode: the app crashed mid-panic.
+     Replies go through `channelReply`.
+  4. `56483c1` — **panic never deleted the vault stores** (`PanicService`'s
+     documented step 3), so the next setup opened the old ciphertext with a
+     new key and hung on "file is not a database". Panic now deletes both
+     stores after the keys; setup deletes any store it finds first.
+  Seen on the emulator: panic from inside a site shows `3c`, the app stays up,
+  `meta.bin` and `store-1.db` are gone, the loaded profiles are journaled, a
+  cold restart leaves WebView with zero profiles, and setup works again; an
+  ephemeral site's close journals its profile with no exception.
 
 Seen working on the emulator: setup wizard with both PINs, lock/wrong-PIN/
 unlock (`9a`), the encrypted vault surviving a reinstall, a direct HTTPS site,
@@ -644,16 +677,12 @@ an http-proxy site over the CONNECT tunnel (see Plan 10's row), the held
 download sheet, and a direct-route save to device via `DownloadManager`.
 
 Still open:
-- **Panic fails, and fails open, when pressed with a site open.**
-  `ContainerPanicService.trigger`'s `engine.wipeAll()` throws
-  `PlatformException(engine, Cannot delete in-use profile <id>)`
-  (`container_panic_service.dart:46`), so `closeDatabase`, `destroyVaults` and
-  `destroyBiometricKey` never run and the session never reaches
-  `SessionPanicked` — the vault and its keys survive a panic the user believes
-  happened, and nothing on screen says otherwise (the call is fire-and-forget
-  from `ContainerRoute`'s `onPanic`). Seen twice in emulator logcat
-  (2026-09-28 20:38 on an older build, 21:37 on `6a5f013`), so it predates the
-  lock fix. Root cause not yet investigated; unowned.
+- **`2c`'s "Close all and wipe" leaves you on a dead container.** Now that the
+  wipe no longer throws, `ContainerRoute.onCloseAllAndWipe` reaches its
+  `Navigator.pop(context)` — which closes the switcher sheet on top, not the
+  route under it, so the user lands on that site's opening checklist
+  (`8a`) instead of the dashboard. `onCloseSession` likely has the same
+  shape. Found 2026-09-28 verifying the panic fix; unowned.
 - **Keep-in-container over HTTPS fails mid-body on the emulator** with
   `SSLProtocolException: Read error` (BoringSSL `BAD_RECORD_MAC`), now
   reported as `TLS_FAILURE` with nothing left on disk. A standalone probe

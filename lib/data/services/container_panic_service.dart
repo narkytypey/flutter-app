@@ -32,22 +32,38 @@ class ContainerPanicService implements PanicService {
   final Future<void> Function() _destroyVaults;
   final Future<void> Function() _destroyBiometricKey;
 
+  /// **Fails closed.** The container steps are best effort; the three steps
+  /// that make the vault unreadable run whatever happened to them.
+  ///
+  /// That ordering used to be absolute, and it failed open on a device:
+  /// WebView refuses to delete a profile this process has already loaded, so
+  /// `wipeAll` threw and panic stopped with every key still intact, while the
+  /// person who pressed it believed everything was gone. The platform now
+  /// clears such a profile in place and deletes it on the next start instead
+  /// of throwing, but nothing a container step does may ever again stand
+  /// between panic and the keys.
   @override
   Future<PanicReport> trigger() async {
     // Snapshot before destroying: this is what `3c` reports.
-    final live = await _engine.liveSessions();
+    final live = await _bestEffort(_engine.liveSessions) ?? const [];
 
-    // `ProfileStore.deleteProfile` throws while a profile is attached to a
-    // live WebView, so detaching first is not optional politeness.
     for (final session in live) {
-      await _engine.close(session.siteId);
+      await _bestEffort(() => _engine.close(session.siteId));
     }
+    await _bestEffort(_engine.wipeAll);
 
-    await _engine.wipeAll();
     await _closeDatabase();
     await _destroyVaults();
     await _destroyBiometricKey();
 
     return PanicReport(sessionsDestroyed: live.length);
+  }
+
+  static Future<T?> _bestEffort<T>(Future<T> Function() step) async {
+    try {
+      return await step();
+    } catch (_) {
+      return null;
+    }
   }
 }

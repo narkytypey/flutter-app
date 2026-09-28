@@ -93,6 +93,10 @@ class ContainerView(
         if (disposed) return
         disposed = true
         webView.stopLoading()
+        // The profile this view used cannot be deleted until the next start
+        // (see ProfileManager.wipe), and its HTTP cache has no profile-level
+        // clear — the view is the only handle on it, so empty it now.
+        if (config.wipeOnExit) webView.clearCache(true)
         webView.destroy()
         if (config.wipeOnExit) {
             deleteDownloadsDir(context, config.profileId)
