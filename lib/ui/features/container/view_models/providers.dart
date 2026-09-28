@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../data/services/container_engine.dart';
@@ -11,23 +13,6 @@ import '../../shell/view_models/session_controller.dart'
 final containerEngineProvider =
     Provider<ContainerEngine>((ref) => ChannelContainerEngine());
 
-/// The live session for one site, or `null` when that site has none. Feeds
-/// [ContainerRoute]'s `opening -> live -> refused` state machine — see Task
-/// 4. Filters [ContainerEngine.sessions] rather than adding a
-/// per-site-keyed stream to the engine itself, since the engine already
-/// emits its full list on every change and every existing caller
-/// ([sessions]) wants that shape.
-///
-/// Yields a [liveSessions] snapshot before subscribing to [sessions]'
-/// broadcast stream, rather than watching the stream alone. `sessions()` is
-/// a broadcast stream with no replay, and [ContainerRoute] calls
-/// `ContainerEngine.open` from `initState` — synchronously ahead of the
-/// first `build()` that creates this provider and subscribes to it, so a
-/// fake (or a fast real) engine that resolves and emits before that
-/// subscription exists would otherwise leave this provider stuck in
-/// `AsyncLoading` forever. The snapshot closes that gap the same way
-/// [ContainerEngine.liveSessions]'s own doc comment describes it fixing for
-/// panic's session count.
 ContainerSession? _findSite(List<ContainerSession> sessions, String siteId) {
   for (final session in sessions) {
     if (session.siteId == siteId) return session;
@@ -35,11 +20,51 @@ ContainerSession? _findSite(List<ContainerSession> sessions, String siteId) {
   return null;
 }
 
+/// The live session for one site, or `null` when that site has none. Feeds
+/// [ContainerRoute]'s `opening -> live -> refused` state machine — see Task
+/// 4. Filters [ContainerEngine.sessions] rather than adding a
+/// per-site-keyed stream to the engine itself, since the engine already
+/// emits its full list on every change and every existing caller
+/// ([sessions]) wants that shape.
+///
+/// Combines a [ContainerEngine.liveSessions] snapshot with the
+/// [ContainerEngine.sessions] stream, because that stream is broadcast with
+/// no replay: [ContainerRoute] calls `open` from `initState`, ahead of the
+/// first `build()` that creates this provider, so an engine that emits
+/// before anyone listens needs the snapshot to be seen at all.
+///
+/// **Subscribe first, then read the snapshot.** The other order drops any
+/// change emitted while the snapshot is in flight, and on a device that is
+/// the common case, not an edge: `open` decides its route on a worker thread
+/// and registers the session moments later, typically mid-snapshot. The lost
+/// event left the route on the opening checklist forever. And once an event
+/// has arrived, the snapshot is older than it and is discarded rather than
+/// allowed to overwrite it.
 final sessionForSiteProvider =
-    StreamProvider.family<ContainerSession?, String>((ref, siteId) async* {
+    StreamProvider.family<ContainerSession?, String>((ref, siteId) {
   final engine = ref.watch(containerEngineProvider);
-  yield _findSite(await engine.liveSessions(), siteId);
-  yield* engine.sessions().map((sessions) => _findSite(sessions, siteId));
+  final out = StreamController<ContainerSession?>();
+  var sawEvent = false;
+  final sub = engine.sessions().listen(
+    (sessions) {
+      sawEvent = true;
+      out.add(_findSite(sessions, siteId));
+    },
+    onError: out.addError,
+  );
+  engine.liveSessions().then(
+    (snapshot) {
+      if (!sawEvent && !out.isClosed) out.add(_findSite(snapshot, siteId));
+    },
+    onError: (Object e, StackTrace s) {
+      if (!out.isClosed) out.addError(e, s);
+    },
+  );
+  ref.onDispose(() {
+    sub.cancel();
+    out.close();
+  });
+  return out.stream;
 });
 
 /// Fills the seam Plan 2 Task 7 left open.
