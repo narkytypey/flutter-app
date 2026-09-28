@@ -1,0 +1,26 @@
+! Cookie notices (spec 10d). Consent-management platforms: blocking the
+! loader removes the banner. Specific hosts, so a CMP vendor's own website
+! and the privacy policies some host (iubenda) keep working.
+! Bump this list's updatedAt in bundled_filter_lists.dart whenever it changes.
+||cdn.cookielaw.org^
+||cookie-cdn.cookiepro.com^
+||geolocation.onetrust.com^
+||consent.cookiebot.com^
+||consentcdn.cookiebot.com^
+||cmp.quantcast.com^
+||consensu.org^
+||consent.trustarc.com^
+||app.usercentrics.eu^
+||privacy-proxy.usercentrics.eu^
+||sdk.privacy-center.org^
+||cdn.iubenda.com^
+||cmp.osano.com^
+||cdn-cookieyes.com^
+||app.termly.io^
+||cdn.consentmanager.net^
+||cdn.cookie-script.com^
+||consent.cookiefirst.com^
+||cdn.cookiehub.eu^
+||cc.cdn.civiccomputing.com^
+||cdn.privacy-mgmt.com^
+||cmp.inmobi.com^

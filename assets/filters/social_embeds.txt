@@ -1,0 +1,16 @@
+! Social embeds (spec 10d). Widget and SDK hosts only — the networks'
+! own sites stay reachable; this stops their embeds on other pages.
+! Bump this list's updatedAt in bundled_filter_lists.dart whenever it changes.
+||platform.twitter.com^
+||syndication.twitter.com^
+||platform.x.com^
+||connect.facebook.net^
+||platform.linkedin.com^
+||assets.pinterest.com^
+||platform.instagram.com^
+||embed.reddit.com^
+||embed.redditmedia.com^
+||platform.tumblr.com^
+||s7.addthis.com^
+||static.addtoany.com^
+||platform-api.sharethis.com^

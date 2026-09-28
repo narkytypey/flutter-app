@@ -1,0 +1,26 @@
+! Trackers and ads (spec 10d). `||host^` domain rules only — see FilterEngine.kt.
+! Bump this list's updatedAt in bundled_filter_lists.dart whenever it changes.
+! category: trackers
+||doubleclick.net^
+||googlesyndication.com^
+||googletagmanager.com^
+||googletagservices.com^
+||google-analytics.com^
+||googleadservices.com^
+||adservice.google.com^
+||facebook.net^
+||connect.facebook.net^
+||amazon-adsystem.com^
+||scorecardresearch.com^
+||quantserve.com^
+||adnxs.com^
+||taboola.com^
+||outbrain.com^
+||criteo.com^
+||hotjar.com^
+||mixpanel.com^
+||segment.io^
+||branch.io^
+! category: ads
+||pubmatic.com^
+||rubiconproject.com^
