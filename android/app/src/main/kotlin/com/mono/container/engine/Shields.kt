@@ -33,6 +33,13 @@ object Shields {
         androidx.webkit.WebViewCompat.addDocumentStartJavaScript(
             webView, js, setOf("*")
         )
+        // Library scripts: one injection each, confined to the site's own
+        // origin (Shields above runs everywhere). No origin, no scripts.
+        val origin = originRuleFor(config.url) ?: return
+        for (script in config.userScripts) {
+            val source = UserScriptJs.wrap(script.kind, script.code, script.atDocumentStart) ?: continue
+            androidx.webkit.WebViewCompat.addDocumentStartJavaScript(webView, source, setOf(origin))
+        }
     }
 
     /**

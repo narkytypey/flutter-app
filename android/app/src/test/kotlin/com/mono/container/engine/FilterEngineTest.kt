@@ -30,4 +30,8 @@ class FilterEngineTest {
         assertEquals(2, engine.countFor("trackers"))
         assertEquals(1, engine.countFor("ads"))
     }
+
+    @Test fun `no rules blocks nothing`() {
+        assertNull(FilterEngine(emptyMap()).matches("https://doubleclick.net/pixel"))
+    }
 }

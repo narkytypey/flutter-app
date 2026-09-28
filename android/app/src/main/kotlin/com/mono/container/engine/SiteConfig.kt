@@ -25,7 +25,24 @@ data class SiteConfig(
     val customCss: String,
     val customJs: String,
     val wipeOnExit: Boolean,
+    /** The open vault's enabled filter lists' `||host^` rules, by category.
+     *  Chosen by Dart; empty blocks nothing. */
+    val filterRules: Map<String, List<String>> = emptyMap(),
+    /** The library scripts applied to this site, in library order. */
+    val userScripts: List<InjectedScript> = emptyList(),
 )
+
+/** One library script as Dart sends it: `kind` is `css` or `js`. */
+data class InjectedScript(val kind: String, val code: String, val atDocumentStart: Boolean)
+
+/** Reads the `userScripts` argument. An entry without a kind or code is
+ *  skipped rather than failing the whole open. */
+fun injectedScriptsFrom(raw: List<Map<String, Any?>>?): List<InjectedScript> =
+    raw.orEmpty().mapNotNull { entry ->
+        val kind = entry["kind"] as? String ?: return@mapNotNull null
+        val code = entry["code"] as? String ?: return@mapNotNull null
+        InjectedScript(kind, code, entry["atDocumentStart"] as? Boolean ?: false)
+    }
 
 /** Wraps a string for safe embedding inside injected JavaScript. */
 fun String.asJsString(): String {

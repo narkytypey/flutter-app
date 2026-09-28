@@ -50,11 +50,12 @@ data class PendingDownload(
 
 /**
  * One open container. It owns its own [FilterEngine] rather than sharing one,
- * because `2c` and the Today log report a blocked count *per site*.
+ * because `2c` and the Today log report a blocked count *per site*. Its
+ * rules are the open vault's enabled lists, sent by Dart with each open.
  */
-class Session(val config: SiteConfig, rulesByCategory: Map<String, List<String>>) {
+class Session(val config: SiteConfig) {
 
-    val filters = FilterEngine(rulesByCategory)
+    val filters = FilterEngine(config.filterRules)
     val counters = SideCounters()
     val interceptor = RequestInterceptor(filters) { onTunnelDropped?.invoke(it) }
     val pendingPermissions = LinkedHashMap<String, PendingPermission>()
@@ -146,17 +147,6 @@ class EngineChannel(
     private val networkExecutor = java.util.concurrent.Executors.newCachedThreadPool()
     private val mainHandler = android.os.Handler(android.os.Looper.getMainLooper())
     private val downloadFetcher = DownloadFetcher(context, profiles)
-
-    private val rulesByCategory: Map<String, List<String>> by lazy {
-        mapOf(
-            "trackers" to readAsset("filters/default_trackers.txt"),
-            "ads" to readAsset("filters/default_ads.txt"),
-        )
-    }
-
-    private fun readAsset(path: String): List<String> =
-        runCatching { context.assets.open(path).bufferedReader().readLines() }
-            .getOrDefault(emptyList())
 
     fun attach(messenger: BinaryMessenger) {
         MethodChannel(messenger, METHOD_CHANNEL).setMethodCallHandler(this)
@@ -288,7 +278,7 @@ class EngineChannel(
             val route = runCatching { config.currentRoute() }
             mainHandler.post {
                 if (!pendingOpens.finish(config.siteId, ticket)) {
-                    result.success(Session(config, rulesByCategory).toMap())
+                    result.success(Session(config).toMap())
                     return@post
                 }
                 // Off onMethodCall's try/catch now, so a throw here would
@@ -303,7 +293,7 @@ class EngineChannel(
 
     /** [route] is null only when isolation itself is unavailable. */
     private fun register(config: SiteConfig, route: Route?): Map<String, Any?> {
-        val session = Session(config, rulesByCategory)
+        val session = Session(config)
         session.onTunnelDropped = { failure -> onTunnelDropped(config.siteId, failure) }
         sessions[config.siteId] = session
 
@@ -446,6 +436,8 @@ class EngineChannel(
         customCss = call.argument<String>("customCss") ?: "",
         customJs = call.argument<String>("customJs") ?: "",
         wipeOnExit = call.argument<Boolean>("wipeOnExit") ?: false,
+        filterRules = call.argument<Map<String, List<String>>>("filterRules") ?: emptyMap(),
+        userScripts = injectedScriptsFrom(call.argument<List<Map<String, Any?>>>("userScripts")),
     )
 
     fun nextRequestId(): String = "req-${++requestCounter}"
