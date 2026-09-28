@@ -30,14 +30,20 @@ class BlockedTallyController extends Notifier<BlockedTally> {
   /// emissions handled together would both read the same last counts.
   Future<void> _queue = Future.value();
 
+  /// Bumped on every rebuild — that is, on every change of vault. Work queued
+  /// under an earlier one belongs to the vault that was open then, and is
+  /// dropped rather than recorded into this one's tally.
+  int _generation = 0;
+
   @override
   BlockedTally build() {
     _recorder = BlockedTallyRecorder();
     _lastCounts.clear();
+    final generation = ++_generation;
     final lookup = ref.watch(siteLookupProvider);
     ref.listen(_sessionsStreamProvider, (_, next) {
       next.whenData((sessions) {
-        _queue = _queue.then((_) => _onSessions(sessions, lookup));
+        _queue = _queue.then((_) => _onSessions(sessions, lookup, generation));
       });
     });
     return _recorder.snapshot();
@@ -46,8 +52,10 @@ class BlockedTallyController extends Notifier<BlockedTally> {
   Future<void> _onSessions(
     List<ContainerSession> sessions,
     Future<Site?> Function(String) lookup,
+    int generation,
   ) async {
     for (final session in sessions) {
+      if (generation != _generation) return;
       final previous = _lastCounts[session.siteId] ?? const {};
       final deltas = <BlockedCategory, int>{};
       for (final category in BlockedCategory.values) {
@@ -58,6 +66,7 @@ class BlockedTallyController extends Notifier<BlockedTally> {
       if (deltas.isEmpty) continue;
 
       final site = await lookup(session.siteId);
+      if (generation != _generation) return;
       if (site == null) continue;
       deltas.forEach(_recorder.recordCategory);
       _recorder.recordSite(

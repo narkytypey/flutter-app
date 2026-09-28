@@ -96,4 +96,52 @@ void main() {
     expect(_count(tally, BlockedCategory.trackers), 5);
     expect(_count(tally, BlockedCategory.ads), 2);
   });
+
+  // A reopened site's new session counts from zero again. Remembering the
+  // closed session's counts would swallow the new one's first blocks.
+  test('a site closed and reopened counts its new session from zero', () async {
+    final engine = FakeContainerEngine();
+    final site = _site('s1');
+    final container = _container(engine, (id) async => site);
+
+    await engine.open(site);
+    engine.addBlocked('s1', BlockedCategory.trackers, 5);
+    await _settle();
+    await engine.close('s1');
+    await _settle();
+    await engine.open(site);
+    engine.addBlocked('s1', BlockedCategory.trackers, 3);
+    await _settle();
+
+    expect(_count(container.read(blockedTallyProvider), BlockedCategory.trackers), 8);
+  });
+
+  // A lookup still in flight when the vault changes must not land in the new
+  // vault's tally: that is a count from one vault shown in the other.
+  test("a vault switch mid-lookup drops the old vault's count", () async {
+    final engine = FakeContainerEngine();
+    final site = _site('s1');
+    final vault = StateProvider<String>((ref) => 'a');
+    final container = ProviderContainer(overrides: [
+      containerEngineProvider.overrideWithValue(engine),
+      siteLookupProvider.overrideWith((ref) {
+        final open = ref.watch(vault);
+        return (id) async {
+          await Future<void>.delayed(const Duration(milliseconds: 10));
+          return open == 'a' ? site : null;
+        };
+      }),
+    ]);
+    addTearDown(container.dispose);
+    container.listen(blockedTallyProvider, (_, __) {});
+
+    await engine.open(site);
+    engine.addBlocked('s1', BlockedCategory.trackers, 5);
+    await Future<void>.delayed(Duration.zero);
+    container.read(vault.notifier).state = 'b';
+    container.read(blockedTallyProvider);
+    await _settle();
+
+    expect(container.read(blockedTallyProvider).total, 0);
+  });
 }
