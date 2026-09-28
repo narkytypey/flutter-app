@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/tokens.dart';
 import '../../add_site/views/add_site_screen.dart';
 import '../../container/views/container_route.dart';
+import '../../report/views/today_route.dart';
 import '../../search/view_models/providers.dart'
     show allSitesProvider, searchQueryProvider, searchResultsProvider;
 import '../../search/view_models/search_view.dart' show SearchResultEntry;
@@ -141,6 +142,13 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                 ref.read(activeWorkspaceIdProvider.notifier).state = id;
                 setState(() => _menuOpen = false);
               },
+              managementOptions: [
+                ManagementOption(label: 'Today', onTap: () {
+                  setState(() => _menuOpen = false);
+                  Navigator.push(context,
+                      MaterialPageRoute(builder: (_) => const TodayRoute()));
+                }),
+              ],
             ),
             orElse: () => const SizedBox.shrink(),
           ),
