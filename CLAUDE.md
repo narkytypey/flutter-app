@@ -495,6 +495,24 @@ task that covers it.
   sends neither `User-Agent` nor `Cookie` while `saveViaDownloadManager` sends
   both — a cookie-gated download succeeds via Direct save-to-device and fails
   via keep-in-container.
+  **✅ Fixed 2026-09-28 on branch `fix-download-request-headers`.** Both
+  download paths now build their headers in one pure function,
+  `downloadRequest()` in `DownloadFetcher.kt`. The cookies come from **the
+  site's own profile** (`ProfileManager.profileFor(...).cookieManager`), not
+  `CookieManager.getInstance()`: that is the default profile's jar, which holds
+  nothing an isolated site set, so the old `saveViaDownloadManager` was sending
+  the wrong jar too. That profile lookup goes through androidx.webkit's
+  UI-thread-only `ProfileStore`, so `DownloadFetcher.requestFor` is called from
+  `EngineChannel.resolveDownload` on the platform thread, and only the
+  network/disk work in `DownloadFetcher.run` goes to the executor. Don't move
+  `requestFor` back inside `run`. Also fixed `ProxyHttpClient.fetch` sending
+  `Host` without the port on non-default ports (RFC 9110 §7.2). It affected
+  proxied page loads as well as downloads. Verified 2026-09-28: Kotlin JVM
+  tests 23/23 (read from the JUnit XML; new `DownloadRequestTest` 7 and
+  `ProxyHttpClientTest` 4), `flutter analyze` clean, `flutter test` 300/300,
+  `flutter build apk --debug` succeeding. **Not verified on a device** — the
+  UI-thread requirement in particular is from the library's contract, not
+  observed.
   Standing lesson from this plan: `flutter analyze` and `flutter test` are
   Dart-only and never compile `engine/`, which is how Tasks 1–6 reached a
   commit having never been compiled. `flutter build apk --debug` is the only
