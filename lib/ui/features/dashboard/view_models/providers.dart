@@ -5,6 +5,7 @@ import '../../../../data/repositories/site_repository_sqlite.dart';
 import '../../../../data/repositories/workspace_repository_sqlite.dart';
 import '../../../../domain/repositories/repositories.dart';
 import '../../../../domain/models/workspace.dart';
+import 'blocked_tally_controller.dart' show blockedTallyProvider;
 import 'dashboard_view.dart';
 import '../views/workspace_menu.dart';
 import '../../shell/view_models/session_controller.dart'
@@ -43,9 +44,9 @@ final activeWorkspaceIdProvider = StateProvider<String?>((ref) => null);
 /// closing, so this is deliberately not persisted.
 final openSiteIdsProvider = StateProvider<Set<String>>((ref) => <String>{});
 
-/// Seam for Plan 3: the filtering proxy will supply the real count. Until then
-/// the dashboard honestly reports zero rather than inventing a number.
-final leakCountProvider = Provider<int>((ref) => 0);
+/// Requests blocked since the app started, in the open vault only — the same
+/// total the Today log (`5c`) shows.
+final leakCountProvider = Provider<int>((ref) => ref.watch(blockedTallyProvider).total);
 
 final dashboardProvider = FutureProvider<DashboardView>((ref) async {
   final workspaces = await ref.watch(workspacesProvider.future);
