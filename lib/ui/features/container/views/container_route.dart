@@ -9,10 +9,14 @@ import '../../../../domain/models/open_step.dart';
 import '../../../../domain/models/route_failure_copy.dart';
 import '../../../../domain/models/route_decision.dart' show refusalMessage;
 import '../../../../domain/models/site.dart';
+import '../../add_site/views/add_site_screen.dart';
+import '../../dashboard/view_models/providers.dart'
+    show siteRepositoryProvider, workspacesProvider;
 import '../../in_page/views/held_download_sheet.dart';
 import '../../in_page/views/permission_request_sheet.dart';
 import '../../in_page/views/proxy_unreachable_screen.dart';
 import '../../in_page/views/reader_screen.dart';
+import '../../in_page/views/site_sheet.dart';
 import '../../in_page/views/tunnel_dropped_screen.dart';
 import '../view_models/providers.dart';
 import 'container_screen.dart';
@@ -42,6 +46,14 @@ class _ContainerRouteState extends ConsumerState<ContainerRoute> {
   StreamSubscription<DownloadResult>? _downloadResultSub;
   StreamSubscription<TunnelDroppedEvent>? _tunnelSub;
   final _myDownloadRequestIds = <String>{};
+
+  /// The site as last saved from this route. Starts as [ContainerRoute.site]
+  /// and moves on with every change made from the site sheet, so a second
+  /// change is saved on top of the first rather than over it. The open
+  /// session itself keeps running under the settings it was opened with —
+  /// the engine has no call to re-apply them to a live view, so a change
+  /// takes effect the next time this site is opened.
+  late Site _site = widget.site;
 
   String get _host => Uri.tryParse(widget.site.url)?.host ?? widget.site.url;
 
@@ -124,6 +136,79 @@ class _ContainerRouteState extends ConsumerState<ContainerRoute> {
           : 'Download failed',
     };
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+  }
+
+  Future<void> _showSiteSheet(int blockedCount) async {
+    final workspaces = await ref.read(workspacesProvider.future);
+    if (!mounted) return;
+    String? workspaceName;
+    for (final workspace in workspaces) {
+      if (workspace.id == _site.workspaceId) workspaceName = workspace.name;
+    }
+
+    final engine = ref.read(containerEngineProvider);
+    showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (sheetContext) => StatefulBuilder(
+        builder: (sheetContext, setSheetState) {
+          Future<void> save(Site updated) async {
+            setState(() => _site = updated);
+            setSheetState(() {});
+            await ref.read(siteRepositoryProvider).upsert(updated);
+          }
+
+          final host = Uri.tryParse(_site.url)?.host ?? _site.url;
+          return SiteSheet(
+            monogram: _site.monogram,
+            name: _site.name,
+            subtitle: workspaceName == null ? host : '$host · $workspaceName',
+            proxyDescriptor: _proxyDescriptor(_site),
+            cookiesDescriptor: switch (_site.cookiePolicy) {
+              CookiePolicy.keep => 'Keep for this site',
+              CookiePolicy.wipeOnExit => 'Wipe on exit',
+            },
+            blockedCount: blockedCount,
+            forceDark: _site.forceDark,
+            desktopView: _site.userAgentMode == UserAgentMode.desktop,
+            onEdit: () {
+              Navigator.pop(sheetContext);
+              _editSite();
+            },
+            onForceDarkChanged: (value) => save(_site.copyWith(forceDark: value)),
+            // The switch is binary, so turning it off lands on `android` — a
+            // site that was `minimal` loses that once desktop view is flipped.
+            onDesktopViewChanged: (value) => save(_site.copyWith(
+              userAgentMode: value ? UserAgentMode.desktop : UserAgentMode.android,
+            )),
+            onCloseAndWipe: () async {
+              Navigator.pop(sheetContext);
+              await engine.close(widget.site.id);
+              await engine.wipe(widget.site.profileId);
+              if (!mounted) return;
+              Navigator.pop(context);
+            },
+          );
+        },
+      ),
+    );
+  }
+
+  Future<void> _editSite() async {
+    final workspaces = await ref.read(workspacesProvider.future);
+    if (!mounted) return;
+    await Navigator.push(context, MaterialPageRoute(
+      builder: (_) => AddSiteScreen(
+        initial: _site,
+        workspaces: workspaces,
+        onSave: (updated) async {
+          await ref.read(siteRepositoryProvider).upsert(updated);
+          if (!mounted) return;
+          setState(() => _site = updated);
+          Navigator.pop(context);
+        },
+      ),
+    ));
   }
 
   Future<void> _openReader() async {
@@ -223,7 +308,7 @@ class _ContainerRouteState extends ConsumerState<ContainerRoute> {
             },
             onReaderMode: _openReader,
             onFilters: () {},
-            onMenu: () {},
+            onMenu: () => _showSiteSheet(session.blockedCount),
             onMore: () {},
           ),
           if (_tunnelDropped)
@@ -257,3 +342,10 @@ class _ContainerRouteState extends ConsumerState<ContainerRoute> {
     );
   }
 }
+
+/// Spec `6c`'s proxy row: `SOCKS5 · 127.0.0.1:9050`.
+String _proxyDescriptor(Site site) => switch (site.proxyMode) {
+      ProxyMode.direct => 'Direct',
+      ProxyMode.socks5 => 'SOCKS5 · ${site.proxyHost}:${site.proxyPort}',
+      ProxyMode.http => 'HTTP · ${site.proxyHost}:${site.proxyPort}',
+    };

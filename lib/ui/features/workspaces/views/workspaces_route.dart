@@ -1,0 +1,103 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import '../../../../domain/models/workspace.dart';
+import '../../dashboard/view_models/providers.dart' show siteRepositoryProvider, workspacesProvider;
+import '../view_models/providers.dart';
+import 'delete_workspace_sheet.dart';
+import 'workspace_form_screen.dart';
+import 'workspaces_screen.dart';
+
+/// Spec `10a`–`10c` against the open vault. Reached from Settings' MANAGE
+/// section.
+class WorkspacesRoute extends ConsumerWidget {
+  const WorkspacesRoute({super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final items = ref.watch(workspaceListItemsProvider);
+    return WorkspacesScreen(
+      items: items.value ?? const [],
+      onOpen: (id) => _edit(context, ref, id),
+      onDelete: (id) => _delete(context, ref, id),
+      onNewWorkspace: () => _create(context, ref),
+      onBack: () => Navigator.pop(context),
+    );
+  }
+
+  Future<Workspace?> _byId(WidgetRef ref, String id) async {
+    for (final workspace in await ref.read(workspacesProvider.future)) {
+      if (workspace.id == id) return workspace;
+    }
+    return null;
+  }
+
+  void _create(BuildContext context, WidgetRef ref) {
+    Navigator.push(context, MaterialPageRoute(
+      builder: (_) => WorkspaceFormScreen(
+        title: 'New workspace',
+        initialName: '',
+        initialMarkerIndex: 0,
+        initialStorageRule: StorageRule.keep,
+        initialRequirePin: false,
+        initialShowInDecoy: false,
+        onSave: (result) async {
+          await ref.read(workspaceActionsProvider).create(result);
+          workspacesChanged(ref);
+          if (context.mounted) Navigator.pop(context);
+        },
+        onClose: () => Navigator.pop(context),
+      ),
+    ));
+  }
+
+  /// The spec draws only the create form; editing reuses it, titled with the
+  /// workspace's own name rather than copy the spec never wrote.
+  Future<void> _edit(BuildContext context, WidgetRef ref, String id) async {
+    final workspace = await _byId(ref, id);
+    if (workspace == null || !context.mounted) return;
+    Navigator.push(context, MaterialPageRoute(
+      builder: (_) => WorkspaceFormScreen(
+        title: workspace.name,
+        initialName: workspace.name,
+        initialMarkerIndex: workspace.markerIndex,
+        initialStorageRule: workspace.storageRule,
+        initialRequirePin: workspace.requirePin,
+        initialShowInDecoy: workspace.showInDecoy,
+        onSave: (result) async {
+          await ref.read(workspaceActionsProvider).update(workspace, result);
+          workspacesChanged(ref);
+          if (context.mounted) Navigator.pop(context);
+        },
+        onClose: () => Navigator.pop(context),
+      ),
+    ));
+  }
+
+  Future<void> _delete(BuildContext context, WidgetRef ref, String id) async {
+    final workspace = await _byId(ref, id);
+    if (workspace == null) return;
+    final sites = await ref.read(siteRepositoryProvider).inWorkspace(id);
+    final bytes = await ref.read(workspaceStorageServiceProvider).bytesFor(id);
+    if (!context.mounted) return;
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (sheetContext) => Padding(
+        padding: EdgeInsets.only(bottom: MediaQuery.of(sheetContext).viewInsets.bottom),
+        child: DeleteWorkspaceSheet(
+          workspaceName: workspace.name,
+          sitesRemoved: sites.length,
+          storageBytesWiped: bytes,
+          onCancel: () => Navigator.pop(sheetContext),
+          onDelete: () async {
+            Navigator.pop(sheetContext);
+            await ref.read(workspaceActionsProvider).delete(workspace);
+            workspacesChanged(ref, deletedId: workspace.id);
+          },
+        ),
+      ),
+    );
+  }
+}

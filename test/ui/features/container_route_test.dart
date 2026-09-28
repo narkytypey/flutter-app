@@ -4,6 +4,12 @@ import 'package:container/domain/models/held_download.dart';
 import 'package:container/domain/models/reader_article.dart';
 import 'package:container/domain/models/route_decision.dart';
 import 'package:container/domain/models/site.dart';
+import 'package:container/domain/models/workspace.dart';
+import 'package:container/domain/repositories/repositories.dart';
+import 'package:container/ui/core/widgets/app_toggle.dart';
+import 'package:container/ui/features/add_site/views/add_site_screen.dart';
+import 'package:container/ui/features/dashboard/view_models/providers.dart'
+    show siteRepositoryProvider, workspacesProvider;
 import 'package:container/ui/features/container/view_models/providers.dart';
 import 'package:container/ui/features/container/views/container_route.dart';
 import 'package:container/ui/features/container/views/container_web_view.dart';
@@ -19,7 +25,33 @@ Site _site() => Site(
       proxyMode: ProxyMode.direct,
     );
 
-Future<void> _pump(WidgetTester tester, FakeContainerEngine engine, Site site) async {
+/// Records every upsert, so a test can assert on what was persisted.
+class _RecordingSiteRepository implements SiteRepository {
+  final upserts = <Site>[];
+
+  @override
+  Future<void> upsert(Site site) async => upserts.add(site);
+  @override
+  Future<List<Site>> all() => throw UnimplementedError();
+  @override
+  Future<List<Site>> inWorkspace(String workspaceId) => throw UnimplementedError();
+  @override
+  Future<Site?> byId(String id) => throw UnimplementedError();
+  @override
+  Future<void> delete(String id) => throw UnimplementedError();
+  @override
+  Future<void> touch(String id, DateTime at) => throw UnimplementedError();
+}
+
+const _workspace = Workspace(
+    id: 'w', name: 'Personal', markerIndex: 0, storageRule: StorageRule.keep);
+
+Future<void> _pump(
+  WidgetTester tester,
+  FakeContainerEngine engine,
+  Site site, {
+  SiteRepository? sites,
+}) async {
   // A modal bottom sheet is capped at 9/16 of the surface height, so the
   // default 800x600 canvas leaves HeldDownloadSheet ~294px where its fixed
   // column needs ~357px. Only the height is raised here: the container
@@ -29,12 +61,82 @@ Future<void> _pump(WidgetTester tester, FakeContainerEngine engine, Site site) a
   tester.view.physicalSize = const Size(800, 1600);
   tester.view.devicePixelRatio = 1;
   await tester.pumpWidget(ProviderScope(
-    overrides: [containerEngineProvider.overrideWithValue(engine)],
+    overrides: [
+      containerEngineProvider.overrideWithValue(engine),
+      if (sites != null) siteRepositoryProvider.overrideWithValue(sites),
+      workspacesProvider.overrideWith((ref) async => const [_workspace]),
+    ],
     child: MaterialApp(home: ContainerRoute(site: site)),
   ));
 }
 
 void main() {
+  testWidgets('the site sheet describes the route as spec 6c does', (tester) async {
+    final engine = FakeContainerEngine();
+    await _pump(tester, engine, _site().copyWith(
+      proxyMode: ProxyMode.socks5, proxyHost: '127.0.0.1', proxyPort: 9050,
+      cookiePolicy: CookiePolicy.wipeOnExit,
+    ));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('☰'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('forum.example.com · Personal'), findsOneWidget);
+    expect(find.text('SOCKS5 · 127.0.0.1:9050'), findsOneWidget);
+    expect(find.text('Wipe on exit'), findsOneWidget);
+  });
+
+  // Both switches in one sheet: the second save must carry the first change,
+  // not overwrite it with the site as it was when the route was pushed.
+  testWidgets('site sheet toggles persist and accumulate', (tester) async {
+    final engine = FakeContainerEngine();
+    final sites = _RecordingSiteRepository();
+    await _pump(tester, engine, _site(), sites: sites);
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('☰'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byType(AppToggle).at(0)); // Force dark mode, on by default
+    await tester.pumpAndSettle();
+    await tester.tap(find.byType(AppToggle).at(1)); // Desktop view
+    await tester.pumpAndSettle();
+
+    expect(sites.upserts, hasLength(2));
+    expect(sites.upserts.last.forceDark, isFalse);
+    expect(sites.upserts.last.userAgentMode, UserAgentMode.desktop);
+    final toggles = tester.widgetList<AppToggle>(find.byType(AppToggle)).toList();
+    expect(toggles[0].value, isFalse);
+    expect(toggles[1].value, isTrue);
+  });
+
+  testWidgets("the site sheet's Edit opens the add-site form on this site", (tester) async {
+    final engine = FakeContainerEngine();
+    await _pump(tester, engine, _site(), sites: _RecordingSiteRepository());
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('☰'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Edit'));
+    await tester.pumpAndSettle();
+
+    expect(tester.widget<AddSiteScreen>(find.byType(AddSiteScreen)).initial?.id, 's1');
+  });
+
+  testWidgets('close and wipe from the site sheet wipes this profile', (tester) async {
+    final engine = FakeContainerEngine();
+    await _pump(tester, engine, _site());
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('☰'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Close and wipe this session'));
+    await tester.pumpAndSettle();
+
+    expect(engine.closed, contains('s1'));
+    expect(engine.wiped, contains('a' * 32));
+  });
+
   testWidgets('opening a site shows the checklist, then the container', (tester) async {
     final engine = FakeContainerEngine();
     await _pump(tester, engine, _site());

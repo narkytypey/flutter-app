@@ -52,4 +52,30 @@ void main() {
     await tester.tap(find.text('Work'));
     expect(picked, ['b']);
   });
+
+  testWidgets('management rows sit under the workspaces and report their taps',
+      (tester) async {
+    final tapped = <String>[];
+    await tester.pumpWidget(MaterialApp(
+      home: Scaffold(
+        body: WorkspaceMenu(
+          options: const [
+            WorkspaceOption(
+                id: 'a', name: 'Personal', meta: '6 SITES · 2 OPEN', selected: true),
+          ],
+          onPick: (_) {},
+          managementOptions: [
+            ManagementOption(label: 'Today', onTap: () => tapped.add('Today')),
+          ],
+        ),
+      ),
+    ));
+
+    expect(
+      tester.getTopLeft(find.text('Today')).dy,
+      greaterThan(tester.getTopLeft(find.text('Personal')).dy),
+    );
+    await tester.tap(find.text('Today'));
+    expect(tapped, ['Today']);
+  });
 }

@@ -4,6 +4,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/tokens.dart';
 import '../../add_site/views/add_site_screen.dart';
 import '../../container/views/container_route.dart';
+import '../../report/views/today_route.dart';
+import '../../scripts/views/scripts_route.dart';
 import '../../search/view_models/providers.dart'
     show allSitesProvider, searchQueryProvider, searchResultsProvider;
 import '../../search/view_models/search_view.dart' show SearchResultEntry;
@@ -17,6 +19,7 @@ import '../../settings/view_models/providers.dart'
         settingsControllerProvider;
 import '../../settings/views/decoy_resync_route.dart';
 import '../../settings/views/settings_screen.dart';
+import '../../workspaces/views/workspaces_route.dart';
 import '../view_models/providers.dart';
 import 'dashboard_body.dart';
 import 'site_row_menu.dart';
@@ -141,6 +144,13 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                 ref.read(activeWorkspaceIdProvider.notifier).state = id;
                 setState(() => _menuOpen = false);
               },
+              managementOptions: [
+                ManagementOption(label: 'Today', onTap: () {
+                  setState(() => _menuOpen = false);
+                  Navigator.push(context,
+                      MaterialPageRoute(builder: (_) => const TodayRoute()));
+                }),
+              ],
             ),
             orElse: () => const SizedBox.shrink(),
           ),
@@ -197,6 +207,15 @@ class _SearchRouteState extends ConsumerState<_SearchRoute> {
   }
 }
 
+/// The screen a Settings row opens, by the key `SettingsScreen.onTap`
+/// reports. Null for a row with nothing built behind it yet.
+Widget? settingsDestination(String key) => switch (key) {
+      'resyncDecoy' => const DecoyResyncRoute(),
+      'workspaces' => const WorkspacesRoute(),
+      'scripts' => const ScriptsRoute(),
+      _ => null,
+    };
+
 class _SettingsRoute extends ConsumerWidget {
   const _SettingsRoute();
 
@@ -221,9 +240,9 @@ class _SettingsRoute extends ConsumerWidget {
         }
       },
       onTap: (key) {
-        if (key == 'resyncDecoy') {
-          Navigator.push(context,
-              MaterialPageRoute(builder: (_) => const DecoyResyncRoute()));
+        final destination = settingsDestination(key);
+        if (destination != null) {
+          Navigator.push(context, MaterialPageRoute(builder: (_) => destination));
         }
       },
     );

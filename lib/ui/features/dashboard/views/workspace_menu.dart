@@ -18,6 +18,15 @@ class WorkspaceOption {
   final bool selected;
 }
 
+/// A row under the workspaces that leads somewhere else in the app. Spec
+/// `5c`: the Today log "is reachable from the dashboard menu".
+class ManagementOption {
+  const ManagementOption({required this.label, required this.onTap});
+
+  final String label;
+  final VoidCallback onTap;
+}
+
 /// The one-line summary under a workspace's name in the switcher.
 String workspaceMeta({
   required Workspace workspace,
@@ -31,10 +40,16 @@ String workspaceMeta({
 /// The dropdown that hangs under the workspace name (spec `1a`). It is reused
 /// on the `1b` bar, which is why it lives in its own file.
 class WorkspaceMenu extends StatelessWidget {
-  const WorkspaceMenu({super.key, required this.options, required this.onPick});
+  const WorkspaceMenu({
+    super.key,
+    required this.options,
+    required this.onPick,
+    this.managementOptions = const [],
+  });
 
   final List<WorkspaceOption> options;
   final void Function(String id) onPick;
+  final List<ManagementOption> managementOptions;
 
   @override
   Widget build(BuildContext context) {
@@ -79,6 +94,19 @@ class WorkspaceMenu extends StatelessWidget {
                     ],
                   ),
                 ),
+              ),
+            ),
+          for (final management in managementOptions)
+            InkWell(
+              onTap: management.onTap,
+              child: Container(
+                width: double.infinity,
+                decoration: const BoxDecoration(
+                  border: Border(top: BorderSide(color: C.line05)),
+                ),
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                child: Text(management.label,
+                    style: ui(size: 13, color: C.textSecondary)),
               ),
             ),
         ],
