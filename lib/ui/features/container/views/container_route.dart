@@ -299,9 +299,11 @@ class _ContainerRouteState extends ConsumerState<ContainerRoute> {
             onBack: () => Navigator.pop(context),
             onReload: () => engine.reload(widget.site.id),
             onPanic: () => panic(ref),
+            // The switcher has already closed itself by now. Only closing
+            // this route's own site leaves it with nothing to show.
             onCloseSession: (siteId) async {
               await engine.close(siteId);
-              if (!context.mounted) return;
+              if (siteId != widget.site.id || !context.mounted) return;
               Navigator.pop(context);
             },
             onCloseAllAndWipe: () async {

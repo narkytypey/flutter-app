@@ -683,6 +683,13 @@ Still open:
   route under it, so the user lands on that site's opening checklist
   (`8a`) instead of the dashboard. `onCloseSession` likely has the same
   shape. Found 2026-09-28 verifying the panic fix; unowned.
+  **✅ Fixed 2026-09-29 (`64d72ae`, merged to `main`).** `ContainerScreen`'s
+  switcher now dismisses itself by its own context before reporting either
+  close action, so the route's `Navigator.pop` pops the route; closing some
+  *other* site's session no longer pops the route at all. Two widget tests
+  push `ContainerRoute` over a stand-in home route and assert you land on
+  it. The fix was found as uncommitted work in an agent worktree and
+  committed during the branch merge. **Not verified on a device.**
 - **Keep-in-container over HTTPS fails mid-body on the emulator** with
   `SSLProtocolException: Read error` (BoringSSL `BAD_RECORD_MAC`), now
   reported as `TLS_FAILURE` with nothing left on disk. A standalone probe

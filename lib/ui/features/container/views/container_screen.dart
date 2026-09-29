@@ -50,16 +50,26 @@ class ContainerScreen extends StatelessWidget {
   final VoidCallback onMenu;
   final VoidCallback onMore;
 
+  /// The two close actions dismiss the sheet by its own context before
+  /// reporting, so a caller that then pops its route pops the route and not
+  /// this sheet on top of it. Panic is passed through untouched: it replaces
+  /// the whole open vault, sheet included.
   void _openSwitcher(BuildContext context) {
     showModalBottomSheet<void>(
       context: context,
       backgroundColor: Colors.transparent,
       barrierColor: Colors.black.withValues(alpha: 0.32),
-      builder: (_) => SwitcherSheet(
+      builder: (sheetContext) => SwitcherSheet(
         entries: entries,
         workspaceName: workspaceName,
-        onCloseSession: onCloseSession,
-        onCloseAllAndWipe: onCloseAllAndWipe,
+        onCloseSession: (siteId) {
+          Navigator.pop(sheetContext);
+          onCloseSession(siteId);
+        },
+        onCloseAllAndWipe: () {
+          Navigator.pop(sheetContext);
+          onCloseAllAndWipe();
+        },
         onPanic: onPanic,
       ),
     );
