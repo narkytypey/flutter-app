@@ -12,14 +12,16 @@ import '../../../../domain/models/route_decision.dart' show refusalMessage;
 import '../../../../domain/models/site.dart';
 import '../../add_site/views/add_site_screen.dart';
 import '../../dashboard/view_models/providers.dart'
-    show closeSite, siteRepositoryProvider, workspacesProvider;
+    show closeSite, dashboardProvider, siteRepositoryProvider, workspacesProvider;
 import '../../in_page/views/held_download_sheet.dart';
 import '../../in_page/views/permission_request_sheet.dart';
 import '../../in_page/views/proxy_unreachable_screen.dart';
 import '../../in_page/views/reader_screen.dart';
 import '../../in_page/views/site_sheet.dart';
 import '../../in_page/views/tunnel_dropped_screen.dart';
+import '../../search/view_models/providers.dart' show allSitesProvider;
 import '../view_models/providers.dart';
+import '../view_models/throwaway_sites.dart';
 import 'container_screen.dart';
 import 'container_web_view.dart';
 import 'opening_screen.dart';
@@ -56,6 +58,16 @@ class ContainerRoute extends ConsumerStatefulWidget {
 class _ContainerRouteState extends ConsumerState<ContainerRoute> {
   /// Captured in [initState]: [dispose] may not read providers.
   late final ContainerEngine _engine;
+
+  /// Whether leaving this route closes its native session: a throwaway's,
+  /// until it is saved as a site. Kept here rather than read from
+  /// `throwawaySitesProvider`, which whoever pushed this route empties while
+  /// this route is still animating out.
+  late bool _closeOnDispose = widget.throwaway;
+
+  /// Whether this site is a throwaway right now: on `throwawaySitesProvider`,
+  /// read at every build.
+  bool _isThrowaway = false;
   bool _opened = false;
 
   /// Whether this route's own `open` has returned. Until then, any session
@@ -83,6 +95,9 @@ class _ContainerRouteState extends ConsumerState<ContainerRoute> {
   late Site _site = widget.site;
 
   String get _host => Uri.tryParse(widget.site.url)?.host ?? widget.site.url;
+
+  /// What this container opened: the typed address, or the stored one.
+  String get _openedUrl => widget.initialUrl ?? widget.site.url;
 
   @override
   void initState() {
@@ -133,7 +148,7 @@ class _ContainerRouteState extends ConsumerState<ContainerRoute> {
     // A throwaway never reopens. Closing its session disposes its page view
     // if Flutter has not already, and ContainerView.dispose wipes a
     // wipe-on-exit profile — popped, or torn down by a lock or panic.
-    if (widget.throwaway) unawaited(_engine.close(widget.site.id));
+    if (_closeOnDispose) unawaited(_engine.close(widget.site.id));
     super.dispose();
   }
 
@@ -188,23 +203,27 @@ class _ContainerRouteState extends ConsumerState<ContainerRoute> {
       if (workspace.id == _site.workspaceId) workspaceName = workspace.name;
     }
 
-    final engine = ref.read(containerEngineProvider);
     showModalBottomSheet<void>(
       context: context,
       backgroundColor: Colors.transparent,
       builder: (sheetContext) => StatefulBuilder(
         builder: (sheetContext, setSheetState) {
+          // A throwaway is not written to the vault until it is saved (spec
+          // §5.1). Its switches change only this page's record, which nothing
+          // reads again: a throwaway never reopens.
           Future<void> save(Site updated) async {
             setState(() => _site = updated);
             setSheetState(() {});
+            if (_isThrowaway) return;
             await ref.read(siteRepositoryProvider).upsert(updated);
           }
 
-          final host = Uri.tryParse(_site.url)?.host ?? _site.url;
+          final host = _site.host;
           return SiteSheet(
             monogram: _site.monogram,
             name: _site.name,
-            subtitle: workspaceName == null ? host : '$host · $workspaceName',
+            // A throwaway belongs to no workspace until it is saved.
+            subtitle: _isThrowaway || workspaceName == null ? host : '$host · $workspaceName',
             proxyDescriptor: _proxyDescriptor(_site),
             cookiesDescriptor: switch (_site.cookiePolicy) {
               CookiePolicy.keep => 'Keep for this site',
@@ -213,9 +232,14 @@ class _ContainerRouteState extends ConsumerState<ContainerRoute> {
             blockedCount: blockedCount,
             forceDark: _site.forceDark,
             desktopView: _site.userAgentMode == UserAgentMode.desktop,
+            // Editing a throwaway means saving it.
             onEdit: () {
               Navigator.pop(sheetContext);
-              _editSite();
+              if (_isThrowaway) {
+                _saveAsSite();
+              } else {
+                _editSite();
+              }
             },
             onForceDarkChanged: (value) => save(_site.copyWith(forceDark: value)),
             // The switch is binary, so turning it off lands on `android` — a
@@ -226,8 +250,8 @@ class _ContainerRouteState extends ConsumerState<ContainerRoute> {
             onCloseAndWipe: () async {
               Navigator.pop(sheetContext);
               closeSite(ref, widget.site.id);
-              await engine.close(widget.site.id);
-              await engine.wipe(widget.site.profileId);
+              await _engine.close(widget.site.id);
+              await _engine.wipe(widget.site.profileId);
               if (!mounted) return;
               Navigator.pop(context);
             },
@@ -248,6 +272,39 @@ class _ContainerRouteState extends ConsumerState<ContainerRoute> {
           await ref.read(siteRepositoryProvider).upsert(updated);
           if (!mounted) return;
           setState(() => _site = updated);
+          Navigator.pop(context);
+        },
+      ),
+    ));
+  }
+
+  /// Spec §5.3. The form opens on the throwaway as it is now — the page it is
+  /// showing, cookies kept — and keeps its id and profile id, so the saved
+  /// site is this same container. The row is written first, then the native
+  /// profile is kept: without `keep`, closing the page would wipe the login
+  /// just saved. Picking "Wipe on exit" in the form skips `keep`. Anything
+  /// else changed in the form applies the next time the site opens.
+  Future<void> _saveAsSite() async {
+    final workspaces = await ref.read(workspacesProvider.future);
+    if (!mounted) return;
+    final navigation = ref.read(navigationForSiteProvider(widget.site.id)).valueOrNull;
+    final initial = _site.copyWith(
+      url: navigation?.url ?? _openedUrl,
+      cookiePolicy: CookiePolicy.keep,
+    );
+    await Navigator.push(context, MaterialPageRoute<void>(
+      builder: (_) => AddSiteScreen(
+        initial: initial,
+        workspaces: workspaces,
+        onSave: (site) async {
+          await ref.read(siteRepositoryProvider).upsert(site);
+          if (site.cookiePolicy != CookiePolicy.wipeOnExit) await _engine.keep(site.id);
+          if (!mounted) return;
+          _closeOnDispose = false;
+          ref.read(throwawaySitesProvider.notifier).remove(site.id);
+          ref.invalidate(allSitesProvider);
+          ref.invalidate(dashboardProvider);
+          setState(() => _site = site);
           Navigator.pop(context);
         },
       ),
@@ -292,6 +349,7 @@ class _ContainerRouteState extends ConsumerState<ContainerRoute> {
   @override
   Widget build(BuildContext context) {
     final sessionAsync = ref.watch(sessionForSiteProvider(widget.site.id));
+    _isThrowaway = ref.watch(throwawaySitesProvider).any((site) => site.id == widget.site.id);
 
     return sessionAsync.when(
       loading: () => OpeningBody(

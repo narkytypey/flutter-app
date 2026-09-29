@@ -23,6 +23,7 @@ import 'package:container/ui/features/add_site/views/add_site_screen.dart';
 import 'package:container/ui/features/dashboard/view_models/providers.dart'
     show databaseProvider, openSiteIdsProvider, siteRepositoryProvider, workspacesProvider;
 import 'package:container/ui/features/container/view_models/providers.dart';
+import 'package:container/ui/features/container/view_models/throwaway_sites.dart';
 import 'package:container/ui/features/container/views/container_route.dart';
 import 'package:container/ui/features/container/views/container_web_view.dart';
 import 'package:container/ui/features/container/views/switcher_sheet.dart';
@@ -72,10 +73,18 @@ class _GatedEngine extends FakeContainerEngine {
 
 /// Records every upsert, so a test can assert on what was persisted.
 class _RecordingSiteRepository implements SiteRepository {
+  _RecordingSiteRepository({this.events});
+
   final upserts = <Site>[];
 
+  /// Shared with [_LoggingEngine], so a test can pin the order of a save.
+  final List<String>? events;
+
   @override
-  Future<void> upsert(Site site) async => upserts.add(site);
+  Future<void> upsert(Site site) async {
+    upserts.add(site);
+    events?.add('upsert ${site.id}');
+  }
   @override
   Future<List<Site>> all() => throw UnimplementedError();
   @override
@@ -87,6 +96,34 @@ class _RecordingSiteRepository implements SiteRepository {
   @override
   Future<void> touch(String id, DateTime at) => throw UnimplementedError();
 }
+
+/// Logs `keep` into the same list the repository logs its upserts to.
+class _LoggingEngine extends FakeContainerEngine {
+  _LoggingEngine(this.events);
+
+  final List<String> events;
+
+  @override
+  Future<void> keep(String siteId) async {
+    events.add('keep $siteId');
+    await super.keep(siteId);
+  }
+}
+
+/// The real registry empties itself on leaving `SessionOpen`, which needs a
+/// session this file does not build.
+class _Throwaways extends ThrowawaySites {
+  _Throwaways(this.initial);
+
+  final List<Site> initial;
+
+  @override
+  List<Site> build() => initial;
+}
+
+List<Site> _registry(WidgetTester tester) =>
+    ProviderScope.containerOf(tester.element(find.byType(MaterialApp)))
+        .read(throwawaySitesProvider);
 
 const _workspace = Workspace(
     id: 'w', name: 'Personal', markerIndex: 0, storageRule: StorageRule.keep);
@@ -104,6 +141,7 @@ Future<void> _pump(
   bool overHome = false,
   bool throwaway = false,
   String? initialUrl,
+  List<Site> throwaways = const [],
 }) async {
   // A modal bottom sheet is capped at 9/16 of the surface height, so the
   // default 800x600 canvas leaves HeldDownloadSheet ~294px where its fixed
@@ -120,6 +158,7 @@ Future<void> _pump(
       containerEngineProvider.overrideWithValue(engine),
       if (sites != null) siteRepositoryProvider.overrideWithValue(sites),
       workspacesProvider.overrideWith((ref) async => const [_workspace]),
+      throwawaySitesProvider.overrideWith(() => _Throwaways(throwaways)),
       if (!realExtras)
         engineExtrasBuilderProvider.overrideWithValue((site) async => EngineExtras.none),
       ...overrides,
@@ -586,6 +625,92 @@ void main() {
     await tester.pumpWidget(const SizedBox.shrink());
 
     expect(engine.closed, ['t1']);
+  });
+
+  testWidgets("a throwaway's site sheet changes nothing in the vault", (tester) async {
+    final engine = FakeContainerEngine();
+    final sites = _RecordingSiteRepository();
+    await _pump(tester, engine, _throwaway(), sites: sites,
+        throwaway: true, throwaways: [_throwaway()]);
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('☰'));
+    await tester.pumpAndSettle();
+    // No workspace until it is saved.
+    expect(find.text('news.example.org · Personal'), findsNothing);
+    await tester.tap(find.byType(AppToggle).at(0)); // Force dark mode
+    await tester.pumpAndSettle();
+
+    expect(sites.upserts, isEmpty);
+    expect(tester.widget<AppToggle>(find.byType(AppToggle).at(0)).value, isFalse);
+  });
+
+  testWidgets('Edit on a throwaway saves it: the row first, then its profile kept', (tester) async {
+    final events = <String>[];
+    final engine = _LoggingEngine(events);
+    final sites = _RecordingSiteRepository(events: events);
+    await _pump(tester, engine, _throwaway(), sites: sites,
+        throwaway: true, throwaways: [_throwaway()]);
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('☰'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Edit'));
+    await tester.pumpAndSettle();
+
+    final form = tester.widget<AddSiteScreen>(find.byType(AddSiteScreen));
+    expect(form.initial!.id, 't1');
+    expect(form.initial!.profileId, 'c' * 32);
+    expect(form.initial!.url, 'https://news.example.org');
+    expect(form.initial!.cookiePolicy, CookiePolicy.keep);
+
+    await tester.tap(find.text('Save'));
+    await tester.pumpAndSettle();
+
+    expect(events, ['upsert t1', 'keep t1']);
+    expect(_registry(tester), isEmpty);
+  });
+
+  // Saved, it is a site like any other: leaving it must not close — and so
+  // wipe — the login just kept.
+  testWidgets('a saved throwaway is not closed when left', (tester) async {
+    final engine = FakeContainerEngine();
+    await _pump(tester, engine, _throwaway(), sites: _RecordingSiteRepository(),
+        throwaway: true, throwaways: [_throwaway()], overHome: true);
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('☰'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Edit'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Save'));
+    await tester.pumpAndSettle();
+    Navigator.of(tester.element(find.byType(ContainerRoute))).pop();
+    await tester.pumpAndSettle();
+
+    expect(engine.kept, ['t1']);
+    expect(engine.closed, isEmpty);
+  });
+
+  testWidgets('saving with Wipe on exit picked keeps nothing', (tester) async {
+    final events = <String>[];
+    final engine = _LoggingEngine(events);
+    final sites = _RecordingSiteRepository(events: events);
+    await _pump(tester, engine, _throwaway(), sites: sites,
+        throwaway: true, throwaways: [_throwaway()]);
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('☰'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Edit'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Wipe on exit'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Save'));
+    await tester.pumpAndSettle();
+
+    expect(events, ['upsert t1']);
+    expect(sites.upserts.single.cookiePolicy, CookiePolicy.wipeOnExit);
   });
 }
 
