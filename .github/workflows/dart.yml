@@ -6,12 +6,15 @@ on:
   pull_request:
     branches: [ "main" ]
 
+# Each actions/* step is on its first Node 24 major: GitHub removed Node 20
+# from its runners on 2026-09-23. subosito/flutter-action@v2 needs no change:
+# from v2.23.0 its internal cache step is actions/cache@v5.
 jobs:
   # Dart only: never compiles anything under android/.
   dart:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - uses: subosito/flutter-action@v2
         with:
           flutter-version: 3.47.2
@@ -26,8 +29,8 @@ jobs:
   android:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-java@v4
+      - uses: actions/checkout@v5
+      - uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: 17
@@ -44,7 +47,7 @@ jobs:
         run: ./gradlew :app:testDebugUnitTest
       - name: Upload JUnit results
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: kotlin-test-results
           path: build/app/test-results/testDebugUnitTest/*.xml

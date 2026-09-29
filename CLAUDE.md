@@ -721,6 +721,25 @@ Still open:
 - **The held-download sheet showed "0 B"** for a 190 KB PDF. The size is
   `DownloadListener`'s `contentLength`, passed through unchanged; why it was 0
   was not investigated.
+  **Cause found 2026-09-29 (from Chromium source, not seen on a device).**
+  WebView never reports "unknown" as `-1` here: Chromium's
+  `DownloadResponseHandler` sets `total_bytes = head.content_length > 0 ?
+  head.content_length : 0`, and that is the value WebView hands
+  `DownloadListener`. So `0` means "no length known", and which route the site
+  is on decides why:
+  - **Direct:** Chromium's own network stack fetches it, so `0` means the
+    server sent no `Content-Length` (a chunked, or HTTP/2 streamed, response).
+    The size is unknowable before the download without a request, and the app
+    must not make one of its own.
+  - **Proxied (SOCKS5 or HTTP):** `RequestInterceptor.fetchThrough` returns a
+    `WebResourceResponse`, and WebView sets `content_length` from
+    `InputStream.available()` on that body. Here that is the raw socket stream,
+    so it reports however many bytes happen to be buffered: usually 0, never
+    reliably the file size. The site's own `Content-Length` is appended as a
+    header afterwards and never read back into that field, so the size is lost
+    even when the server sent it.
+  Spec `7c` has no copy for an unknown size (its only example is "1.4 MB ·
+  from forum.example.com"), so the fix waits on a design answer.
 
 ## Working on this repo
 
