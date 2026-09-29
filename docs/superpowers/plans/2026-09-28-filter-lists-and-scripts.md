@@ -1419,3 +1419,55 @@ Plan 5's Known gaps — append to the `FilterList.enabled` and `UserScript.code`
 git add CLAUDE.md docs/superpowers/plans
 git commit -m "docs: record filter lists and scripts reaching the engine"
 ```
+
+---
+
+## Verification
+
+2026-09-29, on `main` @ `4bcdefc` (Tasks 1–4 merged). JVM tests 74/74 (from
+the JUnit XML), `flutter analyze` clean, `flutter test` 379/379,
+`flutter build apk --debug` succeeding with zero `e:` lines.
+
+Emulator (`sdk_gphone64_x86_64`, fresh setup after `pm clear`): filter-list
+check **PASSED**; script check **BLOCKED: no site picker**
+(`scripts_route.dart` still passes `onAddSite: () {}`).
+
+How the filter-list check was read. Today (`5c`) sits behind the workspace
+menu, whose rows uiautomator does not expose, so the dashboard's `N LEAKS`
+count (`blockedTallyProvider.total`) was used instead. Every open adds
+exactly 1 to it on its own: `Shields.apply` increments the session's
+fingerprinting counter once per view (`ContainerView.kt`), which is not a
+filter-list block. Measured per reopen:
+
+| Site | Lists | LEAKS added |
+|---|---|---|
+| `https://example.com` (control, in no list) | defaults | +1 |
+| `https://platform.twitter.com/widgets.js` | Social embeds off (default) | +1 |
+| same | Social embeds on | +2 |
+| same | Social embeds off again | +1 |
+| `https://www.googletagmanager.com/gtm.js` | Trackers and ads on (default) | +2 |
+| same | Trackers and ads off | +1 |
+
+So a list's switch decides whether its hosts are blocked, in both directions,
+on the next open, and with every list that covers a host switched off,
+nothing blocks it (no leftover hardcoded list). Not checked: which Today row
+the block lands in, since only the total was readable.
+
+## Known gaps
+
+- Script scope is exactly the site's origin: a site that redirects to
+  another host (e.g. `example.com` → `www.example.com`) does not get its
+  scripts on the redirected host.
+- A script can only be attached to sites through data this app's UI cannot
+  yet write — the editor's "+ Add site" picker is unbuilt
+  (`scripts_route.dart` passes `onAddSite: () {}`). Scripts applied before
+  that exists: none. Injection is covered only by the JVM tests
+  (`UserScriptJsTest`, `InjectedScriptsFromTest`) and Task 3's Dart tests.
+- "Next check in N days" counts down from the bundled files' release date
+  and reaches 0 a week after each app release; nothing ever checks.
+- Changes apply on the next open; open sites keep what they opened with.
+- If a site's extras cannot be built (vault read or bundle failure), the
+  route stays on the opening checklist until Cancel — there is no copy for
+  this failure in the spec.
+- The dashboard's `LEAKS` count includes one fingerprinting block per open,
+  so a site that loads nothing blockable still reads as one leak.
