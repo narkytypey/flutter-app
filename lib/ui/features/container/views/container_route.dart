@@ -39,6 +39,15 @@ class ContainerRoute extends ConsumerStatefulWidget {
 
 class _ContainerRouteState extends ConsumerState<ContainerRoute> {
   bool _opened = false;
+
+  /// Whether this route's own `open` has returned. Until then, any session
+  /// the site has is the one a previous visit left open, registered with the
+  /// settings it had then — and the native view factory binds to whatever
+  /// session exists when the view is created. Building the page view early
+  /// would load it under those old settings (a site switched to a proxy went
+  /// out direct) and leave this route waiting on a new session that the view
+  /// never reports `live` to.
+  bool _openReturned = false;
   bool _refusalHandled = false;
   bool _tunnelDropped = false;
   StreamSubscription<PendingPermissionRequest>? _permissionSub;
@@ -87,7 +96,11 @@ class _ContainerRouteState extends ConsumerState<ContainerRoute> {
     // never opened without the lists and scripts its vault says it gets.
     final extras = await ref.read(engineExtrasBuilderProvider)(widget.site);
     if (!mounted) return;
-    await ref.read(containerEngineProvider).open(widget.site, extras: extras);
+    try {
+      await ref.read(containerEngineProvider).open(widget.site, extras: extras);
+    } finally {
+      if (mounted) setState(() => _openReturned = true);
+    }
   }
 
   @override
@@ -267,8 +280,10 @@ class _ContainerRouteState extends ConsumerState<ContainerRoute> {
         // No session yet means `open` has not registered this site natively,
         // and the platform refuses a view for an unregistered site — so only
         // the checklist here. Once it exists, the page view is built even
-        // while `opening` (see the overlay below).
-        if (session == null) {
+        // while `opening` (see the overlay below). A session seen before this
+        // route's own `open` returns is a previous visit's; see
+        // [_openReturned].
+        if (session == null || !_openReturned) {
           return OpeningBody(
             host: _host, steps: openStepsFor(widget.site), progress: 0.6,
             onCancel: () => Navigator.pop(context),

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:container/data/repositories/filter_list_repository_sqlite.dart';
 import 'package:container/data/repositories/script_repository_sqlite.dart';
 import 'package:container/data/repositories/site_repository_sqlite.dart';
@@ -5,6 +7,7 @@ import 'package:container/data/repositories/workspace_repository_sqlite.dart';
 import 'package:container/data/services/app_database.dart';
 import 'package:container/data/services/bundled_filter_lists.dart';
 import 'package:container/data/services/fake_container_engine.dart';
+import 'package:container/domain/models/container_session.dart';
 import 'package:container/domain/models/engine_events.dart';
 import 'package:container/domain/models/engine_extras.dart';
 import 'package:container/domain/models/filter_list.dart';
@@ -38,6 +41,24 @@ Site _site() => Site(
       url: 'https://forum.example.com', profileId: 'a' * 32,
       proxyMode: ProxyMode.direct,
     );
+
+/// Holds an [open] back until the test releases it — the real engine's open
+/// returns only after a worker thread has decided the route.
+class _GatedEngine extends FakeContainerEngine {
+  _GatedEngine({super.opensLive});
+
+  Completer<void>? _gate;
+
+  Completer<void> holdNextOpen() => _gate = Completer<void>();
+
+  @override
+  Future<ContainerSession> open(Site site, {EngineExtras extras = EngineExtras.none}) async {
+    final gate = _gate;
+    _gate = null;
+    if (gate != null) await gate.future;
+    return super.open(site, extras: extras);
+  }
+}
 
 /// Records every upsert, so a test can assert on what was persisted.
 class _RecordingSiteRepository implements SiteRepository {
@@ -292,6 +313,33 @@ void main() {
     await tester.pump();
 
     expect(find.text('Starting a clean container'), findsOneWidget);
+    expect(find.byType(ContainerWebView), findsOneWidget);
+  });
+
+  // A site reopened while its last session is still open used to build its
+  // page view against that old session: the native view factory binds to
+  // whatever session the site has when the view is created, so the page
+  // loaded under the settings it was *last* opened with. Switched from direct
+  // to a proxy, it went out direct; and the new session never went live, so
+  // the route hung on "Connecting through …". Seen on a device.
+  testWidgets('a reopened site builds no page view until its own open returns', (tester) async {
+    final engine = _GatedEngine(opensLive: false);
+    // What the previous visit left behind: a session still registered.
+    await engine.open(_site());
+    engine.markLive('s1');
+
+    final gate = engine.holdNextOpen();
+    await _pump(tester, engine, _site());
+    await tester.pump();
+    await tester.pump();
+
+    expect(find.byType(ContainerWebView), findsNothing);
+    expect(find.text('Starting a clean container'), findsOneWidget);
+
+    gate.complete();
+    await tester.pump();
+    await tester.pump();
+
     expect(find.byType(ContainerWebView), findsOneWidget);
   });
 
