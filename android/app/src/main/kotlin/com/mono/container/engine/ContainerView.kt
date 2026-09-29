@@ -18,10 +18,13 @@ class ContainerView(
     private val session: Session,
     private val onLive: () -> Unit = {},
     private val onAsk: (PendingPermission) -> String = { "" },
-    private val onDownload: (url: String, mimeType: String, fileName: String, sizeBytes: Long, kindLabel: String) -> String = { _, _, _, _, _ -> "" },
+    /** [sizeBytes] is null when the size is unknown — see [heldDownloadSize]. */
+    private val onDownload: (url: String, mimeType: String, fileName: String, sizeBytes: Long?, kindLabel: String) -> String = { _, _, _, _, _ -> "" },
 ) : PlatformView {
 
     private var disposed = false
+
+    private val declaredLengths = DeclaredLengths()
 
     private val webView = WebView(context).apply {
         settings.javaScriptEnabled = true
@@ -40,7 +43,7 @@ class ContainerView(
     init {
         // Must precede the first load, or the request goes to the default store.
         androidx.webkit.WebViewCompat.setProfile(webView, config.profileId)
-        webView.webViewClient = interceptor.clientFor(config, onLive)
+        webView.webViewClient = interceptor.clientFor(config, onLive, declaredLengths)
         webView.webChromeClient = Shields.chromeClientFor(config, session, onAsk)
         Shields.apply(webView, config) { session.counters.fingerprinting.incrementAndGet() }
 
@@ -50,7 +53,11 @@ class ContainerView(
                 mimeType?.substringAfter('/') ?: ""
             }
             val resolvedMimeType = mimeType?.ifEmpty { null } ?: "application/octet-stream"
-            onDownload(url, resolvedMimeType, fileName, contentLength, extension.uppercase().ifEmpty { "FILE" })
+            // Not currentRoute(): that probes the proxy, and this is the main
+            // thread. Any mode but direct means RequestInterceptor supplied
+            // this response, so contentLength is not the server's number.
+            val size = heldDownloadSize(config.proxyMode != "direct", contentLength, declaredLengths.take(url))
+            onDownload(url, resolvedMimeType, fileName, size, extension.uppercase().ifEmpty { "FILE" })
         }
 
         if (WebViewFeature.isFeatureSupported(WebViewFeature.SERVICE_WORKER_BASIC_USAGE)) {

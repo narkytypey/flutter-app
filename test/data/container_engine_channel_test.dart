@@ -62,6 +62,16 @@ void main() {
     expect(download.download.fileName, 'report.pdf');
   });
 
+  test('a download event with no size decodes it as unknown', () {
+    final event = <Object?, Object?>{
+      'type': 'download',
+      'siteId': 's1', 'fileName': 'report.pdf', 'sizeBytes': null,
+      'sourceHost': 'forum.example.com', 'kindLabel': 'PDF',
+      'requestId': 'r1',
+    };
+    expect(downloadFromEvent(event).download.sizeBytes, isNull);
+  });
+
   test('a download_result event decodes a saved outcome', () {
     final event = <Object?, Object?>{
       'type': 'download_result', 'requestId': 'req-1',

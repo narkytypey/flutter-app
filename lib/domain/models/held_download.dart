@@ -10,7 +10,10 @@ class HeldDownload {
   });
 
   final String fileName;
-  final int sizeBytes;
+
+  /// Null when the size is unknown: the server declared none, or WebView
+  /// could not report it. The sheet then leaves the size out.
+  final int? sizeBytes;
   final String sourceHost;
 
   /// The short badge on the file icon — "PDF" in the spec's example.

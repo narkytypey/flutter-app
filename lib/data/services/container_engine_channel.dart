@@ -95,7 +95,7 @@ HeldDownloadEvent downloadFromEvent(Map<Object?, Object?> event) => HeldDownload
       requestId: event['requestId']! as String,
       download: HeldDownload(
         fileName: event['fileName']! as String,
-        sizeBytes: event['sizeBytes']! as int,
+        sizeBytes: event['sizeBytes'] as int?,
         sourceHost: event['sourceHost']! as String,
         kindLabel: event['kindLabel']! as String,
       ),

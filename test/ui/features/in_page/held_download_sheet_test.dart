@@ -38,6 +38,26 @@ void main() {
     expect(find.text('Discard'), findsOneWidget);
   });
 
+  // The emulator showed "0 B" for a 190 KB PDF whose size was never known.
+  testWidgets('an unknown size is left out, not shown as 0 B', (tester) async {
+    await tester.pumpWidget(const MaterialApp(
+      home: Scaffold(
+        body: HeldDownloadSheet(
+          download: HeldDownload(
+            fileName: 'statement-june.pdf',
+            sizeBytes: null,
+            sourceHost: 'forum.example.com',
+            kindLabel: 'PDF',
+          ),
+          onDecision: _ignore,
+        ),
+      ),
+    ));
+
+    expect(find.text('from forum.example.com'), findsOneWidget);
+    expect(find.textContaining(' B'), findsNothing);
+  });
+
   testWidgets('each action reports its own decision', (tester) async {
     final seen = <DownloadDecision>[];
     await tester.pumpWidget(host(seen.add));
@@ -53,3 +73,5 @@ void main() {
     ]);
   });
 }
+
+void _ignore(DownloadDecision _) {}

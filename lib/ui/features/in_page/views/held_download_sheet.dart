@@ -53,7 +53,12 @@ class HeldDownloadSheet extends StatelessWidget {
                     Text(download.fileName, style: ui(size: 13.5, color: C.textPrimary)),
                     const SizedBox(height: 3),
                     Text(
-                      '${formatBytes(download.sizeBytes)} · from ${download.sourceHost}',
+                      // The spec has no copy for an unknown size, so the
+                      // size is left out rather than shown as "0 B".
+                      switch (download.sizeBytes) {
+                        final size? => '${formatBytes(size)} · from ${download.sourceHost}',
+                        null => 'from ${download.sourceHost}',
+                      },
                       style: ui(size: 11.5, color: C.textFaint),
                     ),
                   ],

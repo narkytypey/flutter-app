@@ -739,7 +739,27 @@ Still open:
     header afterwards and never read back into that field, so the size is lost
     even when the server sent it.
   Spec `7c` has no copy for an unknown size (its only example is "1.4 MB ·
-  from forum.example.com"), so the fix waits on a design answer.
+  from forum.example.com"), so the fix waited on a design answer.
+  **✅ Fixed 2026-09-29 (branch `second/kind-cerf-0tso50`). User's ruling: an
+  unknown size is left out, and the line reads "from forum.example.com".** No
+  new words were added and no request is made. `heldDownloadSize` in
+  `DownloadSize.kt` decides the size:
+  - **Direct:** WebView's `contentLength` when it is above 0, otherwise
+    unknown.
+  - **Proxied (`proxyMode != "direct"`):** only the length the server
+    declared. `RequestInterceptor.fetchThrough` records it per URL into the
+    view's `DeclaredLengths` (in memory, bounded, gone with the view), and the
+    `DownloadListener` takes it from there. A `Transfer-Encoding` or a
+    non-identity `Content-Encoding` means no declared length.
+  An unknown size crosses the channel as `null`, and `HeldDownload.sizeBytes`
+  is `int?`. The listener cannot call `currentRoute()` to tell the two routes
+  apart, because that probes the proxy on the main thread. Tests:
+  `DownloadSizeTest` (Kotlin, 11), and on the Dart side the sheet's
+  unknown-size line and the channel decoding `null`. Verified 2026-09-29:
+  `flutter analyze` clean, `flutter test` 371/371, Kotlin JVM tests 71/71,
+  `flutter build apk --debug` succeeding. **Not verified on a device**, and
+  `RequestInterceptor`'s URL key matching the listener's URL comes from
+  WebView's contract, not from observation.
 
 ## Working on this repo
 

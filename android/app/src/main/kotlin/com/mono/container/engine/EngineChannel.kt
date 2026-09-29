@@ -44,7 +44,7 @@ data class PendingDownload(
     val url: String,
     val mimeType: String,
     val fileName: String,
-    val sizeBytes: Long,
+    val sizeBytes: Long?,
     val kindLabel: String,
 )
 
@@ -197,7 +197,7 @@ class EngineChannel(
     }
 
     /** Called by [ContainerView]'s `DownloadListener`. */
-    fun onDownload(siteId: String, requestId: String, url: String, mimeType: String, fileName: String, sizeBytes: Long, kindLabel: String) {
+    fun onDownload(siteId: String, requestId: String, url: String, mimeType: String, fileName: String, sizeBytes: Long?, kindLabel: String) {
         val session = sessions[siteId] ?: return
         session.pendingDownloads[requestId] = PendingDownload(url, mimeType, fileName, sizeBytes, kindLabel)
         val host = runCatching { java.net.URI(session.config.url).host }.getOrNull()
