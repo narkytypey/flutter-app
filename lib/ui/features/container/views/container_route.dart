@@ -11,6 +11,7 @@ import '../../../../domain/models/container_session.dart';
 import '../../../../domain/models/destination.dart';
 import '../../../../domain/models/engine_events.dart';
 import '../../../../domain/models/find_result.dart';
+import '../../../../domain/models/monogram_suggestion.dart';
 import '../../../../domain/models/open_step.dart';
 import '../../../../domain/models/route_failure_copy.dart';
 import '../../../../domain/models/route_decision.dart' show refusalMessage;
@@ -163,12 +164,13 @@ class _ContainerRouteState extends ConsumerState<ContainerRoute> {
     _opened = true;
     // Read before opening, and a failure here stops the open: a site is
     // never opened without the lists and scripts its vault says it gets.
-    final initialUrl = widget.initialUrl;
-    final site = initialUrl == null ? widget.site : widget.site.copyWith(url: initialUrl);
-    final extras = await ref.read(engineExtrasBuilderProvider)(site);
+    // The session keeps the stored address; a typed one is only the first
+    // load, so the site's script scope and prompts never move to it.
+    final extras = await ref.read(engineExtrasBuilderProvider)(widget.site);
     if (!mounted) return;
     try {
-      await _engine.open(site, extras: extras, throwaway: widget.throwaway);
+      await _engine.open(widget.site,
+          extras: extras, throwaway: widget.throwaway, initialUrl: widget.initialUrl);
     } finally {
       if (mounted) setState(() => _openReturned = true);
     }
@@ -324,8 +326,16 @@ class _ContainerRouteState extends ConsumerState<ContainerRoute> {
     final workspaces = await ref.read(workspacesProvider.future);
     if (!mounted) return;
     final navigation = ref.read(navigationForSiteProvider(widget.site.id)).valueOrNull;
+    final url = navigation?.url ?? _openedUrl;
+    // A throwaway that has moved to another site is saved as that site, not
+    // under the name of the address it started at.
+    final host = Uri.tryParse(url)?.host ?? '';
+    final moved = host.isNotEmpty &&
+        normalizeHost(host) != normalizeHost(Uri.tryParse(_site.url)?.host ?? '');
     final initial = _site.copyWith(
-      url: navigation?.url ?? _openedUrl,
+      url: url,
+      name: moved ? host : _site.name,
+      monogram: moved ? suggestMonogram(host) : _site.monogram,
       cookiePolicy: CookiePolicy.keep,
     );
     await Navigator.push(context, MaterialPageRoute<void>(

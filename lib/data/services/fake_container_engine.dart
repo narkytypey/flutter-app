@@ -41,6 +41,9 @@ class FakeContainerEngine implements ContainerEngine {
   /// Every site passed to [open], by id; the latest open wins.
   final openedSites = <String, Site>{};
 
+  /// The typed address each site was last opened at, or null for a plain open.
+  final openedInitialUrls = <String, String?>{};
+
   /// The ids of the sites opened as throwaways.
   final openedAsThrowaway = <String>{};
 
@@ -74,9 +77,11 @@ class FakeContainerEngine implements ContainerEngine {
     Site site, {
     EngineExtras extras = EngineExtras.none,
     bool throwaway = false,
+    String? initialUrl,
   }) async {
     openedExtras[site.id] = extras;
     openedSites[site.id] = site;
+    openedInitialUrls[site.id] = initialUrl;
     if (throwaway) openedAsThrowaway.add(site.id);
     final decision = resolveRoute(site, proxyReachable: proxyReachable);
     final session = ContainerSession(

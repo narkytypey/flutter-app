@@ -29,8 +29,7 @@ class ContainerViewFactory(
 
         val view = ContainerView(
             context = context,
-            config = session.config,
-            profiles = profiles,
+            config = session.config,            profiles = profiles,
             interceptor = session.interceptor,
             session = session,
             throwaways = engine.throwaways,

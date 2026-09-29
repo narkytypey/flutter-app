@@ -89,3 +89,14 @@ private val loadableUrl = Regex("^https?://[^/?#\\s]+", RegexOption.IGNORE_CASE)
  * Dart's parser never sends any of them; this refuses them anyway.
  */
 fun isLoadableUrl(url: String): Boolean = loadableUrl.find(url) != null
+
+/**
+ * What a container's view loads first: the address the owner typed, when
+ * there is one and [isLoadableUrl] allows it, otherwise the site's own.
+ * The stored address itself is loaded as it always was — it is whatever the
+ * add-site form accepted, and guarding it could stop an existing site
+ * loading. The typed one is for that first load only: the session's
+ * identity, script scope and prompts stay on the stored address.
+ */
+fun firstLoadUrl(storedUrl: String, typedUrl: String?): String =
+    if (typedUrl != null && isLoadableUrl(typedUrl)) typedUrl else storedUrl

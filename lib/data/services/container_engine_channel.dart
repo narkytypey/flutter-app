@@ -175,9 +175,11 @@ class ChannelContainerEngine implements ContainerEngine {
     Site site, {
     EngineExtras extras = EngineExtras.none,
     bool throwaway = false,
+    String? initialUrl,
   }) async {
     final result = await _method.invokeMapMethod<Object?, Object?>('open', {
       'siteId': site.id,
+      'initialUrl': initialUrl,
       'profileId': site.profileId,
       'url': site.url,
       'proxyMode': site.proxyMode.name,

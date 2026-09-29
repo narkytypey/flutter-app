@@ -13,6 +13,7 @@ import 'package:container/domain/models/engine_extras.dart';
 import 'package:container/domain/models/filter_list.dart';
 import 'package:container/domain/models/find_result.dart';
 import 'package:container/domain/models/held_download.dart';
+import 'package:container/domain/models/monogram_suggestion.dart';
 import 'package:container/domain/models/navigation_state.dart';
 import 'package:container/domain/models/reader_article.dart';
 import 'package:container/domain/models/route_decision.dart';
@@ -82,11 +83,12 @@ class _GatedEngine extends FakeContainerEngine {
     Site site, {
     EngineExtras extras = EngineExtras.none,
     bool throwaway = false,
+    String? initialUrl,
   }) async {
     final gate = _gate;
     _gate = null;
     if (gate != null) await gate.future;
-    return super.open(site, extras: extras, throwaway: throwaway);
+    return super.open(site, extras: extras, throwaway: throwaway, initialUrl: initialUrl);
   }
 }
 
@@ -663,6 +665,14 @@ void main() {
     expect(engine.openedAsThrowaway, {'t1'});
   });
 
+  testWidgets('a plain open has no typed address', (tester) async {
+    final engine = FakeContainerEngine();
+    await _pump(tester, engine, _site());
+    await tester.pumpAndSettle();
+
+    expect(engine.openedInitialUrls, {'s1': null});
+  });
+
   testWidgets('a saved site opened at a typed address loads it, and saves nothing', (tester) async {
     final engine = FakeContainerEngine();
     final sites = _RecordingSiteRepository();
@@ -670,7 +680,10 @@ void main() {
         initialUrl: 'https://forum.example.com/t/9');
     await tester.pumpAndSettle();
 
-    expect(engine.openedSites['s1']!.url, 'https://forum.example.com/t/9');
+    // The session keeps the stored address, which scopes its scripts and
+    // names it in every prompt; the typed one is only the first load.
+    expect(engine.openedSites['s1']!.url, 'https://forum.example.com');
+    expect(engine.openedInitialUrls['s1'], 'https://forum.example.com/t/9');
     expect(engine.openedAsThrowaway, isEmpty);
     expect(sites.upserts, isEmpty);
   });
@@ -976,6 +989,25 @@ void main() {
     expect(find.byType(ThrowawaySaveBar), findsNothing);
   });
 
+  testWidgets('saving a throwaway that moved to another site names that site', (tester) async {
+    final engine = FakeContainerEngine();
+    await _pump(tester, engine, _throwaway(), sites: _RecordingSiteRepository(),
+        throwaway: true, throwaways: [_throwaway()]);
+    await tester.pumpAndSettle();
+
+    engine.emitNavigation(const NavigationState(
+        siteId: 't1', url: 'https://elsewhere.example.net/a', loading: true, progress: 30));
+    engine.emitNavigation(const NavigationState(siteId: 't1', url: 'https://elsewhere.example.net/a'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Save as a site'));
+    await tester.pumpAndSettle();
+
+    final initial = tester.widget<AddSiteScreen>(find.byType(AddSiteScreen)).initial!;
+    expect(initial.name, 'elsewhere.example.net');
+    expect(initial.monogram, suggestMonogram('elsewhere.example.net'));
+    expect(initial.url, 'https://elsewhere.example.net/a');
+  });
+
   testWidgets('a saved site never shows the save bar', (tester) async {
     final engine = FakeContainerEngine();
     await _pump(tester, engine, _site());
@@ -1089,7 +1121,8 @@ void main() {
     await tester.testTextInput.receiveAction(TextInputAction.go);
     await tester.pumpAndSettle();
 
-    expect(engine.openedSites['m1']!.url, 'https://market.example.com/deals');
+    expect(engine.openedSites['m1']!.url, 'https://market.example.com');
+    expect(engine.openedInitialUrls['m1'], 'https://market.example.com/deals');
     expect(engine.openedAsThrowaway, isEmpty);
     // Marked open and visited, as the dashboard opens a site; its stored
     // address is untouched.

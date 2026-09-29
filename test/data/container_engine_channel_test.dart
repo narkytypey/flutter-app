@@ -208,5 +208,28 @@ void main() {
       expect(calls.map((c) => (c.arguments as Map<Object?, Object?>)['throwaway']),
           [true, false]);
     });
+
+    test('open sends the typed address apart from the stored url', () async {
+      messenger.setMockStreamHandler(events, MockStreamHandler.inline(onListen: (_, __) {}));
+      final calls = <MethodCall>[];
+      messenger.setMockMethodCallHandler(methods, (call) async {
+        calls.add(call);
+        return <String, Object?>{
+          'siteId': 's1', 'phase': 'opening', 'lastActiveAt': null,
+          'blockedCount': 0, 'categoryCounts': <String, Object?>{}, 'failure': null,
+        };
+      });
+      const site = Site(
+        id: 's1', workspaceId: 'w', name: 'Forum', monogram: 'Fr',
+        url: 'https://forum.example.com', profileId: 'p',
+      );
+
+      await ChannelContainerEngine().open(site, initialUrl: 'https://forum.example.com/t/9');
+      await ChannelContainerEngine().open(site);
+
+      final args = [for (final c in calls) c.arguments as Map<Object?, Object?>];
+      expect(args.map((a) => a['initialUrl']), ['https://forum.example.com/t/9', null]);
+      expect(args.map((a) => a['url']), ['https://forum.example.com', 'https://forum.example.com']);
+    });
   });
 }

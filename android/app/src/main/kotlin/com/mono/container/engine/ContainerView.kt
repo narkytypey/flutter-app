@@ -33,7 +33,7 @@ class ContainerView(
     private val declaredLengths = DeclaredLengths()
 
     /** Declared before `init`, which hands the clients that feed it to the WebView. */
-    private val navigation = NavigationTracker(config.url)
+    private val navigation = NavigationTracker(firstLoadUrl(config.url, session.initialUrl))
 
     private val webView = WebView(context).apply {
         settings.javaScriptEnabled = true
@@ -87,7 +87,7 @@ class ContainerView(
                 .setServiceWorkerClient(interceptor.serviceWorkerClient(config))
         }
 
-        webView.loadUrl(config.url)
+        webView.loadUrl(firstLoadUrl(config.url, session.initialUrl))
     }
 
     override fun getView(): View = webView

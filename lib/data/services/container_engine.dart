@@ -21,10 +21,13 @@ abstract interface class ContainerEngine {
   /// [throwaway] marks an in-memory site (browser-chrome spec §5.4): the
   /// platform journals its profile before creating it, so a crash cannot
   /// leak it, and always wipes it on exit.
+  /// [initialUrl] is loaded first instead of `site.url`, for this session
+  /// only: the session's identity and its script scope stay `site.url`.
   Future<ContainerSession> open(
     Site site, {
     EngineExtras extras = EngineExtras.none,
     bool throwaway = false,
+    String? initialUrl,
   });
 
   /// Destroys the profile's cookies, cache and storage. Called for

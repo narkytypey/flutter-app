@@ -53,7 +53,12 @@ data class PendingDownload(
  * because `2c` and the Today log report a blocked count *per site*. Its
  * rules are the open vault's enabled lists, sent by Dart with each open.
  */
-class Session(val config: SiteConfig) {
+class Session(
+    val config: SiteConfig,
+    /** The address typed to open it, for the view's first load only: [config]
+     * keeps the stored one, which scopes scripts and names the site. */
+    val initialUrl: String? = null,
+) {
 
     val filters = FilterEngine(config.filterRules)
     val counters = SideCounters()
@@ -343,13 +348,14 @@ class EngineChannel(
      */
     private fun open(call: MethodCall, result: MethodChannel.Result) {
         val throwaway = call.argument<Boolean>("throwaway") ?: false
+        val initialUrl = call.argument<String>("initialUrl")
         // A throwaway always wipes on exit, whatever else the call says.
         val config = configFrom(call).let { if (throwaway) it.copy(wipeOnExit = true) else it }
         // Listed before its profile can exist (register() creates it), so a
         // crash from here on still leaves it for the next start's sweep.
         if (throwaway) throwaways.add(config.profileId)
         if (!profiles.isAvailable()) {
-            result.success(register(config, route = null))
+            result.success(register(config, route = null, initialUrl = initialUrl))
             return
         }
         val ticket = pendingOpens.begin(config.siteId)
@@ -362,7 +368,7 @@ class EngineChannel(
                 }
                 // Off onMethodCall's try/catch now, so a throw here would
                 // crash the main thread rather than reach Dart as an error.
-                route.mapCatching { register(config, it) }.fold(
+                route.mapCatching { register(config, it, initialUrl) }.fold(
                     onSuccess = { result.success(it) },
                     onFailure = { result.error("engine", it.message, null) },
                 )
@@ -371,8 +377,8 @@ class EngineChannel(
     }
 
     /** [route] is null only when isolation itself is unavailable. */
-    private fun register(config: SiteConfig, route: Route?): Map<String, Any?> {
-        val session = Session(config)
+    private fun register(config: SiteConfig, route: Route?, initialUrl: String?): Map<String, Any?> {
+        val session = Session(config, initialUrl)
         session.onTunnelDropped = { failure -> onTunnelDropped(config.siteId, failure) }
         sessions[config.siteId] = session
 
