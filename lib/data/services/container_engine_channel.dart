@@ -6,7 +6,9 @@ import '../../domain/models/blocked_tally.dart';
 import '../../domain/models/container_session.dart';
 import '../../domain/models/engine_events.dart';
 import '../../domain/models/engine_extras.dart';
+import '../../domain/models/find_result.dart';
 import '../../domain/models/held_download.dart';
+import '../../domain/models/navigation_state.dart';
 import '../../domain/models/permissions.dart';
 import '../../domain/models/reader_article.dart';
 import '../../domain/models/route_decision.dart';
@@ -114,6 +116,25 @@ TunnelDroppedEvent tunnelDroppedFromEvent(Map<Object?, Object?> event) => Tunnel
       droppedAt: DateTime.fromMillisecondsSinceEpoch(event['droppedAtMs']! as int),
     );
 
+/// Exposed for testing — decodes a `type: "navigation"` event, and the map
+/// `navigationState` returns, which is the same event.
+NavigationState navigationFromEvent(Map<Object?, Object?> event) => NavigationState(
+      siteId: event['siteId']! as String,
+      url: event['url']! as String,
+      title: (event['title'] as String?) ?? '',
+      canGoBack: (event['canGoBack'] as bool?) ?? false,
+      canGoForward: (event['canGoForward'] as bool?) ?? false,
+      loading: (event['loading'] as bool?) ?? false,
+      progress: (event['progress'] as int?) ?? 0,
+    );
+
+/// Exposed for testing — decodes a `type: "find_result"` event.
+FindResult findResultFromEvent(Map<Object?, Object?> event) => FindResult(
+      siteId: event['siteId']! as String,
+      activeMatch: event['activeMatch']! as int,
+      matchCount: event['matchCount']! as int,
+    );
+
 class ChannelContainerEngine implements ContainerEngine {
   ChannelContainerEngine() {
     _events.receiveBroadcastStream().listen((event) {
@@ -127,6 +148,10 @@ class ChannelContainerEngine implements ContainerEngine {
           _downloadResultController.add(downloadResultFromEvent(map));
         case 'tunnel_dropped':
           _tunnelDroppedController.add(tunnelDroppedFromEvent(map));
+        case 'navigation':
+          _navigationController.add(navigationFromEvent(map));
+        case 'find_result':
+          _findController.add(findResultFromEvent(map));
         default:
           _sessionsController.add(sessionsFromEvent(map));
       }
@@ -138,13 +163,19 @@ class ChannelContainerEngine implements ContainerEngine {
   final _downloadController = StreamController<HeldDownloadEvent>.broadcast();
   final _downloadResultController = StreamController<DownloadResult>.broadcast();
   final _tunnelDroppedController = StreamController<TunnelDroppedEvent>.broadcast();
+  final _navigationController = StreamController<NavigationState>.broadcast();
+  final _findController = StreamController<FindResult>.broadcast();
 
   @override
   Future<bool> isolationAvailable() async =>
       await _method.invokeMethod<bool>('isolationAvailable') ?? false;
 
   @override
-  Future<ContainerSession> open(Site site, {EngineExtras extras = EngineExtras.none}) async {
+  Future<ContainerSession> open(
+    Site site, {
+    EngineExtras extras = EngineExtras.none,
+    bool throwaway = false,
+  }) async {
     final result = await _method.invokeMapMethod<Object?, Object?>('open', {
       'siteId': site.id,
       'profileId': site.profileId,
@@ -167,6 +198,7 @@ class ChannelContainerEngine implements ContainerEngine {
       'wipeOnExit': site.cookiePolicy == CookiePolicy.wipeOnExit,
       'filterRules': extras.filterRules,
       'userScripts': [for (final script in extras.userScripts) script.toMap()],
+      'throwaway': throwaway,
     });
     return _sessionFrom(result!);
   }
@@ -232,4 +264,49 @@ class ChannelContainerEngine implements ContainerEngine {
       minutesToRead: result['minutesToRead']! as int,
     );
   }
+
+  @override
+  Stream<NavigationState> navigation() => _navigationController.stream;
+
+  @override
+  Future<NavigationState?> navigationState(String siteId) async {
+    final result = await _method
+        .invokeMapMethod<Object?, Object?>('navigationState', {'siteId': siteId});
+    return result == null ? null : navigationFromEvent(result);
+  }
+
+  @override
+  Stream<FindResult> findResults() => _findController.stream;
+
+  @override
+  Future<void> goBack(String siteId) =>
+      _method.invokeMethod('goBack', {'siteId': siteId});
+
+  @override
+  Future<void> goForward(String siteId) =>
+      _method.invokeMethod('goForward', {'siteId': siteId});
+
+  @override
+  Future<void> stop(String siteId) =>
+      _method.invokeMethod('stop', {'siteId': siteId});
+
+  @override
+  Future<void> loadUrl(String siteId, String url) =>
+      _method.invokeMethod('loadUrl', {'siteId': siteId, 'url': url});
+
+  @override
+  Future<void> find(String siteId, String query) =>
+      _method.invokeMethod('find', {'siteId': siteId, 'query': query});
+
+  @override
+  Future<void> findNext(String siteId, {required bool forward}) =>
+      _method.invokeMethod('findNext', {'siteId': siteId, 'forward': forward});
+
+  @override
+  Future<void> clearFind(String siteId) =>
+      _method.invokeMethod('clearFind', {'siteId': siteId});
+
+  @override
+  Future<void> keep(String siteId) =>
+      _method.invokeMethod('keep', {'siteId': siteId});
 }

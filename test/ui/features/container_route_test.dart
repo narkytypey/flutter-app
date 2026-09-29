@@ -52,11 +52,15 @@ class _GatedEngine extends FakeContainerEngine {
   Completer<void> holdNextOpen() => _gate = Completer<void>();
 
   @override
-  Future<ContainerSession> open(Site site, {EngineExtras extras = EngineExtras.none}) async {
+  Future<ContainerSession> open(
+    Site site, {
+    EngineExtras extras = EngineExtras.none,
+    bool throwaway = false,
+  }) async {
     final gate = _gate;
     _gate = null;
     if (gate != null) await gate.future;
-    return super.open(site, extras: extras);
+    return super.open(site, extras: extras, throwaway: throwaway);
   }
 }
 
