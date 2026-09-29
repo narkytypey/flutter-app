@@ -28,6 +28,7 @@ void main() {
         hideFromSwitcher: true,
         panicOnFlip: false,
         onPanicLabel: 'Wipe + lock',
+        searchEngineName: 'DuckDuckGo',
         onChanged: (_, __) {},
         onTap: (_) {},
       ),
@@ -107,6 +108,7 @@ void main() {
         hideFromSwitcher: true,
         panicOnFlip: false,
         onPanicLabel: 'Wipe + lock',
+        searchEngineName: 'DuckDuckGo',
         onChanged: (_, __) {},
         onTap: (key) => tapped = key,
       ),
@@ -116,5 +118,38 @@ void main() {
     await tester.tap(find.text('Re-sync decoy now'));
 
     expect(tapped, 'resyncDecoy');
+  });
+
+  testWidgets('the browsing section follows manage and names the engine', (tester) async {
+    var tapped = '';
+    tester.view.physicalSize = const Size(500, 1600);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    await tester.pumpWidget(MaterialApp(
+      home: SettingsScreen(
+        biometrics: true,
+        biometricsAvailable: true,
+        autoLockLabel: 'After 1 min',
+        decoyEnabled: true,
+        decoySiteCount: 4,
+        hideFromSwitcher: true,
+        panicOnFlip: false,
+        onPanicLabel: 'Wipe + lock',
+        searchEngineName: 'Startpage',
+        onChanged: (_, __) {},
+        onTap: (key) => tapped = key,
+      ),
+    ));
+
+    final manage = tester.getTopLeft(find.text('MANAGE')).dy;
+    final browsing = tester.getTopLeft(find.text('BROWSING')).dy;
+    final vault = tester.getTopLeft(find.text('VAULT')).dy;
+    expect(browsing, greaterThan(manage));
+    expect(browsing, lessThan(vault));
+    expect(find.text('Startpage'), findsOneWidget);
+
+    await tester.tap(find.text('Search engine'));
+    expect(tapped, 'searchEngine');
   });
 }

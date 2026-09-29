@@ -1,4 +1,4 @@
-import 'package:container/ui/features/dashboard/views/dashboard_screen.dart';
+import 'package:container/ui/features/settings/views/settings_route.dart';
 import 'package:container/ui/features/scripts/views/scripts_route.dart';
 import 'package:container/ui/features/settings/views/decoy_resync_route.dart';
 import 'package:container/ui/features/workspaces/views/workspaces_route.dart';

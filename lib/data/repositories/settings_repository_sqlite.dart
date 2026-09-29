@@ -24,4 +24,21 @@ class SqliteSettingsRepository implements SettingsRepository {
       conflictAlgorithm: ConflictAlgorithm.replace,
     );
   }
+
+  @override
+  Future<String?> getString(String key, {String? fallback}) async {
+    final rows = await _database.db
+        .query('app_settings', where: 'key = ?', whereArgs: [key], limit: 1);
+    if (rows.isEmpty) return fallback;
+    return rows.first['value'] as String?;
+  }
+
+  @override
+  Future<void> setString(String key, String value) async {
+    await _database.db.insert(
+      'app_settings',
+      {'key': key, 'value': value},
+      conflictAlgorithm: ConflictAlgorithm.replace,
+    );
+  }
 }

@@ -5,21 +5,11 @@ import '../../../core/tokens.dart';
 import '../../add_site/views/add_site_screen.dart';
 import '../../container/views/container_route.dart';
 import '../../report/views/today_route.dart';
-import '../../scripts/views/scripts_route.dart';
 import '../../search/view_models/providers.dart'
     show allSitesProvider, searchQueryProvider, searchResultsProvider;
 import '../../search/view_models/search_view.dart' show SearchResultEntry;
 import '../../search/views/search_screen.dart';
-import '../../settings/view_models/providers.dart'
-    show
-        biometricsAvailableProvider,
-        biometricsEnabledProvider,
-        decoyEnabledProvider,
-        decoySiteCountProvider,
-        settingsControllerProvider;
-import '../../settings/views/decoy_resync_route.dart';
-import '../../settings/views/settings_screen.dart';
-import '../../workspaces/views/workspaces_route.dart';
+import '../../settings/views/settings_route.dart';
 import '../view_models/providers.dart';
 import 'dashboard_body.dart';
 import 'site_row_menu.dart';
@@ -121,7 +111,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
               );
             },
             onOverflow: () => Navigator.push(
-                context, MaterialPageRoute(builder: (_) => const _SettingsRoute())),
+                context, MaterialPageRoute(builder: (_) => const SettingsRoute())),
           ),
           if (_menuOpen) _menu(),
         ],
@@ -203,48 +193,6 @@ class _SearchRouteState extends ConsumerState<_SearchRoute> {
         ));
       },
       onBack: () => Navigator.pop(context),
-    );
-  }
-}
-
-/// The screen a Settings row opens, by the key `SettingsScreen.onTap`
-/// reports. Null for a row with nothing built behind it yet.
-Widget? settingsDestination(String key) => switch (key) {
-      'resyncDecoy' => const DecoyResyncRoute(),
-      'workspaces' => const WorkspacesRoute(),
-      'scripts' => const ScriptsRoute(),
-      _ => null,
-    };
-
-class _SettingsRoute extends ConsumerWidget {
-  const _SettingsRoute();
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final biometrics = ref.watch(biometricsEnabledProvider);
-    final biometricsAvailable = ref.watch(biometricsAvailableProvider);
-    final decoyEnabled = ref.watch(decoyEnabledProvider);
-    final decoySiteCount = ref.watch(decoySiteCountProvider);
-    return SettingsScreen(
-      biometrics: biometrics.value ?? false,
-      biometricsAvailable: biometricsAvailable.value ?? false,
-      autoLockLabel: 'After 1 min',
-      decoyEnabled: decoyEnabled.value ?? false,
-      decoySiteCount: decoySiteCount.value ?? 0,
-      hideFromSwitcher: true,
-      panicOnFlip: false,
-      onPanicLabel: 'Wipe + lock',
-      onChanged: (key, value) {
-        if (key == 'biometrics') {
-          ref.read(settingsControllerProvider).setBiometricsEnabled(value);
-        }
-      },
-      onTap: (key) {
-        final destination = settingsDestination(key);
-        if (destination != null) {
-          Navigator.push(context, MaterialPageRoute(builder: (_) => destination));
-        }
-      },
     );
   }
 }

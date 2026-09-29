@@ -22,4 +22,8 @@ abstract interface class SiteRepository {
 abstract interface class SettingsRepository {
   Future<bool> getBool(String key, {bool fallback = false});
   Future<void> setBool(String key, bool value);
+
+  /// `app_settings.value` is text already; this reads it as stored.
+  Future<String?> getString(String key, {String? fallback});
+  Future<void> setString(String key, String value);
 }

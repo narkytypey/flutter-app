@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../data/repositories/decoy_provisioner.dart' show resyncDecoy;
 import '../../../../data/repositories/settings_repository_sqlite.dart';
+import '../../../../domain/models/search_engine.dart';
 import '../../../../domain/models/vault.dart';
 import '../../../../domain/repositories/repositories.dart' show SettingsRepository;
 import '../../../../domain/services/vault_unlocker.dart';
@@ -49,6 +50,13 @@ final decoyEnabledProvider = FutureProvider<bool>(
 final decoySiteCountProvider = FutureProvider<int>((ref) async {
   final sites = await ref.watch(siteRepositoryProvider).all();
   return sites.where((site) => site.showInDecoy).length;
+});
+
+/// Spec §6.7: the open vault's `search_engine` setting, stored as the enum
+/// name. Per vault like every other setting; the row looks the same in both.
+final searchEngineProvider = FutureProvider<SearchEngine>((ref) async {
+  final stored = await ref.watch(settingsRepositoryProvider).getString('search_engine');
+  return SearchEngine.fromStored(stored);
 });
 
 sealed class DecoyResyncOutcome {
@@ -102,6 +110,11 @@ class SettingsController {
 
     await repository.setBool('biometrics_enabled', value);
     _ref.invalidate(biometricsEnabledProvider);
+  }
+
+  Future<void> setSearchEngine(SearchEngine engine) async {
+    await _ref.read(settingsRepositoryProvider).setString('search_engine', engine.name);
+    _ref.invalidate(searchEngineProvider);
   }
 
   /// Verifies [pin] against both vault slots the same way the lock screen
