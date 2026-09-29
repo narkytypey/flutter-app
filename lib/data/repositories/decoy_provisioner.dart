@@ -102,14 +102,9 @@ Future<int> resyncDecoy({
       if (existing != null) existingProfileIds[site.id] = existing.profileId;
     }
 
-    // Updated in place when already synced, never replaced: the replace's
-    // delete would cascade to every site in the workspace, not just the
-    // synced ones re-upserted below, and a site the owner added here from
-    // inside the decoy would be lost on every sync.
-    final row = workspaceToRow(workspace.copyWith(showInDecoy: false));
-    final updated = await into.db
-        .update('workspaces', row, where: 'id = ?', whereArgs: [workspace.id]);
-    if (updated == 0) await into.db.insert('workspaces', row);
+    // An already-synced workspace is updated in place (`upsertRow`), so a
+    // site the owner added to it from inside the decoy survives the sync.
+    await targetWorkspaces.upsert(workspace.copyWith(showInDecoy: false));
 
     for (final site in sites) {
       if (!site.showInDecoy) continue;
@@ -153,11 +148,10 @@ Future<int> resyncDecoy({
 /// second one beside it.
 ///
 /// Only decoy-original rows (an id no real-vault workspace has) are folded.
-/// Their sites move by `UPDATE`, not `upsert`: an upsert is a REPLACE, whose
-/// delete would cascade away each site's `script_sites` rows. Moving keeps
-/// each site's id and `profileId`, so its decoy-side cookies and history
-/// survive, and the next sync still counts it as decoy-original. The emptied
-/// workspace row goes last.
+/// Their sites move with one `UPDATE` of `workspace_id`, which keeps each
+/// site's id, `profileId` and script assignments: its decoy-side cookies and
+/// history survive, and the next sync still counts it as decoy-original. The
+/// emptied workspace row goes last.
 Future<void> _mergeSameNamed(
   AppDatabase into,
   Workspace synced, {

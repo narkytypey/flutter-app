@@ -1,5 +1,3 @@
-import 'package:sqflite_sqlcipher/sqflite.dart';
-
 import '../../domain/repositories/repositories.dart';
 import '../../domain/models/site.dart';
 import '../services/app_database.dart';
@@ -36,11 +34,7 @@ class SqliteSiteRepository implements SiteRepository {
 
   @override
   Future<void> upsert(Site site) async {
-    await _database.db.insert(
-      'sites',
-      siteToRow(site),
-      conflictAlgorithm: ConflictAlgorithm.replace,
-    );
+    await upsertRow(_database.db, 'sites', siteToRow(site));
   }
 
   @override
