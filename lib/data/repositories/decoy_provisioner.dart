@@ -1,3 +1,4 @@
+import '../../domain/models/workspace.dart';
 import '../services/app_database.dart';
 import 'site_repository_sqlite.dart';
 import 'workspace_repository_sqlite.dart';
@@ -45,7 +46,9 @@ Future<int> provisionDecoy({
 /// are currently flagged `showInDecoy` — adds newly flagged rows, removes
 /// rows for anything un-flagged or deleted since the last sync, and leaves
 /// alone anything the owner added directly while browsing inside the decoy
-/// session.
+/// session. The one change it makes to those: a decoy-original workspace
+/// with the same name as a synced one is merged into it, sites and all —
+/// see [_mergeSameNamed].
 ///
 /// The mechanism relies on an invariant [provisionDecoy] already
 /// establishes: every synced row keeps the *same id* as its real-vault
@@ -73,6 +76,7 @@ Future<int> resyncDecoy({
   final targetSites = SqliteSiteRepository(into);
 
   final allWorkspaces = await sourceWorkspaces.all();
+  final realIds = {for (final w in allWorkspaces) w.id};
   final ownedWorkspaceIds = <String>{};
   final flaggedWorkspaceIds = <String>{};
   final ownedSiteIds = <String>{};
@@ -90,20 +94,22 @@ Future<int> resyncDecoy({
     if (!workspace.showInDecoy) continue;
     flaggedWorkspaceIds.add(workspace.id);
 
-    // Look up each site's existing decoy-side profileId *before* touching
-    // the workspace row below: `targetWorkspaces.upsert` uses
-    // ConflictAlgorithm.replace, which for an already-present workspace
-    // deletes-then-reinserts it — and with foreign_keys ON and
-    // sites.workspace_id REFERENCES workspaces(id) ON DELETE CASCADE, that
-    // delete would wipe this workspace's decoy-side sites first, making
-    // every site look brand new on every call.
+    // Each already-synced site's decoy-side profileId, read before the
+    // upserts below overwrite its row with the real vault's copy.
     final existingProfileIds = <String, String>{};
     for (final site in sites) {
       final existing = await targetSites.byId(site.id);
       if (existing != null) existingProfileIds[site.id] = existing.profileId;
     }
 
-    await targetWorkspaces.upsert(workspace.copyWith(showInDecoy: false));
+    // Updated in place when already synced, never replaced: the replace's
+    // delete would cascade to every site in the workspace, not just the
+    // synced ones re-upserted below, and a site the owner added here from
+    // inside the decoy would be lost on every sync.
+    final row = workspaceToRow(workspace.copyWith(showInDecoy: false));
+    final updated = await into.db
+        .update('workspaces', row, where: 'id = ?', whereArgs: [workspace.id]);
+    if (updated == 0) await into.db.insert('workspaces', row);
 
     for (final site in sites) {
       if (!site.showInDecoy) continue;
@@ -115,6 +121,8 @@ Future<int> resyncDecoy({
       ));
       if (existingProfileId == null) added++;
     }
+
+    await _mergeSameNamed(into, workspace, realIds: realIds);
   }
 
   for (final decoyWorkspace in await targetWorkspaces.all()) {
@@ -136,4 +144,31 @@ Future<int> resyncDecoy({
   }
 
   return added;
+}
+
+/// Folds any decoy-original workspace named like [synced] into it, so the
+/// decoy never shows two workspaces of one name. The case this exists for:
+/// an empty decoy gets its own Personal on first unlock (`ensureWorkspace`),
+/// and syncing the real vault's flagged Personal would otherwise add a
+/// second one beside it.
+///
+/// Only decoy-original rows (an id no real-vault workspace has) are folded.
+/// Their sites move by `UPDATE`, not `upsert`: an upsert is a REPLACE, whose
+/// delete would cascade away each site's `script_sites` rows. Moving keeps
+/// each site's id and `profileId`, so its decoy-side cookies and history
+/// survive, and the next sync still counts it as decoy-original. The emptied
+/// workspace row goes last.
+Future<void> _mergeSameNamed(
+  AppDatabase into,
+  Workspace synced, {
+  required Set<String> realIds,
+}) async {
+  final targetWorkspaces = SqliteWorkspaceRepository(into);
+  for (final other in await targetWorkspaces.all()) {
+    if (other.id == synced.id || realIds.contains(other.id)) continue;
+    if (other.name != synced.name) continue;
+    await into.db.update('sites', {'workspace_id': synced.id},
+        where: 'workspace_id = ?', whereArgs: [other.id]);
+    await targetWorkspaces.delete(other.id);
+  }
 }

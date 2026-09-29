@@ -240,7 +240,8 @@ const _createAppSettings = '''
 ///
 /// Run on every vault a session opens, without asking which vault it is.
 /// The id is fresh, never a real-vault id, so `resyncDecoy` treats the
-/// workspace as the decoy's own and never deletes it or its sites.
+/// workspace as the decoy's own and never deletes its sites. Once the real
+/// vault's own Personal is synced in, the two are merged into that one.
 Future<void> ensureWorkspace(AppDatabase database) async {
   final existing = Sqflite.firstIntValue(
       await database.db.rawQuery('SELECT COUNT(*) FROM workspaces'));
