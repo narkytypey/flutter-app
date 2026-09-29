@@ -374,6 +374,28 @@ task that covers it.
   next correct-PIN unlock); a per-vault Keystore alias
   (`container.biometric.a`/`.b`) is logged as a follow-up, not required for
   this merge.
+  **✅ Follow-up done 2026-09-29 (branch `second/kind-cerf-0tso50`).** Each
+  vault now has its own keypair, `container.biometric.<VaultId.name>`
+  (`biometricAlias` in `BiometricPlugin.kt`, which refuses anything but `a`
+  or `b`). Every `BiometricService` method except `isAvailable` takes the
+  `VaultId`: the settings toggle makes or destroys only the open vault's key,
+  a PIN unlock re-wraps under the unlocked vault's key, and resume unwraps
+  with `SessionLocked.biometricVault`'s. Panic calls the new
+  `destroyAllKeyPairs`, which deletes both vaults' keys *and* the old shared
+  `container.biometric`, each attempted even if another throws, so panic from
+  either vault clears everything. `generateKeyPair` also retires the old
+  shared alias: ciphertext under it lived only in memory, so none survives
+  the update. Anyone upgrading with biometrics on needs no migration, because
+  the first PIN unlock finds no per-vault key and the existing self-heal
+  regenerates one. Tests: `BiometricAliasTest` (Kotlin, 4); Dart tests that
+  turning biometrics off in the decoy leaves the real vault's key, on makes
+  only the decoy's, a decoy-PIN unlock re-wraps under the decoy's key, resume
+  unwraps with the backgrounded vault's key, and panic from the decoy clears
+  both. Each of those fails when the shared-key behaviour is put back.
+  Verified 2026-09-29: `flutter analyze` clean, `flutter test` 369/369,
+  Kotlin JVM tests 60/60 (read from the JUnit XML), `flutter build apk
+  --debug` succeeding. **Not verified on a device**: the Keystore calls
+  themselves cannot run on the JVM.
 - ~~Wiring Plan 4's screens to Plan 3's events~~ — Plan 6 Tasks 2–4
   (`engine_events.dart`, discriminated `EngineChannel` events, `ContainerRoute`).
   Known gap: a backgrounded (non-foreground) site's events are dropped, not

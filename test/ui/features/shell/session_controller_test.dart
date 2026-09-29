@@ -21,34 +21,44 @@ import '../../../domain/vault_unlocker_test.dart' show FakeCrypto;
 class FakeBiometricService implements BiometricService {
   bool available = true;
   bool unwrapSucceeds = true;
-  bool keyPairGenerated = false;
+
+  /// The vaults that currently have a Keystore keypair, one alias each.
+  final keyPairs = <VaultId>{};
+
+  /// Which vault's key each [unwrap] was asked to use, in order.
+  final unwrappedWith = <VaultId>[];
 
   /// Simulates a Keystore alias that's missing or was just invalidated by
   /// new biometric enrollment: [wrap] throws until [generateKeyPair] has
-  /// been called, then succeeds — modeling `_rewrapIfEnabled`'s regenerate
-  /// -and-retry self-heal.
+  /// been called for that vault, then succeeds — modeling
+  /// `_rewrapIfEnabled`'s regenerate-and-retry self-heal.
   bool wrapThrowsUntilRegenerated = false;
 
   @override
   Future<bool> isAvailable() async => available;
 
   @override
-  Future<void> generateKeyPair() async => keyPairGenerated = true;
+  Future<void> generateKeyPair(VaultId vault) async => keyPairs.add(vault);
 
   @override
-  Future<Uint8List> wrap(Uint8List dataKey) async {
-    if (wrapThrowsUntilRegenerated && !keyPairGenerated) {
+  Future<Uint8List> wrap(VaultId vault, Uint8List dataKey) async {
+    if (wrapThrowsUntilRegenerated && !keyPairs.contains(vault)) {
       throw Exception('alias missing');
     }
     return dataKey;
   }
 
   @override
-  Future<Uint8List?> unwrap(Uint8List wrapped) async =>
-      unwrapSucceeds ? wrapped : null;
+  Future<Uint8List?> unwrap(VaultId vault, Uint8List wrapped) async {
+    unwrappedWith.add(vault);
+    return unwrapSucceeds ? wrapped : null;
+  }
 
   @override
-  Future<void> destroyKeyPair() async => keyPairGenerated = false;
+  Future<void> destroyKeyPair(VaultId vault) async => keyPairs.remove(vault);
+
+  @override
+  Future<void> destroyAllKeyPairs() async => keyPairs.clear();
 }
 
 void main() {
@@ -236,7 +246,35 @@ void main() {
     final session = container.read(sessionProvider);
     expect(session, isA<SessionOpen>());
     expect((session as SessionOpen).vault, VaultId.a);
-    expect(biometrics.keyPairGenerated, isTrue);
+    expect(biometrics.keyPairs, {VaultId.a});
+  });
+
+  test('a decoy-PIN unlock re-wraps under the decoy vault\'s own key', () async {
+    await vaultStore.provision(pin: '111111', vault: VaultId.a);
+    await vaultStore.provision(pin: '222222', vault: VaultId.b);
+    final db = await AppDatabase.open(
+        path: inMemoryDatabasePath, factory: databaseFactoryFfi);
+    await SqliteSettingsRepository(db).setBool('biometrics_enabled', true);
+    final biometrics = FakeBiometricService()..wrapThrowsUntilRegenerated = true;
+
+    final container = ProviderContainer(overrides: [
+      cryptoServiceProvider.overrideWithValue(crypto),
+      vaultStoreProvider.overrideWithValue(vaultStore),
+      documentsDirectoryProvider.overrideWithValue(dir),
+      initialSessionProvider.overrideWithValue(
+          SessionLocked(mood: LockMood.normal, gate: await vaultStore.gate())),
+      biometricServiceProvider.overrideWithValue(biometrics),
+      vaultOpenerProvider.overrideWithValue(
+          ({required String path, required Uint8List dataKey}) async => db),
+    ]);
+    addTearDown(container.dispose);
+
+    await container.read(sessionProvider.notifier).unlock('222222');
+
+    final session = container.read(sessionProvider) as SessionOpen;
+    expect(session.vault, VaultId.b);
+    expect(session.biometricWrappedKey, isNotNull);
+    expect(biometrics.keyPairs, {VaultId.b});
   });
 
   test('a wrong PIN during welcomeBack keeps the pending biometric ciphertext',
@@ -307,6 +345,34 @@ void main() {
     final session = container.read(sessionProvider);
     expect(session, isA<SessionOpen>());
     expect((session as SessionOpen).vault, VaultId.a);
+  });
+
+  test('resumeWithBiometric unwraps with the key of the vault that backgrounded',
+      () async {
+    final db = await AppDatabase.open(
+        path: inMemoryDatabasePath, factory: databaseFactoryFfi);
+    final biometrics = FakeBiometricService();
+
+    final container = ProviderContainer(overrides: [
+      cryptoServiceProvider.overrideWithValue(crypto),
+      vaultStoreProvider.overrideWithValue(vaultStore),
+      documentsDirectoryProvider.overrideWithValue(dir),
+      initialSessionProvider.overrideWithValue(SessionLocked(
+        mood: LockMood.welcomeBack,
+        gate: const AttemptGate(),
+        biometricVault: VaultId.b,
+        biometricWrappedKey: Uint8List.fromList([4, 5, 6]),
+      )),
+      biometricServiceProvider.overrideWithValue(biometrics),
+      vaultOpenerProvider.overrideWithValue(
+          ({required String path, required Uint8List dataKey}) async => db),
+    ]);
+    addTearDown(container.dispose);
+
+    await container.read(sessionProvider.notifier).resumeWithBiometric();
+
+    expect(biometrics.unwrappedWith, [VaultId.b]);
+    expect((container.read(sessionProvider) as SessionOpen).vault, VaultId.b);
   });
 
   test('resumeWithBiometric does nothing when the prompt is cancelled or fails',

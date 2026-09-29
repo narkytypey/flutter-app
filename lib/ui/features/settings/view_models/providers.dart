@@ -79,19 +79,24 @@ class SettingsController {
   /// already holds the raw data key this wraps. Turning it off clears the
   /// in-memory ciphertext immediately, rather than waiting for the next
   /// time the app backgrounds.
+  ///
+  /// Only the open vault's Keystore key is made or destroyed: turning this
+  /// off in one vault never touches the other vault's key.
   Future<void> setBiometricsEnabled(bool value) async {
     final biometrics = _ref.read(biometricServiceProvider);
+    // Throws if no vault is open, so the cast below cannot fail.
     final repository = _ref.read(settingsRepositoryProvider);
+    final vault = (_ref.read(sessionProvider) as SessionOpen).vault;
 
     if (value) {
-      await biometrics.generateKeyPair();
+      await biometrics.generateKeyPair(vault);
       final session = _ref.read(sessionProvider);
-      if (session is SessionOpen) {
-        final wrapped = await biometrics.wrap(session.dataKey);
+      if (session is SessionOpen && session.vault == vault) {
+        final wrapped = await biometrics.wrap(vault, session.dataKey);
         _ref.read(sessionProvider.notifier).setBiometricWrapped(wrapped);
       }
     } else {
-      await biometrics.destroyKeyPair();
+      await biometrics.destroyKeyPair(vault);
       _ref.read(sessionProvider.notifier).setBiometricWrapped(null);
     }
 

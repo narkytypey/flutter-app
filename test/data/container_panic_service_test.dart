@@ -1,9 +1,21 @@
+import 'dart:io';
+import 'dart:typed_data';
+
 import 'package:flutter/services.dart' show PlatformException;
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:container/data/services/app_database.dart';
 import 'package:container/data/services/container_panic_service.dart';
 import 'package:container/data/services/fake_container_engine.dart';
+import 'package:container/data/services/vault_store.dart';
 import 'package:container/domain/models/site.dart';
+import 'package:container/domain/models/vault.dart';
+import 'package:container/ui/features/container/view_models/providers.dart';
+import 'package:container/ui/features/shell/view_models/session_controller.dart';
+
+import '../domain/vault_unlocker_test.dart' show FakeCrypto;
+import '../ui/features/shell/session_controller_test.dart' show FakeBiometricService;
 
 Site _site(String id) => Site(
       id: id,
@@ -25,7 +37,7 @@ void main() {
       engine: engine,
       closeDatabase: () async => order.add('close:${engine.wipedAll}'),
       destroyVaults: () async => order.add('destroy:${engine.wipedAll}'),
-      destroyBiometricKey: () async => order.add('biometric:${engine.wipedAll}'),
+      destroyBiometricKeys: () async => order.add('biometric:${engine.wipedAll}'),
     );
 
     await service.trigger();
@@ -44,7 +56,7 @@ void main() {
       engine: engine,
       closeDatabase: () async {},
       destroyVaults: () async {},
-      destroyBiometricKey: () async {},
+      destroyBiometricKeys: () async {},
     ).trigger();
 
     expect(engine.closed, ['a', 'b']);
@@ -60,7 +72,7 @@ void main() {
       engine: engine,
       closeDatabase: () async {},
       destroyVaults: () async {},
-      destroyBiometricKey: () async {},
+      destroyBiometricKeys: () async {},
     ).trigger();
 
     expect(report.sessionsDestroyed, 3);
@@ -78,7 +90,7 @@ void main() {
       engine: engine,
       closeDatabase: () async => destroyed.add('database'),
       destroyVaults: () async => destroyed.add('vaults'),
-      destroyBiometricKey: () async => destroyed.add('biometric'),
+      destroyBiometricKeys: () async => destroyed.add('biometric'),
     ).trigger();
 
     expect(destroyed, ['database', 'vaults', 'biometric']);
@@ -95,7 +107,7 @@ void main() {
       engine: engine,
       closeDatabase: () async {},
       destroyVaults: () async => vaultsDestroyed = true,
-      destroyBiometricKey: () async {},
+      destroyBiometricKeys: () async {},
     ).trigger();
 
     expect(engine.wipedAll, isTrue);
@@ -110,11 +122,37 @@ void main() {
       engine: engine,
       closeDatabase: () async {},
       destroyVaults: () async => destroyed = true,
-      destroyBiometricKey: () async {},
+      destroyBiometricKeys: () async {},
     ).trigger();
 
     expect(report.sessionsDestroyed, 0);
     expect(destroyed, isTrue);
+  });
+
+  test('panic from the decoy vault destroys both vaults\' biometric keys',
+      () async {
+    TestWidgetsFlutterBinding.ensureInitialized();
+    sqfliteFfiInit();
+    final dir = await Directory.systemTemp.createTemp('panic-provider-test');
+    addTearDown(() => dir.delete(recursive: true));
+    final db = await AppDatabase.open(
+        path: inMemoryDatabasePath, factory: databaseFactoryFfi);
+    final biometrics = FakeBiometricService()
+      ..keyPairs.addAll({VaultId.a, VaultId.b});
+    final container = ProviderContainer(overrides: [
+      containerEngineProvider.overrideWithValue(FakeContainerEngine()),
+      vaultStoreProvider.overrideWithValue(
+          VaultStore(FakeCrypto(), File('${dir.path}/meta.bin'))),
+      documentsDirectoryProvider.overrideWithValue(dir),
+      biometricServiceProvider.overrideWithValue(biometrics),
+      initialSessionProvider.overrideWithValue(
+          SessionOpen(vault: VaultId.b, database: db, dataKey: Uint8List(32))),
+    ]);
+    addTearDown(container.dispose);
+
+    await container.read(panicServiceProvider).trigger();
+
+    expect(biometrics.keyPairs, isEmpty);
   });
 }
 

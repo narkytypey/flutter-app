@@ -201,7 +201,7 @@ class SessionController extends Notifier<Session> {
           vault: vault,
           database: database,
           dataKey: dataKey,
-          biometricWrappedKey: await _rewrapIfEnabled(database, dataKey),
+          biometricWrappedKey: await _rewrapIfEnabled(vault, database, dataKey),
         );
       case Rejected(:final gate):
         await _vaultStore.saveGate(gate);
@@ -226,7 +226,7 @@ class SessionController extends Notifier<Session> {
   }
 
   /// Every fresh PIN unlock is self-healing: if biometrics is on for this
-  /// vault, re-wrap under whatever Keystore key currently exists — and if
+  /// vault, re-wrap under this vault's Keystore key — and if
   /// no usable key currently exists (missing, or invalidated by new
   /// biometric enrollment; see `BiometricPlugin.unwrap`'s
   /// `KeyPermanentlyInvalidatedException` handling, which already deletes
@@ -235,13 +235,14 @@ class SessionController extends Notifier<Session> {
   /// because a *convenience* key is broken, so a failure on both attempts
   /// fails closed by returning null, same as `BiometricService.unwrap`'s
   /// own "nothing usable right now" convention.
-  Future<Uint8List?> _rewrapIfEnabled(AppDatabase database, Uint8List dataKey) async {
+  Future<Uint8List?> _rewrapIfEnabled(
+      VaultId vault, AppDatabase database, Uint8List dataKey) async {
     final enabled =
         await SqliteSettingsRepository(database).getBool('biometrics_enabled');
     if (!enabled) return null;
     final biometrics = ref.read(biometricServiceProvider);
     try {
-      return await biometrics.wrap(dataKey);
+      return await biometrics.wrap(vault, dataKey);
     } catch (_) {
       // The alias may be gone — invalidated by new biometric enrollment and
       // already deleted by BiometricPlugin.unwrap, or missing for any other
@@ -250,8 +251,8 @@ class SessionController extends Notifier<Session> {
       // *convenience* key is missing — see the spec's "Failure modes"
       // section.
       try {
-        await biometrics.generateKeyPair();
-        return await biometrics.wrap(dataKey);
+        await biometrics.generateKeyPair(vault);
+        return await biometrics.wrap(vault, dataKey);
       } catch (_) {
         return null;
       }
@@ -273,7 +274,7 @@ class SessionController extends Notifier<Session> {
     }
     final dataKey = await ref
         .read(biometricServiceProvider)
-        .unwrap(current.biometricWrappedKey!);
+        .unwrap(current.biometricVault!, current.biometricWrappedKey!);
     if (dataKey == null) return;
     final database = await ref.read(vaultOpenerProvider)(
       path: vaultDatabasePath(

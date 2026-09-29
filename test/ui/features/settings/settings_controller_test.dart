@@ -48,7 +48,7 @@ void main() {
       'data key, and persists the setting', () async {
     await container.read(settingsControllerProvider).setBiometricsEnabled(true);
 
-    expect(biometrics.keyPairGenerated, isTrue);
+    expect(biometrics.keyPairs, {VaultId.a});
     final session = container.read(sessionProvider) as SessionOpen;
     expect(session.biometricWrappedKey, isNotNull);
     expect(await container.read(settingsRepositoryProvider).getBool('biometrics_enabled'),
@@ -60,7 +60,7 @@ void main() {
 
     await container.read(settingsControllerProvider).setBiometricsEnabled(false);
 
-    expect(biometrics.keyPairGenerated, isFalse);
+    expect(biometrics.keyPairs, isEmpty);
     final session = container.read(sessionProvider) as SessionOpen;
     expect(session.biometricWrappedKey, isNull);
     expect(await container.read(settingsRepositoryProvider).getBool('biometrics_enabled'),
@@ -74,6 +74,39 @@ void main() {
     container.invalidate(biometricsEnabledProvider);
 
     expect(await container.read(biometricsEnabledProvider.future), isTrue);
+  });
+
+  group('in the decoy vault', () {
+    setUp(() {
+      container = ProviderContainer(overrides: [
+        cryptoServiceProvider.overrideWithValue(FakeCrypto()),
+        vaultStoreProvider.overrideWithValue(
+            VaultStore(FakeCrypto(), File('${dir.path}/meta.bin'))),
+        documentsDirectoryProvider.overrideWithValue(dir),
+        biometricServiceProvider.overrideWithValue(biometrics),
+        initialSessionProvider.overrideWithValue(
+            SessionOpen(vault: VaultId.b, database: db, dataKey: Uint8List(32))),
+      ]);
+      addTearDown(container.dispose);
+    });
+
+    // Both vaults used to share one Keystore alias, so this deleted the real
+    // vault's key too.
+    test('turning biometrics off leaves the other vault\'s key alone', () async {
+      biometrics.keyPairs.addAll({VaultId.a, VaultId.b});
+
+      await container.read(settingsControllerProvider).setBiometricsEnabled(false);
+
+      expect(biometrics.keyPairs, {VaultId.a});
+    });
+
+    test('turning biometrics on makes a key for this vault only', () async {
+      await container.read(settingsControllerProvider).setBiometricsEnabled(true);
+
+      expect(biometrics.keyPairs, {VaultId.b});
+      final session = container.read(sessionProvider) as SessionOpen;
+      expect(session.biometricWrappedKey, isNotNull);
+    });
   });
 
   group('resyncDecoyVault', () {

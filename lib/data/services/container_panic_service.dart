@@ -17,20 +17,20 @@ class ContainerPanicService implements PanicService {
     required ContainerEngine engine,
     required Future<void> Function() closeDatabase,
     required Future<void> Function() destroyVaults,
-    required Future<void> Function() destroyBiometricKey,
+    required Future<void> Function() destroyBiometricKeys,
   })  : _engine = engine,
         _closeDatabase = closeDatabase,
         _destroyVaults = destroyVaults,
-        _destroyBiometricKey = destroyBiometricKey;
+        _destroyBiometricKeys = destroyBiometricKeys;
 
   // ignore_for_file: prefer_initializing_formals — see the constructor's
   // existing rationale above for the other three fields; the same applies
-  // to `_destroyBiometricKey`.
+  // to `_destroyBiometricKeys`.
 
   final ContainerEngine _engine;
   final Future<void> Function() _closeDatabase;
   final Future<void> Function() _destroyVaults;
-  final Future<void> Function() _destroyBiometricKey;
+  final Future<void> Function() _destroyBiometricKeys;
 
   /// **Fails closed.** The container steps are best effort; the three steps
   /// that make the vault unreadable run whatever happened to them.
@@ -54,7 +54,7 @@ class ContainerPanicService implements PanicService {
 
     await _closeDatabase();
     await _destroyVaults();
-    await _destroyBiometricKey();
+    await _destroyBiometricKeys();
 
     return PanicReport(sessionsDestroyed: live.length);
   }

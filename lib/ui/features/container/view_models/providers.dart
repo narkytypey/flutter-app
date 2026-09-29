@@ -118,7 +118,9 @@ final panicServiceProvider = Provider<PanicService>((ref) {
         await deleteVaultStore(vaultDatabasePath(documents, vault));
       }
     },
-    destroyBiometricKey: () => ref.read(biometricServiceProvider).destroyKeyPair(),
+    // Both vaults' keys, not just the open one's: panic runs from either.
+    destroyBiometricKeys: () =>
+        ref.read(biometricServiceProvider).destroyAllKeyPairs(),
   );
 });
 
