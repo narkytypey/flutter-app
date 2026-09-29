@@ -34,7 +34,7 @@ Each plan ships working, tested software on its own.
 | 7 — Search | `2026-09-04-isolated-web-container-07-search.md` | **Done** (2026-09-08) | Wires `DashboardFooter`'s long-dead search button to a real screen: `SiteRepository.all()`, a `searchResults()` join/filter/sort across every workspace in the open vault, and a pure `SearchScreen`. Implements `docs/superpowers/specs/2026-09-04-search-screen-design.md` (brainstormed and approved by the user 2026-09-04) — that spec itself stands in for the missing canvas screen block, since search was never actually designed anywhere. 5 tasks, all executed; final-review fix wave (2026-09-08) made tapping a search result push a real `ContainerRoute` (it previously only marked the site open and popped back to the dashboard) and fixed `allSitesProvider` never being invalidated, so search now sees adds/deletes/touches made after it first loaded. |
 | 9 — Decoy re-sync | `2026-09-08-decoy-resync.md` | **Done** (2026-09-08) | Gives the owner a reachable "re-sync with the decoy PIN" flow from Settings, replacing the setup-time-only `provisionDecoy` with `resyncDecoy` (`lib/data/repositories/decoy_provisioner.dart`) — a real add-and-remove sync that preserves an already-synced site's `profileId` so its decoy-side cookies/history survive repeated syncs. Persists `decoy_configured` on the real vault (`SetupController.complete`) and wires it to `decoyEnabledProvider`/`decoySiteCountProvider`, so `SettingsScreen`'s VAULT section — hardcoded invisible before this plan — now actually shows or hides based on whether a decoy was configured. Adds `DecoyResyncPinScreen` (pure widget, reuses `PinDots`/`PinKeypad`) and `DecoyResyncRoute` (reuses `LockController`, calls the new `SettingsController.resyncDecoyVault`, which checks the entered PIN against both vault slots via the existing `VaultUnlocker`/attempt-gate before opening the decoy vault just long enough to sync and close it). Implements `docs/superpowers/specs/2026-09-08-decoy-resync-design.md`. 5 tasks, all executed. |
 | 10 — HTTP CONNECT tunnel | `2026-09-09-http-connect-tunnel.md` | **Done** (2026-09-09) | Makes `ProxyMode.http` actually work by hand-writing the CONNECT tunnel AOSP removed from `java.net.Socket`. New `android/app/src/main/kotlin/com/mono/container/engine/HttpConnectTunnel.kt`: `HttpConnectTunnel.open(proxyHost, proxyPort, targetHost, targetPort)` opens a plain socket to the proxy, writes `CONNECT host:port HTTP/1.1`, requires a 2xx, drains the header block so the returned socket sits at the first byte of tunnel payload, and otherwise throws the new `ProxyTunnelException(statusCode, message)` after closing the socket. `Router.connect`'s `Route.Proxy` branch now splits on `route.socks` — SOCKS still delegated to the platform, `http` to the tunnel — and no executable `java.net.Proxy.Type.HTTP` remains in the tree. Undoes the `ca9552c` interim guard on both sides (`Router.resolve` re-admits `http` **by name**, so an unrecognised mode is still `MISCONFIGURED`; the Dart mirror in `resolveRoute` is deleted, `ProxyMode` being a closed enum). Gives `RouteFailure.PROXY_REFUSED` its first producer in this repo's history, via `RequestInterceptor` and `DownloadFetcher` mapping `ProxyTunnelException` — the existing copy `'The proxy refused the destination'` was not reworded. `ProxyHttpClient` needed no code change: `startTls` already wraps whatever socket `Router.connect` returns, against the target host. This plan has **no design spec** — it was written from defect 5 of the download-manager plan, and the user approved its three design decisions inline on 2026-09-09 (hand-rolled CONNECT over a new dependency, no proxy authentication, `PROXY_REFUSED` as the mapping). 4 tasks, all executed; commits `64c0fa6`/`f6bd41b`/`5e42dd5` plus this documentation pass. Verified 2026-09-09 on a clean tree: Kotlin JVM tests 12/12 (`HttpConnectTunnelTest` 3, `RouterTest` 5, `FilterEngineTest` 4, counts read from the JUnit XML, not from `BUILD SUCCESSFUL`), `flutter analyze` clean, `flutter test` 300/300, `flutter build apk --debug` succeeding with zero `e:` lines. **Not verified: it has never spoken to a real HTTP proxy on a real device** — every test replies from a localhost `ServerSocket` with a canned status line, and the `IllegalArgumentException("Invalid Proxy")` this work exists to fix is Android-only and cannot be reproduced on the desktop JVM the unit tests run on. See its Known gaps below. **Update, 2026-09-28:** exercised on an Android emulator (not a physical phone) through a minimal local CONNECT proxy (a Python script, not a real-world proxy): an http-mode Google site went live with every request tunnelled, and a destination the proxy deliberately routed to the wrong server was refused with `SSLHandshakeException: No subjectAltNames on the certificate match` — hostname verification against the target, over the tunnel, on Android's provider. See "Device verification" below. |
-| 11 — Filter lists and scripts | `2026-09-28-filter-lists-and-scripts.md` | **Done** (2026-09-29) | Makes `10d`/`10e` real: three bundled rule files (`assets/filters/`), synced into every vault on open (`syncBundledFilterLists`, replacing the mock `seedFilterListsIfEmpty`); on open Dart sends the vault's enabled rules and the site's library scripts (`EngineExtras`), Kotlin builds the site's `FilterEngine` from them and injects each script separately, scoped to the site's origin (`UserScriptJs`). Implements `docs/superpowers/specs/2026-09-28-filter-lists-and-scripts-design.md`. Verified 2026-09-29: JVM 74/74, `flutter test` 379/379, analyze clean, APK builds; on the emulator the Social embeds and Trackers and ads switches each decide, on the next open, whether their hosts are blocked. **Script injection is not device-verified**: the script editor's "+ Add site" picker is unbuilt (`onAddSite: () {}`), so no UI can attach a script to a site. See the plan's Verification and Known gaps. |
+| 11 — Filter lists and scripts | `2026-09-28-filter-lists-and-scripts.md` | **Done** (2026-09-29) | Makes `10d`/`10e` real: three bundled rule files (`assets/filters/`), synced into every vault on open (`syncBundledFilterLists`, replacing the mock `seedFilterListsIfEmpty`); on open Dart sends the vault's enabled rules and the site's library scripts (`EngineExtras`), Kotlin builds the site's `FilterEngine` from them and injects each script separately, scoped to the site's origin (`UserScriptJs`). Implements `docs/superpowers/specs/2026-09-28-filter-lists-and-scripts-design.md`. Verified 2026-09-29: JVM 74/74, `flutter test` 379/379, analyze clean, APK builds; on the emulator the Social embeds and Trackers and ads switches each decide, on the next open, whether their hosts are blocked. ~~**Script injection is not device-verified**: the script editor's "+ Add site" picker is unbuilt (`onAddSite: () {}`), so no UI can attach a script to a site.~~ **Update, 2026-09-29 (branch `feat-script-site-picker`):** the picker is built (`ScriptSitePicker`, user's ruling: an untitled sheet of the vault's sites not yet on the script, tap adds, effective on Save, chip dimmed and inert when none are left; no new copy), and **script injection is now seen on the emulator**: a JS script attached through it to a direct `https://example.com` site put its text at the top of the page, and following the page's link to iana.org showed no trace of it, so the origin scoping holds. See the plan's Verification and Known gaps. |
 
 Each plan's own **Handoff** and **Known gaps** sections at the bottom are the
 authoritative record of what it produces for later plans and what it
@@ -818,10 +818,21 @@ Found while verifying the above (2026-09-29), both unowned:
   re-sync bug**: an already-synced workspace was re-written with the
   repository's REPLACE upsert, whose delete cascaded to *every* site in it,
   so any site the owner added in the decoy inside a synced workspace was
-  deleted on every re-sync. Such workspaces are now updated in place. Don't
-  switch either write back to `upsert`: both cascades are silent. Tests: six
-  new in `decoy_provisioner_test.dart`; the cascade one fails on the old
+  deleted on every re-sync. Such workspaces are now updated in place. Tests:
+  six new in `decoy_provisioner_test.dart`; the cascade one fails on the old
   code.
+  **Superseded 2026-09-29 (`9667f7f`, merged in `b95b6e0`):** the same
+  REPLACE cascade was in the repositories themselves, so *editing* a
+  workspace (rename, marker, "Show in decoy vault") deleted every site in it,
+  and editing a site (the site sheet's switches, the edit form) dropped its
+  script assignments. Seen on a device: the real vault's Personal lost all
+  six sites. `SqliteWorkspaceRepository.upsert` and
+  `SqliteSiteRepository.upsert` now go through `upsertRow`
+  (`app_database.dart`), an `INSERT ... ON CONFLICT(id) DO UPDATE` that
+  updates in place, and `resyncDecoy` uses the repository upsert again.
+  Don't switch `upsertRow` back to `ConflictAlgorithm.replace` on any table
+  that other rows reference with `ON DELETE CASCADE`: the cascade is
+  silent.
   Tests: `ensure_workspace_test.dart` (5, including the re-sync case), two
   in `session_controller_test.dart`. `lock_screen_test.dart`'s resume test
   now lets the extra sqflite query finish in `tester.runAsync`. Verified
@@ -862,10 +873,35 @@ Found while verifying the above (2026-09-29), both unowned:
   through it. Don't build the page view off a session the route did not
   open itself.
 
+Found while device-verifying the script site picker (2026-09-29, branch
+`feat-script-site-picker`), both fixed there:
+- **Scripts and filters showed the vault as it was on the first visit.**
+  `scriptsViewProvider` was a plain `FutureProvider` that nothing
+  invalidated when a site was added or removed elsewhere, so a site added
+  after Scripts had been opened once was missing from the picker, and its
+  chip was silently dropped from a script's RUNS ON row. It is now
+  `autoDispose`, so each visit reads the vault afresh (`a290bfa`).
+- **A closed session went on reading as open.** `openSiteIdsProvider`, which
+  the dashboard's OPEN NOW rows and `N SESSIONS`, search's live rail and
+  `9c`'s closed-session count all read, was added to by `openSite` and never
+  removed from: the switcher's ×, "Close all and wipe", `6c`'s close and
+  wipe and `8c`'s close all left the site listed as open until the next
+  lock. `closeSite`, beside `openSite`, now removes it on all four
+  (`1f7f9a3`). Backing out of a container still leaves it open, which is
+  correct, since its session keeps running in the background.
+
 ## Working on this repo
 
-- No git repo initialized yet, and Flutter isn't installed on this machine as
-  of the last check — Plan 1 Task 1 Step 1 bootstraps both.
+- ~~No git repo initialized yet, and Flutter isn't installed on this machine as
+  of the last check — Plan 1 Task 1 Step 1 bootstraps both.~~ Both exist now;
+  `main` tracks `origin/main` on GitHub.
+- **This machine cannot reach GitHub** (as of 2026-09-29: pushing fails, and
+  a TCP connection to github.com:443 is "destination host unreachable"). The
+  `sqlite3` package's native-assets hook downloads a prebuilt binary from
+  GitHub, so `flutter test` in a fresh checkout or worktree fails with
+  "Building native assets failed" until the main checkout's
+  `.dart_tool/hooks_runner` is copied in. Flutter and Gradle commands also
+  need the Bash sandbox disabled.
 - Multiple Claude sessions may be working here in parallel; check in before
   starting implementation work on a plan another session may already have
   picked up (`ListAgents` / cross-session message), since there's no git

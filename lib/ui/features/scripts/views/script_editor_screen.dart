@@ -47,7 +47,10 @@ class ScriptEditorScreen extends StatefulWidget {
   final List<ScriptSiteChip> appliedSites;
   final ValueChanged<ScriptEditorResult> onSave;
   final void Function(String siteId) onRemoveSite;
-  final VoidCallback onAddSite;
+
+  /// Null once every site in the vault is on the script: "+ Add site" is then
+  /// dimmed and does nothing, since the picker would have no rows to offer.
+  final VoidCallback? onAddSite;
   final VoidCallback onClose;
 
   @override
@@ -152,7 +155,11 @@ class _ScriptEditorScreenState extends State<ScriptEditorScreen> {
                                 color: Colors.white.withValues(alpha: 0.15)),
                           ),
                           child: Text('+ Add site',
-                              style: ui(size: 12.5, color: C.jade)),
+                              style: ui(
+                                  size: 12.5,
+                                  color: widget.onAddSite == null
+                                      ? C.textDisabled
+                                      : C.jade)),
                         ),
                       ),
                     ],

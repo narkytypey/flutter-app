@@ -112,3 +112,13 @@ void openSite(WidgetRef ref, String siteId) {
   ref.read(siteRepositoryProvider).touch(siteId, DateTime.now());
   ref.invalidate(dashboardProvider);
 }
+
+/// The other half of [openSite]: called wherever a container closes a
+/// session for good (the switcher's ×, "Close all and wipe", `6c`'s close
+/// and wipe, `8c`'s close), so the dashboard stops listing it under OPEN NOW
+/// and `9c` stops counting it. Backing out of a container does not call this
+/// — its session stays open in the background.
+void closeSite(WidgetRef ref, String siteId) {
+  ref.read(openSiteIdsProvider.notifier).update((ids) => {...ids}..remove(siteId));
+  ref.invalidate(dashboardProvider);
+}

@@ -3,9 +3,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../data/services/app_database.dart' show newProfileId;
 import '../../../../domain/models/filter_list.dart';
+import '../../../../domain/models/site.dart';
 import '../../../../domain/models/user_script.dart';
 import '../view_models/providers.dart';
 import 'script_editor_screen.dart';
+import 'script_site_picker.dart';
 import 'scripts_and_filters_screen.dart';
 
 /// Spec `10d` pairs "updated 2 days ago" with "Next check in 5 days" — a
@@ -22,10 +24,9 @@ int nextFilterCheckInDays(List<FilterList> lists, DateTime now) {
 /// Spec `10d`/`10e` against the open vault. Reached from Settings' MANAGE
 /// section.
 ///
-/// Nothing here changes what a page loads yet: the native filter engine does
-/// not read a list's enabled bit, and no script is injected into a WebView —
-/// see Plan 5's Known gaps. "Update now" fetches nothing, since the app makes
-/// no network requests of its own.
+/// A site reads its enabled lists and scripts when it is next opened (Plan
+/// 11), not while it is live. "Update now" fetches nothing, since the app
+/// makes no network requests of its own.
 class ScriptsRoute extends ConsumerWidget {
   const ScriptsRoute({super.key});
 
@@ -56,7 +57,7 @@ class ScriptsRoute extends ConsumerWidget {
       onOpenScript: (id) => _openEditor(
         context,
         scripts.firstWhere((s) => s.id == id),
-        view?.siteNamesById ?? const {},
+        view?.sites ?? const [],
       ),
       onNewScript: () => _openEditor(
         context,
@@ -69,26 +70,26 @@ class ScriptsRoute extends ConsumerWidget {
           enabled: true,
           appliedSiteIds: const [],
         ),
-        view?.siteNamesById ?? const {},
+        view?.sites ?? const [],
       ),
       onBack: () => Navigator.pop(context),
     );
   }
 
-  void _openEditor(BuildContext context, UserScript script, Map<String, String> siteNames) {
+  void _openEditor(BuildContext context, UserScript script, List<Site> sites) {
     Navigator.push(context, MaterialPageRoute(
-      builder: (_) => _ScriptEditorRoute(script: script, siteNamesById: siteNames),
+      builder: (_) => _ScriptEditorRoute(script: script, sites: sites),
     ));
   }
 }
 
-/// Holds the sites a script runs on while it is being edited: removing one
-/// takes effect on Save, together with the code, and not before.
+/// Holds the sites a script runs on while it is being edited: adding or
+/// removing one takes effect on Save, together with the code, and not before.
 class _ScriptEditorRoute extends ConsumerStatefulWidget {
-  const _ScriptEditorRoute({required this.script, required this.siteNamesById});
+  const _ScriptEditorRoute({required this.script, required this.sites});
 
   final UserScript script;
-  final Map<String, String> siteNamesById;
+  final List<Site> sites;
 
   @override
   ConsumerState<_ScriptEditorRoute> createState() => _ScriptEditorRouteState();
@@ -96,9 +97,28 @@ class _ScriptEditorRoute extends ConsumerStatefulWidget {
 
 class _ScriptEditorRouteState extends ConsumerState<_ScriptEditorRoute> {
   late final _siteIds = [...widget.script.appliedSiteIds];
+  late final _siteNames = {for (final site in widget.sites) site.id: site.name};
+
+  /// Opens on the vault's navigator like every other sheet, never the root
+  /// one, so a lock still tears it down.
+  Future<void> _pickSite(List<Site> offered) async {
+    final picked = await showModalBottomSheet<String>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (sheetContext) => ScriptSitePicker(
+        sites: offered,
+        onPick: (id) => Navigator.pop(sheetContext, id),
+      ),
+    );
+    if (picked != null && mounted) setState(() => _siteIds.add(picked));
+  }
 
   @override
   Widget build(BuildContext context) {
+    final offered = [
+      for (final site in widget.sites)
+        if (!_siteIds.contains(site.id)) site,
+    ];
     return ScriptEditorScreen(
       title: widget.script.name,
       initialKind: widget.script.kind,
@@ -106,7 +126,7 @@ class _ScriptEditorRouteState extends ConsumerState<_ScriptEditorRoute> {
       initialRunAtDocumentStart: widget.script.runAtDocumentStart,
       appliedSites: [
         for (final id in _siteIds)
-          if (widget.siteNamesById[id] case final name?) ScriptSiteChip(id: id, name: name),
+          if (_siteNames[id] case final name?) ScriptSiteChip(id: id, name: name),
       ],
       onSave: (result) async {
         await ref.read(scriptRepositoryProvider).upsert(widget.script.copyWith(
@@ -119,8 +139,7 @@ class _ScriptEditorRouteState extends ConsumerState<_ScriptEditorRoute> {
         if (context.mounted) Navigator.pop(context);
       },
       onRemoveSite: (id) => setState(() => _siteIds.remove(id)),
-      // The site picker is not built — see Plan 5's Known gaps.
-      onAddSite: () {},
+      onAddSite: offered.isEmpty ? null : () => _pickSite(offered),
       onClose: () => Navigator.pop(context),
     );
   }
