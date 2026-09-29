@@ -1,9 +1,11 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:container/data/services/app_database.dart';
+import 'package:container/data/repositories/script_repository_sqlite.dart';
 import 'package:container/data/repositories/site_repository_sqlite.dart';
 import 'package:container/data/repositories/workspace_repository_sqlite.dart';
 import 'package:container/domain/models/site.dart';
+import 'package:container/domain/models/user_script.dart';
 import 'package:container/domain/models/vault.dart';
 import 'package:container/domain/models/workspace.dart';
 
@@ -146,5 +148,53 @@ void main() {
     final all = await sites.all();
 
     expect(all.map((s) => s.id).toSet(), {'s1', 's2'});
+  });
+
+  // Both upserts were SQLite REPLACEs: an update deleted the row and inserted
+  // it again, and with foreign keys on, that delete cascaded. Editing a
+  // workspace (renaming it, or turning on "Show in decoy vault") deleted every
+  // site in it; editing a site dropped its script assignments. Seen on a
+  // device: the real vault's Personal lost all six sites.
+  test('updating a workspace keeps its sites', () async {
+    await seedIfEmpty(database);
+    final workspaces = SqliteWorkspaceRepository(database);
+    final personal = (await workspaces.byId('ws-personal'))!;
+    final before = await SqliteSiteRepository(database).inWorkspace('ws-personal');
+
+    await workspaces.upsert(personal.copyWith(showInDecoy: true, name: 'Home'));
+
+    final after = await SqliteSiteRepository(database).inWorkspace('ws-personal');
+    expect(after.map((s) => s.id), before.map((s) => s.id));
+    final updated = (await workspaces.byId('ws-personal'))!;
+    expect(updated.name, 'Home');
+    expect(updated.showInDecoy, isTrue);
+  });
+
+  test("updating a site keeps its script assignments", () async {
+    await seedIfEmpty(database);
+    final scripts = SqliteScriptRepository(database);
+    await scripts.upsert(const UserScript(
+        id: 'sc', name: 'Hide', kind: ScriptKind.css,
+        code: 'header{display:none}', runAtDocumentStart: false,
+        enabled: true, appliedSiteIds: ['st-notes']));
+    final sites = SqliteSiteRepository(database);
+    final notes = (await sites.byId('st-notes'))!;
+
+    await sites.upsert(notes.copyWith(forceDark: false));
+
+    expect((await scripts.byId('sc'))!.appliedSiteIds, ['st-notes']);
+    expect((await sites.byId('st-notes'))!.forceDark, isFalse);
+  });
+
+  test('upsert still inserts a row that does not exist yet', () async {
+    final workspaces = SqliteWorkspaceRepository(database);
+    await workspaces.upsert(const Workspace(
+        id: 'w-new', name: 'New', markerIndex: 2, storageRule: StorageRule.keep));
+    await SqliteSiteRepository(database).upsert(Site(
+        id: 's-new', workspaceId: 'w-new', name: 'N', monogram: 'Nn',
+        url: 'https://n.example.com', profileId: newProfileId()));
+
+    expect((await workspaces.byId('w-new'))!.name, 'New');
+    expect(await SqliteSiteRepository(database).byId('s-new'), isNotNull);
   });
 }

@@ -38,6 +38,28 @@ Future<void> deleteVaultStore(String path) async {
   }
 }
 
+/// Inserts [row] into [table], or updates the row with the same `id` in
+/// place.
+///
+/// Not `ConflictAlgorithm.replace`: a REPLACE deletes the old row before
+/// inserting the new one, and with foreign keys on, that delete cascades.
+/// Updating a workspace that way deleted every site in it, and updating a
+/// site dropped its script assignments.
+Future<void> upsertRow(
+    DatabaseExecutor db, String table, Map<String, Object?> row) async {
+  final columns = row.keys.toList();
+  final updates = [
+    for (final c in columns)
+      if (c != 'id') '$c = excluded.$c',
+  ];
+  await db.rawInsert(
+    'INSERT INTO $table (${columns.join(', ')}) '
+    'VALUES (${List.filled(columns.length, '?').join(', ')}) '
+    'ON CONFLICT(id) DO UPDATE SET ${updates.join(', ')}',
+    [for (final c in columns) row[c]],
+  );
+}
+
 /// One vault's store. Nothing here leaves the device.
 ///
 /// [open] takes a path and an optional factory so tests can run in-memory on
@@ -240,7 +262,8 @@ const _createAppSettings = '''
 ///
 /// Run on every vault a session opens, without asking which vault it is.
 /// The id is fresh, never a real-vault id, so `resyncDecoy` treats the
-/// workspace as the decoy's own and never deletes it or its sites.
+/// workspace as the decoy's own and never deletes its sites. Once the real
+/// vault's own Personal is synced in, the two are merged into that one.
 Future<void> ensureWorkspace(AppDatabase database) async {
   final existing = Sqflite.firstIntValue(
       await database.db.rawQuery('SELECT COUNT(*) FROM workspaces'));

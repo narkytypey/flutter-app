@@ -1,10 +1,12 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:container/data/repositories/decoy_provisioner.dart';
+import 'package:container/data/repositories/script_repository_sqlite.dart';
 import 'package:container/data/repositories/site_repository_sqlite.dart';
 import 'package:container/data/repositories/workspace_repository_sqlite.dart';
 import 'package:container/data/services/app_database.dart';
 import 'package:container/domain/models/site.dart';
+import 'package:container/domain/models/user_script.dart';
 import 'package:container/domain/models/workspace.dart';
 
 void main() {
@@ -152,6 +154,86 @@ void main() {
           isNotNull);
       expect(await SqliteSiteRepository(decoy).byId('decoy-only-site'),
           isNotNull);
+    });
+
+    // Re-syncing replaced the synced workspace's row, and that delete
+    // cascaded to every site in it — including ones the owner added there
+    // from inside the decoy.
+    test('keeps a site the owner added inside a synced workspace', () async {
+      await resyncDecoy(from: real, into: decoy);
+      await SqliteSiteRepository(decoy).upsert(Site(
+          id: 'decoy-added', workspaceId: 'ws', name: 'Blog', monogram: 'Bl',
+          url: 'https://blog.example.com', profileId: newProfileId()));
+
+      await resyncDecoy(from: real, into: decoy);
+
+      expect(await SqliteSiteRepository(decoy).byId('decoy-added'), isNotNull);
+    });
+
+    // An empty decoy gets its own Personal on first unlock (ensureWorkspace).
+    // Syncing the real vault's flagged Personal used to add it beside that
+    // one, leaving the decoy with two workspaces named Personal.
+    group('a decoy workspace named like a synced one', () {
+      setUp(() async {
+        await SqliteWorkspaceRepository(decoy).upsert(const Workspace(
+            id: 'decoy-personal', name: 'Personal', markerIndex: 0,
+            storageRule: StorageRule.keep));
+        await SqliteSiteRepository(decoy).upsert(Site(
+            id: 'decoy-site', workspaceId: 'decoy-personal', name: 'Blog',
+            monogram: 'Bl', url: 'https://blog.example.com',
+            profileId: 'b' * 32));
+      });
+
+      test('is merged into it, so only one remains', () async {
+        await resyncDecoy(from: real, into: decoy);
+
+        final workspaces = await SqliteWorkspaceRepository(decoy).all();
+        expect(workspaces.map((w) => (w.id, w.name)), [('ws', 'Personal')]);
+      });
+
+      test('hands its sites to it, profile and all', () async {
+        await resyncDecoy(from: real, into: decoy);
+
+        final sites = await SqliteSiteRepository(decoy).inWorkspace('ws');
+        expect(sites.map((s) => s.name), unorderedEquals(['News', 'Blog']));
+        final blog = await SqliteSiteRepository(decoy).byId('decoy-site');
+        expect(blog!.profileId, 'b' * 32,
+            reason: 'a new profile would lose its cookies and history');
+      });
+
+      test("keeps its sites' script assignments", () async {
+        await SqliteScriptRepository(decoy).upsert(const UserScript(
+            id: 'sc', name: 'Hide', kind: ScriptKind.css,
+            code: 'header{display:none}', runAtDocumentStart: false,
+            enabled: true, appliedSiteIds: ['decoy-site']));
+
+        await resyncDecoy(from: real, into: decoy);
+
+        final script = await SqliteScriptRepository(decoy).byId('sc');
+        expect(script!.appliedSiteIds, ['decoy-site']);
+      });
+
+      test('stays merged across later syncs', () async {
+        await resyncDecoy(from: real, into: decoy);
+        await resyncDecoy(from: real, into: decoy);
+
+        expect(await SqliteWorkspaceRepository(decoy).all(), hasLength(1));
+        expect(await SqliteSiteRepository(decoy).inWorkspace('ws'), hasLength(2));
+      });
+
+      test('is left alone while the same-named real workspace is unflagged',
+          () async {
+        await SqliteWorkspaceRepository(real).upsert(
+          (await SqliteWorkspaceRepository(real).byId('ws'))!
+              .copyWith(showInDecoy: false),
+        );
+
+        await resyncDecoy(from: real, into: decoy);
+
+        final workspaces = await SqliteWorkspaceRepository(decoy).all();
+        expect(workspaces.map((w) => w.id), ['decoy-personal']);
+        expect(await SqliteSiteRepository(decoy).byId('decoy-site'), isNotNull);
+      });
     });
 
     test('an unflagged site in an otherwise-flagged workspace is left '

@@ -1,5 +1,3 @@
-import 'package:sqflite_sqlcipher/sqflite.dart';
-
 import '../../domain/models/workspace.dart';
 import '../../domain/repositories/repositories.dart';
 import '../services/app_database.dart';
@@ -24,11 +22,7 @@ class SqliteWorkspaceRepository implements WorkspaceRepository {
 
   @override
   Future<void> upsert(Workspace workspace) async {
-    await _database.db.insert(
-      'workspaces',
-      workspaceToRow(workspace),
-      conflictAlgorithm: ConflictAlgorithm.replace,
-    );
+    await upsertRow(_database.db, 'workspaces', workspaceToRow(workspace));
   }
 
   @override

@@ -808,8 +808,20 @@ Found while verifying the above (2026-09-29), both unowned:
   id is fresh (`newProfileId()`), never a real-vault id such as
   `ws-personal`, so `resyncDecoy` counts it as decoy-original and never
   deletes it or the sites added to it; don't "tidy" that id into a fixed
-  one. **Known gap:** if the owner later flags the real vault's Personal for
-  the decoy and re-syncs, the decoy shows two workspaces named Personal.
+  one. ~~**Known gap:** if the owner later flags the real vault's Personal for
+  the decoy and re-syncs, the decoy shows two workspaces named Personal.~~
+  **✅ Fixed 2026-09-29 (branch `fix-decoy-duplicate-personal`, raised by the
+  ultrareview).** `resyncDecoy` now folds any decoy-original workspace with
+  the same name as a synced one into it (`_mergeSameNamed`): its sites move
+  over by `UPDATE`, keeping their ids, `profileId`s and script assignments,
+  and the emptied row is deleted. The fix also found a **pre-existing
+  re-sync bug**: an already-synced workspace was re-written with the
+  repository's REPLACE upsert, whose delete cascaded to *every* site in it,
+  so any site the owner added in the decoy inside a synced workspace was
+  deleted on every re-sync. Such workspaces are now updated in place. Don't
+  switch either write back to `upsert`: both cascades are silent. Tests: six
+  new in `decoy_provisioner_test.dart`; the cascade one fails on the old
+  code.
   Tests: `ensure_workspace_test.dart` (5, including the re-sync case), two
   in `session_controller_test.dart`. `lock_screen_test.dart`'s resume test
   now lets the extra sqflite query finish in `tester.runAsync`. Verified
