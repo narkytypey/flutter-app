@@ -9191,3 +9191,14 @@ Deliberate, from the spec's §9 and from this plan. None is a bug to fix in pass
 - **The engine** now carries `navigation()`/`navigationState`, `findResults()`, `goBack`/`goForward`/`stop`/`loadUrl`/`find`/`findNext`/`clearFind`/`keep` and `open(…, throwaway:)`. Kotlin's `ContainerView.load` refuses every scheme but http/https (`isLoadableUrl`), and `ThrowawayJournal` sits beside `PendingDeletions`, which it stores through and does not replace.
 - **Settings** can store text (`SettingsRepository.getString`/`setString`); `searchEngineProvider` is the open vault's engine; `SettingsRoute` and `settingsDestination` are public in `lib/ui/features/settings/views/settings_route.dart`.
 - **`sitesMatching`** (`lib/domain/site_search.dart`) is the one name-or-host matcher, shared by search and the address bar's suggestions.
+
+## Verification
+
+2026-09-29, on branch `plan-12-browser-chrome` at 7019390, clean tree:
+
+- `flutter analyze`: No issues found!
+- `flutter test`: 517 passed (baseline D0 = 399; this plan adds 118).
+- Kotlin JVM tests: 95 tests, 0 failures, 0 errors, read from `build/app/test-results/testDebugUnitTest/TEST-*.xml` (baseline K0 = 74; this plan adds 21).
+- `flutter build apk --debug`: built, zero `e:` lines.
+- Task 14 Steps 2–3: every check as expected.
+- **Not done: Task 14 Step 7** (on-device checks), which the orchestrator owns.
