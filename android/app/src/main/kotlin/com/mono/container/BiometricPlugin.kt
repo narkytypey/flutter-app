@@ -36,6 +36,16 @@ internal val allBiometricAliases: List<String> =
     listOf(LEGACY_BIOMETRIC_ALIAS, biometricAlias("a"), biometricAlias("b"))
 
 /**
+ * RSA-OAEP with SHA-256, but MGF1 with SHA-1. Keystore refuses to decrypt
+ * with an MGF1 digest the key was not authorized for (`INCOMPATIBLE_MGF_DIGEST`),
+ * and before API 35 (`setMgf1Digests`) SHA-1 is the only one a key can be.
+ * `wrap` must use the same parameters, or the ciphertext will not unwrap.
+ */
+internal val biometricOaepParams = OAEPParameterSpec(
+    "SHA-256", "MGF1", MGF1ParameterSpec.SHA1, PSource.PSpecified.DEFAULT,
+)
+
+/**
  * The Keystore half. An RSA-2048 keypair per vault whose private key requires
  * a biometric before it can be used: `wrap` (public key) never prompts;
  * decrypting needs a [BiometricPrompt]-authorized [Cipher], set up by
@@ -92,7 +102,7 @@ class BiometricCore {
         val cert = store.getCertificate(alias)
             ?: error("biometric keypair not generated")
         val cipher = oaepCipher()
-        cipher.init(Cipher.ENCRYPT_MODE, cert.publicKey, oaepParams())
+        cipher.init(Cipher.ENCRYPT_MODE, cert.publicKey, biometricOaepParams)
         return cipher.doFinal(dataKey)
     }
 
@@ -102,15 +112,11 @@ class BiometricCore {
     fun privateCipherForDecrypt(alias: String): Cipher {
         val key = store.getKey(alias, null) as PrivateKey
         val cipher = oaepCipher()
-        cipher.init(Cipher.DECRYPT_MODE, key, oaepParams())
+        cipher.init(Cipher.DECRYPT_MODE, key, biometricOaepParams)
         return cipher
     }
 
     private fun oaepCipher(): Cipher = Cipher.getInstance("RSA/ECB/OAEPPadding")
-
-    private fun oaepParams() = OAEPParameterSpec(
-        "SHA-256", "MGF1", MGF1ParameterSpec.SHA256, PSource.PSpecified.DEFAULT,
-    )
 
     private companion object {
         const val KEYSTORE = "AndroidKeyStore"
