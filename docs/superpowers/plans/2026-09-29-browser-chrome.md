@@ -9171,6 +9171,8 @@ Deliberate, from the spec's §9 and from this plan. None is a bug to fix in pass
 - **`ProxyProbe` still probes the proxy, not the destination**, so a throwaway on a proxy that refuses its destination fails on load, as a saved site does.
 - **Throwaway settings are fixed** at the safe defaults plus the inherited route. `6c`'s switches on a throwaway change only the running page's record, which nothing reads again.
 - **A saved site typed while its own container is open lower in the stack gets a second container** (Design question 2). The engine keys sessions by site id, so the newer open replaces the native session; after popping back, the lower container's back, forward, reload and find act on nothing until it is opened again.
+- **With a stack like `[A, B, A′]`** (a saved site typed twice over other containers), popping `A′` for a wipe-on-exit site wipes the profile `A`'s view is still showing, and closing `A′` from the switcher leaves `A` on the opening checklist until it is reopened.
+- **The ☰ menu's Workspaces screen can delete the workspace holding the container underneath it.** That closes and wipes the container's session; going back lands on its opening checklist (its ‹ still leaves), and a throwaway whose default workspace was deleted would be saved into a workspace that no longer exists.
 - **Throwaways are not counted in Today's tally** or the menu's `<n> BLOCKED`. `BlockedTallyController` counts only sessions whose site is in the open vault, and a throwaway is not until it is saved.
 - **A find count carries no query.** The shown count is dropped on every change, but a count WebView reports late for earlier text can show against the current text until the next report.
 - **The search engine reads as DuckDuckGo until its setting has loaded**, which is only the instant after a container opens; the route watches it from then on.
@@ -9202,3 +9204,12 @@ Deliberate, from the spec's §9 and from this plan. None is a bug to fix in pass
 - `flutter build apk --debug`: built, zero `e:` lines.
 - Task 14 Steps 2–3: every check as expected.
 - **Not done: Task 14 Step 7** (on-device checks), which the orchestrator owns.
+
+### Final review fixes
+
+The whole-branch review returned "With fixes"; both findings are fixed, test-first.
+
+- **A typed address replaced a saved site's stored URL natively.** `ContainerRoute` opened `site.copyWith(url: typed)`, so `SiteConfig.url` moved: library scripts were scoped to the typed origin (an `http://` or `www.` variant), and permission, tunnel and download hosts followed it. The session now always opens with the stored URL; the typed one travels as `initialUrl` and only the view's first load uses it (`firstLoadUrl`, guarded by `isLoadableUrl`). Adds 3 Kotlin tests (`FirstLoadUrlTest`) and 3 Dart tests (channel `initialUrl`, plain open records null, and the two existing route tests now assert the stored URL).
+- **"Save as a site" kept the throwaway's first host as its name.** When the page being saved is on a different host than the throwaway's, the form is prefilled with that host and `suggestMonogram(host)`. Adds 1 Dart test.
+
+Gate, on branch `plan-12-browser-chrome`: `flutter analyze` No issues found!; `flutter test` 520 passed; Kotlin JVM tests 98 tests, 0 failures, 0 errors (JUnit XML); `flutter build apk --debug` built, zero `e:` lines.
