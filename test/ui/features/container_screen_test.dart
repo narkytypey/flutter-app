@@ -1,6 +1,13 @@
+import 'package:container/domain/models/address_suggestion.dart';
+import 'package:container/domain/models/destination.dart';
 import 'package:container/domain/models/find_result.dart';
 import 'package:container/domain/models/navigation_state.dart';
+import 'package:container/domain/models/search_engine.dart';
+import 'package:container/domain/models/site.dart';
+import 'package:container/domain/models/workspace.dart';
 import 'package:container/ui/core/widgets/icon_tap.dart';
+import 'package:container/ui/features/container/views/address_edit_bar.dart';
+import 'package:container/ui/features/container/views/address_suggestions.dart';
 import 'package:container/ui/features/container/views/browser_menu_sheet.dart';
 import 'package:container/ui/features/container/views/container_bottom_bar.dart';
 import 'package:container/ui/features/container/views/container_screen.dart';
@@ -14,6 +21,29 @@ import 'package:flutter_test/flutter_test.dart';
 
 /// Every callback [ContainerScreen] made, by name, in order.
 final _calls = <String>[];
+
+/// Every destination [ContainerScreen] asked to open, in order.
+final _opened = <Destination>[];
+
+const _personal = Workspace(
+    id: 'w1', name: 'Personal', markerIndex: 0, storageRule: StorageRule.keep);
+const _forum = Site(
+  id: 's1', workspaceId: 'w1', name: 'Forum', monogram: 'Fr',
+  url: 'https://forum.example.com', profileId: 'p1',
+);
+const _market = Site(
+  id: 'm1', workspaceId: 'w1', name: 'Marketplace', monogram: 'Mk',
+  url: 'https://market.example.com', profileId: 'p2',
+);
+
+/// Task 2's suggestions, as the route hands them over.
+List<AddressSuggestion> _suggest(String text) => suggestionsFor(
+      text: text,
+      current: _forum,
+      saved: const [_forum, _market],
+      workspaces: const [_personal],
+      engine: SearchEngine.duckDuckGo,
+    );
 
 Finder _icon(String label) =>
     find.byWidgetPredicate((w) => w is IconTap && w.label == label);
@@ -54,6 +84,7 @@ ContainerScreen _screen({
   NavigationState? navigation,
   FindResult? findResult,
   bool showSaveBar = false,
+  String address = 'https://forum.example.com/t/9',
 }) =>
     ContainerScreen(
       host: host,
@@ -78,6 +109,9 @@ ContainerScreen _screen({
       blockedToday: 312,
       findResult: findResult,
       showSaveBar: showSaveBar,
+      address: address,
+      suggest: _suggest,
+      onOpen: _opened.add,
       onBack: () => _calls.add('back'),
       onForward: () => _calls.add('forward'),
       onStop: () => _calls.add('stop'),
@@ -119,8 +153,17 @@ Future<void> _openFind(WidgetTester tester) async {
   await tester.pumpAndSettle();
 }
 
+/// Taps the pill, which starts editing the address.
+Future<void> _edit(WidgetTester tester) async {
+  await tester.tap(find.text('forum.example.com'));
+  await tester.pumpAndSettle();
+}
+
 void main() {
-  setUp(_calls.clear);
+  setUp(() {
+    _calls.clear();
+    _opened.clear();
+  });
 
   testWidgets('shows the host, the route label and the open count', (tester) async {
     await tester.pumpWidget(_app(_screen()));
@@ -338,6 +381,113 @@ void main() {
     expect(tester.takeException(), isNull);
 
     await _openFind(tester);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('tapping the pill starts editing on the page address, selected, with panic beside it', (tester) async {
+    const address = 'https://forum.example.com/t/9';
+    await tester.pumpWidget(_app(_screen(address: address)));
+
+    await _edit(tester);
+
+    expect(find.byType(ContainerTopBar), findsNothing);
+    expect(find.byType(AddressEditBar), findsOneWidget);
+    expect(_icon('Panic'), findsOneWidget);
+    final field = tester.widget<TextField>(find.byType(TextField));
+    expect(field.controller!.text, address);
+    expect(field.controller!.selection,
+        const TextSelection(baseOffset: 0, extentOffset: address.length));
+    // The list covers the page and the bottom bar.
+    final list = tester.getRect(find.byType(AddressSuggestions));
+    expect(list.top, tester.getRect(find.byType(_Page)).top);
+    expect(list.bottom, tester.getRect(find.byType(ContainerBottomBar)).bottom);
+    expect(_calls, isEmpty);
+  });
+
+  testWidgets('typing lists what the text would open; tapping a row leaves editing and opens it', (tester) async {
+    await tester.pumpWidget(_app(_screen()));
+    await _edit(tester);
+
+    await tester.enterText(find.byType(TextField), 'mark');
+    await tester.pump();
+    expect(find.text('SAVED SITES'), findsOneWidget);
+    expect(find.text('Search DuckDuckGo for “mark”'), findsOneWidget);
+    await tester.tap(find.text('Marketplace'));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(AddressEditBar), findsNothing);
+    expect(_opened.single, isA<SavedSiteContainer>());
+    expect(_opened.single.url.toString(), 'https://market.example.com');
+  });
+
+  testWidgets('the keyboard opens the address row, or the search row when there is none', (tester) async {
+    await tester.pumpWidget(_app(_screen()));
+
+    await _edit(tester);
+    await tester.enterText(find.byType(TextField), 'news.example.org');
+    await tester.testTextInput.receiveAction(TextInputAction.go);
+    await tester.pumpAndSettle();
+    await _edit(tester);
+    await tester.enterText(find.byType(TextField), 'privacy tools');
+    await tester.testTextInput.receiveAction(TextInputAction.go);
+    await tester.pumpAndSettle();
+    // Nothing typed: nothing to open, and editing ends.
+    await _edit(tester);
+    await tester.tap(_icon('Clear'));
+    await tester.testTextInput.receiveAction(TextInputAction.go);
+    await tester.pumpAndSettle();
+
+    expect(_opened.map((destination) => destination.url.toString()),
+        ['https://news.example.org', 'https://duckduckgo.com/?q=privacy+tools']);
+    expect(find.byType(AddressEditBar), findsNothing);
+  });
+
+  // Review Focus 2.
+  testWidgets('back, or a tap outside the list, leaves editing without going anywhere', (tester) async {
+    await tester.pumpWidget(_app(_screen(navigation: _nav(canGoBack: true))));
+
+    await _edit(tester);
+    await _systemBack(tester);
+    expect(find.byType(AddressEditBar), findsNothing);
+    expect(find.byType(ContainerTopBar), findsOneWidget);
+
+    await _edit(tester);
+    await tester.tapAt(
+        tester.getBottomLeft(find.byType(AddressSuggestions)) + const Offset(40, -20));
+    await tester.pumpAndSettle();
+    expect(find.byType(AddressEditBar), findsNothing);
+
+    expect(_calls, isEmpty);
+    expect(_opened, isEmpty);
+  });
+
+  // Review Focus 1.
+  testWidgets('the page view survives editing', (tester) async {
+    await tester.pumpWidget(_app(_screen()));
+    final page = tester.state(find.byType(_Page));
+
+    await _edit(tester);
+    await tester.enterText(find.byType(TextField), 'news');
+    await tester.pump();
+    await _systemBack(tester);
+
+    expect(tester.state(find.byType(_Page)), same(page));
+  });
+
+  // Review Focus 5.
+  testWidgets('at 360 wide, editing a long address fits', (tester) async {
+    tester.view.physicalSize = const Size(360, 740);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    await tester.pumpWidget(_app(_screen(
+      address: 'https://a-rather-long-subdomain.forum.example.com/threads/12345?page=2',
+    )));
+
+    await _edit(tester);
+    await tester.enterText(
+        find.byType(TextField), 'market.example.com/a/very/long/path/that/keeps/going');
+    await tester.pump();
+
     expect(tester.takeException(), isNull);
   });
 }

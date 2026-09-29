@@ -10,7 +10,8 @@ import 'panic_square.dart';
 /// 34px pill, 6px dot and 32px panic square; `2b`'s ‹ and ⟳ are gone — back
 /// is on the bottom bar, reload in the ☰ menu. The pill ends in the shield,
 /// which opens `6c`, and while the page loads a stop × sits just before it.
-/// Panic is always here, never behind a menu.
+/// A tap anywhere else on the pill starts typing an address (§6.2). Panic is
+/// always here, never behind a menu.
 class ContainerTopBar extends StatelessWidget {
   const ContainerTopBar({
     super.key,
@@ -18,6 +19,7 @@ class ContainerTopBar extends StatelessWidget {
     required this.routeLabel,
     required this.live,
     required this.loading,
+    required this.onEditAddress,
     required this.onStop,
     required this.onSiteDetails,
     required this.onPanic,
@@ -37,6 +39,8 @@ class ContainerTopBar extends StatelessWidget {
   /// Shows the stop ×.
   final bool loading;
 
+  /// The pill, outside its stop and shield: typing an address.
+  final VoidCallback onEditAddress;
   final VoidCallback onStop;
 
   /// The shield: `6c`.
@@ -53,55 +57,59 @@ class ContainerTopBar extends StatelessWidget {
       child: Row(
         children: [
           Expanded(
-            child: Container(
-              height: 34,
-              padding: const EdgeInsets.only(left: 12, right: 3),
-              decoration: BoxDecoration(
-                color: C.surface,
-                borderRadius: BorderRadius.circular(17),
-                border: Border.all(color: C.line08),
-              ),
-              child: Row(
-                children: [
-                  Container(
-                    width: 6,
-                    height: 6,
-                    decoration: BoxDecoration(
-                      color: live ? C.jade : C.warning,
-                      shape: BoxShape.circle,
+            child: GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: onEditAddress,
+              child: Container(
+                height: 34,
+                padding: const EdgeInsets.only(left: 12, right: 3),
+                decoration: BoxDecoration(
+                  color: C.surface,
+                  borderRadius: BorderRadius.circular(17),
+                  border: Border.all(color: C.line08),
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 6,
+                      height: 6,
+                      decoration: BoxDecoration(
+                        color: live ? C.jade : C.warning,
+                        shape: BoxShape.circle,
+                      ),
                     ),
-                  ),
-                  const SizedBox(width: 7),
-                  Expanded(
-                    child: Text(
-                      host,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: ui(size: 11.5, color: const Color(0xFFA9B0AE)),
+                    const SizedBox(width: 7),
+                    Expanded(
+                      child: Text(
+                        host,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: ui(size: 11.5, color: const Color(0xFFA9B0AE)),
+                      ),
                     ),
-                  ),
-                  if (routeLabel.isNotEmpty) ...[
-                    const SizedBox(width: 8),
-                    Text(routeLabel,
-                        style: ui(size: 9.5, weight: 500, color: C.textFaint)),
-                    const SizedBox(width: 2),
-                  ],
-                  if (loading)
+                    if (routeLabel.isNotEmpty) ...[
+                      const SizedBox(width: 8),
+                      Text(routeLabel,
+                          style: ui(size: 9.5, weight: 500, color: C.textFaint)),
+                      const SizedBox(width: 2),
+                    ],
+                    if (loading)
+                      IconTap(
+                        glyph: AppGlyph.stop,
+                        label: 'Stop',
+                        onTap: onStop,
+                        size: 28,
+                        iconSize: 14,
+                      ),
                     IconTap(
-                      glyph: AppGlyph.stop,
-                      label: 'Stop',
-                      onTap: onStop,
+                      glyph: AppGlyph.shield,
+                      label: 'Site details',
+                      onTap: onSiteDetails,
                       size: 28,
-                      iconSize: 14,
+                      iconSize: 15,
                     ),
-                  IconTap(
-                    glyph: AppGlyph.shield,
-                    label: 'Site details',
-                    onTap: onSiteDetails,
-                    size: 28,
-                    iconSize: 15,
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
           ),

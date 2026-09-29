@@ -16,6 +16,7 @@ import 'package:container/domain/models/held_download.dart';
 import 'package:container/domain/models/navigation_state.dart';
 import 'package:container/domain/models/reader_article.dart';
 import 'package:container/domain/models/route_decision.dart';
+import 'package:container/domain/models/search_engine.dart';
 import 'package:container/domain/models/site.dart';
 import 'package:container/domain/models/user_script.dart';
 import 'package:container/domain/models/workspace.dart';
@@ -25,6 +26,7 @@ import 'package:container/ui/core/widgets/icon_tap.dart';
 import 'package:container/ui/features/add_site/views/add_site_screen.dart';
 import 'package:container/ui/features/container/view_models/providers.dart';
 import 'package:container/ui/features/container/view_models/throwaway_sites.dart';
+import 'package:container/ui/features/container/views/address_suggestions.dart';
 import 'package:container/ui/features/container/views/container_route.dart';
 import 'package:container/ui/features/container/views/container_web_view.dart';
 import 'package:container/ui/features/container/views/find_bar.dart';
@@ -38,6 +40,9 @@ import 'package:container/ui/features/in_page/views/proxy_unreachable_screen.dar
 import 'package:container/ui/features/in_page/views/reader_screen.dart';
 import 'package:container/ui/features/report/views/today_route.dart';
 import 'package:container/ui/features/scripts/views/scripts_route.dart';
+import 'package:container/ui/features/search/view_models/providers.dart' show allSitesProvider;
+import 'package:container/ui/features/settings/view_models/providers.dart'
+    show searchEngineProvider;
 import 'package:container/ui/features/settings/views/settings_route.dart';
 import 'package:container/ui/features/shell/view_models/session_controller.dart'
     show biometricServiceProvider;
@@ -107,8 +112,11 @@ class _RecordingSiteRepository implements SiteRepository {
   Future<Site?> byId(String id) => throw UnimplementedError();
   @override
   Future<void> delete(String id) => throw UnimplementedError();
+  /// Sites marked visited: what `openSite` records.
+  final touched = <String>[];
+
   @override
-  Future<void> touch(String id, DateTime at) => throw UnimplementedError();
+  Future<void> touch(String id, DateTime at) async => touched.add(id);
 }
 
 /// Logs `keep` into the same list the repository logs its upserts to.
@@ -170,6 +178,23 @@ void _standInForPlatformViews(WidgetTester tester) {
       tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(platformViews, null));
 }
 
+/// A SOCKS5 forum: a throwaway typed in it goes out on the same proxy.
+Site _socksSite() => _site().copyWith(
+      proxyMode: ProxyMode.socks5, proxyHost: '127.0.0.1', proxyPort: 9050);
+
+const _market = Site(
+  id: 'm1', workspaceId: 'w', name: 'Marketplace', monogram: 'Mk',
+  url: 'https://market.example.com', profileId: 'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb',
+);
+
+/// Taps the forum's pill and types [text] into the address field.
+Future<void> _typeAddress(WidgetTester tester, String text) async {
+  await tester.tap(find.text('forum.example.com'));
+  await tester.pumpAndSettle();
+  await tester.enterText(find.byType(TextField), text);
+  await tester.pump();
+}
+
 const _workspace = Workspace(
     id: 'w', name: 'Personal', markerIndex: 0, storageRule: StorageRule.keep);
 
@@ -188,6 +213,8 @@ Future<void> _pump(
   String? initialUrl,
   List<Site> throwaways = const [],
   Size size = const Size(800, 1600),
+  List<Site> saved = const [],
+  SearchEngine searchEngine = SearchEngine.duckDuckGo,
 }) async {
   // A modal bottom sheet is capped at 9/16 of the surface height, so the
   // default 800x600 canvas leaves HeldDownloadSheet ~294px where its fixed
@@ -207,6 +234,9 @@ Future<void> _pump(
       // Today's tally, which the ☰ menu shows, looks each session's site up
       // in the vault. These tests have no vault.
       siteLookupProvider.overrideWithValue((_) async => null),
+      // What the address bar suggests from: this vault's sites and engine.
+      allSitesProvider.overrideWith((ref) async => saved),
+      searchEngineProvider.overrideWith((ref) async => searchEngine),
       if (!realExtras)
         engineExtrasBuilderProvider.overrideWithValue((site) async => EngineExtras.none),
       ...overrides,
@@ -1031,6 +1061,107 @@ void main() {
 
     expect(tester.state(find.byType(PlatformViewLink)), same(page));
     expect(engine.closed, isEmpty);
+  });
+
+  testWidgets("an address on this container's own host loads here, in place", (tester) async {
+    final engine = FakeContainerEngine();
+    await _pump(tester, engine, _site());
+    await tester.pumpAndSettle();
+
+    await _typeAddress(tester, 'forum.example.com/latest');
+    expect(find.text('THIS CONTAINER'), findsOneWidget);
+    await tester.testTextInput.receiveAction(TextInputAction.go);
+    await tester.pumpAndSettle();
+
+    expect(engine.loaded, [(siteId: 's1', url: 'https://forum.example.com/latest')]);
+    expect(engine.openedSites.keys, ['s1']);
+    expect(find.byType(AddressSuggestions), findsNothing);
+  });
+
+  testWidgets("a saved site's address opens its own container over this one, at that address", (tester) async {
+    final engine = FakeContainerEngine();
+    final sites = _RecordingSiteRepository();
+    await _pump(tester, engine, _site(), sites: sites, saved: [_site(), _market], overHome: true);
+    await tester.pumpAndSettle();
+
+    await _typeAddress(tester, 'market.example.com/deals');
+    expect(find.text('ITS OWN CONTAINER'), findsOneWidget);
+    await tester.testTextInput.receiveAction(TextInputAction.go);
+    await tester.pumpAndSettle();
+
+    expect(engine.openedSites['m1']!.url, 'https://market.example.com/deals');
+    expect(engine.openedAsThrowaway, isEmpty);
+    // Marked open and visited, as the dashboard opens a site; its stored
+    // address is untouched.
+    expect(sites.touched, ['m1']);
+    expect(sites.upserts, isEmpty);
+    expect(ProviderScope.containerOf(tester.element(find.byType(MaterialApp)))
+        .read(openSiteIdsProvider), contains('m1'));
+
+    await _systemBack(tester);
+    expect(find.text('forum.example.com'), findsOneWidget);
+    // Left, a saved site's session stays open in the background.
+    expect(engine.closed, isEmpty);
+  });
+
+  testWidgets("anything else opens a throwaway on this container's route; leaving it closes and forgets it", (tester) async {
+    final engine = FakeContainerEngine();
+    await _pump(tester, engine, _socksSite(), overHome: true);
+    await tester.pumpAndSettle();
+
+    await _typeAddress(tester, 'news.example.org/today');
+    // The address row and the search row both open a throwaway on SOCKS5.
+    expect(find.text('THROWAWAY · SOCKS5'), findsNWidgets(2));
+    await tester.testTextInput.receiveAction(TextInputAction.go);
+    await tester.pumpAndSettle();
+
+    final id = engine.openedAsThrowaway.single;
+    final opened = engine.openedSites[id]!;
+    expect(opened.url, 'https://news.example.org/today');
+    expect((opened.proxyMode, opened.proxyHost, opened.proxyPort),
+        (ProxyMode.socks5, '127.0.0.1', 9050));
+    expect(opened.cookiePolicy, CookiePolicy.wipeOnExit);
+    expect(_registry(tester).map((site) => site.id), [id]);
+
+    await _systemBack(tester);
+
+    // Its route closed its session, which wipes it natively.
+    expect(engine.closed, [id]);
+    expect(_registry(tester), isEmpty);
+    expect(find.byType(ContainerRoute), findsOneWidget);
+    expect(find.text('forum.example.com'), findsOneWidget);
+  });
+
+  testWidgets('suggestions come from this vault only, and name the chosen engine', (tester) async {
+    final engine = FakeContainerEngine();
+    await _pump(tester, engine, _site(),
+        saved: [_site(), _market], searchEngine: SearchEngine.startpage);
+    await tester.pumpAndSettle();
+
+    await _typeAddress(tester, 'market');
+
+    expect(find.text('Marketplace'), findsOneWidget);
+    expect(find.text('market.example.com · Personal'), findsOneWidget);
+    expect(find.text('Search Startpage for “market”'), findsOneWidget);
+    expect(find.text('Nothing is fetched while you type.'), findsOneWidget);
+  });
+
+  // Review Focus 2.
+  testWidgets('back while typing leaves editing, and neither goes back nor leaves', (tester) async {
+    final engine = FakeContainerEngine();
+    await _pump(tester, engine, _site(), overHome: true);
+    await tester.pumpAndSettle();
+    engine.emitNavigation(const NavigationState(
+        siteId: 's1', url: 'https://forum.example.com/t/9', canGoBack: true));
+    await tester.pumpAndSettle();
+
+    await _typeAddress(tester, 'news');
+    await _systemBack(tester);
+
+    expect(find.byType(AddressSuggestions), findsNothing);
+    expect(engine.wentBack, isEmpty);
+    expect(engine.loaded, isEmpty);
+    expect(find.byType(ContainerRoute), findsOneWidget);
   });
 }
 

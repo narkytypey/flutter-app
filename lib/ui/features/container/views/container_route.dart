@@ -4,14 +4,19 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../data/services/app_database.dart' show newProfileId;
 import '../../../../data/services/container_engine.dart';
+import '../../../../domain/models/address_suggestion.dart';
 import '../../../../domain/models/container_session.dart';
+import '../../../../domain/models/destination.dart';
 import '../../../../domain/models/engine_events.dart';
 import '../../../../domain/models/find_result.dart';
 import '../../../../domain/models/open_step.dart';
 import '../../../../domain/models/route_failure_copy.dart';
 import '../../../../domain/models/route_decision.dart' show refusalMessage;
+import '../../../../domain/models/search_engine.dart';
 import '../../../../domain/models/site.dart';
+import '../../../../domain/models/throwaway.dart';
 import '../../../../domain/models/workspace.dart';
 import '../../add_site/views/add_site_screen.dart';
 import '../../dashboard/view_models/providers.dart'
@@ -19,6 +24,7 @@ import '../../dashboard/view_models/providers.dart'
         closeSite,
         dashboardProvider,
         leakCountProvider,
+        openSite,
         siteRepositoryProvider,
         workspacesProvider;
 import '../../in_page/views/held_download_sheet.dart';
@@ -30,6 +36,7 @@ import '../../in_page/views/tunnel_dropped_screen.dart';
 import '../../report/views/today_route.dart';
 import '../../scripts/views/scripts_route.dart';
 import '../../search/view_models/providers.dart' show allSitesProvider;
+import '../../settings/view_models/providers.dart' show searchEngineProvider;
 import '../../settings/views/settings_route.dart';
 import '../../workspaces/views/workspaces_route.dart';
 import '../view_models/providers.dart';
@@ -396,6 +403,36 @@ class _ContainerRouteState extends ConsumerState<ContainerRoute> {
     return host;
   }
 
+  /// Spec §5.2: where a typed address or search opens. A saved site's
+  /// container and a throwaway are pushed over this one, on the open vault's
+  /// navigator, so system back comes back here with this page still live.
+  Future<void> _openDestination(Destination destination) async {
+    switch (destination) {
+      case ThisContainer(:final url):
+        await _engine.loadUrl(widget.site.id, url.toString());
+      case SavedSiteContainer(:final site, :final url):
+        // As the dashboard and search open a site: marked open, the visit
+        // recorded. Its stored address is not touched.
+        openSite(ref, site.id);
+        await Navigator.push(context, MaterialPageRoute<void>(
+          builder: (_) => ContainerRoute(site: site, initialUrl: url.toString()),
+        ));
+      case final Throwaway target:
+        final throwaway = buildThrowaway(
+          destination: target,
+          current: widget.site,
+          newId: newProfileId,
+        );
+        ref.read(throwawaySitesProvider.notifier).add(throwaway);
+        await Navigator.push(context, MaterialPageRoute<void>(
+          builder: (_) => ContainerRoute(site: throwaway, throwaway: true),
+        ));
+        // Popped: its route closed its session, which wiped it. A lock or
+        // panic empties the list by itself.
+        if (mounted) ref.read(throwawaySitesProvider.notifier).remove(throwaway.id);
+    }
+  }
+
   void _handleRefusal(ContainerSession session) {
     if (_refusalHandled) return;
     _refusalHandled = true;
@@ -425,6 +462,11 @@ class _ContainerRouteState extends ConsumerState<ContainerRoute> {
     final navigation = ref.watch(navigationForSiteProvider(widget.site.id)).valueOrNull;
     final workspaces = ref.watch(workspacesProvider).valueOrNull ?? const <Workspace>[];
     final blockedToday = ref.watch(leakCountProvider);
+    // What typed text is matched against (spec §4.4): this vault's sites and
+    // search engine, watched from the start so the first keystroke has them.
+    final saved = ref.watch(allSitesProvider).valueOrNull ?? const <Site>[];
+    final searchEngine =
+        ref.watch(searchEngineProvider).valueOrNull ?? SearchEngine.duckDuckGo;
     // Spec §5.3: a throwaway offers the save bar once its first load has
     // finished.
     ref.listen(navigationForSiteProvider(widget.site.id), (_, next) {
@@ -489,6 +531,17 @@ class _ContainerRouteState extends ConsumerState<ContainerRoute> {
             blockedToday: blockedToday,
             findResult: _findResult,
             showSaveBar: _isThrowaway && _loadedOnce && !_saveBarDismissed,
+            address: navigation?.url ?? _openedUrl,
+            // `current` is the site this container was opened for: its host
+            // is "this container", its route the one a throwaway inherits.
+            suggest: (text) => suggestionsFor(
+              text: text,
+              current: widget.site,
+              saved: saved,
+              workspaces: workspaces,
+              engine: searchEngine,
+            ),
+            onOpen: _openDestination,
             onBack: () => _engine.goBack(widget.site.id),
             onForward: () => _engine.goForward(widget.site.id),
             onStop: () => _engine.stop(widget.site.id),

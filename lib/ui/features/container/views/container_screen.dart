@@ -1,8 +1,12 @@
 import 'package:flutter/material.dart';
 
+import '../../../../domain/models/address_suggestion.dart';
+import '../../../../domain/models/destination.dart';
 import '../../../../domain/models/find_result.dart';
 import '../../../../domain/models/navigation_state.dart';
 import '../../../core/tokens.dart';
+import 'address_edit_bar.dart';
+import 'address_suggestions.dart';
 import 'browser_menu_sheet.dart';
 import 'container_bottom_bar.dart';
 import 'container_top_bar.dart';
@@ -12,7 +16,7 @@ import 'switcher_sheet.dart';
 import 'throwaway_save_bar.dart';
 
 /// Which bar sits above the page.
-enum _Chrome { page, find }
+enum _Chrome { page, editing, find }
 
 /// The container (browser-chrome spec §6, layout C, which supersedes `2b`):
 /// the top bar or the find bar, the page, a throwaway's save bar, and the
@@ -42,6 +46,9 @@ class ContainerScreen extends StatefulWidget {
     required this.blockedToday,
     required this.findResult,
     required this.showSaveBar,
+    required this.address,
+    required this.suggest,
+    required this.onOpen,
     required this.onBack,
     required this.onForward,
     required this.onStop,
@@ -95,6 +102,15 @@ class ContainerScreen extends StatefulWidget {
   /// A throwaway's save bar (spec §5.3), directly above the bottom bar.
   final bool showSaveBar;
 
+  /// What the address field starts from, selected: the page's address.
+  final String address;
+
+  /// What typed text would open (spec §4.4), from the open vault only.
+  final List<AddressSuggestion> Function(String text) suggest;
+
+  /// A suggestion picked, or the keyboard's action on the field (§6.2).
+  final ValueChanged<Destination> onOpen;
+
   /// Back in the page: the bottom bar's back, and system back while the page
   /// can go back.
   final VoidCallback onBack;
@@ -132,12 +148,49 @@ class ContainerScreen extends StatefulWidget {
 
 class _ContainerScreenState extends State<ContainerScreen> {
   _Chrome _chrome = _Chrome.page;
+  final _addressText = TextEditingController();
   final _findText = TextEditingController();
 
   @override
   void dispose() {
+    _addressText.dispose();
     _findText.dispose();
     super.dispose();
+  }
+
+  /// Spec §6.2: the field starts from the page's address, selected, so
+  /// typing replaces it.
+  void _startEditing() {
+    final address = widget.address;
+    _addressText.value = TextEditingValue(
+      text: address,
+      selection: TextSelection(baseOffset: 0, extentOffset: address.length),
+    );
+    setState(() => _chrome = _Chrome.editing);
+  }
+
+  void _stopEditing() => setState(() => _chrome = _Chrome.page);
+
+  void _open(AddressSuggestion suggestion) {
+    _stopEditing();
+    widget.onOpen(suggestion.destination);
+  }
+
+  /// The keyboard's action opens the address row if there is one, otherwise
+  /// the search row. With nothing typed there is neither, and editing ends.
+  void _submitAddress(String text) {
+    AddressSuggestion? address;
+    AddressSuggestion? search;
+    for (final row in widget.suggest(text)) {
+      if (row.kind == SuggestionKind.address) address ??= row;
+      if (row.kind == SuggestionKind.search) search ??= row;
+    }
+    final pick = address ?? search;
+    if (pick == null) {
+      _stopEditing();
+    } else {
+      _open(pick);
+    }
   }
 
   void _startFind() {
@@ -150,11 +203,13 @@ class _ContainerScreenState extends State<ContainerScreen> {
     setState(() => _chrome = _Chrome.page);
   }
 
-  /// System back that [PopScope] kept from popping the route: out of find
-  /// first, then back in the page (spec §3.3). The route pops only once
-  /// neither applies.
+  /// System back that [PopScope] kept from popping the route: out of editing
+  /// or find first, then back in the page (spec §3.3, §6.2). The route pops
+  /// only once none of these applies.
   void _handleBack() {
     switch (_chrome) {
+      case _Chrome.editing:
+        _stopEditing();
       case _Chrome.find:
         _closeFind();
       case _Chrome.page:
@@ -242,8 +297,17 @@ class _ContainerScreenState extends State<ContainerScreen> {
                     routeLabel: widget.routeLabel,
                     live: widget.live,
                     loading: loading,
+                    onEditAddress: _startEditing,
                     onStop: widget.onStop,
                     onSiteDetails: widget.onSiteDetails,
+                    onPanic: widget.onPanic,
+                  ),
+                _Chrome.editing => AddressEditBar(
+                    controller: _addressText,
+                    // The suggestions below are worked out from the field
+                    // at every build.
+                    onChanged: (_) => setState(() {}),
+                    onSubmitted: _submitAddress,
                     onPanic: widget.onPanic,
                   ),
                 _Chrome.find => FindBar(
@@ -259,32 +323,55 @@ class _ContainerScreenState extends State<ContainerScreen> {
               Expanded(
                 child: Stack(
                   children: [
-                    Positioned.fill(child: widget.body),
-                    Positioned(
-                      top: 0,
-                      left: 0,
-                      right: 0,
-                      child: IgnorePointer(
-                        child: LoadLine(
-                          loading: loading,
-                          progress: navigation?.progress ?? 0,
-                        ),
+                    Positioned.fill(
+                      child: Column(
+                        children: [
+                          Expanded(
+                            child: Stack(
+                              children: [
+                                Positioned.fill(child: widget.body),
+                                Positioned(
+                                  top: 0,
+                                  left: 0,
+                                  right: 0,
+                                  child: IgnorePointer(
+                                    child: LoadLine(
+                                      loading: loading,
+                                      progress: navigation?.progress ?? 0,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          if (widget.showSaveBar)
+                            ThrowawaySaveBar(
+                              onSave: widget.onSaveAsSite,
+                              onDismiss: widget.onDismissSaveBar,
+                            ),
+                          ContainerBottomBar(
+                            openCount: widget.openCount,
+                            onBack: canGoBack ? widget.onBack : null,
+                            onForward: canGoForward ? widget.onForward : null,
+                            onOpenSwitcher: _openSwitcher,
+                            onMenu: _openMenu,
+                          ),
+                        ],
                       ),
                     ),
+                    // Spec §6.2: while typing, the suggestions cover the page
+                    // and the bottom bar. Laid over them, after the page, so
+                    // the page view keeps its place.
+                    if (_chrome == _Chrome.editing)
+                      Positioned.fill(
+                        child: AddressSuggestions(
+                          suggestions: widget.suggest(_addressText.text),
+                          onPick: _open,
+                          onDismiss: _stopEditing,
+                        ),
+                      ),
                   ],
                 ),
-              ),
-              if (widget.showSaveBar)
-                ThrowawaySaveBar(
-                  onSave: widget.onSaveAsSite,
-                  onDismiss: widget.onDismissSaveBar,
-                ),
-              ContainerBottomBar(
-                openCount: widget.openCount,
-                onBack: canGoBack ? widget.onBack : null,
-                onForward: canGoForward ? widget.onForward : null,
-                onOpenSwitcher: _openSwitcher,
-                onMenu: _openMenu,
               ),
             ],
           ),
