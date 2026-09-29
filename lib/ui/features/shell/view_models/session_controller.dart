@@ -197,6 +197,7 @@ class SessionController extends Notifier<Session> {
           path: vaultDatabasePath(ref.read(documentsDirectoryProvider), vault),
           dataKey: dataKey,
         );
+        await ensureWorkspace(database);
         state = SessionOpen(
           vault: vault,
           database: database,
@@ -281,6 +282,7 @@ class SessionController extends Notifier<Session> {
           ref.read(documentsDirectoryProvider), current.biometricVault!),
       dataKey: dataKey,
     );
+    await ensureWorkspace(database);
     state = SessionOpen(
       vault: current.biometricVault!,
       database: database,

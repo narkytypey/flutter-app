@@ -124,6 +124,10 @@ void main() {
 
     expect(find.text('Use fingerprint'), findsOneWidget);
     await tester.tap(find.text('Use fingerprint'));
+    // Resuming queries the database (`ensureWorkspace`), a real sqflite
+    // round-trip that, like the open above, only completes outside the
+    // fake-async zone.
+    await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 200)));
     await tester.pumpAndSettle();
 
     expect(find.byType(LockBody), findsNothing);

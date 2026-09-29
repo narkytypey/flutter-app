@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:container/data/repositories/settings_repository_sqlite.dart';
+import 'package:container/data/repositories/workspace_repository_sqlite.dart';
 import 'package:container/data/services/app_database.dart';
 import 'package:container/data/services/vault_store.dart';
 import 'package:container/domain/models/attempt_gate.dart';
@@ -113,6 +114,46 @@ void main() {
     expect(session, isA<SessionOpen>());
     expect((session as SessionOpen).vault, VaultId.a);
     expect(session.biometricWrappedKey, isNull);
+  });
+
+  test('a vault unlocked with no workspaces opens with Personal', () async {
+    // What a decoy set up with no sites looked like: `+ Add site` threw on
+    // `workspaces.first`.
+    await vaultStore.provision(pin: '111111', vault: VaultId.a);
+    await vaultStore.provisionUnopenable(VaultId.b);
+    final container = buildContainer(
+        SessionLocked(mood: LockMood.normal, gate: await vaultStore.gate()));
+
+    await container.read(sessionProvider.notifier).unlock('111111');
+
+    final session = container.read(sessionProvider) as SessionOpen;
+    final workspaces = await SqliteWorkspaceRepository(session.database).all();
+    expect(workspaces.map((w) => w.name), ['Personal']);
+  });
+
+  test('a vault resumed with no workspaces opens with Personal', () async {
+    final db = await AppDatabase.open(
+        path: inMemoryDatabasePath, factory: databaseFactoryFfi);
+    final container = ProviderContainer(overrides: [
+      cryptoServiceProvider.overrideWithValue(crypto),
+      vaultStoreProvider.overrideWithValue(vaultStore),
+      documentsDirectoryProvider.overrideWithValue(dir),
+      initialSessionProvider.overrideWithValue(SessionLocked(
+        mood: LockMood.welcomeBack,
+        gate: const AttemptGate(),
+        biometricVault: VaultId.b,
+        biometricWrappedKey: Uint8List.fromList([4, 5, 6]),
+      )),
+      biometricServiceProvider.overrideWithValue(FakeBiometricService()),
+      vaultOpenerProvider.overrideWithValue(
+          ({required String path, required Uint8List dataKey}) async => db),
+    ]);
+    addTearDown(container.dispose);
+
+    await container.read(sessionProvider.notifier).resumeWithBiometric();
+
+    final workspaces = await SqliteWorkspaceRepository(db).all();
+    expect(workspaces.map((w) => w.name), ['Personal']);
   });
 
   test('a wrong PIN counts down and stays locked', () async {

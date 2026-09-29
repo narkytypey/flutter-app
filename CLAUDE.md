@@ -797,6 +797,27 @@ Found while verifying the above (2026-09-29), both unowned:
   a red error screen. That is a crash in exactly the session a coerced
   unlock opens. Which workspace an empty decoy should get is a design
   question, so this was not fixed.
+  **✅ Fixed 2026-09-29 (branch `fix-empty-decoy-workspace`). User's ruling:
+  the empty decoy gets a Personal workspace.** `ensureWorkspace`
+  (`app_database.dart`) gives any vault with no workspaces a Personal one
+  (keep storage, marker 0), and `SessionController` runs it on both `unlock`
+  and `resumeWithBiometric`. It never asks which vault is open, so the real
+  vault gets the same repair if its owner deletes every workspace, and an
+  install that already has an empty decoy is repaired on its next unlock. Its
+  id is fresh (`newProfileId()`), never a real-vault id such as
+  `ws-personal`, so `resyncDecoy` counts it as decoy-original and never
+  deletes it or the sites added to it; don't "tidy" that id into a fixed
+  one. **Known gap:** if the owner later flags the real vault's Personal for
+  the decoy and re-syncs, the decoy shows two workspaces named Personal.
+  Tests: `ensure_workspace_test.dart` (5, including the re-sync case), two
+  in `session_controller_test.dart`. `lock_screen_test.dart`'s resume test
+  now lets the extra sqflite query finish in `tester.runAsync`. Verified
+  2026-09-29: `flutter analyze` clean, `flutter test` 378/378, `flutter build
+  apk --debug` succeeding. Seen on the emulator as an upgrade: the previous
+  build set up with an empty decoy, then this build installed over it with
+  data kept. The decoy dashboard read "Personal", `+ Add site` opened with
+  WORKSPACE Personal, and a saved site appeared on the decoy board. Re-sync
+  on the device was not tried; the unit test covers it against real SQLite.
 - **A site reopened after its settings changed while its session was still
   open sometimes hung on `8a`'s "Connecting through 10.0.2.2:8888"**, with no
   request reaching the proxy. Leaving to the dashboard and opening the site

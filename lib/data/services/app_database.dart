@@ -234,6 +234,25 @@ const _createAppSettings = '''
   )
 ''';
 
+/// Gives a vault with no workspaces a Personal one, because adding a site
+/// needs a workspace to put it in. A decoy set up with no sites starts with
+/// none, and either vault can reach none by deleting them all.
+///
+/// Run on every vault a session opens, without asking which vault it is.
+/// The id is fresh, never a real-vault id, so `resyncDecoy` treats the
+/// workspace as the decoy's own and never deletes it or its sites.
+Future<void> ensureWorkspace(AppDatabase database) async {
+  final existing = Sqflite.firstIntValue(
+      await database.db.rawQuery('SELECT COUNT(*) FROM workspaces'));
+  if (existing != null && existing > 0) return;
+
+  await database.db.insert(
+      'workspaces',
+      workspaceToRow(Workspace(
+          id: newProfileId(), name: 'Personal', markerIndex: 0,
+          storageRule: StorageRule.keep)));
+}
+
 /// Inserts the workspaces and sites the design shows, so the dashboard has
 /// something real to render on a fresh install. Does nothing if any workspace
 /// already exists.
