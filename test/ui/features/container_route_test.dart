@@ -13,6 +13,7 @@ import 'package:container/ui/features/dashboard/view_models/providers.dart'
 import 'package:container/ui/features/container/view_models/providers.dart';
 import 'package:container/ui/features/container/views/container_route.dart';
 import 'package:container/ui/features/container/views/container_web_view.dart';
+import 'package:container/ui/features/container/views/switcher_sheet.dart';
 import 'package:container/ui/features/in_page/views/proxy_unreachable_screen.dart';
 import 'package:container/ui/features/in_page/views/reader_screen.dart';
 import 'package:flutter/material.dart';
@@ -46,11 +47,15 @@ class _RecordingSiteRepository implements SiteRepository {
 const _workspace = Workspace(
     id: 'w', name: 'Personal', markerIndex: 0, storageRule: StorageRule.keep);
 
+/// Stands in for the dashboard when [_pump] is given `overHome: true`.
+const _homeMarker = 'Home route';
+
 Future<void> _pump(
   WidgetTester tester,
   FakeContainerEngine engine,
   Site site, {
   SiteRepository? sites,
+  bool overHome = false,
 }) async {
   // A modal bottom sheet is capped at 9/16 of the surface height, so the
   // default 800x600 canvas leaves HeldDownloadSheet ~294px where its fixed
@@ -60,14 +65,27 @@ Future<void> _pump(
   addTearDown(tester.view.reset);
   tester.view.physicalSize = const Size(800, 1600);
   tester.view.devicePixelRatio = 1;
+  final navigator = GlobalKey<NavigatorState>();
   await tester.pumpWidget(ProviderScope(
     overrides: [
       containerEngineProvider.overrideWithValue(engine),
       if (sites != null) siteRepositoryProvider.overrideWithValue(sites),
       workspacesProvider.overrideWith((ref) async => const [_workspace]),
     ],
-    child: MaterialApp(home: ContainerRoute(site: site)),
+    child: MaterialApp(
+      navigatorKey: navigator,
+      home: overHome
+          ? const Scaffold(body: Text(_homeMarker))
+          : ContainerRoute(site: site),
+    ),
   ));
+  // Pushed the way the dashboard pushes it, so a test can see whether leaving
+  // the container lands back on what was underneath.
+  if (overHome) {
+    navigator.currentState!.push(MaterialPageRoute<void>(
+      builder: (_) => ContainerRoute(site: site),
+    ));
+  }
 }
 
 void main() {
@@ -135,6 +153,44 @@ void main() {
 
     expect(engine.closed, contains('s1'));
     expect(engine.wiped, contains('a' * 32));
+  });
+
+  // The switcher is a modal sheet on top of this route. Popping "the top
+  // route" once closes only the sheet and leaves the user on this site's
+  // opening checklist, its session already gone.
+  testWidgets('close all and wipe from the switcher returns to the route underneath', (tester) async {
+    final engine = FakeContainerEngine();
+    await _pump(tester, engine, _site(), overHome: true);
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('1 OPEN'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Close all and wipe'));
+    await tester.pumpAndSettle();
+
+    expect(engine.closed, contains('s1'));
+    expect(engine.wiped, contains('a' * 32));
+    expect(find.byType(SwitcherSheet), findsNothing);
+    expect(find.byType(ContainerRoute), findsNothing);
+    expect(find.text(_homeMarker), findsOneWidget);
+  });
+
+  testWidgets("closing this site's own session from the switcher returns to the route underneath", (tester) async {
+    final engine = FakeContainerEngine();
+    await _pump(tester, engine, _site(), overHome: true);
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('1 OPEN'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.descendant(
+      of: find.byType(SwitcherSheet), matching: find.text('×'),
+    ));
+    await tester.pumpAndSettle();
+
+    expect(engine.closed, ['s1']);
+    expect(find.byType(SwitcherSheet), findsNothing);
+    expect(find.byType(ContainerRoute), findsNothing);
+    expect(find.text(_homeMarker), findsOneWidget);
   });
 
   testWidgets('opening a site shows the checklist, then the container', (tester) async {
