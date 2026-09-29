@@ -396,6 +396,24 @@ task that covers it.
   Kotlin JVM tests 60/60 (read from the JUnit XML), `flutter build apk
   --debug` succeeding. **Not verified on a device**: the Keystore calls
   themselves cannot run on the JVM.
+  **Device-verified 2026-09-29 (emulator, merged to `main`).** Which keys
+  exist was read through the VM service by calling the app's own `wrap`
+  channel method per vault (it never prompts, and fails with "biometric
+  keypair not generated" when the alias is missing): none after setup; only
+  the real vault's after turning biometrics on there; both after turning it
+  on in the decoy; **the real vault's still present after turning it off in
+  the decoy**; neither after panic, which showed `3c` with the app still up.
+  That run also found that **biometric resume had never worked on any
+  device**: the cipher used RSA-OAEP with MGF1-SHA-256, the Keystore key only
+  authorizes MGF1-SHA-1 (the only MGF1 digest a key can have before API 35's
+  `setMgf1Digests`), so every decrypt failed with `INCOMPATIBLE_MGF_DIGEST`
+  and `unwrap` silently replied null. No prompt ever appeared. **✅ Fixed
+  (`85a3d96`, branch `fix-biometric-oaep-mgf1`):** both directions share
+  `biometricOaepParams` (SHA-256 OAEP, MGF1-SHA-1), pinned by
+  `BiometricOaepTest` (Kotlin, 3). Seen on the emulator with an enrolled
+  fingerprint: `9b` shows the system prompt and a sensor touch resumes the
+  vault, both right after enabling biometrics and after a PIN unlock's
+  re-wrap. Don't change the MGF1 digest back: the JVM tests cannot catch it.
 - ~~Wiring Plan 4's screens to Plan 3's events~~ — Plan 6 Tasks 2–4
   (`engine_events.dart`, discriminated `EngineChannel` events, `ContainerRoute`).
   Known gap: a backgrounded (non-foreground) site's events are dropped, not
@@ -712,6 +730,9 @@ Still open:
   push `ContainerRoute` over a stand-in home route and assert you land on
   it. The fix was found as uncommitted work in an agent worktree and
   committed during the branch merge. **Not verified on a device.**
+  *(Seen once on the emulator 2026-09-29: closing the viewed site from the
+  switcher's `×` landed on the dashboard. "Close all and wipe" was not
+  tried.)*
 - **Keep-in-container over HTTPS fails mid-body on the emulator** with
   `SSLProtocolException: Read error` (BoringSSL `BAD_RECORD_MAC`), now
   reported as `TLS_FAILURE` with nothing left on disk. A standalone probe
@@ -760,6 +781,27 @@ Still open:
   `flutter build apk --debug` succeeding. **Not verified on a device**, and
   `RequestInterceptor`'s URL key matching the listener's URL comes from
   WebView's contract, not from observation.
+  **Device-verified 2026-09-29 (emulator, merged to `main`)**, with a site
+  whose URL is the file itself and a local Python CONNECT proxy for the
+  http-mode cases: w3.org's 13,264-byte `dummy.pdf` (sends `Content-Length`)
+  read "13.0 KB · from www.w3.org" both direct and over the tunnel, so the
+  URL keys do match; `httpbin.org/stream-bytes` (chunked, no length) read
+  "from httpbin.org" both direct and over the tunnel. The direct runs made no
+  proxy connection; the proxied ones made one each.
+
+Found while verifying the above (2026-09-29), both unowned:
+- **The decoy vault's `+ Add site` crashes** when the decoy was set up with
+  "Pick after setup" (no sites): the decoy vault has no workspaces, and
+  `AddSiteScreen` takes `widget.workspaces.first`
+  (`add_site_screen.dart:46`), so it throws `Bad state: No element` and shows
+  a red error screen. That is a crash in exactly the session a coerced
+  unlock opens. Which workspace an empty decoy should get is a design
+  question, so this was not fixed.
+- **A site reopened after its settings changed while its session was still
+  open sometimes hung on `8a`'s "Connecting through 10.0.2.2:8888"**, with no
+  request reaching the proxy. Leaving to the dashboard and opening the site
+  again loaded it. Seen twice while switching a site's proxy mode; the exact
+  steps were not pinned down and the cause was not investigated.
 
 ## Working on this repo
 
