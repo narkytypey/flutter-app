@@ -7099,9 +7099,12 @@ with
     final site = _throwaway().copyWith(
       url: url, proxyMode: ProxyMode.socks5, proxyHost: '127.0.0.1', proxyPort: 9050,
     );
-    await _pump(tester, engine, site,
-        throwaway: true, throwaways: [site], size: const Size(360, 740));
+    await _pump(tester, engine, site, throwaway: true, throwaways: [site]);
     await tester.pumpAndSettle();
+    // Phone width once live: this is about the container's chrome. `8a`'s
+    // checklist, shown for the first frames, is outside this plan.
+    tester.view.physicalSize = const Size(360, 740);
+    await tester.pump();
     engine.emitNavigation(const NavigationState(siteId: 't1', url: '$url/'));
     await tester.pumpAndSettle();
     engine.emitNavigation(const NavigationState(
@@ -9175,6 +9178,7 @@ Deliberate, from the spec's §9 and from this plan. None is a bug to fix in pass
 - **The save bar follows the first finished load**, and a load that failed also finishes.
 - **A bare Unicode host is searched for, not loaded** (Design question 4).
 - **With the keyboard up, the first system back goes to the keyboard**: Android closes the IME, and a second back leaves editing or find.
+- **`8a`'s opening checklist does not shorten a long host.** Its pill's host text is not flexible, so a host too long for a phone overflows it for the moment the checklist shows. Found by Task 12's phone-width test and left alone: `8a` is not a screen this plan changes.
 - **Line icons are on the container screen and its new widgets only.** Every other screen keeps its Unicode glyphs until project 4.
 - **WebView's callback order on a device is untested.** `NavigationTracker` is JVM-tested against callback sequences written by hand; what a real WebView sends, and in what order, is Task 14 Step 7's to see.
 - **Not verified on a device** until the orchestrator runs Task 14 Step 7.

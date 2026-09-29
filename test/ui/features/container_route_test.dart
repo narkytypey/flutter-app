@@ -11,7 +11,9 @@ import 'package:container/domain/models/container_session.dart';
 import 'package:container/domain/models/engine_events.dart';
 import 'package:container/domain/models/engine_extras.dart';
 import 'package:container/domain/models/filter_list.dart';
+import 'package:container/domain/models/find_result.dart';
 import 'package:container/domain/models/held_download.dart';
+import 'package:container/domain/models/navigation_state.dart';
 import 'package:container/domain/models/reader_article.dart';
 import 'package:container/domain/models/route_decision.dart';
 import 'package:container/domain/models/site.dart';
@@ -19,16 +21,27 @@ import 'package:container/domain/models/user_script.dart';
 import 'package:container/domain/models/workspace.dart';
 import 'package:container/domain/repositories/repositories.dart';
 import 'package:container/ui/core/widgets/app_toggle.dart';
+import 'package:container/ui/core/widgets/icon_tap.dart';
 import 'package:container/ui/features/add_site/views/add_site_screen.dart';
-import 'package:container/ui/features/dashboard/view_models/providers.dart'
-    show databaseProvider, openSiteIdsProvider, siteRepositoryProvider, workspacesProvider;
 import 'package:container/ui/features/container/view_models/providers.dart';
 import 'package:container/ui/features/container/view_models/throwaway_sites.dart';
 import 'package:container/ui/features/container/views/container_route.dart';
 import 'package:container/ui/features/container/views/container_web_view.dart';
+import 'package:container/ui/features/container/views/find_bar.dart';
 import 'package:container/ui/features/container/views/switcher_sheet.dart';
+import 'package:container/ui/features/container/views/throwaway_save_bar.dart';
+import 'package:container/ui/features/dashboard/view_models/blocked_tally_controller.dart'
+    show siteLookupProvider;
+import 'package:container/ui/features/dashboard/view_models/providers.dart'
+    show databaseProvider, openSiteIdsProvider, siteRepositoryProvider, workspacesProvider;
 import 'package:container/ui/features/in_page/views/proxy_unreachable_screen.dart';
 import 'package:container/ui/features/in_page/views/reader_screen.dart';
+import 'package:container/ui/features/report/views/today_route.dart';
+import 'package:container/ui/features/scripts/views/scripts_route.dart';
+import 'package:container/ui/features/settings/views/settings_route.dart';
+import 'package:container/ui/features/shell/view_models/session_controller.dart'
+    show biometricServiceProvider;
+import 'package:container/ui/features/workspaces/views/workspaces_route.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -36,6 +49,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
 import '../../data/bundled_filter_lists_test.dart' show FakeBundle;
+import 'shell/session_controller_test.dart' show FakeBiometricService;
 
 Site _site() => Site(
       id: 's1', workspaceId: 'w', name: 'Forum', monogram: 'Fr',
@@ -125,6 +139,37 @@ List<Site> _registry(WidgetTester tester) =>
     ProviderScope.containerOf(tester.element(find.byType(MaterialApp)))
         .read(throwawaySitesProvider);
 
+Finder _icon(String label) =>
+    find.byWidgetPredicate((w) => w is IconTap && w.label == label);
+
+/// What the platform sends for a system back gesture.
+Future<void> _systemBack(WidgetTester tester) async {
+  await tester.binding.defaultBinaryMessenger.handlePlatformMessage(
+    'flutter/navigation',
+    const JSONMethodCodec().encodeMethodCall(const MethodCall('popRoute')),
+    (_) {},
+  );
+  await tester.pumpAndSettle();
+}
+
+/// Lets real database IO finish, then rebuilds.
+Future<void> _settle(WidgetTester tester) async {
+  for (var i = 0; i < 5; i++) {
+    await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 20)));
+    await tester.pump();
+  }
+}
+
+/// Answers `flutter/platform_views` for a test that lets real async work run;
+/// the first test in this file explains why an unanswered create is fatal.
+void _standInForPlatformViews(WidgetTester tester) {
+  const platformViews = MethodChannel('flutter/platform_views');
+  tester.binding.defaultBinaryMessenger
+      .setMockMethodCallHandler(platformViews, (call) async => null);
+  addTearDown(() =>
+      tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(platformViews, null));
+}
+
 const _workspace = Workspace(
     id: 'w', name: 'Personal', markerIndex: 0, storageRule: StorageRule.keep);
 
@@ -142,14 +187,14 @@ Future<void> _pump(
   bool throwaway = false,
   String? initialUrl,
   List<Site> throwaways = const [],
+  Size size = const Size(800, 1600),
 }) async {
   // A modal bottom sheet is capped at 9/16 of the surface height, so the
   // default 800x600 canvas leaves HeldDownloadSheet ~294px where its fixed
-  // column needs ~357px. Only the height is raised here: the container
-  // screen's own rows need the default 800 width, and narrowing to a phone
-  // width overflows all five of the older tests in this file.
+  // column needs ~357px: hence the tall default. A test about a phone
+  // passes [size].
   addTearDown(tester.view.reset);
-  tester.view.physicalSize = const Size(800, 1600);
+  tester.view.physicalSize = size;
   tester.view.devicePixelRatio = 1;
   final navigator = GlobalKey<NavigatorState>();
   Widget route() => ContainerRoute(site: site, initialUrl: initialUrl, throwaway: throwaway);
@@ -159,6 +204,9 @@ Future<void> _pump(
       if (sites != null) siteRepositoryProvider.overrideWithValue(sites),
       workspacesProvider.overrideWith((ref) async => const [_workspace]),
       throwawaySitesProvider.overrideWith(() => _Throwaways(throwaways)),
+      // Today's tally, which the ☰ menu shows, looks each session's site up
+      // in the vault. These tests have no vault.
+      siteLookupProvider.overrideWithValue((_) async => null),
       if (!realExtras)
         engineExtrasBuilderProvider.overrideWithValue((site) async => EngineExtras.none),
       ...overrides,
@@ -239,7 +287,7 @@ void main() {
     ));
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('☰'));
+    await tester.tap(_icon('Site details'));
     await tester.pumpAndSettle();
 
     expect(find.text('forum.example.com · Personal'), findsOneWidget);
@@ -255,7 +303,7 @@ void main() {
     await _pump(tester, engine, _site(), sites: sites);
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('☰'));
+    await tester.tap(_icon('Site details'));
     await tester.pumpAndSettle();
     await tester.tap(find.byType(AppToggle).at(0)); // Force dark mode, on by default
     await tester.pumpAndSettle();
@@ -275,7 +323,7 @@ void main() {
     await _pump(tester, engine, _site(), sites: _RecordingSiteRepository());
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('☰'));
+    await tester.tap(_icon('Site details'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Edit'));
     await tester.pumpAndSettle();
@@ -288,7 +336,7 @@ void main() {
     await _pump(tester, engine, _site());
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('☰'));
+    await tester.tap(_icon('Site details'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Close and wipe this session'));
     await tester.pumpAndSettle();
@@ -377,7 +425,7 @@ void main() {
   testWidgets("close and wipe from the site sheet stops the site reading as open",
       (tester) async {
     final open = await openIdsAfterClosing(tester, () async {
-      await tester.tap(find.text('☰'));
+      await tester.tap(_icon('Site details'));
       await tester.pumpAndSettle();
       await tester.tap(find.text('Close and wipe this session'));
     });
@@ -495,7 +543,9 @@ void main() {
     await _pump(tester, engine, _site());
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('◑'));
+    await tester.tap(_icon('Menu'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Reader'));
     await tester.pumpAndSettle();
 
     expect(find.text('A thread'), findsOneWidget);
@@ -506,7 +556,9 @@ void main() {
     await _pump(tester, engine, _site());
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('◑'));
+    await tester.tap(_icon('Menu'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Reader'));
     await tester.pumpAndSettle();
 
     expect(find.byType(ReaderScreen), findsNothing);
@@ -634,7 +686,7 @@ void main() {
         throwaway: true, throwaways: [_throwaway()]);
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('☰'));
+    await tester.tap(_icon('Site details'));
     await tester.pumpAndSettle();
     // No workspace until it is saved.
     expect(find.text('news.example.org · Personal'), findsNothing);
@@ -653,7 +705,7 @@ void main() {
         throwaway: true, throwaways: [_throwaway()]);
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('☰'));
+    await tester.tap(_icon('Site details'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Edit'));
     await tester.pumpAndSettle();
@@ -679,7 +731,7 @@ void main() {
         throwaway: true, throwaways: [_throwaway()], overHome: true);
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('☰'));
+    await tester.tap(_icon('Site details'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Edit'));
     await tester.pumpAndSettle();
@@ -700,7 +752,7 @@ void main() {
         throwaway: true, throwaways: [_throwaway()]);
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('☰'));
+    await tester.tap(_icon('Site details'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Edit'));
     await tester.pumpAndSettle();
@@ -711,6 +763,274 @@ void main() {
 
     expect(events, ['upsert t1']);
     expect(sites.upserts.single.cookiePolicy, CookiePolicy.wipeOnExit);
+  });
+
+  testWidgets('the pill follows the page, falling back to the site when the page has no host', (tester) async {
+    final engine = FakeContainerEngine();
+    await _pump(tester, engine, _site());
+    await tester.pumpAndSettle();
+    expect(find.text('forum.example.com'), findsOneWidget);
+    // There is no DIRECT label; the route used to pass one.
+    expect(find.text('DIRECT'), findsNothing);
+
+    engine.emitNavigation(const NavigationState(siteId: 's1', url: 'https://elsewhere.example.net/a'));
+    await tester.pumpAndSettle();
+    expect(find.text('elsewhere.example.net'), findsOneWidget);
+
+    engine.emitNavigation(const NavigationState(siteId: 's1', url: 'about:blank'));
+    await tester.pumpAndSettle();
+    expect(find.text('forum.example.com'), findsOneWidget);
+  });
+
+  testWidgets("back, forward and stop act on this container's page", (tester) async {
+    final engine = FakeContainerEngine();
+    await _pump(tester, engine, _site());
+    await tester.pumpAndSettle();
+    await tester.tap(_icon('Back'), warnIfMissed: false);
+    expect(engine.wentBack, isEmpty);
+    expect(_icon('Stop'), findsNothing);
+
+    engine.emitNavigation(const NavigationState(
+      siteId: 's1', url: 'https://forum.example.com/t/9',
+      canGoBack: true, canGoForward: true, loading: true, progress: 50,
+    ));
+    await tester.pumpAndSettle();
+    await tester.tap(_icon('Back'));
+    await tester.tap(_icon('Forward'));
+    await tester.tap(_icon('Stop'));
+
+    expect(engine.wentBack, ['s1']);
+    expect(engine.wentForward, ['s1']);
+    expect(engine.stopped, ['s1']);
+  });
+
+  testWidgets('system back goes back in the page first, then leaves the container', (tester) async {
+    final engine = FakeContainerEngine();
+    await _pump(tester, engine, _site(), overHome: true);
+    await tester.pumpAndSettle();
+    engine.emitNavigation(const NavigationState(
+        siteId: 's1', url: 'https://forum.example.com/t/9', canGoBack: true));
+    await tester.pumpAndSettle();
+
+    await _systemBack(tester);
+    expect(engine.wentBack, ['s1']);
+    expect(find.byType(ContainerRoute), findsOneWidget);
+
+    engine.emitNavigation(const NavigationState(siteId: 's1', url: 'https://forum.example.com/'));
+    await tester.pumpAndSettle();
+    await _systemBack(tester);
+
+    expect(find.byType(ContainerRoute), findsNothing);
+    expect(find.text(_homeMarker), findsOneWidget);
+    // A saved site's session stays open in the background, as before.
+    expect(engine.closed, isEmpty);
+  });
+
+  testWidgets("the menu's rows open their screens over this container, and All sites leaves it", (tester) async {
+    sqfliteFfiInit();
+    final database = (await tester.runAsync(
+        () => AppDatabase.open(path: inMemoryDatabasePath, factory: databaseFactoryFfi)))!;
+    addTearDown(() => tester.runAsync(database.close));
+    _standInForPlatformViews(tester);
+    final engine = FakeContainerEngine();
+    await _pump(tester, engine, _site(), overHome: true, overrides: [
+      databaseProvider.overrideWithValue(database),
+      biometricServiceProvider.overrideWithValue(FakeBiometricService()),
+    ]);
+    await tester.pumpAndSettle();
+
+    for (final (row, screen) in [
+      ('Today', TodayRoute),
+      ('Scripts and filters', ScriptsRoute),
+      ('Workspaces', WorkspacesRoute),
+      ('Settings', SettingsRoute),
+    ]) {
+      await tester.tap(_icon('Menu'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text(row));
+      await tester.pumpAndSettle();
+      await _settle(tester);
+      expect(find.byType(screen), findsOneWidget, reason: row);
+
+      Navigator.of(tester.element(find.byType(screen))).pop();
+      await tester.pumpAndSettle();
+      expect(find.byType(ContainerRoute), findsOneWidget, reason: row);
+    }
+
+    await tester.tap(_icon('Menu'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('All sites'));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(ContainerRoute), findsNothing);
+    expect(find.text(_homeMarker), findsOneWidget);
+  });
+
+  testWidgets('Copy link copies the page address, and says so', (tester) async {
+    final copied = <Object?>[];
+    tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(SystemChannels.platform, (call) async {
+      if (call.method == 'Clipboard.setData') {
+        copied.add((call.arguments as Map<Object?, Object?>)['text']);
+      }
+      return null;
+    });
+    addTearDown(() =>
+        tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(SystemChannels.platform, null));
+    final engine = FakeContainerEngine();
+    await _pump(tester, engine, _site());
+    await tester.pumpAndSettle();
+    engine.emitNavigation(const NavigationState(siteId: 's1', url: 'https://forum.example.com/t/9'));
+    await tester.pumpAndSettle();
+
+    await tester.tap(_icon('Menu'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Copy link'));
+    await tester.pumpAndSettle();
+
+    expect(copied, ['https://forum.example.com/t/9']);
+    expect(find.text('Link copied'), findsOneWidget);
+  });
+
+  testWidgets("find in page searches this page, shows this page's count, and clears on close", (tester) async {
+    final engine = FakeContainerEngine();
+    await _pump(tester, engine, _site());
+    await tester.pumpAndSettle();
+    await tester.tap(_icon('Menu'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Find'));
+    await tester.pumpAndSettle();
+
+    await tester.enterText(find.byType(TextField), 'fox');
+    await tester.pump();
+    expect(engine.findQueries, [(siteId: 's1', query: 'fox')]);
+
+    engine.emitFindResult(const FindResult(siteId: 's1', activeMatch: 0, matchCount: 4));
+    engine.emitFindResult(const FindResult(siteId: 'other', activeMatch: 0, matchCount: 9));
+    await tester.pumpAndSettle();
+    expect(find.text('1/4'), findsOneWidget);
+
+    await tester.tap(_icon('Next match'));
+    await tester.tap(_icon('Close find'));
+    await tester.pumpAndSettle();
+
+    expect(engine.findSteps, [(siteId: 's1', forward: true)]);
+    expect(engine.clearedFind, ['s1']);
+    expect(find.byType(FindBar), findsNothing);
+  });
+
+  testWidgets('a throwaway offers the save bar after its first finished load; saving writes the row, then keeps it', (tester) async {
+    final events = <String>[];
+    final engine = _LoggingEngine(events);
+    final sites = _RecordingSiteRepository(events: events);
+    await _pump(tester, engine, _throwaway(), sites: sites,
+        throwaway: true, throwaways: [_throwaway()]);
+    await tester.pumpAndSettle();
+
+    engine.emitNavigation(const NavigationState(
+        siteId: 't1', url: 'https://news.example.org/', loading: true, progress: 30));
+    await tester.pumpAndSettle();
+    expect(find.byType(ThrowawaySaveBar), findsNothing);
+
+    engine.emitNavigation(const NavigationState(siteId: 't1', url: 'https://news.example.org/today'));
+    await tester.pumpAndSettle();
+    expect(find.text('Not saved · wiped when you close it'), findsOneWidget);
+
+    await tester.tap(find.text('Save as a site'));
+    await tester.pumpAndSettle();
+    expect(tester.widget<AddSiteScreen>(find.byType(AddSiteScreen)).initial!.url,
+        'https://news.example.org/today');
+    await tester.tap(find.text('Save'));
+    await tester.pumpAndSettle();
+
+    expect(events, ['upsert t1', 'keep t1']);
+    expect(find.byType(ThrowawaySaveBar), findsNothing);
+  });
+
+  testWidgets('a saved site never shows the save bar', (tester) async {
+    final engine = FakeContainerEngine();
+    await _pump(tester, engine, _site());
+    await tester.pumpAndSettle();
+
+    engine.emitNavigation(const NavigationState(siteId: 's1', url: 'https://forum.example.com/'));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(ThrowawaySaveBar), findsNothing);
+  });
+
+  testWidgets('dismissing the save bar hides it for this throwaway', (tester) async {
+    final engine = FakeContainerEngine();
+    await _pump(tester, engine, _throwaway(), throwaway: true, throwaways: [_throwaway()]);
+    await tester.pumpAndSettle();
+    engine.emitNavigation(const NavigationState(siteId: 't1', url: 'https://news.example.org/'));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const Key('save-bar-dismiss')));
+    await tester.pumpAndSettle();
+    engine.emitNavigation(const NavigationState(siteId: 't1', url: 'https://news.example.org/next'));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(ThrowawaySaveBar), findsNothing);
+  });
+
+  // Review Focus 5.
+  testWidgets('at 360 wide a throwaway with a long host, a route, a load and the save bar fits, and so do its menu and find bar', (tester) async {
+    const url = 'https://a-rather-long-subdomain-for-a-phone.news.example.org';
+    final engine = FakeContainerEngine();
+    final site = _throwaway().copyWith(
+      url: url, proxyMode: ProxyMode.socks5, proxyHost: '127.0.0.1', proxyPort: 9050,
+    );
+    await _pump(tester, engine, site, throwaway: true, throwaways: [site]);
+    await tester.pumpAndSettle();
+    // Phone width once live: this is about the container's chrome. `8a`'s
+    // checklist, shown for the first frames, is outside this plan.
+    tester.view.physicalSize = const Size(360, 740);
+    await tester.pump();
+    engine.emitNavigation(const NavigationState(siteId: 't1', url: '$url/'));
+    await tester.pumpAndSettle();
+    engine.emitNavigation(const NavigationState(
+        siteId: 't1', url: '$url/today', loading: true, progress: 40));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(ThrowawaySaveBar), findsOneWidget);
+    expect(_icon('Stop'), findsOneWidget);
+    expect(find.text('SOCKS5'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+
+    await tester.tap(_icon('Menu'));
+    await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull);
+    await tester.tap(find.text('Find'));
+    await tester.pumpAndSettle();
+    expect(find.byType(FindBar), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  // Review Focus 1: rebuilding the page view disposes the native WebView,
+  // which wipes a throwaway.
+  testWidgets('the page view outlives every change of chrome', (tester) async {
+    final engine = FakeContainerEngine();
+    await _pump(tester, engine, _throwaway(), throwaway: true, throwaways: [_throwaway()]);
+    await tester.pumpAndSettle();
+    final page = tester.state(find.byType(PlatformViewLink));
+
+    engine.emitNavigation(const NavigationState(
+        siteId: 't1', url: 'https://news.example.org/', loading: true, progress: 20));
+    await tester.pumpAndSettle();
+    engine.emitNavigation(const NavigationState(
+        siteId: 't1', url: 'https://news.example.org/', canGoBack: true));
+    await tester.pumpAndSettle();
+    expect(find.byType(ThrowawaySaveBar), findsOneWidget);
+    await tester.tap(_icon('Menu'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Find'));
+    await tester.pumpAndSettle();
+    await tester.tap(_icon('Close find'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('save-bar-dismiss')));
+    await tester.pumpAndSettle();
+
+    expect(tester.state(find.byType(PlatformViewLink)), same(page));
+    expect(engine.closed, isEmpty);
   });
 }
 

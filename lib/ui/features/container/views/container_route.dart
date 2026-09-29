@@ -1,25 +1,37 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../data/services/container_engine.dart';
 import '../../../../domain/models/container_session.dart';
 import '../../../../domain/models/engine_events.dart';
+import '../../../../domain/models/find_result.dart';
 import '../../../../domain/models/open_step.dart';
 import '../../../../domain/models/route_failure_copy.dart';
 import '../../../../domain/models/route_decision.dart' show refusalMessage;
 import '../../../../domain/models/site.dart';
+import '../../../../domain/models/workspace.dart';
 import '../../add_site/views/add_site_screen.dart';
 import '../../dashboard/view_models/providers.dart'
-    show closeSite, dashboardProvider, siteRepositoryProvider, workspacesProvider;
+    show
+        closeSite,
+        dashboardProvider,
+        leakCountProvider,
+        siteRepositoryProvider,
+        workspacesProvider;
 import '../../in_page/views/held_download_sheet.dart';
 import '../../in_page/views/permission_request_sheet.dart';
 import '../../in_page/views/proxy_unreachable_screen.dart';
 import '../../in_page/views/reader_screen.dart';
 import '../../in_page/views/site_sheet.dart';
 import '../../in_page/views/tunnel_dropped_screen.dart';
+import '../../report/views/today_route.dart';
+import '../../scripts/views/scripts_route.dart';
 import '../../search/view_models/providers.dart' show allSitesProvider;
+import '../../settings/views/settings_route.dart';
+import '../../workspaces/views/workspaces_route.dart';
 import '../view_models/providers.dart';
 import '../view_models/throwaway_sites.dart';
 import 'container_screen.dart';
@@ -27,10 +39,13 @@ import 'container_web_view.dart';
 import 'opening_screen.dart';
 import 'switcher_sheet.dart';
 
-/// One push per site tap. Owns the `opening -> live -> refused` lifecycle
-/// against [ContainerEngine] internally, rather than issuing a second
-/// navigation event when the session finishes connecting — see this plan's
-/// design spec §2 for why a `pushReplacement` was rejected.
+/// One push per site tap — and, since browser-chrome spec §5.2, one per
+/// saved site or throwaway opened from the address bar, pushed over the
+/// container it was typed in, on the open vault's navigator. Owns the
+/// `opening -> live -> refused` lifecycle against [ContainerEngine]
+/// internally, rather than issuing a second navigation event when the
+/// session finishes connecting — see Plan 6's design spec §2 for why a
+/// `pushReplacement` was rejected.
 class ContainerRoute extends ConsumerStatefulWidget {
   const ContainerRoute({
     super.key,
@@ -80,10 +95,19 @@ class _ContainerRouteState extends ConsumerState<ContainerRoute> {
   bool _openReturned = false;
   bool _refusalHandled = false;
   bool _tunnelDropped = false;
+
+  /// Whether the page has finished a load since this route opened. A
+  /// throwaway's save bar waits for it (spec §5.3).
+  bool _loadedOnce = false;
+  bool _saveBarDismissed = false;
+
+  /// The page's count for what the find bar holds; null until it reports.
+  FindResult? _findResult;
   StreamSubscription<PendingPermissionRequest>? _permissionSub;
   StreamSubscription<HeldDownloadEvent>? _downloadSub;
   StreamSubscription<DownloadResult>? _downloadResultSub;
   StreamSubscription<TunnelDroppedEvent>? _tunnelSub;
+  StreamSubscription<FindResult>? _findSub;
   final _myDownloadRequestIds = <String>{};
 
   /// The site as last saved from this route. Starts as [ContainerRoute.site]
@@ -120,6 +144,10 @@ class _ContainerRouteState extends ConsumerState<ContainerRoute> {
         .tunnelDropped()
         .where((t) => t.siteId == widget.site.id)
         .listen((_) => setState(() => _tunnelDropped = true));
+    _findSub = engine
+        .findResults()
+        .where((r) => r.siteId == widget.site.id)
+        .listen((result) => setState(() => _findResult = result));
     _open();
   }
 
@@ -145,6 +173,7 @@ class _ContainerRouteState extends ConsumerState<ContainerRoute> {
     _downloadSub?.cancel();
     _downloadResultSub?.cancel();
     _tunnelSub?.cancel();
+    _findSub?.cancel();
     // A throwaway never reopens. Closing its session disposes its page view
     // if Flutter has not already, and ContainerView.dispose wipes a
     // wipe-on-exit profile — popped, or torn down by a lock or panic.
@@ -162,7 +191,7 @@ class _ContainerRouteState extends ConsumerState<ContainerRoute> {
         kind: request.kind,
         onDecision: (decision) {
           Navigator.pop(context);
-          ref.read(containerEngineProvider).resolvePermission(request.requestId, decision);
+          _engine.resolvePermission(request.requestId, decision);
         },
       ),
     );
@@ -177,7 +206,7 @@ class _ContainerRouteState extends ConsumerState<ContainerRoute> {
         download: event.download,
         onDecision: (decision) {
           Navigator.pop(context);
-          ref.read(containerEngineProvider).resolveDownload(event.requestId, decision);
+          _engine.resolveDownload(event.requestId, decision);
         },
       ),
     );
@@ -312,7 +341,7 @@ class _ContainerRouteState extends ConsumerState<ContainerRoute> {
   }
 
   Future<void> _openReader() async {
-    final article = await ref.read(containerEngineProvider).extractArticle(widget.site.id);
+    final article = await _engine.extractArticle(widget.site.id);
     if (article == null || !mounted) return;
     Navigator.push(context, MaterialPageRoute(
       builder: (_) => ReaderScreen(
@@ -322,6 +351,49 @@ class _ContainerRouteState extends ConsumerState<ContainerRoute> {
         onTheme: () {},
       ),
     ));
+  }
+
+  /// Find in page (spec §6.5). The count shown is dropped until the page
+  /// reports the new text's, so it is never the old text's.
+  void _find(String query) {
+    setState(() => _findResult = null);
+    if (query.isEmpty) {
+      _engine.clearFind(widget.site.id);
+    } else {
+      _engine.find(widget.site.id, query);
+    }
+  }
+
+  void _clearFind() {
+    setState(() => _findResult = null);
+    _engine.clearFind(widget.site.id);
+  }
+
+  /// Spec §3.3: the page's own address, through Flutter's clipboard. The
+  /// site's `allowClipboard` governs page scripts, not this user action.
+  Future<void> _copyLink() async {
+    final url =
+        ref.read(navigationForSiteProvider(widget.site.id)).valueOrNull?.url ?? _openedUrl;
+    await Clipboard.setData(ClipboardData(text: url));
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Link copied')));
+  }
+
+  /// A ☰ shortcut (spec §6.4), pushed on the open vault's navigator above
+  /// this container.
+  void _push(Widget screen) {
+    Navigator.push(context, MaterialPageRoute<void>(builder: (_) => screen));
+  }
+
+  /// The ☰ header's mono line (spec §6.4): `host · Workspace`, or the host
+  /// alone for a throwaway, which belongs to no workspace until saved.
+  String _menuSubtitle(List<Workspace> workspaces) {
+    final host = _site.host;
+    if (_isThrowaway) return host;
+    for (final workspace in workspaces) {
+      if (workspace.id == _site.workspaceId) return '$host · ${workspace.name}';
+    }
+    return host;
   }
 
   void _handleRefusal(ContainerSession session) {
@@ -350,6 +422,16 @@ class _ContainerRouteState extends ConsumerState<ContainerRoute> {
   Widget build(BuildContext context) {
     final sessionAsync = ref.watch(sessionForSiteProvider(widget.site.id));
     _isThrowaway = ref.watch(throwawaySitesProvider).any((site) => site.id == widget.site.id);
+    final navigation = ref.watch(navigationForSiteProvider(widget.site.id)).valueOrNull;
+    final workspaces = ref.watch(workspacesProvider).valueOrNull ?? const <Workspace>[];
+    final blockedToday = ref.watch(leakCountProvider);
+    // Spec §5.3: a throwaway offers the save bar once its first load has
+    // finished.
+    ref.listen(navigationForSiteProvider(widget.site.id), (_, next) {
+      if (!_loadedOnce && next.valueOrNull?.loading == false) {
+        setState(() => _loadedOnce = true);
+      }
+    });
 
     return sessionAsync.when(
       loading: () => OpeningBody(
@@ -378,12 +460,18 @@ class _ContainerRouteState extends ConsumerState<ContainerRoute> {
           return const SizedBox.shrink();
         }
 
-        final engine = ref.read(containerEngineProvider);
+        final pageHost = navigation?.host ?? '';
         return Stack(children: [
           ContainerScreen(
-            host: _host,
-            routeLabel: widget.site.proxyMode.name.toUpperCase(),
+            // The page's host once it reports one; the site's before that,
+            // and whenever the page has none (`about:blank`, a failed load).
+            host: pageHost.isEmpty ? _host : pageHost,
+            // There is no DIRECT label (spec §4.4).
+            routeLabel: widget.site.proxyMode == ProxyMode.direct
+                ? ''
+                : widget.site.proxyMode.name.toUpperCase(),
             live: session.phase == SessionPhase.live,
+            navigation: navigation,
             openCount: 1,
             body: ContainerWebView(siteId: widget.site.id),
             entries: [
@@ -395,28 +483,47 @@ class _ContainerRouteState extends ConsumerState<ContainerRoute> {
               ),
             ],
             workspaceName: '',
-            onBack: () => Navigator.pop(context),
-            onReload: () => engine.reload(widget.site.id),
+            siteMonogram: _site.monogram,
+            siteName: _site.name,
+            siteSubtitle: _menuSubtitle(workspaces),
+            blockedToday: blockedToday,
+            findResult: _findResult,
+            showSaveBar: _isThrowaway && _loadedOnce && !_saveBarDismissed,
+            onBack: () => _engine.goBack(widget.site.id),
+            onForward: () => _engine.goForward(widget.site.id),
+            onStop: () => _engine.stop(widget.site.id),
+            onReload: () => _engine.reload(widget.site.id),
             onPanic: () => panic(ref),
+            onSiteDetails: () => _showSiteSheet(session.blockedCount),
+            onReader: _openReader,
+            onCopyLink: _copyLink,
+            onToday: () => _push(const TodayRoute()),
+            onScripts: () => _push(const ScriptsRoute()),
+            onWorkspaces: () => _push(const WorkspacesRoute()),
+            onSettings: () => _push(const SettingsRoute()),
+            // Spec §5.2: to the dashboard, the first route, closing every
+            // container pushed on the way.
+            onAllSites: () => Navigator.popUntil(context, (route) => route.isFirst),
+            onFind: _find,
+            onFindNext: (forward) => _engine.findNext(widget.site.id, forward: forward),
+            onClearFind: _clearFind,
+            onSaveAsSite: _saveAsSite,
+            onDismissSaveBar: () => setState(() => _saveBarDismissed = true),
             // The switcher has already closed itself by now. Only closing
             // this route's own site leaves it with nothing to show.
             onCloseSession: (siteId) async {
               closeSite(ref, siteId);
-              await engine.close(siteId);
+              await _engine.close(siteId);
               if (siteId != widget.site.id || !context.mounted) return;
               Navigator.pop(context);
             },
             onCloseAllAndWipe: () async {
               closeSite(ref, widget.site.id);
-              await engine.close(widget.site.id);
-              await engine.wipe(widget.site.profileId);
+              await _engine.close(widget.site.id);
+              await _engine.wipe(widget.site.profileId);
               if (!context.mounted) return;
               Navigator.pop(context);
             },
-            onReaderMode: _openReader,
-            onFilters: () {},
-            onMenu: () => _showSiteSheet(session.blockedCount),
-            onMore: () {},
           ),
           if (_tunnelDropped)
             TunnelDroppedScreen(
@@ -425,8 +532,8 @@ class _ContainerRouteState extends ConsumerState<ContainerRoute> {
               onReconnect: () => setState(() => _tunnelDropped = false),
               onCloseAndWipe: () async {
                 closeSite(ref, widget.site.id);
-                await engine.close(widget.site.id);
-                await engine.wipe(widget.site.profileId);
+                await _engine.close(widget.site.id);
+                await _engine.wipe(widget.site.profileId);
                 if (!context.mounted) return;
                 Navigator.pop(context);
               },
