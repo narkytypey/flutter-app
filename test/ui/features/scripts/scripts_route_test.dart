@@ -214,4 +214,40 @@ void main() {
     final all = await tester.runAsync(() => SqliteScriptRepository(database).all());
     expect(all!.firstWhere((s) => s.id != 'sc1').appliedSiteIds, ['forum']);
   });
+
+  testWidgets('a site added after Scripts was last open is offered on the next visit',
+      (tester) async {
+    await pump(tester);
+    // Reach Scripts the way Settings does: pushed, then popped.
+    await tester.pumpWidget(ProviderScope(
+      overrides: [databaseProvider.overrideWithValue(database)],
+      child: MaterialApp(
+        home: Builder(
+          builder: (context) => TextButton(
+            onPressed: () => Navigator.push(
+                context, MaterialPageRoute(builder: (_) => const ScriptsRoute())),
+            child: const Text('open scripts'),
+          ),
+        ),
+      ),
+    ));
+    await tester.tap(find.text('open scripts'));
+    await settle(tester);
+    expect(find.text('Hide sticky headers'), findsOneWidget);
+    await tester.tap(find.text('‹'));
+    await settle(tester);
+
+    await tester.runAsync(() => SqliteSiteRepository(database).upsert(const Site(
+        id: 'bank', workspaceId: 'w', name: 'Bank', monogram: 'Bk',
+        url: 'https://bank.example.com', profileId: 'p-bank')));
+
+    await tester.tap(find.text('open scripts'));
+    await settle(tester);
+    await tester.tap(find.text('Hide sticky headers'));
+    await settle(tester);
+    await tester.tap(find.text('+ Add site'));
+    await tester.pumpAndSettle();
+    expect(find.descendant(of: find.byType(ScriptSitePicker), matching: find.text('Bank')),
+        findsOneWidget);
+  });
 }

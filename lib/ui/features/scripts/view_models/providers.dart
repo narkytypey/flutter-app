@@ -36,7 +36,10 @@ class ScriptsView {
   Map<String, String> get siteNamesById => {for (final site in sites) site.id: site.name};
 }
 
-final scriptsViewProvider = FutureProvider<ScriptsView>((ref) async {
+/// Auto-disposed so each visit reads the vault afresh: sites are added and
+/// removed from screens that never touch this provider, and a cached view
+/// would leave a new site out of the "+ Add site" picker and drop its chip.
+final scriptsViewProvider = FutureProvider.autoDispose<ScriptsView>((ref) async {
   final sites = await ref.watch(siteRepositoryProvider).all();
   return ScriptsView(
     filterLists: await ref.watch(filterListRepositoryProvider).all(),
