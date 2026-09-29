@@ -11,6 +11,7 @@ import 'package:container/domain/models/workspace.dart';
 import 'package:container/ui/core/widgets/app_toggle.dart';
 import 'package:container/ui/features/dashboard/view_models/providers.dart';
 import 'package:container/ui/features/scripts/views/script_editor_screen.dart';
+import 'package:container/ui/features/scripts/views/script_site_picker.dart';
 import 'package:container/ui/features/scripts/views/scripts_route.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -57,9 +58,9 @@ void main() {
       await syncBundledFilterLists(database, defaultBundledFilterRules);
       await SqliteWorkspaceRepository(database).upsert(const Workspace(
           id: 'w', name: 'Personal', markerIndex: 0, storageRule: StorageRule.keep));
-      for (final id in ['forum', 'news']) {
+      for (final (id, name) in [('forum', 'Forum'), ('news', 'News'), ('mail', 'Mail')]) {
         await SqliteSiteRepository(database).upsert(Site(
-            id: id, workspaceId: 'w', name: id == 'forum' ? 'Forum' : 'News',
+            id: id, workspaceId: 'w', name: name,
             monogram: 'Xx', url: 'https://$id.example.com', profileId: 'p-$id'));
       }
       await SqliteScriptRepository(database).upsert(const UserScript(
@@ -141,5 +142,76 @@ void main() {
     await settle(tester);
 
     expect((await script(tester, 'sc1'))!.enabled, isFalse);
+  });
+
+  testWidgets('"+ Add site" offers only the sites not on the script, and Save keeps the pick',
+      (tester) async {
+    await pump(tester);
+    await tester.tap(find.text('Hide sticky headers'));
+    await settle(tester);
+
+    await tester.tap(find.text('+ Add site'));
+    await tester.pumpAndSettle();
+    final picker = find.byType(ScriptSitePicker);
+    expect(picker, findsOneWidget);
+    expect(find.descendant(of: picker, matching: find.text('Mail')), findsOneWidget);
+    expect(find.descendant(of: picker, matching: find.text('forum.example.com')), findsNothing);
+    expect(find.descendant(of: picker, matching: find.text('news.example.com')), findsNothing);
+
+    await tester.tap(find.text('mail.example.com'));
+    await tester.pumpAndSettle();
+    expect(find.byType(ScriptSitePicker), findsNothing);
+    expect(find.text('Mail ×'), findsOneWidget);
+    // Like removing a chip, adding one is not saved until Save.
+    expect((await script(tester, 'sc1'))!.appliedSiteIds, ['forum', 'news']);
+
+    await tester.tap(find.text('Save'));
+    await settle(tester);
+    expect((await script(tester, 'sc1'))!.appliedSiteIds, unorderedEquals(['forum', 'news', 'mail']));
+  });
+
+  testWidgets('with every site on the script, "+ Add site" opens nothing', (tester) async {
+    await pump(tester);
+    await tester.tap(find.text('Hide sticky headers'));
+    await settle(tester);
+    await tester.tap(find.text('+ Add site'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('mail.example.com'));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('+ Add site'));
+    await tester.pumpAndSettle();
+    expect(find.byType(ScriptSitePicker), findsNothing);
+  });
+
+  testWidgets('a site taken off the script can be picked again', (tester) async {
+    await pump(tester);
+    await tester.tap(find.text('Hide sticky headers'));
+    await settle(tester);
+
+    await tester.tap(find.text('News ×'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('+ Add site'));
+    await tester.pumpAndSettle();
+
+    final picker = find.byType(ScriptSitePicker);
+    expect(find.descendant(of: picker, matching: find.text('News')), findsOneWidget);
+    expect(find.descendant(of: picker, matching: find.text('Mail')), findsOneWidget);
+  });
+
+  testWidgets('a new script can be given a site before its first Save', (tester) async {
+    await pump(tester);
+    await tester.tap(find.text('New script'));
+    await settle(tester);
+
+    await tester.tap(find.text('+ Add site'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('forum.example.com'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Save'));
+    await settle(tester);
+
+    final all = await tester.runAsync(() => SqliteScriptRepository(database).all());
+    expect(all!.firstWhere((s) => s.id != 'sc1').appliedSiteIds, ['forum']);
   });
 }
