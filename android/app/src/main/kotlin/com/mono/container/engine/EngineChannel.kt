@@ -70,6 +70,11 @@ class Session(val config: SiteConfig) {
     var failure: String? = null
     var view: ContainerView? = null
 
+    /** The last `navigation` event this session's view reported, for
+     *  `navigationState`: Dart may start listening after the first load has
+     *  already reported (browser-chrome spec §3.2). */
+    var navigation: NavigationSnapshot? = null
+
     /** Set by [EngineChannel] after construction; lets a live session's
      * dropped tunnel reach the event sink without `Session` holding a
      * reference to the channel itself. */
@@ -209,6 +214,31 @@ class EngineChannel(
         ))
     }
 
+    /**
+     * Called by [ContainerView] on every page change. [session] is the one the
+     * view was made for: only the site's current session reaches Dart, since
+     * a reopened site's older view still reports. Kept per session for
+     * `navigationState`.
+     */
+    fun onNavigation(session: Session, snapshot: NavigationSnapshot) {
+        session.navigation = snapshot
+        val siteId = session.config.siteId
+        if (sessions[siteId] !== session) return
+        sink?.success(snapshot.toEvent(siteId))
+    }
+
+    /** Called by [ContainerView] once a find has finished counting. */
+    fun onFindResult(session: Session, activeMatch: Int, matchCount: Int) {
+        val siteId = session.config.siteId
+        if (sessions[siteId] !== session) return
+        sink?.success(findResultEvent(siteId, activeMatch, matchCount))
+    }
+
+    /** The open view for the call's `siteId`. Every in-page control is a
+     *  silent no-op on a closed or unknown session, like `reload`. */
+    private fun viewFor(call: MethodCall): ContainerView? =
+        sessions[call.argument<String>("siteId")]?.view
+
     // --- Method channel ----------------------------------------------------
 
     override fun onMethodCall(call: MethodCall, result: MethodChannel.Result) {
@@ -223,6 +253,39 @@ class EngineChannel(
                 "reload" -> {
                     sessions[call.argument<String>("siteId")]?.view?.reload()
                     result.success(null)
+                }
+                "goBack" -> {
+                    viewFor(call)?.goBack()
+                    result.success(null)
+                }
+                "goForward" -> {
+                    viewFor(call)?.goForward()
+                    result.success(null)
+                }
+                "stop" -> {
+                    viewFor(call)?.stop()
+                    result.success(null)
+                }
+                "loadUrl" -> {
+                    // ContainerView.load refuses every scheme but http(s).
+                    viewFor(call)?.load(call.argument<String>("url")!!)
+                    result.success(null)
+                }
+                "find" -> {
+                    viewFor(call)?.find(call.argument<String>("query")!!)
+                    result.success(null)
+                }
+                "findNext" -> {
+                    viewFor(call)?.findNext(call.argument<Boolean>("forward") ?: true)
+                    result.success(null)
+                }
+                "clearFind" -> {
+                    viewFor(call)?.clearFind()
+                    result.success(null)
+                }
+                "navigationState" -> {
+                    val siteId = call.argument<String>("siteId")!!
+                    result.success(sessions[siteId]?.navigation?.toEvent(siteId))
                 }
                 "wipe" -> {
                     val profileId = call.argument<String>("profileId")!!

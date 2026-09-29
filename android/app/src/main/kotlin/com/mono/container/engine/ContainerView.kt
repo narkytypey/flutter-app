@@ -20,11 +20,18 @@ class ContainerView(
     private val onAsk: (PendingPermission) -> String = { "" },
     /** [sizeBytes] is null when the size is unknown — see [heldDownloadSize]. */
     private val onDownload: (url: String, mimeType: String, fileName: String, sizeBytes: Long?, kindLabel: String) -> String = { _, _, _, _, _ -> "" },
+    /** Every change to what the page is doing: browser-chrome spec §3.1's `navigation` event. */
+    private val onNavigation: (NavigationSnapshot) -> Unit = {},
+    /** A finished count for the current find: spec §6.5's `find_result` event. */
+    private val onFindResult: (activeMatch: Int, matchCount: Int) -> Unit = { _, _ -> },
 ) : PlatformView {
 
     private var disposed = false
 
     private val declaredLengths = DeclaredLengths()
+
+    /** Declared before `init`, which hands the clients that feed it to the WebView. */
+    private val navigation = NavigationTracker(config.url)
 
     private val webView = WebView(context).apply {
         settings.javaScriptEnabled = true
@@ -43,8 +50,21 @@ class ContainerView(
     init {
         // Must precede the first load, or the request goes to the default store.
         androidx.webkit.WebViewCompat.setProfile(webView, config.profileId)
-        webView.webViewClient = interceptor.clientFor(config, onLive, declaredLengths)
-        webView.webChromeClient = Shields.chromeClientFor(config, session, onAsk)
+        webView.webViewClient = interceptor.clientFor(config, onLive, declaredLengths, object : PageCallbacks {
+            override fun started(url: String) = report { navigation.started(url) }
+            override fun finished(url: String) = report { navigation.finished(url) }
+            override fun visited(url: String) = report { navigation.visited(url) }
+        })
+        webView.webChromeClient = Shields.chromeClientFor(
+            config, session, onAsk,
+            onProgress = { percent -> report { navigation.progressed(percent) } },
+            onTitle = { title -> report { navigation.titled(title) } },
+        )
+        // Reported once counting is done, so the find bar never shows a
+        // count that is still climbing.
+        webView.setFindListener { activeMatch, matchCount, isDoneCounting ->
+            if (isDoneCounting && !disposed) onFindResult(activeMatch, matchCount)
+        }
         Shields.apply(webView, config) { session.counters.fingerprinting.incrementAndGet() }
 
         webView.setDownloadListener { url, _, contentDisposition, mimeType, contentLength ->
@@ -70,8 +90,48 @@ class ContainerView(
 
     override fun getView(): View = webView
 
+    /** Applies [change] to the navigation state and reports the result,
+     *  unless this view is already gone. */
+    private fun report(change: () -> Unit) {
+        if (disposed) return
+        change()
+        onNavigation(navigation.snapshot(webView.canGoBack(), webView.canGoForward()))
+    }
+
     fun reload() {
         if (!disposed) webView.reload()
+    }
+
+    fun goBack() {
+        if (!disposed && webView.canGoBack()) webView.goBack()
+    }
+
+    fun goForward() {
+        if (!disposed && webView.canGoForward()) webView.goForward()
+    }
+
+    fun stop() {
+        if (disposed) return
+        webView.stopLoading()
+        report { navigation.stopped() }
+    }
+
+    /** Loads [url] in this container, on its own route. Refuses every scheme
+     *  but http and https — see [isLoadableUrl]. */
+    fun load(url: String) {
+        if (!disposed && isLoadableUrl(url)) webView.loadUrl(url)
+    }
+
+    fun find(query: String) {
+        if (!disposed) webView.findAllAsync(query)
+    }
+
+    fun findNext(forward: Boolean) {
+        if (!disposed) webView.findNext(forward)
+    }
+
+    fun clearFind() {
+        if (!disposed) webView.clearMatches()
     }
 
     /** Runs the reader-mode JS heuristic and hands the parsed article back

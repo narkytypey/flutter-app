@@ -7,12 +7,41 @@ import android.webkit.WebViewClient
 import androidx.webkit.ServiceWorkerClientCompat
 import java.io.ByteArrayInputStream
 
+/** The page events [ContainerView] builds its navigation state from. */
+interface PageCallbacks {
+    fun started(url: String) {}
+    fun finished(url: String) {}
+    fun visited(url: String) {}
+
+    companion object {
+        val NONE = object : PageCallbacks {}
+    }
+}
+
 class RequestInterceptor(private val filters: FilterEngine, private val onRefused: (RouteFailure) -> Unit = {}) {
     /** [lengths] records each proxied response's declared length, for the
-     *  view's held-download sheet. */
-    fun clientFor(config: SiteConfig, onLoaded: () -> Unit = {}, lengths: DeclaredLengths? = null): WebViewClient = object : WebViewClient() {
+     *  view's held-download sheet. [page] hears the page starting, finishing
+     *  and moving through history (browser-chrome spec §3.1). */
+    fun clientFor(
+        config: SiteConfig,
+        onLoaded: () -> Unit = {},
+        lengths: DeclaredLengths? = null,
+        page: PageCallbacks = PageCallbacks.NONE,
+    ): WebViewClient = object : WebViewClient() {
         override fun shouldInterceptRequest(view: WebView, request: WebResourceRequest): WebResourceResponse? = intercept(config, request, lengths)
-        override fun onPageFinished(view: WebView, url: String) = onLoaded()
+
+        override fun onPageStarted(view: WebView, url: String?, favicon: android.graphics.Bitmap?) {
+            if (url != null) page.started(url)
+        }
+
+        override fun onPageFinished(view: WebView, url: String?) {
+            onLoaded()
+            if (url != null) page.finished(url)
+        }
+
+        override fun doUpdateVisitedHistory(view: WebView, url: String?, isReload: Boolean) {
+            if (url != null) page.visited(url)
+        }
     }
 
     fun serviceWorkerClient(config: SiteConfig): ServiceWorkerClientCompat = object : ServiceWorkerClientCompat() {

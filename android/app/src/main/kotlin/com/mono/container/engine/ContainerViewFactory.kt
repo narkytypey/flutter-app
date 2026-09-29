@@ -51,6 +51,11 @@ class ContainerViewFactory(
                 engine.onDownload(siteId, requestId, url, mimeType, fileName, sizeBytes, kindLabel)
                 requestId
             },
+            // Reported against the session this view was made for, not
+            // whatever the site's session is by then: a reopened site's older
+            // view must not speak for the newer session.
+            onNavigation = { snapshot -> engine.onNavigation(session, snapshot) },
+            onFindResult = { activeMatch, matchCount -> engine.onFindResult(session, activeMatch, matchCount) },
         )
         engine.attachView(siteId, view)
         return view

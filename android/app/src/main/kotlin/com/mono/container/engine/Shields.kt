@@ -53,7 +53,13 @@ object Shields {
         config: SiteConfig,
         session: Session,
         onAsk: (PendingPermission) -> String,
+        onProgress: (Int) -> Unit = {},
+        onTitle: (String?) -> Unit = {},
     ) = object : android.webkit.WebChromeClient() {
+        override fun onProgressChanged(view: android.webkit.WebView, newProgress: Int) = onProgress(newProgress)
+
+        override fun onReceivedTitle(view: android.webkit.WebView, title: String?) = onTitle(title)
+
         override fun onPermissionRequest(request: android.webkit.PermissionRequest) {
             val granted = mutableListOf<String>()
             val toAsk = mutableListOf<String>()
