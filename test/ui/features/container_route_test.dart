@@ -21,7 +21,7 @@ import 'package:container/domain/repositories/repositories.dart';
 import 'package:container/ui/core/widgets/app_toggle.dart';
 import 'package:container/ui/features/add_site/views/add_site_screen.dart';
 import 'package:container/ui/features/dashboard/view_models/providers.dart'
-    show databaseProvider, siteRepositoryProvider, workspacesProvider;
+    show databaseProvider, openSiteIdsProvider, siteRepositoryProvider, workspacesProvider;
 import 'package:container/ui/features/container/view_models/providers.dart';
 import 'package:container/ui/features/container/views/container_route.dart';
 import 'package:container/ui/features/container/views/container_web_view.dart';
@@ -285,6 +285,55 @@ void main() {
     expect(find.byType(SwitcherSheet), findsNothing);
     expect(find.byType(ContainerRoute), findsNothing);
     expect(find.text(_homeMarker), findsOneWidget);
+  });
+
+  // The dashboard's OPEN NOW rows and session count, search's live rail and
+  // `9c`'s closed-session count all read openSiteIdsProvider. A session
+  // closed here but left in it went on reading as open. Seen on the emulator.
+  Future<Set<String>> openIdsAfterClosing(
+      WidgetTester tester, Future<void> Function() close) async {
+    final engine = FakeContainerEngine();
+    await _pump(tester, engine, _site(), overHome: true, overrides: [
+      openSiteIdsProvider.overrideWith((ref) => {'s1', 'other'}),
+    ]);
+    await tester.pumpAndSettle();
+    await close();
+    await tester.pumpAndSettle();
+    expect(engine.closed, contains('s1'));
+    return ProviderScope.containerOf(tester.element(find.text(_homeMarker)))
+        .read(openSiteIdsProvider);
+  }
+
+  testWidgets("closing this site's session from the switcher stops it reading as open",
+      (tester) async {
+    final open = await openIdsAfterClosing(tester, () async {
+      await tester.tap(find.text('1 OPEN'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.descendant(
+        of: find.byType(SwitcherSheet), matching: find.text('×'),
+      ));
+    });
+    expect(open, {'other'});
+  });
+
+  testWidgets('close all and wipe from the switcher stops the site reading as open',
+      (tester) async {
+    final open = await openIdsAfterClosing(tester, () async {
+      await tester.tap(find.text('1 OPEN'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Close all and wipe'));
+    });
+    expect(open, {'other'});
+  });
+
+  testWidgets("close and wipe from the site sheet stops the site reading as open",
+      (tester) async {
+    final open = await openIdsAfterClosing(tester, () async {
+      await tester.tap(find.text('☰'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Close and wipe this session'));
+    });
+    expect(open, {'other'});
   });
 
   testWidgets('opening a site shows the checklist, then the container', (tester) async {

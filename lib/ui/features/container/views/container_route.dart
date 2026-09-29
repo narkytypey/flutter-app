@@ -11,7 +11,7 @@ import '../../../../domain/models/route_decision.dart' show refusalMessage;
 import '../../../../domain/models/site.dart';
 import '../../add_site/views/add_site_screen.dart';
 import '../../dashboard/view_models/providers.dart'
-    show siteRepositoryProvider, workspacesProvider;
+    show closeSite, siteRepositoryProvider, workspacesProvider;
 import '../../in_page/views/held_download_sheet.dart';
 import '../../in_page/views/permission_request_sheet.dart';
 import '../../in_page/views/proxy_unreachable_screen.dart';
@@ -200,6 +200,7 @@ class _ContainerRouteState extends ConsumerState<ContainerRoute> {
             )),
             onCloseAndWipe: () async {
               Navigator.pop(sheetContext);
+              closeSite(ref, widget.site.id);
               await engine.close(widget.site.id);
               await engine.wipe(widget.site.profileId);
               if (!mounted) return;
@@ -317,11 +318,13 @@ class _ContainerRouteState extends ConsumerState<ContainerRoute> {
             // The switcher has already closed itself by now. Only closing
             // this route's own site leaves it with nothing to show.
             onCloseSession: (siteId) async {
+              closeSite(ref, siteId);
               await engine.close(siteId);
               if (siteId != widget.site.id || !context.mounted) return;
               Navigator.pop(context);
             },
             onCloseAllAndWipe: () async {
+              closeSite(ref, widget.site.id);
               await engine.close(widget.site.id);
               await engine.wipe(widget.site.profileId);
               if (!context.mounted) return;
@@ -338,6 +341,7 @@ class _ContainerRouteState extends ConsumerState<ContainerRoute> {
               droppedAgoLabel: 'just now',
               onReconnect: () => setState(() => _tunnelDropped = false),
               onCloseAndWipe: () async {
+                closeSite(ref, widget.site.id);
                 await engine.close(widget.site.id);
                 await engine.wipe(widget.site.profileId);
                 if (!context.mounted) return;
