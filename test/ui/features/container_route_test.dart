@@ -42,6 +42,12 @@ Site _site() => Site(
       proxyMode: ProxyMode.direct,
     );
 
+Site _throwaway() => Site(
+      id: 't1', workspaceId: 'w', name: 'news.example.org', monogram: 'Nw',
+      url: 'https://news.example.org', profileId: 'c' * 32,
+      cookiePolicy: CookiePolicy.wipeOnExit,
+    );
+
 /// Holds an [open] back until the test releases it — the real engine's open
 /// returns only after a worker thread has decided the route.
 class _GatedEngine extends FakeContainerEngine {
@@ -96,6 +102,8 @@ Future<void> _pump(
   bool realExtras = false,
   List<Override> overrides = const [],
   bool overHome = false,
+  bool throwaway = false,
+  String? initialUrl,
 }) async {
   // A modal bottom sheet is capped at 9/16 of the surface height, so the
   // default 800x600 canvas leaves HeldDownloadSheet ~294px where its fixed
@@ -106,6 +114,7 @@ Future<void> _pump(
   tester.view.physicalSize = const Size(800, 1600);
   tester.view.devicePixelRatio = 1;
   final navigator = GlobalKey<NavigatorState>();
+  Widget route() => ContainerRoute(site: site, initialUrl: initialUrl, throwaway: throwaway);
   await tester.pumpWidget(ProviderScope(
     overrides: [
       containerEngineProvider.overrideWithValue(engine),
@@ -117,17 +126,13 @@ Future<void> _pump(
     ],
     child: MaterialApp(
       navigatorKey: navigator,
-      home: overHome
-          ? const Scaffold(body: Text(_homeMarker))
-          : ContainerRoute(site: site),
+      home: overHome ? const Scaffold(body: Text(_homeMarker)) : route(),
     ),
   ));
   // Pushed the way the dashboard pushes it, so a test can see whether leaving
   // the container lands back on what was underneath.
   if (overHome) {
-    navigator.currentState!.push(MaterialPageRoute<void>(
-      builder: (_) => ContainerRoute(site: site),
-    ));
+    navigator.currentState!.push(MaterialPageRoute<void>(builder: (_) => route()));
   }
 }
 
@@ -527,6 +532,60 @@ void main() {
     await tester.pump();
     await tester.pump();
     expect(find.text(refusalMessage(RouteFailure.proxyUnreachable)), findsOneWidget);
+  });
+
+  testWidgets('a throwaway is opened as one', (tester) async {
+    final engine = FakeContainerEngine();
+    await _pump(tester, engine, _throwaway(), throwaway: true);
+    await tester.pumpAndSettle();
+
+    expect(engine.openedAsThrowaway, {'t1'});
+  });
+
+  testWidgets('a saved site opened at a typed address loads it, and saves nothing', (tester) async {
+    final engine = FakeContainerEngine();
+    final sites = _RecordingSiteRepository();
+    await _pump(tester, engine, _site(), sites: sites,
+        initialUrl: 'https://forum.example.com/t/9');
+    await tester.pumpAndSettle();
+
+    expect(engine.openedSites['s1']!.url, 'https://forum.example.com/t/9');
+    expect(engine.openedAsThrowaway, isEmpty);
+    expect(sites.upserts, isEmpty);
+  });
+
+  testWidgets('leaving a throwaway closes its session', (tester) async {
+    final engine = FakeContainerEngine();
+    await _pump(tester, engine, _throwaway(), throwaway: true, overHome: true);
+    await tester.pumpAndSettle();
+
+    Navigator.of(tester.element(find.byType(ContainerRoute))).pop();
+    await tester.pumpAndSettle();
+
+    expect(engine.closed, ['t1']);
+  });
+
+  testWidgets('leaving a saved site leaves its session open', (tester) async {
+    final engine = FakeContainerEngine();
+    await _pump(tester, engine, _site(), overHome: true);
+    await tester.pumpAndSettle();
+
+    Navigator.of(tester.element(find.byType(ContainerRoute))).pop();
+    await tester.pumpAndSettle();
+
+    expect(engine.closed, isEmpty);
+  });
+
+  // Review Focus 4: a lock or panic disposes the open vault's navigator, and
+  // every route in it, without popping anything.
+  testWidgets('a throwaway torn down with its navigator is closed too', (tester) async {
+    final engine = FakeContainerEngine();
+    await _pump(tester, engine, _throwaway(), throwaway: true);
+    await tester.pumpAndSettle();
+
+    await tester.pumpWidget(const SizedBox.shrink());
+
+    expect(engine.closed, ['t1']);
   });
 }
 

@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../data/services/container_engine.dart';
 import '../../../../domain/models/container_session.dart';
 import '../../../../domain/models/engine_events.dart';
 import '../../../../domain/models/open_step.dart';
@@ -29,15 +30,32 @@ import 'switcher_sheet.dart';
 /// navigation event when the session finishes connecting — see this plan's
 /// design spec §2 for why a `pushReplacement` was rejected.
 class ContainerRoute extends ConsumerStatefulWidget {
-  const ContainerRoute({super.key, required this.site});
+  const ContainerRoute({
+    super.key,
+    required this.site,
+    this.initialUrl,
+    this.throwaway = false,
+  });
 
   final Site site;
+
+  /// Loaded instead of [site]'s stored address, for this session only — a
+  /// saved site opened from the address bar (browser-chrome spec §5.2). The
+  /// stored address never changes.
+  final String? initialUrl;
+
+  /// Opens [site] as a throwaway (spec §5): journaled natively so a crash
+  /// cannot leak its profile, always wiped on exit, and closed when this
+  /// route goes. Whoever pushes one adds it to `throwawaySitesProvider` first.
+  final bool throwaway;
 
   @override
   ConsumerState<ContainerRoute> createState() => _ContainerRouteState();
 }
 
 class _ContainerRouteState extends ConsumerState<ContainerRoute> {
+  /// Captured in [initState]: [dispose] may not read providers.
+  late final ContainerEngine _engine;
   bool _opened = false;
 
   /// Whether this route's own `open` has returned. Until then, any session
@@ -69,7 +87,8 @@ class _ContainerRouteState extends ConsumerState<ContainerRoute> {
   @override
   void initState() {
     super.initState();
-    final engine = ref.read(containerEngineProvider);
+    _engine = ref.read(containerEngineProvider);
+    final engine = _engine;
     _permissionSub = engine
         .permissionRequests()
         .where((r) => r.siteId == widget.site.id)
@@ -94,10 +113,12 @@ class _ContainerRouteState extends ConsumerState<ContainerRoute> {
     _opened = true;
     // Read before opening, and a failure here stops the open: a site is
     // never opened without the lists and scripts its vault says it gets.
-    final extras = await ref.read(engineExtrasBuilderProvider)(widget.site);
+    final initialUrl = widget.initialUrl;
+    final site = initialUrl == null ? widget.site : widget.site.copyWith(url: initialUrl);
+    final extras = await ref.read(engineExtrasBuilderProvider)(site);
     if (!mounted) return;
     try {
-      await ref.read(containerEngineProvider).open(widget.site, extras: extras);
+      await _engine.open(site, extras: extras, throwaway: widget.throwaway);
     } finally {
       if (mounted) setState(() => _openReturned = true);
     }
@@ -109,6 +130,10 @@ class _ContainerRouteState extends ConsumerState<ContainerRoute> {
     _downloadSub?.cancel();
     _downloadResultSub?.cancel();
     _tunnelSub?.cancel();
+    // A throwaway never reopens. Closing its session disposes its page view
+    // if Flutter has not already, and ContainerView.dispose wipes a
+    // wipe-on-exit profile — popped, or torn down by a lock or panic.
+    if (widget.throwaway) unawaited(_engine.close(widget.site.id));
     super.dispose();
   }
 
