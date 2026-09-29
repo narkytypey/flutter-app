@@ -823,6 +823,31 @@ Found while verifying the above (2026-09-29), both unowned:
   request reaching the proxy. Leaving to the dashboard and opening the site
   again loaded it. Seen twice while switching a site's proxy mode; the exact
   steps were not pinned down and the cause was not investigated.
+  **✅ Root-caused and fixed 2026-09-29 (branch `fix-connecting-hang`). It was
+  worse than a hang: the reopened page loaded under the site's *old*
+  settings, so a site switched from direct to a proxy went out direct.**
+  Reproduced on the emulator with plain `https://example.com`: open it
+  direct, back out (its session stays open), switch it to HTTP
+  `10.0.2.2:8888`, reopen. It hung on the checklist with the page already
+  rendered underneath and **zero** connections at the proxy. Cause:
+  `sessionForSiteProvider` still held the previous visit's session, so
+  `ContainerRoute` built `ContainerWebView` before its own `open` returned.
+  `ContainerViewFactory` binds a view to whatever session the site has at
+  creation (the old one, old config, and `RequestInterceptor` routes by that
+  config). `open` then registered a new `Session` with no view. The new
+  session only went live if the old view's first load happened to finish
+  after that; `reload` and reader mode, which look up the new session's
+  view, found null. Making the provider auto-dispose would not help: its
+  snapshot would still return the old session until the new `open`
+  registers. Fix: `ContainerRoute` shows only the checklist until its own
+  `open` has returned (`_openReturned`), since by then the native map holds
+  the new session. Test: `container_route_test.dart`'s "a reopened site
+  builds no page view until its own open returns" (fails without the fix).
+  Verified 2026-09-29: `flutter analyze` clean, `flutter test` 379/379,
+  `flutter build apk --debug` succeeding; the same emulator repro now goes
+  live with no overlay, every request goes through the proxy, and ⟳ reloads
+  through it. Don't build the page view off a session the route did not
+  open itself.
 
 ## Working on this repo
 
