@@ -88,6 +88,26 @@ class ProfileManager(private val pending: PendingDeletions) {
         }
     }
 
+    /**
+     * Wipes every throwaway that outlived its page — the app died with it
+     * open, so `ContainerView.dispose` never ran (browser-chrome spec §5.4).
+     * Like [sweepPendingDeletions] this runs before anything loads a profile,
+     * so each [wipe] deletes outright. One whose wipe throws stays listed for
+     * the next start. With nothing listed, WebView is not started at all.
+     */
+    fun sweepThrowaways(journal: ThrowawayJournal, deleteDownloads: (String) -> Unit) {
+        if (journal.names().isEmpty()) return
+        // A device that cannot isolate never created a profile to leak.
+        if (!isAvailable()) {
+            journal.clear()
+            return
+        }
+        journal.sweep { profileId ->
+            deleteDownloads(profileId)
+            wipe(profileId)
+        }
+    }
+
     private fun clearInPlace(profile: Profile) {
         profile.cookieManager.removeAllCookies(null)
         profile.cookieManager.flush()

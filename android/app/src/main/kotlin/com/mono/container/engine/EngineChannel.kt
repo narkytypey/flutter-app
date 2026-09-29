@@ -75,6 +75,11 @@ class Session(val config: SiteConfig) {
      *  already reported (browser-chrome spec §3.2). */
     var navigation: NavigationSnapshot? = null
 
+    /** Starts as the config's; `keep` turns it off for a throwaway saved as a
+     *  site while its page is still open (spec §5.3). [ContainerView.dispose]
+     *  reads this, not the config. */
+    var wipeOnExit: Boolean = config.wipeOnExit
+
     /** Set by [EngineChannel] after construction; lets a live session's
      * dropped tunnel reach the event sink without `Session` holding a
      * reference to the channel itself. */
@@ -142,6 +147,8 @@ class PendingOpens {
 class EngineChannel(
     private val context: Context,
     private val profiles: ProfileManager,
+    /** Throwaways whose profile may still be on disk; see [ThrowawayJournal]. */
+    val throwaways: ThrowawayJournal,
 ) : MethodChannel.MethodCallHandler, EventChannel.StreamHandler {
 
     private val sessions = LinkedHashMap<String, Session>()
@@ -297,6 +304,10 @@ class EngineChannel(
                     wipeAll()
                     result.success(null)
                 }
+                "keep" -> {
+                    keep(call.argument<String>("siteId")!!)
+                    result.success(null)
+                }
                 "liveSessions" -> result.success(sessions.values.map(Session::toMap))
                 "resolvePermission" -> {
                     resolvePermission(call.argument<String>("requestId")!!, call.argument<String>("decision")!!)
@@ -331,7 +342,12 @@ class EngineChannel(
      * answered without being registered — see [PendingOpens].
      */
     private fun open(call: MethodCall, result: MethodChannel.Result) {
-        val config = configFrom(call)
+        val throwaway = call.argument<Boolean>("throwaway") ?: false
+        // A throwaway always wipes on exit, whatever else the call says.
+        val config = configFrom(call).let { if (throwaway) it.copy(wipeOnExit = true) else it }
+        // Listed before its profile can exist (register() creates it), so a
+        // crash from here on still leaves it for the next start's sweep.
+        if (throwaway) throwaways.add(config.profileId)
         if (!profiles.isAvailable()) {
             result.success(register(config, route = null))
             return
@@ -477,6 +493,15 @@ class EngineChannel(
         for (siteId in sessions.keys.toList()) close(siteId)
         java.io.File(context.filesDir, "downloads").deleteRecursively()
         profiles.wipeAll()
+        // Every profile is gone, throwaways included: nothing left to sweep.
+        throwaways.clear()
+    }
+
+    /** `keep` (spec §5.3–5.4): a throwaway saved as a site. A no-op on an
+     *  unknown session, like every in-page control. */
+    private fun keep(siteId: String) {
+        val session = sessions[siteId] ?: return
+        keepThrowaway(session.config.profileId, throwaways) { session.wipeOnExit = false }
     }
 
     private fun configFrom(call: MethodCall) = SiteConfig(

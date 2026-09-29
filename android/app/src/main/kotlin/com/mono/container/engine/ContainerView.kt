@@ -16,6 +16,8 @@ class ContainerView(
     private val profiles: ProfileManager,
     private val interceptor: RequestInterceptor,
     private val session: Session,
+    /** Throwaways still on disk (spec §5.4); a wipe here takes this one off. */
+    private val throwaways: ThrowawayJournal,
     private val onLive: () -> Unit = {},
     private val onAsk: (PendingPermission) -> String = { "" },
     /** [sizeBytes] is null when the size is unknown — see [heldDownloadSize]. */
@@ -160,14 +162,21 @@ class ContainerView(
         if (disposed) return
         disposed = true
         webView.stopLoading()
+        // The session's flag, not the config's: `keep` turns it off for a
+        // throwaway saved as a site while its page is still open.
+        val wipe = session.wipeOnExit
         // The profile this view used cannot be deleted until the next start
         // (see ProfileManager.wipe), and its HTTP cache has no profile-level
         // clear — the view is the only handle on it, so empty it now.
-        if (config.wipeOnExit) webView.clearCache(true)
+        if (wipe) webView.clearCache(true)
         webView.destroy()
-        if (config.wipeOnExit) {
-            deleteDownloadsDir(context, config.profileId)
-            profiles.wipe(config.profileId)
+        if (wipe) {
+            // Off the throwaway journal only once the wipe has run: a wipe
+            // that throws leaves it for the next start's sweep.
+            wipeThenForget(config.profileId, throwaways) {
+                deleteDownloadsDir(context, config.profileId)
+                profiles.wipe(config.profileId)
+            }
         }
     }
 

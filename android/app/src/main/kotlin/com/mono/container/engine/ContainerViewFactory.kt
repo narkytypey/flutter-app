@@ -33,6 +33,7 @@ class ContainerViewFactory(
             profiles = profiles,
             interceptor = session.interceptor,
             session = session,
+            throwaways = engine.throwaways,
             onLive = { engine.markLive(siteId) },
             onAsk = { pending ->
                 val requestId = engine.nextRequestId()
