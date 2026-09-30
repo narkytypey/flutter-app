@@ -89,4 +89,45 @@ class RouterTest {
         )
         proxy.close()
     }
+
+    /**
+     * A SOCKS5 route hands the proxy the hostname (address type 3), never an
+     * address resolved on the device. A resolved `InetSocketAddress` makes the
+     * platform send address type 1 or 4, after a DNS lookup of its own — the
+     * leak this pins. The target is `localhost` because it always resolves on
+     * the device: a name that fails to resolve silently becomes an unresolved
+     * address, which would hide the bug.
+     */
+    @Test fun `a socks5 route sends the target hostname to the proxy unresolved`() {
+        val proxy = java.net.ServerSocket(0)
+        val requests = java.util.concurrent.ArrayBlockingQueue<String>(1)
+        Thread {
+            runCatching {
+                proxy.accept().use { client ->
+                    val input = java.io.DataInputStream(client.getInputStream())
+                    val out = client.getOutputStream()
+                    input.readUnsignedByte()                       // version
+                    repeat(input.readUnsignedByte()) { input.readUnsignedByte() }
+                    out.write(byteArrayOf(5, 0)); out.flush()      // no auth
+                    input.readUnsignedByte(); input.readUnsignedByte(); input.readUnsignedByte()
+                    val addressType = input.readUnsignedByte()
+                    val host = when (addressType) {
+                        3 -> String(ByteArray(input.readUnsignedByte()).also { input.readFully(it) }, Charsets.US_ASCII)
+                        1 -> ByteArray(4).also { input.readFully(it) }.joinToString(".") { (it.toInt() and 0xff).toString() }
+                        else -> ByteArray(16).also { input.readFully(it) }.toString()
+                    }
+                    val port = input.readUnsignedShort()
+                    requests.offer("$addressType $host:$port")
+                    out.write(byteArrayOf(5, 0, 0, 1, 0, 0, 0, 0, 0, 0)); out.flush()
+                }
+            }
+        }.apply { isDaemon = true }.start()
+
+        val route = Route.Proxy("127.0.0.1", proxy.localPort, socks = true)
+        Router.connect(route, "localhost", 443).use { socket ->
+            assertTrue(socket.isConnected)
+        }
+        assertEquals("3 localhost:443", requests.poll(5, java.util.concurrent.TimeUnit.SECONDS))
+        proxy.close()
+    }
 }

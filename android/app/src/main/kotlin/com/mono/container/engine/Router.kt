@@ -42,6 +42,13 @@ object Router {
      * SOCKS is delegated to the platform, which still supports it. HTTP proxies
      * go through [HttpConnectTunnel] because Android removed `Proxy.Type.HTTP`
      * from [java.net.Socket]; passing it here throws `IllegalArgumentException`.
+     *
+     * The SOCKS target is deliberately unresolved: the platform then sends the
+     * proxy the hostname (address type 3) and the proxy does the lookup. A
+     * resolved address would make the device look the name up itself first,
+     * telling its DNS resolver every host a proxied site visits. The cost is
+     * that a SOCKS4-only proxy cannot be used — SOCKS4 carries no hostnames —
+     * which the user accepted: the mode is SOCKS5.
      */
     fun connect(route: Route, targetHost: String, targetPort: Int): java.net.Socket =
         when (route) {
@@ -53,7 +60,7 @@ object Router {
                             java.net.Proxy.Type.SOCKS,
                             java.net.InetSocketAddress(route.host, route.port),
                         )
-                    ).apply { connect(java.net.InetSocketAddress(targetHost, targetPort), 15_000) }
+                    ).apply { connect(java.net.InetSocketAddress.createUnresolved(targetHost, targetPort), 15_000) }
                 } else {
                     HttpConnectTunnel.open(route.host, route.port, targetHost, targetPort)
                 }
