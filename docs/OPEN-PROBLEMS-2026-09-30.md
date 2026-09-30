@@ -267,6 +267,34 @@ From Plan 13's execution record, still open:
    replaces it, and has since `198cdda`. A network that only works through a
    configured proxy cannot load direct sites.
 
+**✅ Decided by the user and implemented, 2026-09-30 (branch
+`second/modest-knuth-f83zbx`). Not yet seen on a device.**
+
+1. **Wait at open.** `Loopback.start()` passes a listener that releases
+   `Loopback.applied` (`OverrideApplied`), and `routeAtOpen` waits on it, on
+   the network executor, before any site's route is decided: direct sites
+   too, since Autofill's query is blocked only by the override. No timeout
+   and no new copy: if the override never applies, the site stays on its
+   opening checklist. Nothing waits when the override is unsupported.
+2. **Honour the system proxy for direct sites.** `Router.connect`'s direct
+   branch reads `ConnectivityManager.getDefaultProxy()` on every connection
+   (`SystemProxies`) and, unless the destination is loopback or on the
+   exclusion list (read as globs, a leading `.` meaning any subdomain),
+   tunnels through it with `HttpConnectTunnel`. That covers direct page loads
+   (via the loopback proxy) and direct keep-in-container downloads. A PAC
+   setup is used through the local proxy Android runs for it, once that
+   reports a port. A proxied site reaches its own proxy as before.
+   Gaps: a system proxy that needs a password fails; an unreachable one
+   reads "The destination did not respond"; a proxied site's connection to
+   its own proxy does not go through the system proxy.
+3. **Same-route reopen keeps closing tunnels.** Unchanged behaviour; the
+   code comment's reasoning was corrected (the settings could be compared;
+   the reason is that a tunnel never outlives its binding).
+
+Tests: `RouterTest` +5, `SystemProxyTest` 9, `LoopbackOverrideTest` +2,
+`LoopbackProxyTest` +1. Removing the wait fails one; ignoring the system
+proxy fails two.
+
 ## 6. Environment notes: not app bugs
 
 - This PC's IPv4 route to AWS and Azure hosts (duckduckgo.com, httpbin.org,

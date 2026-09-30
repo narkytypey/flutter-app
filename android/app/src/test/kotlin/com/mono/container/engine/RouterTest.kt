@@ -2,7 +2,9 @@ package com.mono.container.engine
 
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
+import org.junit.Assert.fail
 import org.junit.Test
 
 class RouterTest {
@@ -133,14 +135,14 @@ class RouterTest {
     }
 
     @Test fun `a direct site opens without a proxy override`() {
-        assertEquals(Route.Direct, routeAtOpen(config(mode = "direct"), proxyOverride = false) { Route.Direct })
+        assertEquals(Route.Direct, routeAtOpen(config(mode = "direct"), proxyOverride = false, awaitOverride = { fail("waited") }) { Route.Direct })
     }
 
     /** P2 spec §1.4: refused, never sent direct, and not even probed. */
     @Test fun `a proxied site is refused when WebView cannot override its proxy`() {
         for (mode in listOf("socks5", "http")) {
             var probed = false
-            val route = routeAtOpen(config(mode = mode), proxyOverride = false) { probed = true; Route.Direct }
+            val route = routeAtOpen(config(mode = mode), proxyOverride = false, awaitOverride = { fail("waited") }) { probed = true; Route.Direct }
             assertEquals(Route.Refused(RouteFailure.UNSUPPORTED), route)
             assertFalse(probed)
         }
@@ -148,6 +150,86 @@ class RouterTest {
 
     @Test fun `with the override a proxied site is resolved as before`() {
         val proxied = Route.Proxy("127.0.0.1", 9050, socks = true)
-        assertEquals(proxied, routeAtOpen(config(), proxyOverride = true) { proxied })
+        assertEquals(proxied, routeAtOpen(config(), proxyOverride = true, awaitOverride = {}) { proxied })
+    }
+
+    /**
+     * Design question 1 (user's ruling, 2026-09-30): WebView applies the
+     * override asynchronously, and until it has, a request goes direct. Every
+     * site's open, direct ones too (Autofill is blocked only by the override),
+     * waits for it before its route is decided, so no site's view exists
+     * before the override is in force.
+     */
+    @Test fun `with the override every site waits for it to apply before its route is decided`() {
+        for (mode in listOf("direct", "socks5", "http")) {
+            val steps = mutableListOf<String>()
+            routeAtOpen(config(mode = mode), proxyOverride = true, awaitOverride = { steps += "await" }) {
+                steps += "resolve"; Route.Direct
+            }
+            assertEquals(listOf("await", "resolve"), steps)
+        }
+    }
+
+    // --- Design question 2: a direct route honours the system proxy ----------
+
+    /** An HTTP proxy on localhost that records one request line, answers 200 and holds the tunnel. */
+    private fun fakeHttpProxy(requestLines: java.util.concurrent.BlockingQueue<String>): java.net.ServerSocket {
+        val proxy = java.net.ServerSocket(0)
+        Thread {
+            runCatching {
+                proxy.accept().use { client ->
+                    requestLines.offer(readHead(client.getInputStream())!!.first())
+                    client.getOutputStream().write("HTTP/1.1 200 Connection established\r\n\r\n".toByteArray(Charsets.US_ASCII))
+                    client.getOutputStream().flush()
+                    client.getInputStream().read()
+                }
+            }
+        }.apply { isDaemon = true }.start()
+        return proxy
+    }
+
+    /** User's ruling, 2026-09-30: on a network whose Wi-Fi sets a proxy, direct sites go through it, as they did before the override. */
+    @Test fun `a direct route tunnels through the system proxy to the target authority`() {
+        val requestLines = java.util.concurrent.ArrayBlockingQueue<String>(1)
+        fakeHttpProxy(requestLines).use { proxy ->
+            Router.connect(Route.Direct, "example.test", 443) { SystemProxy("127.0.0.1", proxy.localPort) }.use { socket ->
+                assertTrue(socket.isConnected)
+            }
+            assertEquals("CONNECT example.test:443 HTTP/1.1", requestLines.poll(5, java.util.concurrent.TimeUnit.SECONDS))
+        }
+    }
+
+    @Test fun `a direct route to an excluded host connects straight, past the system proxy`() {
+        java.net.ServerSocket(0).use { target ->
+            // Nothing listens on the "proxy": going through it would fail.
+            val closedPort = java.net.ServerSocket(0).use { it.localPort }
+            val proxy = SystemProxy("127.0.0.1", closedPort, exclusions = listOf("localhost"))
+            Router.connect(Route.Direct, "localhost", target.localPort) { proxy }.use { socket ->
+                assertEquals(target.localPort, socket.port)
+            }
+        }
+    }
+
+    @Test fun `with no system proxy a direct route connects straight`() {
+        java.net.ServerSocket(0).use { target ->
+            Router.connect(Route.Direct, "localhost", target.localPort) { null }.use { socket ->
+                assertEquals(target.localPort, socket.port)
+            }
+        }
+    }
+
+    /** The system proxy is for direct sites only: a proxied site reaches its own proxy as before. */
+    @Test fun `a proxied route ignores the system proxy`() {
+        val systemLines = java.util.concurrent.ArrayBlockingQueue<String>(1)
+        val siteLines = java.util.concurrent.ArrayBlockingQueue<String>(1)
+        fakeHttpProxy(systemLines).use { system ->
+            fakeHttpProxy(siteLines).use { site ->
+                Router.connect(Route.Proxy("127.0.0.1", site.localPort, socks = false), "example.test", 443) {
+                    SystemProxy("127.0.0.1", system.localPort)
+                }.use { assertTrue(it.isConnected) }
+                assertEquals("CONNECT example.test:443 HTTP/1.1", siteLines.poll(5, java.util.concurrent.TimeUnit.SECONDS))
+                assertNull(systemLines.poll(200, java.util.concurrent.TimeUnit.MILLISECONDS))
+            }
+        }
     }
 }

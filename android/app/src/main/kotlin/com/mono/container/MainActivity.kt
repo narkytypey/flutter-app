@@ -7,6 +7,7 @@ import com.mono.container.engine.EngineChannel
 import com.mono.container.engine.Loopback
 import com.mono.container.engine.PendingDeletions
 import com.mono.container.engine.ProfileManager
+import com.mono.container.engine.SystemProxies
 import com.mono.container.engine.ThrowawayJournal
 import com.mono.container.engine.deleteDownloadsDir
 import io.flutter.embedding.android.FlutterFragmentActivity
@@ -45,9 +46,13 @@ class MainActivity : FlutterFragmentActivity() {
         profiles.sweepPendingDeletions()
         profiles.sweepThrowaways(throwaways) { deleteDownloadsDir(applicationContext, it) }
         // Before any page can load, like the sweeps above: from here every
-        // site's traffic goes through the loopback proxy (P2 spec §1).
+        // site's traffic goes through the loopback proxy (P2 spec §1), and a
+        // direct site's through the network's own proxy if it has one.
+        SystemProxies.install(applicationContext)
         val proxyOverride = Loopback.start()
-        val engine = EngineChannel(applicationContext, profiles, throwaways, Loopback.credentials, proxyOverride)
+        val engine = EngineChannel(
+            applicationContext, profiles, throwaways, Loopback.credentials, proxyOverride, Loopback.applied::await,
+        )
         engine.attach(flutterEngine.dartExecutor.binaryMessenger)
 
         flutterEngine.platformViewsController.registry.registerViewFactory(

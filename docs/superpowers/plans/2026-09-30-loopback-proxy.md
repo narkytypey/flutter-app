@@ -2553,6 +2553,13 @@ here, and no code was changed for them):
    configured proxy still cannot load direct sites. Neither the spec nor the
    findings mention it.
 
+**The user's rulings on these (2026-09-30), implemented on
+`second/modest-knuth-f83zbx`:** (1) every open waits for the override's
+listener before its route is decided, with no timeout and no new copy;
+(2) a direct route goes through the system proxy (`SystemProxy.kt`), except
+for loopback and excluded hosts. See `docs/OPEN-PROBLEMS-2026-09-30.md`
+section 5.
+
 ## Verification
 
 *(Filled in by Task 7.)*
@@ -2583,6 +2590,12 @@ These come from spec §6 and this plan's deviations. They are recorded, not fixe
   - non-Basic schemes;
   - the auth cache across a renderer crash.
 - **Wipe-on-exit's automatic wipe does not rotate the profile id** (the `fix-site-wipe` ruling).
+- **The system proxy, for direct sites** (user's ruling, 2026-09-30):
+  - one that needs a password fails, as with the user's own upstream proxy;
+  - one that cannot be reached reads "The destination did not respond" on a download (`UPSTREAM_TIMEOUT`), and WebView's error page on a page;
+  - a proxied site's connection to its own proxy does not go through it;
+  - a PAC setup works only through the local proxy Android runs for it; until that reports a port, direct sites connect straight.
+- **An override that never applies leaves every site on its opening checklist** (user's ruling, 2026-09-30: wait, no timeout, no copy).
 
 ## Handoff
 

@@ -41,6 +41,12 @@ object Router {
     /**
      * Opens a socket for [route]. Never called for [Route.Refused].
      *
+     * A direct route goes through the network's own proxy when it has one and
+     * the host is not excluded ([systemProxyFor]), tunnelled like an http
+     * route, so the proxy does the lookup; otherwise it connects straight.
+     * [systemProxy] is read on every call, so a Wi-Fi change applies to the
+     * next connection. A proxied route never uses it.
+     *
      * SOCKS is delegated to the platform, which still supports it. HTTP proxies
      * go through [HttpConnectTunnel] because Android removed `Proxy.Type.HTTP`
      * from [java.net.Socket]; passing it here throws `IllegalArgumentException`.
@@ -52,9 +58,16 @@ object Router {
      * that a SOCKS4-only proxy cannot be used — SOCKS4 carries no hostnames —
      * which the user accepted: the mode is SOCKS5.
      */
-    fun connect(route: Route, targetHost: String, targetPort: Int): java.net.Socket =
+    fun connect(
+        route: Route,
+        targetHost: String,
+        targetPort: Int,
+        systemProxy: () -> SystemProxy? = SystemProxies.current,
+    ): java.net.Socket =
         when (route) {
-            is Route.Direct -> java.net.Socket(targetHost, targetPort)
+            is Route.Direct -> systemProxyFor(systemProxy(), targetHost)
+                ?.let { HttpConnectTunnel.open(it.host, it.port, targetHost, targetPort) }
+                ?: java.net.Socket(targetHost, targetPort)
             is Route.Proxy ->
                 if (route.socks) {
                     java.net.Socket(
@@ -79,6 +92,18 @@ fun SiteConfig.currentRoute(): Route =
  * route through the loopback proxy, which needs WebView's proxy override.
  * Without it a proxied site is refused, never sent direct, and [resolve] —
  * which probes — is not called. A direct site opens as it always has.
+ *
+ * With it, every site first waits in [awaitOverride] until WebView has applied
+ * the override, which it does asynchronously: until then a request goes
+ * direct (user's ruling, 2026-09-30). Direct sites wait too, since Autofill's
+ * query is blocked only by the override. There is no timeout and no new copy:
+ * if the override never applies, the site stays on its opening checklist.
+ * Called off the main thread, like [resolve].
  */
-fun routeAtOpen(config: SiteConfig, proxyOverride: Boolean, resolve: () -> Route): Route =
-    if (config.proxyMode != "direct" && !proxyOverride) Route.Refused(RouteFailure.UNSUPPORTED) else resolve()
+fun routeAtOpen(config: SiteConfig, proxyOverride: Boolean, awaitOverride: () -> Unit, resolve: () -> Route): Route {
+    if (!proxyOverride) {
+        return if (config.proxyMode != "direct") Route.Refused(RouteFailure.UNSUPPORTED) else resolve()
+    }
+    awaitOverride()
+    return resolve()
+}

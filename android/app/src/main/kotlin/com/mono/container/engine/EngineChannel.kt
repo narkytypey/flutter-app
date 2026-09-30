@@ -158,6 +158,8 @@ class EngineChannel(
     val credentials: SiteCredentials,
     /** Whether WebView's traffic goes through the loopback proxy at all (P2 spec §1.3). */
     private val proxyOverride: Boolean,
+    /** Blocks until WebView has applied that override; see [routeAtOpen]. */
+    private val awaitOverride: () -> Unit,
 ) : MethodChannel.MethodCallHandler, EventChannel.StreamHandler {
 
     private val sessions = LinkedHashMap<String, Session>()
@@ -364,7 +366,7 @@ class EngineChannel(
         }
         val ticket = pendingOpens.begin(config.siteId)
         networkExecutor.execute {
-            val route = runCatching { routeAtOpen(config, proxyOverride) { config.currentRoute() } }
+            val route = runCatching { routeAtOpen(config, proxyOverride, awaitOverride) { config.currentRoute() } }
             mainHandler.post {
                 if (!pendingOpens.finish(config.siteId, ticket)) {
                     result.success(Session(config).toMap())

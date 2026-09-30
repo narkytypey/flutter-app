@@ -95,9 +95,10 @@ class SiteCredentials(private val random: SecureRandom = SecureRandom()) {
     /**
      * The site's session is open: its credential now routes by [binding]. A
      * later bind replaces it and closes every connection opened under the one
-     * it replaces, whether or not the route changed: a route can only be
-     * resolved off the main thread (the probe), so they are never compared,
-     * and Chromium opens a new tunnel on the next request.
+     * it replaces, whether or not the route changed (user's ruling,
+     * 2026-09-30): a tunnel never outlives the binding it was opened under.
+     * The cost is one new tunnel per host when a still-open site is opened
+     * again; Chromium opens it on its next request.
      */
     fun bind(profileId: String, binding: ProxyBinding) {
         val replaced = synchronized(this) {

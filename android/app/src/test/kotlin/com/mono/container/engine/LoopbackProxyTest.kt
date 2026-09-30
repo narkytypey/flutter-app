@@ -475,7 +475,7 @@ class LoopbackProxyTest {
         }
     }
 
-    /** Any bind that replaces a binding closes its tunnels: the proxy cannot resolve a route on the main thread to compare. */
+    /** Any bind that replaces a binding closes its tunnels, even with the same settings (user's ruling, 2026-09-30). */
     @Test fun `a bind that replaces the binding closes its tunnels even on the same route`() {
         val credentials = SiteCredentials()
         credentials.bind("p1", ProxyBinding(config("p1")) {})
@@ -659,5 +659,30 @@ class LoopbackProxyTest {
             }
         }
         assertEquals(listOf("CONNECT example.test:443 -> 504 upstream failed (SocketTimeoutException)"), lines.toList())
+    }
+
+    // --- Design question 2: direct sites honour the system proxy -------------
+
+    @Test fun `a direct site goes out through the system proxy, and a proxied site does not`() {
+        FakeSocks().use { socks ->
+            FakeHttpProxy().use { system ->
+                val credentials = SiteCredentials()
+                credentials.bind("direct", ProxyBinding(config("direct")) {})
+                credentials.bind("socks", ProxyBinding(config("socks", mode = "socks5", host = "127.0.0.1", port = socks.port)) {})
+                val withSystemProxy: (Route, String, Int) -> Socket =
+                    { route, host, port -> Router.connect(route, host, port) { SystemProxy("127.0.0.1", system.port) } }
+                LoopbackProxy(credentials, bySettings, connect = withSystemProxy).start().use { proxy ->
+                    send(proxy, "CONNECT example.test:443 HTTP/1.1\r\n${auth(credentials.credentialFor("direct"))}\r\n").use { socket ->
+                        assertEquals(200, statusOf(socket))
+                    }
+                    assertEquals("CONNECT example.test:443 HTTP/1.1", system.requestLines.poll(5, TimeUnit.SECONDS))
+
+                    send(proxy, "CONNECT other.test:443 HTTP/1.1\r\n${auth(credentials.credentialFor("socks"))}\r\n").use { socket ->
+                        assertEquals(200, statusOf(socket))
+                    }
+                    assertEquals("3 other.test:443", socks.requests.poll(5, TimeUnit.SECONDS))
+                }
+            }
+        }
     }
 }

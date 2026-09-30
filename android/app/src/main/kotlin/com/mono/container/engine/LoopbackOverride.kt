@@ -3,6 +3,7 @@ package com.mono.container.engine
 import androidx.webkit.ProxyConfig
 import androidx.webkit.ProxyController
 import androidx.webkit.WebViewFeature
+import java.util.concurrent.CountDownLatch
 
 /**
  * P2 spec §1.3: every scheme to the loopback proxy, implicit rules removed so
@@ -16,6 +17,23 @@ internal fun loopbackProxyConfig(port: Int): ProxyConfig =
         .build()
 
 /**
+ * Released once WebView has applied the override: `setProxyOverride` takes
+ * effect asynchronously, and until then a request goes direct. [routeAtOpen]
+ * waits on it before any site's view can exist.
+ */
+internal class OverrideApplied {
+    private val latch = CountDownLatch(1)
+
+    val isApplied: Boolean get() = latch.count == 0L
+
+    /** The override's listener: WebView has applied it. */
+    fun markApplied() = latch.countDown()
+
+    /** Blocks until [markApplied]. Never on the main thread, which the listener may need. */
+    fun await() = latch.await()
+}
+
+/**
  * The process's one loopback proxy and credential table. There must never be
  * two: Chromium caches each profile's proxy credential for the life of the
  * process, so a second table would issue credentials that cache never sends,
@@ -23,6 +41,9 @@ internal fun loopbackProxyConfig(port: Int): ProxyConfig =
  */
 internal object Loopback {
     val credentials = SiteCredentials()
+
+    /** Released by the override's listener; only waited on when [start] returned true. */
+    val applied = OverrideApplied()
 
     private var installed: Boolean? = null
 
@@ -48,7 +69,7 @@ internal object Loopback {
             android.util.Log.w("ContainerEngine", "The loopback proxy could not start: proxied sites are refused", it)
             return false
         }
-        ProxyController.getInstance().setProxyOverride(loopbackProxyConfig(proxy.port), { it.run() }, {})
+        ProxyController.getInstance().setProxyOverride(loopbackProxyConfig(proxy.port), { it.run() }, applied::markApplied)
         return true
     }
 }

@@ -130,6 +130,18 @@ Step 10's early check):
   shows, the app stays up, and `adb shell run-as com.mono.container ls
   app_flutter` lists neither `meta.bin` nor `store-1.db`.
 
+**D. The design rulings of 2026-09-30** (not in the plan's list):
+
+- **The system proxy.** In the emulator's Wi-Fi settings, set a manual proxy
+  `10.0.2.2:8888` with `example.org` in its bypass list. A direct
+  `https://example.com` site loads and `proxy.py` logs
+  `CONNECT example.com:443`; a direct `https://example.org` site loads with no
+  `proxy.py` line. A SOCKS5 site still logs `SOCKS5 NAME …`, with no
+  `CONNECT` line for it. Clear the Wi-Fi proxy afterwards.
+- **Waiting for the override.** Covered by A.4. It never keeps a site on the
+  checklist in practice; if a site ever sits on "Connecting…" with nothing in
+  the P2 log, the override's listener never ran.
+
 Also from Task 6 Step 10: a SOCKS5 site whose URL is
 `https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf`
 holds a download reading `13.0 KB · from www.w3.org` (seen last run); its
