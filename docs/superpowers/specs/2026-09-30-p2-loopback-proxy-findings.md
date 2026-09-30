@@ -83,3 +83,45 @@ Twelve more throwaway profiles each answered their own first 407 with their own 
 - HTTP/2 or QUIC to the proxy. The override was a plain `http` proxy rule, and Chromium used HTTP/1.1 CONNECT and absolute-form requests.
 - WebSocket (the app's shields block it) and WebRTC (UDP, not proxied at all; the app's "Block WebRTC" governs it).
 - Whether the per-profile auth cache survives a WebView renderer crash (it lives in the browser process, so it should).
+
+## dns-prefetch control
+
+2026-09-30, same emulator (WebView 154), with the device's DNS logged through a forwarder on the host. The question was the user's ruling: can a tag injected at page start (`<meta http-equiv="x-dns-prefetch-control" content="off">`) stop the hostname lookups that `<link rel="dns-prefetch">` causes? If not, the gap is accepted.
+
+**Answer: no.** Neither the injected tag nor the page's own `X-DNS-Prefetch-Control: off` response header stopped a single dns-prefetch lookup, in any position, on a direct site or a proxied one. **The gap stands.**
+
+### Method
+
+- **Injection.** A disposable patch added one more `WebViewCompat.addDocumentStartJavaScript` call beside Shields' own, with the same `*` origin rule. When the page URL contained `inject=1`, it created that `<meta>` and appended it to `document.head` (or to `documentElement` before the head existed).
+- **Probe page.** `dp.html?run=N` was served by a local server. `hdr=1` made the server add `X-DNS-Prefetch-Control: off` (checked with curl). Every run used hostnames unique to it:
+  - (a) `a<N>.example.org` in `<link rel=dns-prefetch>`, the first element of the static `<head>`;
+  - (b) `b<N>`, the same link placed after `<body>`;
+  - (c) `c<N>`, a dns-prefetch link inserted by script 500 ms after load;
+  - (d) `d<N>`, a `<link rel=preconnect>` in the head;
+  - (e) `e<N>`, a plain `<a href="http://…">` as a control.
+- The page printed whether the `<meta>` was present (`meta=true`/`false`), which confirmed the injection ran.
+- **Two sites.** A direct site at `http://10.0.2.2:8000/…`, where Chromium fetches the page, as it will for every site under P2. A SOCKS5 site at `http://127.0.0.1:8000/…`, where today's interceptor fetches the page and hands it over, headers included. A cleartext allowance was added for these http pages.
+- **Flaky runs discarded.** A run counted only if its page finished, meaning its script printed `meta=…`. Four runs did not finish, and in each only (d) was looked up. Those are discarded as harness flakes.
+
+### Results (a name listed = looked up on the device)
+
+| Site | Header off | Tag injected | Runs that finished | Looked up |
+|---|---|---|---|---|
+| direct | – | – | 32, 33, 34, 11 | a b c d, every run |
+| direct | yes | – | 15, 18, 41, 42 | a b c d, every run |
+| direct | – | yes | 13, 19, 43, 44 | a b c d, every run (`meta=true`) |
+| direct | yes | yes | 14, 45 | a b c d, every run (`meta=true`) |
+| SOCKS5 | – | – | 51 | a b c d |
+| SOCKS5 | yes | – | 52 | a b c d |
+| SOCKS5 | – | yes | 53 | a b c d (`meta=true`) |
+| SOCKS5 | yes | yes | 54 | a b c d |
+
+- **(a) head, (b) body, (c) script-inserted:** looked up in every finished run, whatever the tag or header.
+- **(d) preconnect:** looked up in every run, including the four that did not finish. So Chromium acts on a preconnect from the preload scanner, while a dns-prefetch waits until its element reaches the DOM. That doesn't help, because the control is ignored either way. (Under P2 the preconnect itself goes to the loopback proxy. That lookup is today's direct preconnect.)
+- **(e) anchor:** never looked up. WebView 154 does no implicit DNS prefetch of link hosts, with or without the control.
+- **Direct vs proxied:** no difference.
+- **Why:** consistent with Blink's source. `PreloadHelper::DnsPrefetchIfNeeded` checks only the frame setting `DNSPrefetchingEnabled`, and never the document's prefetch-control flag, which the header and the `<meta>` set. WebView exposes no switch for that setting (`AwSettings` has none).
+
+### What this leaves for the spec
+
+A page's `<link rel="dns-prefetch">` sends its hostname to the device's DNS resolver, and nothing an app can inject stops it. The only remaining lever is removing the hint from the HTML before WebView parses it. Under P2, Chromium fetches pages itself, so the app no longer sees the HTML. **Record it as a known gap** (the user's ruling for this outcome). What leaks is the hostname, to the device's DNS resolver: not the page, and not a connection to the site.
