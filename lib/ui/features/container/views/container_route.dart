@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../data/services/app_database.dart' show newProfileId;
 import '../../../../data/services/container_engine.dart';
+import '../../../../data/services/site_wipe.dart';
 import '../../../../domain/models/address_suggestion.dart';
 import '../../../../domain/models/container_session.dart';
 import '../../../../domain/models/destination.dart';
@@ -287,9 +288,7 @@ class _ContainerRouteState extends ConsumerState<ContainerRoute> {
             )),
             onCloseAndWipe: () async {
               Navigator.pop(sheetContext);
-              closeSite(ref, widget.site.id);
-              await _engine.close(widget.site.id);
-              await _engine.wipe(widget.site.profileId);
+              await _closeAndWipe();
               if (!mounted) return;
               Navigator.pop(context);
             },
@@ -355,6 +354,23 @@ class _ContainerRouteState extends ConsumerState<ContainerRoute> {
         },
       ),
     ));
+  }
+
+  /// `6c`'s "Close and wipe this session", `2c`'s "Close all and wipe" and
+  /// `8c`'s "Close and wipe": this site's session is closed and its data
+  /// destroyed. A saved site keeps its row under a fresh profile
+  /// ([wipeSavedSite]). A throwaway has no row to rotate — its profile is
+  /// journaled from before it exists and goes with it — so it is only closed
+  /// and wiped.
+  Future<void> _closeAndWipe() async {
+    closeSite(ref, widget.site.id);
+    if (_isThrowaway) {
+      await _engine.close(widget.site.id);
+      await _engine.wipe(_site.profileId);
+      return;
+    }
+    final sites = ref.read(siteRepositoryProvider);
+    _site = await wipeSavedSite(engine: _engine, sites: sites, site: _site);
   }
 
   Future<void> _openReader() async {
@@ -581,9 +597,7 @@ class _ContainerRouteState extends ConsumerState<ContainerRoute> {
               Navigator.pop(context);
             },
             onCloseAllAndWipe: () async {
-              closeSite(ref, widget.site.id);
-              await _engine.close(widget.site.id);
-              await _engine.wipe(widget.site.profileId);
+              await _closeAndWipe();
               if (!context.mounted) return;
               Navigator.pop(context);
             },
@@ -594,9 +608,7 @@ class _ContainerRouteState extends ConsumerState<ContainerRoute> {
               droppedAgoLabel: 'just now',
               onReconnect: () => setState(() => _tunnelDropped = false),
               onCloseAndWipe: () async {
-                closeSite(ref, widget.site.id);
-                await _engine.close(widget.site.id);
-                await _engine.wipe(widget.site.profileId);
+                await _closeAndWipe();
                 if (!context.mounted) return;
                 Navigator.pop(context);
               },

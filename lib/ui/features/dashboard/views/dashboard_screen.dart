@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../data/services/site_wipe.dart';
 import '../../../core/tokens.dart';
 import '../../add_site/views/add_site_screen.dart';
+import '../../container/view_models/providers.dart' show containerEngineProvider;
 import '../../container/views/container_route.dart';
 import '../../report/views/today_route.dart';
 import '../../search/view_models/providers.dart'
@@ -13,6 +15,7 @@ import '../../settings/views/settings_route.dart';
 import '../view_models/providers.dart';
 import 'dashboard_body.dart';
 import 'site_row_menu.dart';
+import 'wipe_site_sheet.dart';
 import '../views/workspace_menu.dart';
 
 class DashboardScreen extends ConsumerStatefulWidget {
@@ -100,12 +103,30 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                         ),
                       ));
                     } else if (action == SiteRowAction.removeSite) {
-                      await ref.read(siteRepositoryProvider).delete(siteId);
+                      // Closed and wiped first: deleting the row alone left
+                      // the site's profile and downloads on disk.
+                      closeSite(ref, siteId);
+                      await removeSavedSite(
+                        engine: ref.read(containerEngineProvider),
+                        sites: ref.read(siteRepositoryProvider),
+                        site: site,
+                      );
+                      ref.invalidate(dashboardProvider);
+                    } else if (action == SiteRowAction.wipeData) {
+                      // Asked first (user's ruling, 2026-09-30); the site
+                      // stays, under a fresh profile (wipeSavedSite).
+                      if (!await confirmWipeSite(context) || !mounted) return;
+                      closeSite(ref, siteId);
+                      await wipeSavedSite(
+                        engine: ref.read(containerEngineProvider),
+                        sites: ref.read(siteRepositoryProvider),
+                        site: site,
+                      );
                       ref.invalidate(dashboardProvider);
                     }
-                    // openEphemeral, duplicate, requirePin, wipeData: Known Gap,
-                    // see this plan's Known Gaps section — none has a target
-                    // workspace/wipe-confirmation flow built anywhere yet.
+                    // openEphemeral, duplicate, requirePin: Known Gap, see
+                    // Plan 6's Known gaps — none has a target workspace or
+                    // PIN flow built anywhere yet.
                   },
                 ),
               );
