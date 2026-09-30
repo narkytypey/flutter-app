@@ -68,6 +68,7 @@ class _LockScreenState extends ConsumerState<LockScreen> {
       // being present means biometrics was actually enabled for the vault
       // that just backgrounded. `biometricVault` can be non-null on its own.
       biometricAvailable: session.biometricWrappedKey != null,
+      lockedAfter: session.lockedAfter,
     );
   }
 

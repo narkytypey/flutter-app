@@ -18,7 +18,9 @@ class LifecycleController with WidgetsBindingObserver {
     DateTime Function()? clock,
   }) : _clock = clock ?? DateTime.now;
 
-  final AutoLockPolicy policy;
+  /// The open vault's Auto-lock choice. `SessionController` sets it whenever
+  /// a vault opens or its choice changes.
+  AutoLockPolicy policy;
   final ValueChanged<bool> onMaskChanged;
   final ValueChanged<ReturnDestination> onReturn;
   final DateTime Function() _clock;

@@ -8,6 +8,7 @@ import 'package:container/data/repositories/site_repository_sqlite.dart';
 import 'package:container/data/repositories/workspace_repository_sqlite.dart';
 import 'package:container/data/services/app_database.dart';
 import 'package:container/data/services/vault_store.dart';
+import 'package:container/domain/models/lock_state.dart';
 import 'package:container/domain/models/site.dart';
 import 'package:container/domain/models/vault.dart';
 import 'package:container/domain/models/workspace.dart';
@@ -171,5 +172,14 @@ void main() {
 
       expect(outcome, isA<DecoyResyncThrottled>());
     });
+  });
+
+  test('choosing an auto-lock saves it in the open vault and applies it now', () async {
+    await container.read(settingsControllerProvider).setAutoLock(AutoLockPolicy.fiveMinutes);
+
+    expect(await container.read(settingsRepositoryProvider).getString('auto_lock'),
+        AutoLockPolicy.fiveMinutes.stored);
+    expect(await container.read(autoLockProvider.future), AutoLockPolicy.fiveMinutes);
+    expect(container.read(sessionProvider.notifier).debugAutoLock, AutoLockPolicy.fiveMinutes);
   });
 }

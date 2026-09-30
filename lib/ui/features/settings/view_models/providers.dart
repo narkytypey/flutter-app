@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../data/repositories/decoy_provisioner.dart' show resyncDecoy;
 import '../../../../data/repositories/settings_repository_sqlite.dart';
+import '../../../../domain/models/lock_state.dart';
 import '../../../../domain/models/search_engine.dart';
 import '../../../../domain/models/vault.dart';
 import '../../../../domain/repositories/repositories.dart' show SettingsRepository;
@@ -59,6 +60,13 @@ final searchEngineProvider = FutureProvider<SearchEngine>((ref) async {
   return SearchEngine.fromStored(stored);
 });
 
+/// The open vault's Auto-lock choice (user's ruling, 2026-09-30), stored as
+/// whole minutes in `auto_lock`.
+final autoLockProvider = FutureProvider<AutoLockPolicy>((ref) async {
+  final stored = await ref.watch(settingsRepositoryProvider).getString('auto_lock');
+  return AutoLockPolicy.fromStored(stored);
+});
+
 sealed class DecoyResyncOutcome {
   const DecoyResyncOutcome();
 }
@@ -110,6 +118,14 @@ class SettingsController {
 
     await repository.setBool('biometrics_enabled', value);
     _ref.invalidate(biometricsEnabledProvider);
+  }
+
+  /// Saves the open vault's choice, and applies it from the next time the app
+  /// goes to the background.
+  Future<void> setAutoLock(AutoLockPolicy policy) async {
+    await _ref.read(settingsRepositoryProvider).setString('auto_lock', policy.stored);
+    _ref.read(sessionProvider.notifier).setAutoLock(policy);
+    _ref.invalidate(autoLockProvider);
   }
 
   Future<void> setSearchEngine(SearchEngine engine) async {

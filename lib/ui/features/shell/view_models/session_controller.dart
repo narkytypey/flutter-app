@@ -56,6 +56,7 @@ class SessionLocked extends Session {
     this.lockDeadline,
     this.biometricVault,
     this.biometricWrappedKey,
+    this.lockedAfter = AutoLockPolicy.oneMinute,
   });
 
   final LockMood mood;
@@ -64,6 +65,10 @@ class SessionLocked extends Session {
   final DateTime? lockDeadline;
   final VaultId? biometricVault;
   final Uint8List? biometricWrappedKey;
+
+  /// The Auto-lock choice that locked the vault, for `9c`'s line. Only
+  /// meaningful for [LockMood.welcomeBack] and [LockMood.afterTimeout].
+  final AutoLockPolicy lockedAfter;
 }
 
 /// A vault is open. Read by `databaseProvider` below — nothing else in the
@@ -198,6 +203,7 @@ class SessionController extends Notifier<Session> {
           dataKey: dataKey,
         );
         await ensureWorkspace(database);
+        await _loadAutoLock(database);
         state = SessionOpen(
           vault: vault,
           database: database,
@@ -283,6 +289,7 @@ class SessionController extends Notifier<Session> {
       dataKey: dataKey,
     );
     await ensureWorkspace(database);
+    await _loadAutoLock(database);
     state = SessionOpen(
       vault: current.biometricVault!,
       database: database,
@@ -314,8 +321,25 @@ class SessionController extends Notifier<Session> {
     required AppDatabase database,
     required Uint8List dataKey,
   }) {
+    // A new vault has made no Auto-lock choice yet.
+    _lifecycle.policy = AutoLockPolicy.oneMinute;
     state = SessionOpen(vault: vault, database: database, dataKey: dataKey);
   }
+
+  /// The open vault's Auto-lock choice (user's ruling, 2026-09-30), read as it
+  /// opens and held here, since its database closes the moment the app goes
+  /// to the background, before the return decides between `9b` and `9c`.
+  Future<void> _loadAutoLock(AppDatabase database) async {
+    _lifecycle.policy = AutoLockPolicy.fromStored(
+        await SqliteSettingsRepository(database).getString('auto_lock'));
+  }
+
+  /// Called by `SettingsController` once the open vault's choice is saved,
+  /// so the next return uses it.
+  void setAutoLock(AutoLockPolicy policy) => _lifecycle.policy = policy;
+
+  @visibleForTesting
+  AutoLockPolicy get debugAutoLock => _lifecycle.policy;
 
   /// Called by `LockScreen`'s own timer once `SessionLocked.lockDeadline`
   /// has passed without a correct PIN. A no-op outside the welcome-back
@@ -327,7 +351,11 @@ class SessionController extends Notifier<Session> {
       return;
     }
     ref.read(openSiteIdsProvider.notifier).state = {};
-    state = SessionLocked(mood: LockMood.afterTimeout, gate: current.gate);
+    state = SessionLocked(
+      mood: LockMood.afterTimeout,
+      gate: current.gate,
+      lockedAfter: current.lockedAfter,
+    );
   }
 
   @visibleForTesting
@@ -355,14 +383,18 @@ class SessionController extends Notifier<Session> {
           mood: LockMood.welcomeBack,
           gate: const AttemptGate(),
           openSessionCount: ref.read(openSiteIdsProvider).length,
-          lockDeadline: DateTime.now().add(AutoLockPolicy.oneMinute.grace),
+          lockDeadline: DateTime.now().add(_lifecycle.policy.grace),
           biometricVault: current.vault,
           biometricWrappedKey: current.biometricWrappedKey,
+          lockedAfter: _lifecycle.policy,
         );
       case ReturnDestination.pin:
         ref.read(openSiteIdsProvider.notifier).state = {};
-        state =
-            const SessionLocked(mood: LockMood.afterTimeout, gate: AttemptGate());
+        state = SessionLocked(
+          mood: LockMood.afterTimeout,
+          gate: const AttemptGate(),
+          lockedAfter: _lifecycle.policy,
+        );
     }
   }
 }

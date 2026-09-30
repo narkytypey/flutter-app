@@ -17,8 +17,8 @@ void main() {
     expect(settingsDestination('decoySites'), isA<WorkspacesRoute>());
   });
 
-  test('rows with nothing built behind them lead nowhere', () {
-    for (final key in ['autoLock', 'changePin', 'onPanic']) {
+  test('rows that open a sheet, or nothing, have no screen', () {
+    for (final key in ['autoLock', 'searchEngine', 'changePin', 'onPanic']) {
       expect(settingsDestination(key), isNull, reason: key);
     }
   });

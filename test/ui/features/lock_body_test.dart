@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:container/domain/models/lock_state.dart';
 import 'package:container/ui/core/tokens.dart';
 import 'package:container/ui/features/lock/views/lock_body.dart';
 
@@ -113,5 +114,20 @@ void main() {
 
     await tester.tap(find.text('Use fingerprint'));
     expect(tapped, isTrue);
+  });
+
+  testWidgets('after the timer, the line names the auto-lock that fired', (tester) async {
+    await _pump(
+      tester,
+      LockBody(
+        mood: LockMood.afterTimeout,
+        filled: 0,
+        onKey: (_) {},
+        onBiometric: _defaultOnBiometric,
+        lockedAfter: AutoLockPolicy.fifteenMinutes,
+      ),
+    );
+    expect(find.text('Locked after 15 minutes in the background'), findsOneWidget);
+    expect(find.text('Locked after 1 minute in the background'), findsNothing);
   });
 }

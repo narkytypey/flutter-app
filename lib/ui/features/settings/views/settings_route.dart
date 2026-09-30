@@ -1,17 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../domain/models/lock_state.dart';
 import '../../../../domain/models/search_engine.dart';
 import '../../scripts/views/scripts_route.dart';
 import '../../workspaces/views/workspaces_route.dart';
 import '../view_models/providers.dart';
+import 'auto_lock_picker.dart';
 import 'decoy_resync_route.dart';
 import 'search_engine_picker.dart';
 import 'settings_screen.dart';
 
 /// The screen a Settings row opens, by the key `SettingsScreen.onTap`
 /// reports. Null for a row with nothing built behind it yet, and for
-/// `searchEngine`, which opens a sheet rather than a screen.
+/// `autoLock` and `searchEngine`, which open a sheet rather than a screen.
 Widget? settingsDestination(String key) => switch (key) {
       'resyncDecoy' => const DecoyResyncRoute(),
       'workspaces' => const WorkspacesRoute(),
@@ -34,10 +36,11 @@ class SettingsRoute extends ConsumerWidget {
     final decoyEnabled = ref.watch(decoyEnabledProvider);
     final decoySiteCount = ref.watch(decoySiteCountProvider);
     final searchEngine = ref.watch(searchEngineProvider).valueOrNull;
+    final autoLock = ref.watch(autoLockProvider).valueOrNull ?? AutoLockPolicy.oneMinute;
     return SettingsScreen(
       biometrics: biometrics.value ?? false,
       biometricsAvailable: biometricsAvailable.value ?? false,
-      autoLockLabel: 'After 1 min',
+      autoLockLabel: autoLock.label,
       decoyEnabled: decoyEnabled.value ?? false,
       decoySiteCount: decoySiteCount.value ?? 0,
       hideFromSwitcher: true,
@@ -50,6 +53,10 @@ class SettingsRoute extends ConsumerWidget {
         }
       },
       onTap: (key) {
+        if (key == 'autoLock') {
+          _pickAutoLock(context, ref, autoLock);
+          return;
+        }
         if (key == 'searchEngine') {
           _pickSearchEngine(context, ref, searchEngine ?? SearchEngine.duckDuckGo);
           return;
@@ -59,6 +66,20 @@ class SettingsRoute extends ConsumerWidget {
           Navigator.push(context, MaterialPageRoute(builder: (_) => destination));
         }
       },
+    );
+  }
+
+  void _pickAutoLock(BuildContext context, WidgetRef ref, AutoLockPolicy current) {
+    showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (sheetContext) => AutoLockPicker(
+        current: current,
+        onPick: (policy) {
+          Navigator.pop(sheetContext);
+          ref.read(settingsControllerProvider).setAutoLock(policy);
+        },
+      ),
     );
   }
 

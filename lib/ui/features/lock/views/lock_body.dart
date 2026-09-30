@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../../../domain/models/lock_state.dart';
+
 import '../../../core/tokens.dart';
 import '../../../core/typography.dart';
 import '../../../core/widgets/pin_dots.dart';
@@ -23,6 +25,7 @@ class LockBody extends StatelessWidget {
     this.openSessions = 0,
     this.secondsUntilLock = 0,
     this.biometricAvailable = false,
+    this.lockedAfter = AutoLockPolicy.oneMinute,
   });
 
   final LockMood mood;
@@ -33,6 +36,9 @@ class LockBody extends StatelessWidget {
   final int openSessions;
   final int secondsUntilLock;
   final bool biometricAvailable;
+
+  /// Names the Auto-lock choice in `9c`'s line.
+  final AutoLockPolicy lockedAfter;
 
   bool get _wrong => mood == LockMood.wrong;
 
@@ -129,7 +135,7 @@ class LockBody extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('Locked after 1 minute in the background',
+                  Text(lockedAfter.lockedLine,
                       style: ui(size: 12.5, color: C.textMuted)),
                   const SizedBox(height: 6),
                   Text(

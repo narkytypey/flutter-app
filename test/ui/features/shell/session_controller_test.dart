@@ -465,4 +465,70 @@ void main() {
 
     expect(container.read(sessionProvider), isA<SessionLocked>());
   });
+
+  // User's ruling, 2026-09-30: the open vault's Auto-lock choice decides 9b's
+  // window and 9c's line.
+
+  test("an unlocked vault's auto-lock sets 9b's deadline and 9c's line", () async {
+    await vaultStore.provision(pin: '111111', vault: VaultId.a);
+    await vaultStore.provisionUnopenable(VaultId.b);
+    Future<AppDatabase> vaultWithFiveMinutes() async {
+      final db = await AppDatabase.open(path: inMemoryDatabasePath, factory: databaseFactoryFfi);
+      await SqliteSettingsRepository(db).setString('auto_lock', AutoLockPolicy.fiveMinutes.stored);
+      return db;
+    }
+
+    for (final destination in ReturnDestination.values) {
+      final container = ProviderContainer(overrides: [
+        cryptoServiceProvider.overrideWithValue(crypto),
+        vaultStoreProvider.overrideWithValue(vaultStore),
+        documentsDirectoryProvider.overrideWithValue(dir),
+        initialSessionProvider.overrideWithValue(
+            SessionLocked(mood: LockMood.normal, gate: await vaultStore.gate())),
+        biometricServiceProvider.overrideWithValue(FakeBiometricService()),
+        vaultOpenerProvider.overrideWithValue(
+            ({required String path, required Uint8List dataKey}) => vaultWithFiveMinutes()),
+      ]);
+      addTearDown(container.dispose);
+      await container.read(sessionProvider.notifier).unlock('111111');
+      expect(container.read(sessionProvider.notifier).debugAutoLock, AutoLockPolicy.fiveMinutes);
+
+      final before = DateTime.now();
+      container.read(sessionProvider.notifier).debugHandleReturn(destination);
+      final locked = container.read(sessionProvider) as SessionLocked;
+      expect(locked.lockedAfter, AutoLockPolicy.fiveMinutes);
+      if (destination == ReturnDestination.board) {
+        final grace = locked.lockDeadline!.difference(before);
+        expect(grace.inSeconds, inInclusiveRange(299, 301));
+      }
+    }
+  });
+
+  test('a changed auto-lock applies to the next return', () async {
+    final db = await AppDatabase.open(path: inMemoryDatabasePath, factory: databaseFactoryFfi);
+    final container = buildContainer(
+        SessionOpen(vault: VaultId.a, database: db, dataKey: Uint8List(32)));
+    final controller = container.read(sessionProvider.notifier);
+    expect(controller.debugAutoLock, AutoLockPolicy.oneMinute);
+
+    controller.setAutoLock(AutoLockPolicy.fifteenMinutes);
+    final before = DateTime.now();
+    controller.debugHandleReturn(ReturnDestination.board);
+
+    final locked = container.read(sessionProvider) as SessionLocked;
+    expect(locked.lockDeadline!.difference(before).inMinutes, 15);
+  });
+
+  test('9c keeps the line of the auto-lock that fired when the grace runs out', () async {
+    final container = buildContainer(SessionLocked(
+      mood: LockMood.welcomeBack,
+      gate: const AttemptGate(),
+      lockDeadline: DateTime.now(),
+      lockedAfter: AutoLockPolicy.fiveMinutes,
+    ));
+    container.read(sessionProvider.notifier).graceExpired();
+    final locked = container.read(sessionProvider) as SessionLocked;
+    expect(locked.mood, LockMood.afterTimeout);
+    expect(locked.lockedAfter, AutoLockPolicy.fiveMinutes);
+  });
 }

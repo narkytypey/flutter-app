@@ -29,4 +29,33 @@ void main() {
     const instant = AutoLockPolicy(Duration.zero);
     expect(instant.destinationFor(Duration.zero), ReturnDestination.pin);
   });
+
+  // User's ruling, 2026-09-30: Auto-lock offers 1, 5 and 15 minutes.
+
+  test('the three choices, in order, with their labels', () {
+    expect(AutoLockPolicy.choices.map((p) => p.label),
+        ['After 1 min', 'After 5 min', 'After 15 min']);
+  });
+
+  test('9c names the duration that locked it', () {
+    expect(AutoLockPolicy.oneMinute.lockedLine, 'Locked after 1 minute in the background');
+    expect(AutoLockPolicy.fiveMinutes.lockedLine, 'Locked after 5 minutes in the background');
+    expect(AutoLockPolicy.fifteenMinutes.lockedLine,
+        'Locked after 15 minutes in the background');
+  });
+
+  test('five minutes is the grace for five minutes', () {
+    expect(AutoLockPolicy.fiveMinutes.destinationFor(const Duration(minutes: 4, seconds: 59)),
+        ReturnDestination.board);
+    expect(AutoLockPolicy.fiveMinutes.destinationFor(const Duration(minutes: 5)),
+        ReturnDestination.pin);
+  });
+
+  test('a stored choice reads back; anything else is one minute', () {
+    for (final policy in AutoLockPolicy.choices) {
+      expect(AutoLockPolicy.fromStored(policy.stored), policy);
+    }
+    expect(AutoLockPolicy.fromStored(null), AutoLockPolicy.oneMinute);
+    expect(AutoLockPolicy.fromStored('7'), AutoLockPolicy.oneMinute);
+  });
 }
