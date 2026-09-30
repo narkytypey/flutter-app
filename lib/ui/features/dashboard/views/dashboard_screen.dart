@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../data/services/site_wipe.dart';
 import '../../../core/tokens.dart';
 import '../../add_site/views/add_site_screen.dart';
+import '../../container/view_models/providers.dart' show containerEngineProvider;
 import '../../container/views/container_route.dart';
 import '../../report/views/today_route.dart';
 import '../../search/view_models/providers.dart'
@@ -100,7 +102,14 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                         ),
                       ));
                     } else if (action == SiteRowAction.removeSite) {
-                      await ref.read(siteRepositoryProvider).delete(siteId);
+                      // Closed and wiped first: deleting the row alone left
+                      // the site's profile and downloads on disk.
+                      closeSite(ref, siteId);
+                      await removeSavedSite(
+                        engine: ref.read(containerEngineProvider),
+                        sites: ref.read(siteRepositoryProvider),
+                        site: site,
+                      );
                       ref.invalidate(dashboardProvider);
                     }
                     // openEphemeral, duplicate, requirePin, wipeData: Known Gap,
