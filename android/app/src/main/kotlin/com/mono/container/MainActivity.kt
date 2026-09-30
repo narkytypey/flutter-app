@@ -7,6 +7,7 @@ import com.mono.container.engine.EngineChannel
 import com.mono.container.engine.PendingDeletions
 import com.mono.container.engine.ProfileManager
 import com.mono.container.engine.ThrowawayJournal
+import com.mono.container.engine.blockAutofillQueries
 import com.mono.container.engine.deleteDownloadsDir
 import io.flutter.embedding.android.FlutterFragmentActivity
 import io.flutter.embedding.engine.FlutterEngine
@@ -43,6 +44,8 @@ class MainActivity : FlutterFragmentActivity() {
         // Before anything can load a profile: a loaded one cannot be deleted.
         profiles.sweepPendingDeletions()
         profiles.sweepThrowaways(throwaways) { deleteDownloadsDir(applicationContext, it) }
+        // Before any page can load, like the sweeps above.
+        blockAutofillQueries()
         val engine = EngineChannel(applicationContext, profiles, throwaways)
         engine.attach(flutterEngine.dartExecutor.binaryMessenger)
 
