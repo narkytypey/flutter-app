@@ -84,4 +84,37 @@ void main() {
     expect(await store.exists, isFalse);
     expect(File('${dir.path}/meta.bin').existsSync(), isFalse);
   });
+
+  // Change main PIN (user's ruling, 2026-09-30).
+
+  test('rewrapping a slot moves it to the new PIN and keeps its data key', () async {
+    final key = await store.provision(pin: '111111', vault: VaultId.a);
+    await store.provision(pin: '222222', vault: VaultId.b);
+    final before = await store.slots();
+
+    await store.rewrap(vault: VaultId.a, pin: '333333', dataKey: key);
+
+    final unlocker = VaultUnlocker(crypto);
+    Future<UnlockOutcome> attempt(String pin) async => unlocker.attempt(
+        pin: pin, slots: await store.slots(), gate: const AttemptGate(), now: DateTime(2026));
+    final opened = await attempt('333333') as Unlocked;
+    expect(opened.vault, VaultId.a);
+    expect(opened.dataKey, key);
+    expect(await attempt('111111'), isA<Rejected>());
+    expect((await attempt('222222') as Unlocked).vault, VaultId.b);
+
+    final after = await store.slots();
+    expect(after[0].salt, isNot(before[0].salt));
+    expect(after[1].salt, before[1].salt);
+    expect(after[1].wrappedKey, before[1].wrappedKey);
+    expect(after[0].wrappedKey.length, before[0].wrappedKey.length);
+  });
+
+  test('rewrapping keeps the attempt counter', () async {
+    final key = await store.provision(pin: '111111', vault: VaultId.a);
+    await store.provisionUnopenable(VaultId.b);
+    await store.saveGate(const AttemptGate(failures: 2));
+    await store.rewrap(vault: VaultId.a, pin: '333333', dataKey: key);
+    expect((await store.gate()).failures, 2);
+  });
 }

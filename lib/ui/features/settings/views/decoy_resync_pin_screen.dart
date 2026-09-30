@@ -13,14 +13,19 @@ import '../../../core/widgets/pin_keypad.dart';
 /// biometric resume), none of which applies to this one-off check
 /// triggered from inside Settings. Says nothing about vaults, real or
 /// decoy, in its copy — same instinct `LockBody` already follows.
+///
+/// Change main PIN's first step reuses it with [title] `Enter your PIN`,
+/// the lock screen's own line.
 class DecoyResyncPinScreen extends StatelessWidget {
   const DecoyResyncPinScreen({
     super.key,
     required this.filled,
     required this.error,
     required this.onKey,
+    this.title = 'Enter the decoy PIN',
   });
 
+  final String title;
   final int filled;
   final bool error;
   final void Function(String key) onKey;
@@ -38,8 +43,7 @@ class DecoyResyncPinScreen extends StatelessWidget {
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Text('Enter the decoy PIN',
-                        style: ui(size: 14, color: C.textMuted)),
+                    Text(title, style: ui(size: 14, color: C.textMuted)),
                     const SizedBox(height: 26),
                     PinDots(filled: filled, error: error),
                     if (error) ...[

@@ -13,6 +13,8 @@ class SetupPinScreen extends StatelessWidget {
     required this.onKey,
     required this.onContinue,
     this.notice,
+    this.error = false,
+    this.showProgress = true,
   });
 
   final int filled;
@@ -21,6 +23,12 @@ class SetupPinScreen extends StatelessWidget {
   /// PIN' when it would also open the other vault (user's ruling,
   /// 2026-09-30). It never says why, so a coerced session learns nothing.
   final String? notice;
+
+  /// Red dots: Change main PIN's confirmation did not match.
+  final bool error;
+
+  /// Setup's step bar. Change main PIN reuses this screen outside setup.
+  final bool showProgress;
   final void Function(String) onKey;
 
   /// Null until six digits are entered.
@@ -36,7 +44,7 @@ class SetupPinScreen extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const StepProgress(step: 1),
+              if (showProgress) const StepProgress(step: 1),
               Expanded(
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
@@ -51,7 +59,7 @@ class SetupPinScreen extends StatelessWidget {
                       style: ui(size: 14, color: C.textMuted, height: 1.65),
                     ),
                     const SizedBox(height: 26),
-                    PinDots(filled: filled),
+                    PinDots(filled: filled, error: error),
                     if (notice != null) ...[
                       const SizedBox(height: 16),
                       Text(notice!, style: ui(size: 14, color: C.danger)),

@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../data/repositories/decoy_provisioner.dart' show resyncDecoy;
@@ -85,6 +87,37 @@ class DecoyResyncThrottled extends DecoyResyncOutcome {
   final Duration remaining;
 }
 
+/// What Change main PIN's steps come to (user's ruling, 2026-09-30).
+sealed class ChangePinOutcome {
+  const ChangePinOutcome();
+}
+
+/// Step 1: the PIN entered is this vault's.
+class ChangePinVerified extends ChangePinOutcome {
+  const ChangePinVerified();
+}
+
+/// The vault now opens with the new PIN.
+class ChangePinDone extends ChangePinOutcome {
+  const ChangePinDone();
+}
+
+/// Not this vault's PIN: a failed attempt, shared with the lock screen.
+class ChangePinRejected extends ChangePinOutcome {
+  const ChangePinRejected(this.triesLeft);
+  final int triesLeft;
+}
+
+class ChangePinThrottled extends ChangePinOutcome {
+  const ChangePinThrottled(this.remaining);
+  final Duration remaining;
+}
+
+/// The new PIN would also open the other vault. Nothing changed.
+class ChangePinClash extends ChangePinOutcome {
+  const ChangePinClash();
+}
+
 class SettingsController {
   SettingsController(this._ref);
 
@@ -131,6 +164,77 @@ class SettingsController {
   Future<void> setSearchEngine(SearchEngine engine) async {
     await _ref.read(settingsRepositoryProvider).setString('search_engine', engine.name);
     _ref.invalidate(searchEngineProvider);
+  }
+
+  /// Change main PIN, step 1: whether [pin] opens the vault open now. Checked
+  /// like the lock screen checks a PIN, on the same attempt gate, so this is
+  /// no second surface for guessing, except that a match never resets the
+  /// gate. The other vault's PIN is rejected like any wrong one.
+  Future<ChangePinOutcome> verifyCurrentPin(String pin) async {
+    final checked = await _checkCurrent(pin);
+    return checked.$1;
+  }
+
+  /// Moves the open vault to [replacement], after checking [current] again.
+  ///
+  /// A [replacement] that would also open the other vault is refused
+  /// ([ChangePinClash]), since one PIN would then open only whichever vault is
+  /// tried first. The refusal tells the person that the PIN opens something,
+  /// so it is recorded as a failed attempt, exactly as trying that PIN on the
+  /// lock screen would be: from a coerced decoy session this is no faster a
+  /// way to guess the real vault's PIN than the lock screen.
+  Future<ChangePinOutcome> changePin({
+    required String current,
+    required String replacement,
+  }) async {
+    final (outcome, dataKey) = await _checkCurrent(current);
+    if (outcome is! ChangePinVerified) return outcome;
+    final vaultStore = _ref.read(vaultStoreProvider);
+    final crypto = _ref.read(cryptoServiceProvider);
+    final vault = (_ref.read(sessionProvider) as SessionOpen).vault;
+    final other = VaultId.values.firstWhere((v) => v != vault);
+
+    final otherSlot = (await vaultStore.slots())[other.index];
+    final kek = await crypto.deriveKek(replacement, otherSlot.salt);
+    if (await crypto.unwrap(kek, otherSlot.wrappedKey) != null) {
+      await vaultStore.saveGate((await vaultStore.gate()).recordFailure(DateTime.now()));
+      return const ChangePinClash();
+    }
+    await vaultStore.rewrap(vault: vault, pin: replacement, dataKey: dataKey!);
+    return const ChangePinDone();
+  }
+
+  /// [ChangePinVerified] with the open vault's data key, or why not.
+  Future<(ChangePinOutcome, Uint8List?)> _checkCurrent(String pin) async {
+    final vaultStore = _ref.read(vaultStoreProvider);
+    final now = DateTime.now();
+    final beforeGate = await vaultStore.gate();
+    final outcome = await VaultUnlocker(_ref.read(cryptoServiceProvider)).attempt(
+      pin: pin,
+      slots: await vaultStore.slots(),
+      gate: beforeGate,
+      now: now,
+    );
+    final session = _ref.read(sessionProvider);
+    if (session is! SessionOpen) return (ChangePinRejected(beforeGate.triesLeft), null);
+
+    switch (outcome) {
+      case Throttled(:final remaining):
+        return (ChangePinThrottled(remaining), null);
+      case Rejected(:final gate):
+        await vaultStore.saveGate(gate);
+        return (ChangePinRejected(gate.triesLeft), null);
+      case Unlocked(:final vault, :final dataKey):
+        if (vault != session.vault) {
+          final failed = beforeGate.recordFailure(now);
+          await vaultStore.saveGate(failed);
+          return (ChangePinRejected(failed.triesLeft), null);
+        }
+        // The counter is not reset (the unlocker's `gate` is): only a real
+        // unlock resets it. Otherwise "verify, then try a PIN as the new one"
+        // would leave one failure per round, and never reach the lockout.
+        return (const ChangePinVerified(), dataKey);
+    }
   }
 
   /// Verifies [pin] against both vault slots the same way the lock screen
@@ -186,4 +290,4 @@ class SettingsController {
   }
 }
 
-final settingsControllerProvider = Provider((ref) => SettingsController(ref));
+final settingsControllerProvider = Provider<SettingsController>((ref) => SettingsController(ref));

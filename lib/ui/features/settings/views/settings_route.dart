@@ -7,6 +7,7 @@ import '../../scripts/views/scripts_route.dart';
 import '../../workspaces/views/workspaces_route.dart';
 import '../view_models/providers.dart';
 import 'auto_lock_picker.dart';
+import 'change_pin_route.dart';
 import 'decoy_resync_route.dart';
 import 'search_engine_picker.dart';
 import 'settings_screen.dart';
@@ -16,6 +17,7 @@ import 'settings_screen.dart';
 /// `autoLock` and `searchEngine`, which open a sheet rather than a screen.
 Widget? settingsDestination(String key) => switch (key) {
       'resyncDecoy' => const DecoyResyncRoute(),
+      'changePin' => const ChangePinRoute(),
       'workspaces' => const WorkspacesRoute(),
       // Each workspace's "Show in decoy vault" decides it (user's ruling,
       // 2026-09-30).
