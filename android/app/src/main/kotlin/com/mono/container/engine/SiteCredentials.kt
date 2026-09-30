@@ -1,5 +1,6 @@
 package com.mono.container.engine
 
+import java.io.Closeable
 import java.security.MessageDigest
 import java.security.SecureRandom
 
@@ -25,8 +26,53 @@ class ProxyCredential internal constructor(val user: String, val password: Strin
  * What an authenticated connection is routed by: the open session's site, and
  * whom to tell when its route is refused. [onRefused] is called on the proxy's
  * own threads.
+ *
+ * It also holds every socket the loopback proxy opened under it, on either
+ * side, until [revoke] closes them all. A connection's route is resolved once,
+ * when it opens, and Chromium pools its tunnels per profile, which outlives the
+ * view: without this, a site reopened on a new route went on using a tunnel on
+ * the old one (open problem 1, seen on the emulator going direct for a site set
+ * to SOCKS5).
  */
-class ProxyBinding(val config: SiteConfig, val onRefused: (RouteFailure) -> Unit)
+class ProxyBinding(val config: SiteConfig, val onRefused: (RouteFailure) -> Unit) {
+    private val held = HashSet<Closeable>()
+    private var revoked = false
+
+    /**
+     * Keeps [socket] until [revoke] or [release]. False, with [socket] already
+     * closed, once this binding is revoked: a connection authenticated just
+     * before its session closed must not start relaying after it.
+     */
+    internal fun hold(socket: Closeable): Boolean {
+        val kept = synchronized(this) {
+            if (!revoked) held += socket
+            !revoked
+        }
+        if (!kept) runCatching { socket.close() }
+        return kept
+    }
+
+    /** Whether the session this binding belonged to has closed or been rebound. */
+    internal val isRevoked: Boolean @Synchronized get() = revoked
+
+    /** [socket] has closed on its own; nothing to close later. */
+    @Synchronized internal fun release(socket: Closeable) {
+        held.remove(socket)
+    }
+
+    /**
+     * Closes every socket held and every one held from now on. Called on the
+     * main thread; a plain socket's close sends a FIN and does not block
+     * (nothing here sets `SO_LINGER`).
+     */
+    internal fun revoke() {
+        val sockets = synchronized(this) {
+            revoked = true
+            held.toList().also { held.clear() }
+        }
+        for (socket in sockets) runCatching { socket.close() }
+    }
+}
 
 /**
  * Which credential belongs to which profile, and which profiles have an open
@@ -36,6 +82,8 @@ class ProxyBinding(val config: SiteConfig, val onRefused: (RouteFailure) -> Unit
  * wiped saved site gets a fresh profile id, and so a fresh credential.
  *
  * Main thread: [credentialFor], [bind], [unbind]. Proxy threads: [lookup].
+ * A binding is revoked outside this table's lock, so closing its sockets never
+ * holds up a lookup.
  */
 class SiteCredentials(private val random: SecureRandom = SecureRandom()) {
     private val byProfile = HashMap<String, ProxyCredential>()
@@ -44,15 +92,27 @@ class SiteCredentials(private val random: SecureRandom = SecureRandom()) {
     @Synchronized fun credentialFor(profileId: String): ProxyCredential =
         byProfile.getOrPut(profileId) { ProxyCredential(randomHex(), randomHex()) }
 
-    /** The site's session is open: its credential now routes by [binding]. A later bind replaces it. */
-    @Synchronized fun bind(profileId: String, binding: ProxyBinding) {
-        credentialFor(profileId)
-        bindings[profileId] = binding
+    /**
+     * The site's session is open: its credential now routes by [binding]. A
+     * later bind replaces it and closes every connection opened under the one
+     * it replaces, whether or not the route changed: a route can only be
+     * resolved off the main thread (the probe), so they are never compared,
+     * and Chromium opens a new tunnel on the next request.
+     */
+    fun bind(profileId: String, binding: ProxyBinding) {
+        val replaced = synchronized(this) {
+            credentialFor(profileId)
+            bindings.put(profileId, binding)
+        }
+        if (replaced !== binding) replaced?.revoke()
     }
 
-    /** The site's session is closed: its credential finds nothing until the next [bind]. */
-    @Synchronized fun unbind(profileId: String) {
-        bindings.remove(profileId)
+    /**
+     * The site's session is closed: its credential finds nothing until the
+     * next [bind], and every connection opened under it is closed.
+     */
+    fun unbind(profileId: String) {
+        synchronized(this) { bindings.remove(profileId) }?.revoke()
     }
 
     /**

@@ -62,8 +62,8 @@ class LoopbackProxy(
                 val output = client.getOutputStream()
                 when (val decision = decide(readHead(input)?.let(::parseRequest), credentials::lookup)) {
                     is ProxyDecision.Reply -> output.write(statusResponse(decision.status))
-                    is ProxyDecision.Tunnel -> tunnel(client, input, output, decision)
-                    is ProxyDecision.Forward -> forward(client, input, output, decision)
+                    is ProxyDecision.Tunnel -> heldBy(decision.binding, client) { tunnel(client, input, output, decision) }
+                    is ProxyDecision.Forward -> heldBy(decision.binding, client) { forward(client, input, output, decision) }
                 }
                 output.flush()
             }
@@ -71,15 +71,31 @@ class LoopbackProxy(
     }
 
     /**
+     * Runs [relay] with [socket] held by [binding], so that closing the
+     * session, or rebinding it, closes the socket and ends the relay (open
+     * problem 1). Nothing runs when the binding is already revoked.
+     */
+    private inline fun heldBy(binding: ProxyBinding, socket: Socket, relay: () -> Unit) {
+        if (!binding.hold(socket)) return
+        try {
+            relay()
+        } finally {
+            binding.release(socket)
+        }
+    }
+
+    /**
      * A socket to [host]:[port] on [binding]'s route, or null once [output]
      * has been answered. A refused route is reported to the site, as the
-     * interceptor reported it before P2. A failed connection is answered and
-     * reported to no one (plan deviation 1).
+     * interceptor reported it before P2, unless its session has closed
+     * meanwhile. A failed connection is answered
+     * and reported to no one (plan deviation 1).
      */
     private fun upstream(binding: ProxyBinding, host: String, port: Int, output: OutputStream): Socket? {
         val route = resolve(binding.config)
         if (route is Route.Refused) {
-            binding.onRefused(route.failure)
+            // A new session on the same site must not hear the old one's failure.
+            if (!binding.isRevoked) binding.onRefused(route.failure)
             output.write(statusResponse(502))
             return null
         }
@@ -94,18 +110,21 @@ class LoopbackProxy(
 
     private fun tunnel(client: Socket, input: InputStream, output: OutputStream, tunnel: ProxyDecision.Tunnel) {
         val upstream = upstream(tunnel.binding, tunnel.host, tunnel.port, output) ?: return
-        upstream.use {
-            client.soTimeout = 0
-            output.write(CONNECTION_ESTABLISHED)
-            output.flush()
-            val back = workers.submit(Runnable {
-                pump(upstream.getInputStream(), output)
+        // Revoked while connecting: the page's side is closed already, and hold closes this one.
+        heldBy(tunnel.binding, upstream) {
+            upstream.use {
+                client.soTimeout = 0
+                output.write(CONNECTION_ESTABLISHED)
+                output.flush()
+                val back = workers.submit(Runnable {
+                    pump(upstream.getInputStream(), output)
+                    closeBoth(client, upstream)
+                })
+                pump(input, upstream.getOutputStream())
+                // Either side closing ends both (spec §7).
                 closeBoth(client, upstream)
-            })
-            pump(input, upstream.getOutputStream())
-            // Either side closing ends both (spec §7).
-            closeBoth(client, upstream)
-            runCatching { back.get() }
+                runCatching { back.get() }
+            }
         }
     }
 
@@ -116,24 +135,26 @@ class LoopbackProxy(
      */
     private fun forward(client: Socket, input: InputStream, output: OutputStream, forward: ProxyDecision.Forward) {
         val upstream = upstream(forward.binding, forward.host, forward.port, output) ?: return
-        upstream.use {
-            client.soTimeout = 0
-            val toUpstream = upstream.getOutputStream()
-            toUpstream.write(forward.head.toByteArray(Charsets.ISO_8859_1))
-            copyExactly(input, toUpstream, forward.bodyLength)
-            toUpstream.flush()
-            val back = workers.submit(Runnable {
-                runCatching {
-                    val fromUpstream = upstream.getInputStream().buffered()
-                    val head = readHead(fromUpstream) ?: return@runCatching
-                    output.write(closingResponseHead(head).toByteArray(Charsets.ISO_8859_1))
-                    pump(fromUpstream, output)
-                }
+        heldBy(forward.binding, upstream) {
+            upstream.use {
+                client.soTimeout = 0
+                val toUpstream = upstream.getOutputStream()
+                toUpstream.write(forward.head.toByteArray(Charsets.ISO_8859_1))
+                copyExactly(input, toUpstream, forward.bodyLength)
+                toUpstream.flush()
+                val back = workers.submit(Runnable {
+                    runCatching {
+                        val fromUpstream = upstream.getInputStream().buffered()
+                        val head = readHead(fromUpstream) ?: return@runCatching
+                        output.write(closingResponseHead(head).toByteArray(Charsets.ISO_8859_1))
+                        pump(fromUpstream, output)
+                    }
+                    closeBoth(client, upstream)
+                })
+                runCatching { input.read() }
                 closeBoth(client, upstream)
-            })
-            runCatching { input.read() }
-            closeBoth(client, upstream)
-            runCatching { back.get() }
+                runCatching { back.get() }
+            }
         }
     }
 

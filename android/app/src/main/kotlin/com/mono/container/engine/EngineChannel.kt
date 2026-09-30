@@ -408,7 +408,8 @@ class EngineChannel(
                 // From here until close, the loopback proxy routes this
                 // profile's requests on this config. Its reports arrive on the
                 // proxy's threads; the session map and the event sink are the
-                // main thread's.
+                // main thread's. A bind replacing this profile's last one (a
+                // reopen with no close between) closes that one's tunnels.
                 credentials.bind(config.profileId, ProxyBinding(config) { failure ->
                     mainHandler.post { onTunnelDropped(config.siteId, failure) }
                 })
@@ -499,7 +500,9 @@ class EngineChannel(
     private fun close(siteId: String) {
         pendingOpens.cancel(siteId)
         val session = sessions.remove(siteId) ?: return
-        // Chromium keeps sending this profile's credential; the proxy now answers 403.
+        // Chromium keeps sending this profile's credential; the proxy now
+        // answers 403, and closes every tunnel it opened on this session's
+        // route, which Chromium would otherwise reuse on the next open.
         credentials.unbind(session.config.profileId)
         // Flutter disposes the platform view when its AndroidView leaves the
         // tree, but `close` can also arrive from `2c` while the view is

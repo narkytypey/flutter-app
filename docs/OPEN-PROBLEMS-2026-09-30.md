@@ -77,6 +77,36 @@ throwaway's profile.
 **Needs the emulator to confirm:** repeat steps 1–3. After the fix, the
 reopen must show a fresh `CONNECT` on SOCKS5 and no direct socket.
 
+**✅ Fixed in the JVM tests, 2026-09-30 (branch `second/modest-knuth-f83zbx`).
+Not yet seen on the emulator.**
+
+- Each `ProxyBinding` now holds every socket the loopback proxy opened under
+  it, on both sides (`hold`/`release`). `SiteCredentials.unbind`, and a
+  `bind` that replaces a binding, `revoke` the old one: every held socket is
+  closed, and a connection that authenticated just before the revoke is
+  closed as soon as it tries to hold a socket, so it never relays. Tunnels
+  and forwarded `http` requests alike.
+- **A rebind on the same route closes them too.** The route can only be
+  resolved off the main thread (the probe), so routes are never compared;
+  Chromium opens a new tunnel on its next request. A lock then unlock needs
+  nothing special: the lock closes every session, and each close unbinds.
+- A refused route is no longer reported by a revoked binding, so a site's
+  next session cannot receive a `tunnel_dropped` from a connection of its
+  last one.
+- The other paths: a throwaway gets a fresh profile id every time, so it
+  never shares a pool. "Save as a site" keeps the profile and the open
+  session; route changes from the form apply at the next `open`, which
+  rebinds and so closes the old tunnels. `wipeAll` closes every session.
+- Tests (`LoopbackProxyTest`, +7): unbind closes both sides and no more bytes
+  cross; a rebind to SOCKS5 closes the direct tunnel and the next `CONNECT`
+  reaches SOCKS5 by name; a same-route rebind closes; another session's
+  tunnel survives; a session closed mid-connect gets no tunnel; a forwarded
+  request ends on both sides; a refused route after the close is not
+  reported. The first six fail on the old code; the seventh was checked by
+  removing its guard.
+- Verified: Kotlin JVM 174/174 (JUnit XML), `flutter analyze` clean,
+  `flutter test` 543/543, `flutter build apk --debug` with zero `e:` lines.
+
 ## 2. The 15 failing Kotlin tests: local only, not on `origin`
 
 On the user's machine, `LoopbackProxyTest` fails 15 of its tests with
@@ -137,6 +167,40 @@ For the cloud session:
 - If the buttons are the only way, the likely cause is a mis-targeted
   synthetic tap, not an app bug.
 - **Don't add a confirmation.** One-tap panic is deliberate.
+
+**Investigated 2026-09-30 (cloud session, code only). No other way to panic
+was found.**
+
+- `panic(ref)` has one caller, `ContainerRoute`'s `onPanic`
+  (`container_route.dart:575`). It reaches **four** buttons, not two:
+  `PanicSquare` on the top bar (`2b`), on the **address edit bar** (spec
+  §6.2) and on the find bar, and the switcher sheet's `◉` (`2c`).
+- **The address edit bar is the likely one.** Clear exists only on that bar,
+  so the harness was in editing mode when it tapped `896,207`. There Clear
+  (28 dp, the pill's right end) sits 11 dp (3 dp padding and an 8 dp gap), or
+  about 29 px at this density, left of Panic's 32 dp square. A back gesture
+  in editing mode (`_handleBack` → `_stopEditing`) swaps in the top bar,
+  whose Panic square is in the same place.
+- **Nothing else can trigger it:**
+  - No key handling anywhere in `lib/` (no `Shortcuts`, `Focus` key
+    handlers, `HardwareKeyboard`). Every panic button is a plain
+    `GestureDetector`, not focusable, so keys typed by `adb input text` after
+    the field lost focus cannot activate it (no Enter/Space `ActivateIntent`).
+  - Back (`PopScope`) only leaves editing, leaves find, or goes back in the
+    page. `LifecycleController` only locks.
+  - No platform channel or native code calls panic. `panicOnFlip` is a
+    hardcoded `false` in `settings_route.dart`, with no sensor code behind it.
+  - Wrong PINs only delay (`AttemptGate`); nothing wipes after N failures.
+  - The stores are deleted only by panic's `destroyVaults` and by
+    `SetupController.complete`, which runs only with no `meta.bin`. Only
+    panic's `VaultStore.destroy` deletes `meta.bin`.
+  - The panic buttons have `Semantics(button: true)`, so an accessibility
+    service could tap them. None was running, as far as the transcripts say.
+- **Conclusion:** most likely a mis-targeted synthetic tap, not an app bug.
+  Not proven: nothing logs which button fired, and no code was changed.
+- For the next device run: find Clear by its bounds in the `uiautomator` dump
+  (its semantics label is "Clear") instead of a fixed coordinate, and record
+  `adb shell getevent -lt` while driving input, so a stray tap shows up.
 
 ## 4. Plan 13 Task 7 is half done (needs the emulator)
 

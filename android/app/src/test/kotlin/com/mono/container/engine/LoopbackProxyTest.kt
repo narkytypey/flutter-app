@@ -8,6 +8,7 @@ import org.junit.Test
 import java.io.DataInputStream
 import java.net.ServerSocket
 import java.net.Socket
+import java.net.SocketTimeoutException
 import java.util.Base64
 import java.util.concurrent.ArrayBlockingQueue
 import java.util.concurrent.Callable
@@ -51,16 +52,21 @@ class LoopbackProxyTest {
 
     private fun statusOf(socket: Socket): Int = responseHead(socket).first().split(' ')[1].toInt()
 
+    /** True once the proxy has closed [socket]; false when it is still open after its read timeout. */
+    private fun closedByProxy(socket: Socket): Boolean =
+        runCatching { socket.getInputStream().read() == -1 }.getOrElse { it !is SocketTimeoutException }
+
     private fun ping(socket: Socket, byte: Int = 'p'.code) {
         socket.getOutputStream().write(byte)
         socket.getOutputStream().flush()
         assertEquals(byte, socket.getInputStream().read())
     }
 
-    /** Echoes every byte of every connection, counting connections and ends. */
+    /** Echoes every byte of every connection, counting connections, bytes and ends. */
     private class EchoServer : AutoCloseable {
         val server = ServerSocket(0)
         val accepted = AtomicInteger()
+        val received = AtomicInteger()
         val ended = CountDownLatch(1)
         val port get() = server.localPort
 
@@ -76,6 +82,7 @@ class LoopbackProxyTest {
                                     while (true) {
                                         val byte = socket.getInputStream().read()
                                         if (byte == -1) break
+                                        received.incrementAndGet()
                                         socket.getOutputStream().write(byte)
                                         socket.getOutputStream().flush()
                                     }
@@ -419,5 +426,167 @@ class LoopbackProxyTest {
                 pool.shutdownNow()
             }
         }
+    }
+
+    // --- Open problem 1: a tunnel must not outlive its session or its route ---
+
+    @Test fun `closing a session closes its open tunnel on both sides, and nothing more crosses`() {
+        val credentials = SiteCredentials()
+        credentials.bind("p1", ProxyBinding(config("p1")) {})
+        EchoServer().use { echo ->
+            LoopbackProxy(credentials, bySettings).start().use { proxy ->
+                send(proxy, "CONNECT localhost:${echo.port} HTTP/1.1\r\n${auth(credentials.credentialFor("p1"))}\r\n").use { socket ->
+                    assertEquals(200, statusOf(socket))
+                    ping(socket)
+                    credentials.unbind("p1")
+                    assertTrue("the upstream side is still open", echo.ended.await(5, TimeUnit.SECONDS))
+                    assertTrue("the page's side is still open", closedByProxy(socket))
+                    runCatching { socket.getOutputStream().write('x'.code); socket.getOutputStream().flush() }
+                    Thread.sleep(200)
+                    assertEquals(1, echo.received.get())
+                }
+            }
+        }
+    }
+
+    /** The emulator's case: a direct site edited to SOCKS5 and reopened on the same profile. */
+    @Test fun `a bind that moves the site to another route closes the tunnel opened on the old one`() {
+        FakeSocks().use { socks ->
+            EchoServer().use { echo ->
+                val credentials = SiteCredentials()
+                credentials.bind("p1", ProxyBinding(config("p1")) {})
+                val credential = credentials.credentialFor("p1")
+                LoopbackProxy(credentials, bySettings).start().use { proxy ->
+                    send(proxy, "CONNECT localhost:${echo.port} HTTP/1.1\r\n${auth(credential)}\r\n").use { old ->
+                        assertEquals(200, statusOf(old))
+                        ping(old)
+                        credentials.bind("p1", ProxyBinding(config("p1", mode = "socks5", host = "127.0.0.1", port = socks.port)) {})
+                        assertTrue(echo.ended.await(5, TimeUnit.SECONDS))
+                        assertTrue(closedByProxy(old))
+                    }
+                    // The same credential's next tunnel goes out on the new route.
+                    send(proxy, "CONNECT example.test:443 HTTP/1.1\r\n${auth(credential)}\r\n").use { socket ->
+                        assertEquals(200, statusOf(socket))
+                    }
+                    assertEquals("3 example.test:443", socks.requests.poll(5, TimeUnit.SECONDS))
+                    assertEquals(1, echo.accepted.get())
+                }
+            }
+        }
+    }
+
+    /** Any bind that replaces a binding closes its tunnels: the proxy cannot resolve a route on the main thread to compare. */
+    @Test fun `a bind that replaces the binding closes its tunnels even on the same route`() {
+        val credentials = SiteCredentials()
+        credentials.bind("p1", ProxyBinding(config("p1")) {})
+        EchoServer().use { echo ->
+            LoopbackProxy(credentials, bySettings).start().use { proxy ->
+                send(proxy, "CONNECT localhost:${echo.port} HTTP/1.1\r\n${auth(credentials.credentialFor("p1"))}\r\n").use { socket ->
+                    assertEquals(200, statusOf(socket))
+                    ping(socket)
+                    credentials.bind("p1", ProxyBinding(config("p1")) {})
+                    assertTrue(echo.ended.await(5, TimeUnit.SECONDS))
+                    assertTrue(closedByProxy(socket))
+                }
+            }
+        }
+    }
+
+    @Test fun `closing one session leaves another session's tunnel open`() {
+        val credentials = SiteCredentials()
+        credentials.bind("p1", ProxyBinding(config("p1")) {})
+        credentials.bind("p2", ProxyBinding(config("p2")) {})
+        EchoServer().use { echo ->
+            LoopbackProxy(credentials, bySettings).start().use { proxy ->
+                send(proxy, "CONNECT localhost:${echo.port} HTTP/1.1\r\n${auth(credentials.credentialFor("p1"))}\r\n").use { first ->
+                    send(proxy, "CONNECT localhost:${echo.port} HTTP/1.1\r\n${auth(credentials.credentialFor("p2"))}\r\n").use { second ->
+                        assertEquals(200, statusOf(first))
+                        assertEquals(200, statusOf(second))
+                        credentials.unbind("p1")
+                        assertTrue(closedByProxy(first))
+                        ping(second)
+                    }
+                }
+            }
+        }
+    }
+
+    @Test fun `a session closed while its upstream is still connecting gets no tunnel`() {
+        val credentials = SiteCredentials()
+        credentials.bind("p1", ProxyBinding(config("p1")) {})
+        val connecting = CountDownLatch(1)
+        val connected = CountDownLatch(1)
+        EchoServer().use { echo ->
+            LoopbackProxy(credentials, bySettings, connect = { _, _, _ ->
+                connecting.countDown()
+                connected.await(5, TimeUnit.SECONDS)
+                Socket("localhost", echo.port)
+            }).start().use { proxy ->
+                send(proxy, "CONNECT example.test:443 HTTP/1.1\r\n${auth(credentials.credentialFor("p1"))}\r\n").use { socket ->
+                    assertTrue(connecting.await(5, TimeUnit.SECONDS))
+                    credentials.unbind("p1")
+                    connected.countDown()
+                    assertNull("the page got a reply", runCatching { readHead(socket.getInputStream()) }.getOrNull())
+                    // The upstream connection that finished after the close was closed, and carried nothing.
+                    assertTrue(echo.ended.await(5, TimeUnit.SECONDS))
+                    assertEquals(0, echo.received.get())
+                }
+            }
+        }
+    }
+
+    @Test fun `closing a session ends its forwarded request on both sides`() {
+        val credentials = SiteCredentials()
+        credentials.bind("p1", ProxyBinding(config("p1")) {})
+        val requested = CountDownLatch(1)
+        val originClosed = CountDownLatch(1)
+        ServerSocket(0).use { origin ->
+            Thread {
+                runCatching {
+                    origin.accept().use { socket ->
+                        readHead(socket.getInputStream())
+                        requested.countDown()
+                        // Never answers: the request is still in flight when the session closes.
+                        while (socket.getInputStream().read() != -1) Unit
+                    }
+                }
+                originClosed.countDown()
+            }.apply { isDaemon = true }.start()
+            LoopbackProxy(credentials, bySettings).start().use { proxy ->
+                send(
+                    proxy,
+                    "GET http://localhost:${origin.localPort}/ HTTP/1.1\r\nHost: localhost:${origin.localPort}\r\n" +
+                        auth(credentials.credentialFor("p1")) + "\r\n",
+                ).use { socket ->
+                    assertTrue(requested.await(5, TimeUnit.SECONDS))
+                    credentials.unbind("p1")
+                    assertTrue("the origin side is still open", originClosed.await(5, TimeUnit.SECONDS))
+                    assertTrue("the page's side is still open", closedByProxy(socket))
+                }
+            }
+        }
+    }
+
+    /** The site's next session must not hear a failure from a connection of its last one. */
+    @Test fun `a route refused after its session closed is not reported`() {
+        val reported = CopyOnWriteArrayList<RouteFailure>()
+        val credentials = SiteCredentials()
+        credentials.bind("p1", ProxyBinding(config("p1", mode = "socks5")) { reported += it })
+        val resolving = CountDownLatch(1)
+        val resolved = CountDownLatch(1)
+        LoopbackProxy(credentials, resolve = {
+            resolving.countDown()
+            resolved.await(5, TimeUnit.SECONDS)
+            Route.Refused(RouteFailure.PROXY_UNREACHABLE)
+        }).start().use { proxy ->
+            send(proxy, "CONNECT example.test:443 HTTP/1.1\r\n${auth(credentials.credentialFor("p1"))}\r\n").use { socket ->
+                assertTrue(resolving.await(5, TimeUnit.SECONDS))
+                credentials.unbind("p1")
+                resolved.countDown()
+                assertTrue(closedByProxy(socket))
+            }
+        }
+        Thread.sleep(200)
+        assertTrue(reported.isEmpty())
     }
 }
