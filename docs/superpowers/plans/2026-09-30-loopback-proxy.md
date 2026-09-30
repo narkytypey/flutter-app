@@ -439,7 +439,7 @@ git commit -m "feat: per-profile loopback proxy credentials, valid while the sit
   - `internal val CONNECTION_ESTABLISHED: ByteArray`
   - `internal fun upstreamFailureStatus(error: Throwable): Int`
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 ```kotlin
 package com.mono.container.engine
@@ -639,12 +639,12 @@ class LoopbackRequestTest {
 }
 ```
 
-- [ ] **Step 2: Run the test and confirm it fails**
+- [x] **Step 2: Run the test and confirm it fails**
 
 Run: `./gradlew :app:testDebugUnitTest --tests "com.mono.container.engine.LoopbackRequestTest"`
 Expected: a compilation failure, with `Unresolved reference: readHead` / `decide`.
 
-- [ ] **Step 3: Write the implementation**
+- [x] **Step 3: Write the implementation**
 
 ```kotlin
 package com.mono.container.engine
@@ -856,14 +856,14 @@ internal val CONNECTION_ESTABLISHED: ByteArray =
 internal fun upstreamFailureStatus(error: Throwable): Int = if (error is SocketTimeoutException) 504 else 502
 ```
 
-- [ ] **Step 4: Run the test and confirm it passes**
+- [x] **Step 4: Run the test and confirm it passes**
 
 Run: `./gradlew :app:testDebugUnitTest --tests "com.mono.container.engine.LoopbackRequestTest"`
 Expected: PASS, 22 tests.
 
-- [ ] **Step 5: Run the full gates**, as in the baseline. Expected: JVM tests = Task 1's total + 22; zero `e:` lines.
+- [x] **Step 5: Run the full gates**, as in the baseline. Expected: JVM tests = Task 1's total + 22; zero `e:` lines.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add android/app/src/main/kotlin/com/mono/container/engine/LoopbackRequest.kt android/app/src/test/kotlin/com/mono/container/engine/LoopbackRequestTest.kt
@@ -2475,6 +2475,9 @@ Kotlin JVM 128 tests, 0 failures, 0 errors (23 JUnit XML files);
 
 - Task 1: JVM 139 (128 + 11), 0 failures; `flutter test` 540/540; analyze
   clean; APK zero `e:` lines.
+- Task 2: JVM 161 (139 + 22), 0 failures; `flutter test` 540/540; analyze
+  clean; APK zero `e:` lines. The test and implementation are the plan's,
+  unchanged.
 
 **Deviations from the plan's text:**
 
