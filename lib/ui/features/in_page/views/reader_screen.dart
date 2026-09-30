@@ -1,21 +1,25 @@
 import 'package:flutter/material.dart';
 
 import '../../../../domain/models/reader_article.dart';
+import '../../../../domain/models/reader_style.dart';
 import '../../../core/tokens.dart';
 import '../../../core/typography.dart';
 
 /// Spec `6b` — text only, controls out of the way. The header is the only
-/// chrome; everything below it is the article, full width, no card.
+/// chrome; everything below it is the article, full width, no card. [style]
+/// sets the text size (`Aa`) and the colours (`◑`); `ReaderRoute` keeps it.
 class ReaderScreen extends StatelessWidget {
   const ReaderScreen({
     super.key,
     required this.article,
+    this.style = ReaderStyle.standard,
     required this.onClose,
     required this.onTextSize,
     required this.onTheme,
   });
 
   final ReaderArticle article;
+  final ReaderStyle style;
   final VoidCallback onClose;
   final VoidCallback onTextSize;
   final VoidCallback onTheme;
@@ -68,11 +72,11 @@ class ReaderScreen extends StatelessWidget {
                   Text(
                     article.title,
                     style: ui(
-                      size: 25,
+                      size: style.size.title,
                       weight: 600,
                       height: 1.25,
                       letterSpacing: -0.375,
-                      color: C.readerTitle,
+                      color: style.soft ? C.readerBody : C.readerTitle,
                     ),
                   ),
                   const SizedBox(height: 18),
@@ -80,7 +84,11 @@ class ReaderScreen extends StatelessWidget {
                     if (i != 0) const SizedBox(height: 14),
                     Text(
                       article.paragraphs[i],
-                      style: ui(size: 15.5, height: 1.75, color: C.readerBody),
+                      style: ui(
+                        size: style.size.body,
+                        height: 1.75,
+                        color: style.soft ? C.readerMuted : C.readerBody,
+                      ),
                     ),
                   ],
                 ],

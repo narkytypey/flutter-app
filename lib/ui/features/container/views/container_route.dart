@@ -32,7 +32,7 @@ import '../../dashboard/view_models/providers.dart'
 import '../../in_page/views/held_download_sheet.dart';
 import '../../in_page/views/permission_request_sheet.dart';
 import '../../in_page/views/proxy_unreachable_screen.dart';
-import '../../in_page/views/reader_screen.dart';
+import '../../in_page/views/reader_route.dart';
 import '../../in_page/views/site_sheet.dart';
 import '../../in_page/views/tunnel_dropped_screen.dart';
 import '../../report/views/today_route.dart';
@@ -377,11 +377,9 @@ class _ContainerRouteState extends ConsumerState<ContainerRoute> {
     final article = await _engine.extractArticle(widget.site.id);
     if (article == null || !mounted) return;
     Navigator.push(context, MaterialPageRoute(
-      builder: (_) => ReaderScreen(
+      builder: (_) => ReaderRoute(
         article: article,
         onClose: () => Navigator.pop(context),
-        onTextSize: () {},
-        onTheme: () {},
       ),
     ));
   }

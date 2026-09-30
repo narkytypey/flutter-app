@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:container/domain/models/reader_article.dart';
+import 'package:container/domain/models/reader_style.dart';
 import 'package:container/ui/core/tokens.dart';
 import 'package:container/ui/features/in_page/views/reader_screen.dart';
 
@@ -70,4 +71,47 @@ void main() {
     expect(textSized, 1);
     expect(themed, 1);
   });
+
+  // User's ruling, 2026-09-30.
+
+  TextStyle styleOf(WidgetTester tester, String text) =>
+      tester.widget<Text>(find.text(text)).style!;
+
+  testWidgets('a larger size draws the title and body larger', (tester) async {
+    await tester.pumpWidget(MaterialApp(
+      home: ReaderScreen(
+        article: article,
+        style: const ReaderStyle(size: ReaderTextSize.largest, soft: false),
+        onClose: () {},
+        onTextSize: () {},
+        onTheme: () {},
+      ),
+    ));
+    expect(styleOf(tester, article.title).fontSize, ReaderTextSize.largest.title);
+    expect(styleOf(tester, article.paragraphs.first).fontSize, ReaderTextSize.largest.body);
+  });
+
+  testWidgets('the soft colours dim the title and body, on the same background', (tester) async {
+    await tester.pumpWidget(MaterialApp(
+      home: ReaderScreen(
+        article: article,
+        style: const ReaderStyle(size: ReaderTextSize.standard, soft: true),
+        onClose: () {},
+        onTextSize: () {},
+        onTheme: () {},
+      ),
+    ));
+    expect(styleOf(tester, article.title).color, C.readerBody);
+    expect(styleOf(tester, article.paragraphs.first).color, C.readerMuted);
+    expect(tester.widget<Scaffold>(find.byType(Scaffold)).backgroundColor, C.bgReader);
+  });
+
+  testWidgets('by default the spec\'s sizes and colours', (tester) async {
+    await tester.pumpWidget(host());
+    expect(styleOf(tester, article.title).fontSize, 25);
+    expect(styleOf(tester, article.title).color, C.readerTitle);
+    expect(styleOf(tester, article.paragraphs.first).fontSize, 15.5);
+    expect(styleOf(tester, article.paragraphs.first).color, C.readerBody);
+  });
 }
+
