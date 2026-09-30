@@ -243,6 +243,16 @@ What flutter-app-77 saw before its usage limit hit (Task 7 Step 2's numbering):
 Steps 3–5 (the write-up in the plan and `CLAUDE.md`) are not done. Fix
 problem 1 before running Task 7 again, because it affects checks 3 and 7.
 
+**Prepared 2026-09-30 (cloud session; this box has no `/dev/kvm`, so no
+emulator).** `tool/device-check/` now holds the harness earlier runs rebuilt
+each time: `proxy.py` (SOCKS5 `:1080`, CONNECT `:8888`, logging each target as
+a name or an address), `dns_log.py` (the `-dns-server` forwarder),
+`app_sockets.py` (`watch`: the app uid's sockets as they open and close,
+flagging any outside loopback; `probe`: check 5). Its README has the run sheet
+for Task 7 in order: the stop-checks first, then problem 1's repro, then
+checks 1–11 with panic last. Tested here against local servers and a fake
+`adb`, never against a device. Problem 1 is fixed, so checks 3 and 7 can run.
+
 ## 5. Open design questions: the user's to decide, don't decide them
 
 From Plan 13's execution record, still open:

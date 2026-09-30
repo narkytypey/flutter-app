@@ -1016,6 +1016,10 @@ reported touching it, and the cause is unknown.
   starting implementation work on a plan another session may already have
   picked up (`ListAgents` / cross-session message), since there's no git
   history yet to reveal who's touched what.
+- **Device checks** use the host-side harness in `tool/device-check/`
+  (logging SOCKS5/CONNECT proxy, logging DNS forwarder, the app uid's socket
+  watcher). Its README has setup and the Plan 13 Task 7 run sheet. Extend it
+  rather than writing new scratch scripts.
 - When resuming an unfinished plan, look for a `<!-- PART-2-APPENDS-HERE -->`
   style marker or a missing "Known gaps"/"Handoff" section at the end — that
   means the plan is incomplete, not that the work described in it is done.
