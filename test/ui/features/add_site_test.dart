@@ -164,4 +164,34 @@ void main() {
     expect(saved!.id, 'st-forum');
     expect(saved!.profileId, 'existing-profile');
   });
+
+  // Found on a device: the × was a bare glyph with no tap handler, so only
+  // Save or system back left the form. Spec `2a` draws it like `10b`'s,
+  // whose × pops without saving.
+  testWidgets('× leaves the form without saving', (tester) async {
+    addTearDown(tester.view.reset);
+    tester.view.physicalSize = const Size(428, 1400);
+    tester.view.devicePixelRatio = 1;
+    var saves = 0;
+    await tester.pumpWidget(MaterialApp(
+      home: Builder(
+        builder: (context) => TextButton(
+          onPressed: () => Navigator.push(context, MaterialPageRoute<void>(
+            builder: (_) => AddSiteScreen(workspaces: _workspaces, onSave: (_) => saves++),
+          )),
+          child: const Text('open'),
+        ),
+      ),
+    ));
+    await tester.tap(find.text('open'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byKey(const Key('add-site-name')), 'Forum');
+
+    await tester.tap(find.text('×'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Add site'), findsNothing);
+    expect(find.text('open'), findsOneWidget);
+    expect(saves, 0);
+  });
 }

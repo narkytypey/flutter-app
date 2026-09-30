@@ -126,7 +126,11 @@ class _AddSiteScreenState extends State<AddSiteScreen> {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text('×', style: TextStyle(fontSize: 20, color: C.icon)),
+                  // Leaves without saving, like `10b`'s × (and system back).
+                  GestureDetector(
+                    onTap: () => Navigator.pop(context),
+                    child: const Text('×', style: TextStyle(fontSize: 20, color: C.icon)),
+                  ),
                   Text('Add site', style: ui(size: 15, weight: 600, color: C.textPrimary)),
                   GestureDetector(
                     onTap: _save,
