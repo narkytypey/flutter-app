@@ -2864,6 +2864,29 @@ git commit -m "feat: live blocked tally, real leak count, and management entry p
   new id/name convention is, what UI asks for a PIN, and what confirms a
   destructive wipe. `open` and `editSettings` and `removeSite` are the three
   wired.
+  **Update, 2026-09-30 (branch `fix-site-wipe`):** `wipeData` is wired. It
+  asks first, in `WipeSiteSheet` (`dashboard/views/wipe_site_sheet.dart`),
+  with copy the user approved: "Wipe this site's data?", "Its logins,
+  storage and downloads are destroyed. The site stays in its workspace.",
+  "Wipe" / "Cancel". The sheet has no jade and opens on the open vault's own
+  navigator. Wipe runs `wipeSavedSite` (`data/services/site_wipe.dart`): it
+  closes the session, wipes the profile and its kept downloads, and writes
+  the row back with a **fresh `profileId`**. `6c`'s, `2c`'s and `8c`'s
+  close-and-wipe now go through the same helper (a throwaway has no row, so
+  it is only closed and wiped). Without the fresh id, reopening a wiped site
+  in the same run took its profile off the pending-deletion journal, and
+  its cache, history and network state survived. `removeSite` was also
+  found to delete only the row, leaving the profile and downloads on disk;
+  it now closes, wipes, then deletes (`removeSavedSite`). `openEphemeral`,
+  `duplicate` and `requirePin` are still unwired.
+  **Known gap:** a wipe-on-exit site's *automatic* wipe, which runs natively
+  whenever its view closes (a back-out included), does not rotate its
+  `profileId`. If the site is reopened in the same run, its HSTS/alt-svc
+  network state and history can survive until the next start: the HTTP
+  cache, cookies, storage and permissions are cleared either way. That was
+  the coordinator's ruling (2026-09-30). Rotating there would mean a
+  database write on every back-out, from a place that must not touch
+  providers.
 - **`SiteSheet`'s desktop-view toggle only distinguishes `android` vs.
   `desktop`.** A site set to `UserAgentMode.minimal` loses that distinction
   the first time the toggle is flipped off, since `6c`'s switch is binary.
@@ -2941,7 +2964,8 @@ still no-ops.
   the decoy vault under its own PIN — override `decoyDatabaseProvider` with
   that live connection for the duration of the sync and this plan's call
   sites already invoke it correctly.
-- **To whoever builds `SiteRowMenu`'s remaining actions:** `openEphemeral`,
+- **To whoever builds `SiteRowMenu`'s remaining actions:** *(`wipeData`
+  is now built; see Known gaps.)* `openEphemeral`,
   `duplicate`, `requirePin`, and `wipeData` all arrive at
   `dashboard_screen.dart`'s `onAction` switch (Task 4 Step 5) with nothing
   after them — that is the one call site needing four more branches.
