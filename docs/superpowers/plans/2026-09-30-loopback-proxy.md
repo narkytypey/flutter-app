@@ -102,7 +102,7 @@ These are inputs the spec implies but no test in its own list pins, ordered by h
 
 ## Before Task 1: baseline
 
-- [ ] Create the worktree and bring over the native-assets cache (this machine's `sqlite3` hook cannot download it):
+- [x] Create the worktree and bring over the native-assets cache (this machine's `sqlite3` hook cannot download it):
 
 ```bash
 cd /c/Users/Metin/Desktop/flutter-app
@@ -112,7 +112,7 @@ cp -r .dart_tool/hooks_runner .claude/worktrees/p2-loopback-proxy/.dart_tool/
 cd .claude/worktrees/p2-loopback-proxy
 ```
 
-- [ ] Run every gate once and record the counts. On `c06e075` they were `flutter test` 540/540 and JVM 128/128. If yours differ, record what you actually see:
+- [x] Run every gate once and record the counts. On `c06e075` they were `flutter test` 540/540 and JVM 128/128. If yours differ, record what you actually see:
 
 ```bash
 flutter analyze
@@ -168,7 +168,7 @@ All Kotlin paths are under `android/app/src/main/kotlin/com/mono/container/`, an
     - `lookup(user: String, password: String): ProxyBinding?`
   - `internal fun proxyAuthAnswer(host: String?, realm: String?, credential: () -> ProxyCredential): ProxyCredential?`
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 ```kotlin
 package com.mono.container.engine
@@ -293,12 +293,12 @@ class SiteCredentialsTest {
 }
 ```
 
-- [ ] **Step 2: Run the test and confirm it fails**
+- [x] **Step 2: Run the test and confirm it fails**
 
 Run, from `android/`: `./gradlew :app:testDebugUnitTest --tests "com.mono.container.engine.SiteCredentialsTest"`
 Expected: a compilation failure, with `Unresolved reference: ProxyBinding` / `SiteCredentials`.
 
-- [ ] **Step 3: Write the implementation**
+- [x] **Step 3: Write the implementation**
 
 ```kotlin
 package com.mono.container.engine
@@ -390,12 +390,12 @@ internal fun proxyAuthAnswer(host: String?, realm: String?, credential: () -> Pr
     if (host == LOOPBACK_HOST && realm == PROXY_REALM) credential() else null
 ```
 
-- [ ] **Step 4: Run the test and confirm it passes**
+- [x] **Step 4: Run the test and confirm it passes**
 
 Run: `./gradlew :app:testDebugUnitTest --tests "com.mono.container.engine.SiteCredentialsTest"`
 Expected: PASS, 11 tests.
 
-- [ ] **Step 5: Run the full gates**
+- [x] **Step 5: Run the full gates**
 
 Run every command in "Before Task 1: baseline". Expected:
 - JVM tests: baseline + 11, with no failures in the XML;
@@ -403,7 +403,7 @@ Run every command in "Before Task 1: baseline". Expected:
 - analyze clean;
 - `flutter test` unchanged.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add android/app/src/main/kotlin/com/mono/container/engine/SiteCredentials.kt android/app/src/test/kotlin/com/mono/container/engine/SiteCredentialsTest.kt
@@ -2449,6 +2449,38 @@ git commit -m "docs: record Plan 13's verification, device checks and gaps"
 ```
 
 ---
+
+## Execution record, Tasks 1–6 (2026-09-30)
+
+Tasks 1–6 were executed in a cloud session with no Android emulator, so no
+device check in Tasks 5 and 6 was run, and Task 7 is left for the user's
+machine. Nothing here is device-verified.
+
+**Where.** Branch `second/compassionate-tesla-aa52zz` off `main` at `98c5b81`,
+in the session's own checkout: that was the session's designated branch, so
+no `p2-loopback-proxy` worktree was made. This machine reaches GitHub, so the
+native-assets cache did not need copying.
+
+**Toolchain.** Flutter 3.47.2 (Dart 3.13.2), Android SDK platform 36 and
+build-tools 36.0.0, OpenJDK 21. Maven Central answered this container's Gradle
+with HTTP 429, so a Gradle init script outside the repo
+(`~/.gradle/init.d`) pointed Maven Central at Google's mirror of it. Nothing
+in the repo's build files changed.
+
+**Baseline at `98c5b81`:** `flutter analyze` clean; `flutter test` 540/540;
+Kotlin JVM 128 tests, 0 failures, 0 errors (23 JUnit XML files);
+`flutter build apk --debug` built, zero `e:` lines.
+
+**Per task** (JVM counts read from the JUnit XML):
+
+- Task 1: JVM 139 (128 + 11), 0 failures; `flutter test` 540/540; analyze
+  clean; APK zero `e:` lines.
+
+**Deviations from the plan's text:**
+
+- The plan's line references for `ContainerViewFactory.kt` (`239-244`) are
+  stale: the file is 63 lines, and the `ContainerView(` call is at line 30.
+  The change it describes was made there.
 
 ## Verification
 
