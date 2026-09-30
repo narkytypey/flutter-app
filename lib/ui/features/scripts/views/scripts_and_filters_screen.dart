@@ -26,11 +26,9 @@ class ScriptsAndFiltersScreen extends StatelessWidget {
     super.key,
     required this.filterLists,
     required this.now,
-    required this.nextUpdateInDays,
     required this.scripts,
     required this.siteNamesById,
     required this.onToggleFilterList,
-    required this.onUpdateFilterListsNow,
     required this.onToggleScript,
     required this.onOpenScript,
     required this.onNewScript,
@@ -39,11 +37,9 @@ class ScriptsAndFiltersScreen extends StatelessWidget {
 
   final List<FilterList> filterLists;
   final DateTime now;
-  final int nextUpdateInDays;
   final List<UserScript> scripts;
   final Map<String, String> siteNamesById;
   final ValueChanged<String> onToggleFilterList;
-  final VoidCallback onUpdateFilterListsNow;
   final ValueChanged<String> onToggleScript;
   final void Function(String id) onOpenScript;
   final VoidCallback onNewScript;
@@ -80,9 +76,7 @@ class ScriptsAndFiltersScreen extends StatelessWidget {
                   FilterListSection(
                     lists: filterLists,
                     now: now,
-                    nextUpdateInDays: nextUpdateInDays,
                     onToggle: onToggleFilterList,
-                    onUpdateNow: onUpdateFilterListsNow,
                   ),
                   Padding(
                     padding: const EdgeInsets.fromLTRB(0, 24, 0, 4),

@@ -24,22 +24,20 @@ String updatedAgoLabel(DateTime now, DateTime updatedAt) {
 
 /// The `FILTER LISTS` half of spec `10d`. Each row's tap toggles the whole
 /// row — there is no separate hit target for the switch, matching how the
-/// dashboard treats a session row.
+/// dashboard treats a session row. The spec's "Update over the proxy" block
+/// is left out (user's ruling, 2026-09-30): the lists are bundled, and the
+/// app makes no network requests of its own.
 class FilterListSection extends StatelessWidget {
   const FilterListSection({
     super.key,
     required this.lists,
     required this.now,
-    required this.nextUpdateInDays,
     required this.onToggle,
-    required this.onUpdateNow,
   });
 
   final List<FilterList> lists;
   final DateTime now;
-  final int nextUpdateInDays;
   final ValueChanged<String> onToggle;
-  final VoidCallback onUpdateNow;
 
   @override
   Widget build(BuildContext context) {
@@ -87,39 +85,6 @@ class FilterListSection extends StatelessWidget {
               ),
             ),
           ),
-        Padding(
-          padding: const EdgeInsets.only(top: 2, bottom: 4),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text('Update over the proxy',
-                      style: ui(size: 13.5, color: C.textSecondary)),
-                  const SizedBox(height: 4),
-                  Text('Next check in $nextUpdateInDays days',
-                      style: ui(size: 11.5, color: C.textFaint)),
-                ],
-              ),
-              GestureDetector(
-                onTap: onUpdateNow,
-                child: Container(
-                  height: 38,
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  alignment: Alignment.center,
-                  decoration: BoxDecoration(
-                    color: C.button,
-                    borderRadius: BorderRadius.circular(19),
-                  ),
-                  child: Text('Update now',
-                      style:
-                          ui(size: 13, weight: 500, color: C.textSecondary)),
-                ),
-              ),
-            ],
-          ),
-        ),
       ],
     );
   }

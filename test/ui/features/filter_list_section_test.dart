@@ -13,16 +13,14 @@ void main() {
     FilterList(id: 'fl-social', name: 'Social embeds', ruleCount: 2908, updatedAt: updatedTwoDaysAgo, enabled: false, category: FilterListCategory.ads),
   ];
 
-  Widget host({ValueChanged<String>? onToggle, VoidCallback? onUpdateNow}) {
+  Widget host({ValueChanged<String>? onToggle}) {
     return MaterialApp(
       home: Scaffold(
         body: SingleChildScrollView(
           child: FilterListSection(
             lists: lists,
             now: now,
-            nextUpdateInDays: 5,
             onToggle: onToggle ?? (_) {},
-            onUpdateNow: onUpdateNow ?? () {},
           ),
         ),
       ),
@@ -39,20 +37,24 @@ void main() {
     expect(find.text('11,430 rules · updated 2 days ago'), findsOneWidget);
     expect(find.text('Social embeds'), findsOneWidget);
     expect(find.text('2,908 rules · off'), findsOneWidget);
-    expect(find.text('Update over the proxy'), findsOneWidget);
-    expect(find.text('Next check in 5 days'), findsOneWidget);
-    expect(find.text('Update now'), findsOneWidget);
   });
 
-  testWidgets('each toggle reports its own id, Update now reports a tap', (tester) async {
+  /// User's ruling, 2026-09-30: the lists are bundled and update with the
+  /// app; the app makes no network requests of its own, so 10d offers none.
+  testWidgets('offers no list update', (tester) async {
+    await tester.pumpWidget(host());
+
+    expect(find.text('Update over the proxy'), findsNothing);
+    expect(find.textContaining('Next check'), findsNothing);
+    expect(find.text('Update now'), findsNothing);
+  });
+
+  testWidgets('each toggle reports its own id', (tester) async {
     final toggled = <String>[];
-    var updates = 0;
-    await tester.pumpWidget(host(onToggle: toggled.add, onUpdateNow: () => updates++));
+    await tester.pumpWidget(host(onToggle: toggled.add));
 
     await tester.tap(find.text('Trackers and ads'));
-    await tester.tap(find.text('Update now'));
 
     expect(toggled, ['fl-trackers']);
-    expect(updates, 1);
   });
 }

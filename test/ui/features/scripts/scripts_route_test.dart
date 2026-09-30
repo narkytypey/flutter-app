@@ -4,7 +4,6 @@ import 'package:container/data/repositories/site_repository_sqlite.dart';
 import 'package:container/data/repositories/workspace_repository_sqlite.dart';
 import 'package:container/data/services/app_database.dart';
 import 'package:container/data/services/bundled_filter_lists.dart';
-import 'package:container/domain/models/filter_list.dart';
 import 'package:container/domain/models/site.dart';
 import 'package:container/domain/models/user_script.dart';
 import 'package:container/domain/models/workspace.dart';
@@ -20,18 +19,6 @@ import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
 void main() {
   setUpAll(sqfliteFfiInit);
-
-  test('the next check counts down a week from the newest list', () {
-    final now = DateTime(2026, 9, 28);
-    FilterList list(int daysAgo) => FilterList(
-        id: '$daysAgo', name: 'L', ruleCount: 1, enabled: true,
-        category: FilterListCategory.trackers,
-        updatedAt: now.subtract(Duration(days: daysAgo)));
-
-    expect(nextFilterCheckInDays([list(9), list(2)], now), 5);
-    expect(nextFilterCheckInDays([list(30)], now), 0);
-    expect(nextFilterCheckInDays(const [], now), 7);
-  });
 
   late AppDatabase database;
 

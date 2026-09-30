@@ -28,11 +28,9 @@ void main() {
       home: ScriptsAndFiltersScreen(
         filterLists: filterLists,
         now: now,
-        nextUpdateInDays: 5,
         scripts: scripts,
         siteNamesById: const {},
         onToggleFilterList: (_) {},
-        onUpdateFilterListsNow: () {},
         onToggleScript: onToggleScript ?? (_) {},
         onOpenScript: onOpenScript ?? (_) {},
         onNewScript: onNewScript ?? () {},

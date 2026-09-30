@@ -10,23 +10,13 @@ import 'script_editor_screen.dart';
 import 'script_site_picker.dart';
 import 'scripts_and_filters_screen.dart';
 
-/// Spec `10d` pairs "updated 2 days ago" with "Next check in 5 days" — a
-/// weekly cadence, counted from the most recently updated list.
-const _checkIntervalDays = 7;
-
-int nextFilterCheckInDays(List<FilterList> lists, DateTime now) {
-  if (lists.isEmpty) return _checkIntervalDays;
-  final newest = lists.map((l) => l.updatedAt).reduce((a, b) => a.isAfter(b) ? a : b);
-  final remaining = _checkIntervalDays - now.difference(newest).inDays;
-  return remaining < 0 ? 0 : remaining;
-}
-
 /// Spec `10d`/`10e` against the open vault. Reached from Settings' MANAGE
 /// section.
 ///
 /// A site reads its enabled lists and scripts when it is next opened (Plan
-/// 11), not while it is live. "Update now" fetches nothing, since the app
-/// makes no network requests of its own.
+/// 11), not while it is live. The lists are bundled and update with the app:
+/// 10d's "Update over the proxy" block is left out (user's ruling,
+/// 2026-09-30), since the app makes no network requests of its own.
 class ScriptsRoute extends ConsumerWidget {
   const ScriptsRoute({super.key});
 
@@ -40,7 +30,6 @@ class ScriptsRoute extends ConsumerWidget {
     return ScriptsAndFiltersScreen(
       filterLists: filterLists,
       now: now,
-      nextUpdateInDays: nextFilterCheckInDays(filterLists, now),
       scripts: scripts,
       siteNamesById: view?.siteNamesById ?? const {},
       onToggleFilterList: (id) async {
@@ -48,7 +37,6 @@ class ScriptsRoute extends ConsumerWidget {
         await ref.read(filterListRepositoryProvider).setEnabled(id, !list.enabled);
         ref.invalidate(scriptsViewProvider);
       },
-      onUpdateFilterListsNow: () {},
       onToggleScript: (id) async {
         final script = scripts.firstWhere((s) => s.id == id);
         await ref.read(scriptRepositoryProvider).upsert(script.copyWith(enabled: !script.enabled));
