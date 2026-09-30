@@ -3,7 +3,7 @@ import 'route_decision.dart';
 export 'route_decision.dart' show RouteFailure;
 
 /// Screen `8b` draws only [RouteFailure.proxyUnreachable]; its headline is
-/// pinned verbatim from the spec card. The other four kinds reuse Plan 3's
+/// pinned verbatim from the spec card. The other kinds reuse Plan 3's
 /// `refusalMessage()` — written, by its own doc comment, for exactly this
 /// screen. Extending the spec's one drawn case to the four kinds Plan 3
 /// defined is this plan's call, not the spec's; see Known gaps.
@@ -32,12 +32,19 @@ String proxyFailureHeadline(RouteFailure failure) {
 /// reassurance — no request left your device — is the sentence a user most
 /// wants on a failure screen, and `misconfigured` is the one kind that now
 /// does not get it.
+///
+/// [RouteFailure.unsupported] has its own sentence, approved with its headline
+/// in the P2 spec (§3.3): nothing is wrong with the tunnel, so the generic
+/// sentence would mislead, and the remedy is on the phone.
 String? proxyFailureDetail(
   RouteFailure failure, {
   required String siteName,
   required String tunnelDescriptor,
 }) {
   if (failure == RouteFailure.misconfigured) return null;
+  if (failure == RouteFailure.unsupported) {
+    return 'Update Android System WebView to open proxied sites.';
+  }
 
   final cause = failure == RouteFailure.proxyUnreachable
       ? '$siteName is set to go through $tunnelDescriptor and nothing is listening there.'

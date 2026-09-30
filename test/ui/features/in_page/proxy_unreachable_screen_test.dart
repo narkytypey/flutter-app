@@ -54,6 +54,12 @@ void main() {
     expect(find.text(refusalMessage(RouteFailure.proxyRefused)), findsOneWidget);
   });
 
+  testWidgets('an unsupported WebView shows the approved headline and hint', (tester) async {
+    await tester.pumpWidget(host(failure: RouteFailure.unsupported));
+    expect(find.text('This phone cannot route sites through a proxy'), findsOneWidget);
+    expect(find.text('Update Android System WebView to open proxied sites.'), findsOneWidget);
+  });
+
   testWidgets('each button reports its own callback', (tester) async {
     var tried = 0;
     var changed = 0;

@@ -28,11 +28,20 @@ void main() {
 
   test('every failure with a tunnel names the site and ends on the same reassurance', () {
     for (final failure in RouteFailure.values) {
-      if (failure == RouteFailure.misconfigured) continue;
+      if (failure == RouteFailure.misconfigured || failure == RouteFailure.unsupported) continue;
       final detail = proxyFailureDetail(failure, siteName: 'Forum', tunnelDescriptor: 'the tunnel');
       expect(detail, contains('Forum'));
       expect(detail, endsWith('The page was not loaded, so no request left your device.'));
     }
+  });
+
+  test('unsupported says what is wrong and what to do, in the approved words', () {
+    // P2 spec §3.3, approved by the user on 2026-09-30.
+    expect(proxyFailureHeadline(RouteFailure.unsupported), 'This phone cannot route sites through a proxy');
+    expect(
+      proxyFailureDetail(RouteFailure.unsupported, siteName: 'Forum', tunnelDescriptor: 'the tunnel'),
+      'Update Android System WebView to open proxied sites.',
+    );
   });
 
   test('misconfigured has no detail sentence, because the spec writes none', () {

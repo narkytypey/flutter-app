@@ -1533,7 +1533,7 @@ This task comes before the Kotlin side produces the new name, so that Dart can d
   - `refusalMessage(RouteFailure.unsupported) == 'This phone cannot route sites through a proxy'`;
   - `proxyFailureDetail(RouteFailure.unsupported, …) == 'Update Android System WebView to open proxied sites.'`.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 In `test/domain/route_failure_copy_test.dart`, change the loop test so it skips `unsupported` as well as `misconfigured`, and add a test:
 
@@ -1585,12 +1585,12 @@ In `test/ui/features/in_page/proxy_unreachable_screen_test.dart`, after "a diffe
   });
 ```
 
-- [ ] **Step 2: Run the tests and confirm they fail**
+- [x] **Step 2: Run the tests and confirm they fail**
 
 Run: `flutter test test/domain/route_failure_copy_test.dart test/data/container_engine_channel_test.dart test/ui/features/in_page/proxy_unreachable_screen_test.dart`
 Expected: a compilation error: `Member not found: 'unsupported'`.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 `lib/domain/models/route_decision.dart`: add the kind, and its message:
 
@@ -1644,16 +1644,16 @@ String refusalMessage(RouteFailure failure) => switch (failure) {
       _ => null,
 ```
 
-- [ ] **Step 4: Run the tests and confirm they pass**
+- [x] **Step 4: Run the tests and confirm they pass**
 
 Run the same `flutter test` command. Expected: PASS.
 
-- [ ] **Step 5: Run the full gates**
+- [x] **Step 5: Run the full gates**
   - `flutter analyze`: No issues found!
   - `flutter test`: baseline + 3.
   - The APK build: zero `e:` lines. No Kotlin changed, but the build is a gate every task keeps.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add lib/domain/models/route_decision.dart lib/domain/models/route_failure_copy.dart lib/data/services/container_engine_channel.dart test/domain/route_failure_copy_test.dart test/data/container_engine_channel_test.dart test/ui/features/in_page/proxy_unreachable_screen_test.dart
@@ -2482,12 +2482,16 @@ Kotlin JVM 128 tests, 0 failures, 0 errors (23 JUnit XML files);
   clean; APK zero `e:` lines. `LoopbackProxyTest` passed on eight separate
   `--rerun` executions (distinct JUnit timestamps), none flaky. The test and
   implementation are the plan's, unchanged.
+- Task 4: `flutter test` 543/543 (540 + 3); analyze clean; JVM unchanged at
+  177; APK zero `e:` lines. The two new strings are the Global Constraints'
+  own, character for character.
 
 **Deviations from the plan's text:**
 
-- The plan's line references for `ContainerViewFactory.kt` (`239-244`) are
-  stale: the file is 63 lines, and the `ContainerView(` call is at line 30.
-  The change it describes was made there.
+- Some of the plan's line references are stale: `route_failure_copy.dart`
+  (`5-106`) is 46 lines, and `ContainerViewFactory.kt` (`239-244`) is 63
+  lines with its `ContainerView(` call at line 30. The content each describes
+  matched, and the changes were made there.
 
 ## Verification
 

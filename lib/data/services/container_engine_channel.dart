@@ -31,6 +31,7 @@ RouteFailure? _failure(String? name) => switch (name) {
       'upstreamTimeout' => RouteFailure.upstreamTimeout,
       'tlsFailure' => RouteFailure.tlsFailure,
       'misconfigured' => RouteFailure.misconfigured,
+      'unsupported' => RouteFailure.unsupported,
       _ => null,
     };
 

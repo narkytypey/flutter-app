@@ -10,6 +10,10 @@ enum RouteFailure {
   upstreamTimeout,
   tlsFailure,
   misconfigured,
+
+  /// This WebView cannot override its proxy, so a proxied site cannot be
+  /// routed and is refused at open (P2 spec §3.3). Direct sites still open.
+  unsupported,
 }
 
 sealed class RouteDecision {
@@ -57,4 +61,5 @@ String refusalMessage(RouteFailure failure) => switch (failure) {
       RouteFailure.upstreamTimeout => 'The destination did not respond',
       RouteFailure.tlsFailure => 'The secure connection failed',
       RouteFailure.misconfigured => 'This site has no proxy configured',
+      RouteFailure.unsupported => 'This phone cannot route sites through a proxy',
     };

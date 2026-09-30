@@ -43,6 +43,20 @@ void main() {
     expect(sessionsFromEvent(event).single.failure, RouteFailure.proxyUnreachable);
   });
 
+  test('a session refused for want of a proxy override decodes as unsupported', () {
+    final event = <Object?, Object?>{
+      'type': 'sessions',
+      'sessions': [
+        {
+          'siteId': 's1', 'phase': 'refused', 'lastActiveAt': null,
+          'blockedCount': 0, 'categoryCounts': <String, Object?>{},
+          'failure': 'unsupported',
+        },
+      ],
+    };
+    expect(sessionsFromEvent(event).single.failure, RouteFailure.unsupported);
+  });
+
   test('a permission_request event decodes the pending ask', () {
     final event = <Object?, Object?>{
       'type': 'permission_request',
