@@ -101,4 +101,33 @@ void main() {
     expect(events, ['close st-forum', 'wipe p-forum', 'delete st-forum']);
     expect(container.read(openSiteIdsProvider), isEmpty);
   });
+
+  testWidgets("Wipe this site's data, confirmed, wipes the site and keeps it under a fresh profile",
+      (tester) async {
+    final events = <String>[];
+    final sites = _Sites(events);
+    final container = await _pump(tester, _Engine(events), sites);
+
+    await _menuAction(tester, "Wipe this site's data");
+    expect(events, isEmpty, reason: 'nothing happens before the sheet is answered');
+    await tester.tap(find.text('Wipe'));
+    await tester.pumpAndSettle();
+
+    expect(events, ['close st-forum', 'wipe p-forum', 'upsert st-forum']);
+    expect(sites.upserts.single.profileId, isNot('p-forum'));
+    expect(sites.upserts.single.name, 'Forum');
+    expect(container.read(openSiteIdsProvider), isEmpty);
+  });
+
+  testWidgets("Wipe this site's data, cancelled, does nothing", (tester) async {
+    final events = <String>[];
+    final container = await _pump(tester, _Engine(events), _Sites(events));
+
+    await _menuAction(tester, "Wipe this site's data");
+    await tester.tap(find.text('Cancel'));
+    await tester.pumpAndSettle();
+
+    expect(events, isEmpty);
+    expect(container.read(openSiteIdsProvider), {'st-forum'});
+  });
 }

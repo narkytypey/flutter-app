@@ -15,6 +15,7 @@ import '../../settings/views/settings_route.dart';
 import '../view_models/providers.dart';
 import 'dashboard_body.dart';
 import 'site_row_menu.dart';
+import 'wipe_site_sheet.dart';
 import '../views/workspace_menu.dart';
 
 class DashboardScreen extends ConsumerStatefulWidget {
@@ -111,10 +112,21 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                         site: site,
                       );
                       ref.invalidate(dashboardProvider);
+                    } else if (action == SiteRowAction.wipeData) {
+                      // Asked first (user's ruling, 2026-09-30); the site
+                      // stays, under a fresh profile (wipeSavedSite).
+                      if (!await confirmWipeSite(context) || !mounted) return;
+                      closeSite(ref, siteId);
+                      await wipeSavedSite(
+                        engine: ref.read(containerEngineProvider),
+                        sites: ref.read(siteRepositoryProvider),
+                        site: site,
+                      );
+                      ref.invalidate(dashboardProvider);
                     }
-                    // openEphemeral, duplicate, requirePin, wipeData: Known Gap,
-                    // see this plan's Known Gaps section — none has a target
-                    // workspace/wipe-confirmation flow built anywhere yet.
+                    // openEphemeral, duplicate, requirePin: Known Gap, see
+                    // Plan 6's Known gaps — none has a target workspace or
+                    // PIN flow built anywhere yet.
                   },
                 ),
               );
