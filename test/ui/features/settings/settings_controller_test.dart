@@ -277,4 +277,14 @@ void main() {
       expect((await tryPin('111111') as Unlocked).vault, VaultId.a);
     });
   });
+
+  test('the flip switch is saved in the open vault, off until turned on', () async {
+    expect(await container.read(panicOnFlipProvider.future), isFalse);
+
+    await container.read(settingsControllerProvider).setPanicOnFlip(true);
+
+    expect(await container.read(settingsRepositoryProvider).getBool('panic_on_flip'), isTrue);
+    expect(await container.read(panicOnFlipProvider.future), isTrue);
+  });
 }
+

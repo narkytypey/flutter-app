@@ -5,6 +5,7 @@ import '../../dashboard/views/dashboard_screen.dart';
 import '../../lock/views/lock_screen.dart';
 import '../../panic/views/panic_screen.dart';
 import '../view_models/session_controller.dart';
+import 'flip_panic_guard.dart';
 import 'setup_flow.dart';
 
 /// Decides what the app shows: setup on a fresh device, the lock screen when
@@ -27,9 +28,9 @@ class AppGate extends ConsumerWidget {
       // gets a fresh subtree, and nothing here asks which vault that is.
       SessionOpen(:final database) => _OpenVault(key: ObjectKey(database)),
       SessionPanicked(:final report) => PanicScreen(
-          report: report,
-          onUnlock: () => ref.read(sessionProvider.notifier).dismissPanicReport(),
-        ),
+        report: report,
+        onUnlock: () => ref.read(sessionProvider.notifier).dismissPanicReport(),
+      ),
     };
   }
 }
@@ -62,16 +63,20 @@ class _OpenVaultState extends State<_OpenVault> {
 
   @override
   Widget build(BuildContext context) {
-    return ScaffoldMessenger(
-      // Android back reaches the root navigator, which holds only AppGate.
-      // Hand it to this one whenever it has something of its own to pop; at
-      // the dashboard, back falls through and backgrounds the app as before.
-      child: NavigatorPopHandler<Object?>(
-        onPopWithResult: (_) => _navigator.currentState?.maybePop(),
-        child: Navigator(
-          key: _navigator,
-          onGenerateRoute: (_) =>
-              MaterialPageRoute<void>(builder: (_) => const DashboardScreen()),
+    // While this vault is open and its switch is on, a flip panics.
+    return FlipPanicGuard(
+      child: ScaffoldMessenger(
+        // Android back reaches the root navigator, which holds only AppGate.
+        // Hand it to this one whenever it has something of its own to pop; at
+        // the dashboard, back falls through and backgrounds the app as before.
+        child: NavigatorPopHandler<Object?>(
+          onPopWithResult: (_) => _navigator.currentState?.maybePop(),
+          child: Navigator(
+            key: _navigator,
+            onGenerateRoute: (_) => MaterialPageRoute<void>(
+              builder: (_) => const DashboardScreen(),
+            ),
+          ),
         ),
       ),
     );

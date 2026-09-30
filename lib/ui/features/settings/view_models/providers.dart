@@ -69,6 +69,12 @@ final autoLockProvider = FutureProvider<AutoLockPolicy>((ref) async {
   return AutoLockPolicy.fromStored(stored);
 });
 
+/// Settings' "Trigger by flipping face down" for the open vault (user's
+/// ruling, 2026-09-30): off until turned on.
+final panicOnFlipProvider = FutureProvider<bool>(
+  (ref) => ref.watch(settingsRepositoryProvider).getBool('panic_on_flip'),
+);
+
 sealed class DecoyResyncOutcome {
   const DecoyResyncOutcome();
 }
@@ -159,6 +165,11 @@ class SettingsController {
     await _ref.read(settingsRepositoryProvider).setString('auto_lock', policy.stored);
     _ref.read(sessionProvider.notifier).setAutoLock(policy);
     _ref.invalidate(autoLockProvider);
+  }
+
+  Future<void> setPanicOnFlip(bool value) async {
+    await _ref.read(settingsRepositoryProvider).setBool('panic_on_flip', value);
+    _ref.invalidate(panicOnFlipProvider);
   }
 
   Future<void> setSearchEngine(SearchEngine engine) async {

@@ -38,6 +38,9 @@ class MainActivity : FlutterFragmentActivity() {
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, BiometricPlugin.CHANNEL)
             .setMethodCallHandler(BiometricPlugin(this))
 
+        val flip = MethodChannel(flutterEngine.dartExecutor.binaryMessenger, FlipPanicPlugin.CHANNEL)
+        flip.setMethodCallHandler(FlipPanicPlugin(applicationContext, flip))
+
         val profiles = ProfileManager(
             PendingDeletions(java.io.File(applicationContext.filesDir, "pending-profile-deletions")),
         )

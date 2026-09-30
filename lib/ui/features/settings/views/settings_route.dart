@@ -39,6 +39,7 @@ class SettingsRoute extends ConsumerWidget {
     final decoySiteCount = ref.watch(decoySiteCountProvider);
     final searchEngine = ref.watch(searchEngineProvider).valueOrNull;
     final autoLock = ref.watch(autoLockProvider).valueOrNull ?? AutoLockPolicy.oneMinute;
+    final panicOnFlip = ref.watch(panicOnFlipProvider).valueOrNull ?? false;
     return SettingsScreen(
       biometrics: biometrics.value ?? false,
       biometricsAvailable: biometricsAvailable.value ?? false,
@@ -46,12 +47,14 @@ class SettingsRoute extends ConsumerWidget {
       decoyEnabled: decoyEnabled.value ?? false,
       decoySiteCount: decoySiteCount.value ?? 0,
       hideFromSwitcher: true,
-      panicOnFlip: false,
+      panicOnFlip: panicOnFlip,
       onPanicLabel: 'Wipe + lock',
       searchEngineName: searchEngine?.label ?? '',
       onChanged: (key, value) {
         if (key == 'biometrics') {
           ref.read(settingsControllerProvider).setBiometricsEnabled(value);
+        } else if (key == 'panicOnFlip') {
+          ref.read(settingsControllerProvider).setPanicOnFlip(value);
         }
       },
       onTap: (key) {
