@@ -4,7 +4,6 @@ import android.webkit.WebResourceRequest
 import android.webkit.WebResourceResponse
 import android.webkit.WebView
 import android.webkit.WebViewClient
-import androidx.webkit.ServiceWorkerClientCompat
 import java.io.ByteArrayInputStream
 
 /** The page events [ContainerView] builds its navigation state from. */
@@ -44,9 +43,8 @@ class RequestInterceptor(private val filters: FilterEngine, private val onRefuse
         }
     }
 
-    fun serviceWorkerClient(config: SiteConfig): ServiceWorkerClientCompat = object : ServiceWorkerClientCompat() {
-        override fun shouldInterceptRequest(request: WebResourceRequest): WebResourceResponse? = intercept(config, request)
-    }
+    /** A service worker's requests for [config]'s site, routed like its pages. */
+    fun serviceWorkerClient(config: SiteConfig): (WebResourceRequest) -> WebResourceResponse? = { request -> intercept(config, request) }
 
     private fun intercept(config: SiteConfig, request: WebResourceRequest, lengths: DeclaredLengths? = null): WebResourceResponse? {
         if (config.blockTrackers && filters.matches(request.url.toString()) != null) return blocked()
@@ -55,6 +53,15 @@ class RequestInterceptor(private val filters: FilterEngine, private val onRefuse
             is Route.Proxy -> fetchThrough(route, request, lengths)
             is Route.Refused -> { onRefused(route.failure); refused(route.failure) }
         }
+    }
+
+    companion object {
+        /** For requests that belong to no site: refused, and reported to no one. */
+        val refuseAll: (WebResourceRequest) -> WebResourceResponse? = { closed() }
+
+        private fun closed() = WebResourceResponse(
+            "text/plain", "utf-8", 523, "Refused", emptyMap(), ByteArrayInputStream(ByteArray(0))
+        )
     }
 
     private fun blocked() = WebResourceResponse("text/plain", "utf-8", 204, "Blocked", emptyMap(), ByteArrayInputStream(ByteArray(0)))

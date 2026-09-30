@@ -5,7 +5,6 @@ import android.view.View
 import android.webkit.MimeTypeMap
 import android.webkit.WebView
 import android.webkit.WebSettings
-import androidx.webkit.ServiceWorkerControllerCompat
 import androidx.webkit.WebSettingsCompat
 import androidx.webkit.WebViewFeature
 import io.flutter.plugin.platform.PlatformView
@@ -83,8 +82,10 @@ class ContainerView(
         }
 
         if (WebViewFeature.isFeatureSupported(WebViewFeature.SERVICE_WORKER_BASIC_USAGE)) {
-            ServiceWorkerControllerCompat.getInstance()
-                .setServiceWorkerClient(interceptor.serviceWorkerClient(config))
+            routeServiceWorkers(
+                WebViewServiceWorkerControllers(profiles), config.profileId,
+                site = interceptor.serviceWorkerClient(config), refuseAll = RequestInterceptor.refuseAll,
+            )
         }
 
         webView.loadUrl(firstLoadUrl(config.url, session.initialUrl))
