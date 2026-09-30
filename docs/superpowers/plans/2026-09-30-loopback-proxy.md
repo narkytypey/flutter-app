@@ -889,7 +889,7 @@ git commit -m "feat: parse and decide loopback proxy requests"
   - `val address: InetAddress`
   - `close()`
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 ```kotlin
 package com.mono.container.engine
@@ -1317,12 +1317,12 @@ class LoopbackProxyTest {
 }
 ```
 
-- [ ] **Step 2: Run the test and confirm it fails**
+- [x] **Step 2: Run the test and confirm it fails**
 
 Run: `./gradlew :app:testDebugUnitTest --tests "com.mono.container.engine.LoopbackProxyTest"`
 Expected: a compilation failure, with `Unresolved reference: LoopbackProxy`.
 
-- [ ] **Step 3: Write the implementation**
+- [x] **Step 3: Write the implementation**
 
 ```kotlin
 package com.mono.container.engine
@@ -1500,14 +1500,14 @@ class LoopbackProxy(
 }
 ```
 
-- [ ] **Step 4: Run the test and confirm it passes**
+- [x] **Step 4: Run the test and confirm it passes**
 
 Run: `./gradlew :app:testDebugUnitTest --tests "com.mono.container.engine.LoopbackProxyTest"`
 Expected: PASS, 16 tests. Then run the class twice more; it must pass all three times. A flaky relay test is a bug in the relay, not in the test.
 
-- [ ] **Step 5: Run the full gates**, as in the baseline. Expected: JVM tests = Task 2's total + 16; zero `e:` lines. Nothing starts the proxy in the app yet.
+- [x] **Step 5: Run the full gates**, as in the baseline. Expected: JVM tests = Task 2's total + 16; zero `e:` lines. Nothing starts the proxy in the app yet.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add android/app/src/main/kotlin/com/mono/container/engine/LoopbackProxy.kt android/app/src/test/kotlin/com/mono/container/engine/LoopbackProxyTest.kt
@@ -2478,6 +2478,10 @@ Kotlin JVM 128 tests, 0 failures, 0 errors (23 JUnit XML files);
 - Task 2: JVM 161 (139 + 22), 0 failures; `flutter test` 540/540; analyze
   clean; APK zero `e:` lines. The test and implementation are the plan's,
   unchanged.
+- Task 3: JVM 177 (161 + 16), 0 failures; `flutter test` 540/540; analyze
+  clean; APK zero `e:` lines. `LoopbackProxyTest` passed on eight separate
+  `--rerun` executions (distinct JUnit timestamps), none flaky. The test and
+  implementation are the plan's, unchanged.
 
 **Deviations from the plan's text:**
 
