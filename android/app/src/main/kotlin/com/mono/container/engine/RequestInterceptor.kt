@@ -71,9 +71,7 @@ class RequestInterceptor(private val filters: FilterEngine, private val onRefuse
             val path = (url.path?.ifEmpty { "/" } ?: "/") + (url.query?.let { "?$it" } ?: "")
             val response = ProxyHttpClient.fetch(route, host, port, url.scheme == "https", request.method, path, request.requestHeaders)
             lengths?.record(url.toString(), response.headers)
-            val contentType = response.headers["Content-Type"]
-            val mimeType = contentType?.substringBefore(';')?.trim() ?: "application/octet-stream"
-            val charset = contentType?.substringAfter("charset=", "")?.trim()?.ifEmpty { null } ?: "utf-8"
+            val (mimeType, charset) = mediaTypeOf(response.headers)
             WebResourceResponse(mimeType, charset, response.status, response.reason, response.headers, response.body)
         }.getOrElse { error ->
             refused(when (error) {
@@ -90,4 +88,24 @@ class RequestInterceptor(private val filters: FilterEngine, private val onRefuse
             })
         }
     }
+}
+
+/**
+ * The media type and charset WebView is handed for a proxied response.
+ *
+ * Header names and parameter names are case-insensitive (RFC 9110 §5.1,
+ * §8.3.1), and a parameter value may be quoted. A case-sensitive lookup made
+ * a server that sends `content-type` look like it sent none, so its page was
+ * held as a download.
+ */
+internal fun mediaTypeOf(headers: Map<String, String>): Pair<String, String> {
+    val contentType = headers.entries.firstOrNull { it.key.equals("Content-Type", ignoreCase = true) }?.value
+    val parts = contentType?.split(';').orEmpty()
+    val mimeType = parts.firstOrNull()?.trim()?.ifEmpty { null } ?: "application/octet-stream"
+    val charset = parts.drop(1)
+        .map { it.trim() }
+        .firstOrNull { it.startsWith("charset=", ignoreCase = true) }
+        ?.substringAfter('=')?.trim()?.removeSurrounding("\"")?.ifEmpty { null }
+        ?: "utf-8"
+    return mimeType to charset
 }

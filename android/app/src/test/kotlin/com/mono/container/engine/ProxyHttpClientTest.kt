@@ -17,7 +17,10 @@ import java.util.concurrent.ArrayBlockingQueue
 class ProxyHttpClientTest {
 
     /** Accepts one connection, records the whole request head, replies 200. */
-    private class FakeOrigin(private val body: String = "hi") : AutoCloseable {
+    private class FakeOrigin(
+        private val body: String = "hi",
+        private val responseHead: String = "HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\n",
+    ) : AutoCloseable {
         val server = ServerSocket(0)
         val heads = ArrayBlockingQueue<List<String>>(1)
 
@@ -34,7 +37,7 @@ class ProxyHttpClientTest {
                         }
                         heads.offer(head)
                         val out = client.getOutputStream()
-                        out.write("HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\n\r\n$body".toByteArray(Charsets.US_ASCII))
+                        out.write("$responseHead$body".toByteArray(Charsets.US_ASCII))
                         out.flush()
                     }
                 }
@@ -92,6 +95,21 @@ class ProxyHttpClientTest {
             assertEquals("OK", response.reason)
             assertEquals("text/plain", response.headers["Content-Type"])
             assertEquals("hi", response.body.use { it.readBytes().toString(Charsets.US_ASCII) })
+        }
+    }
+
+    /**
+     * Header names are case-insensitive (RFC 9110 §5.1). A server that sends
+     * `content-type` must be read exactly like one that sends `Content-Type`:
+     * a case-sensitive lookup turned such a page into a held download.
+     */
+    @Test fun `response headers are found whatever their case`() {
+        val head = "HTTP/1.1 200 OK\r\ncontent-type: text/html\r\nCONTENT-LENGTH: 3\r\n\r\n"
+        FakeOrigin(body = "<p>", responseHead = head).use { origin ->
+            val response = fetchAgainst(origin, emptyMap())
+            response.body.close()
+            assertEquals("text/html", response.headers["Content-Type"])
+            assertEquals("3", response.headers["content-length"])
         }
     }
 }

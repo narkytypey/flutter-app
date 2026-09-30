@@ -28,7 +28,10 @@ object ProxyHttpClient {
         val parts = readLine(input).split(' ', limit = 3)
         val status = parts.getOrNull(1)?.toIntOrNull() ?: 502
         val reason = parts.getOrNull(2) ?: "OK"
-        val headers = mutableMapOf<String, String>()
+        // Header names are case-insensitive (RFC 9110 §5.1): every reader —
+        // the interceptor, the download size, the download writer — looks
+        // names up in this map, so it is the one place that has to know.
+        val headers = java.util.TreeMap<String, String>(String.CASE_INSENSITIVE_ORDER)
         while (true) {
             val line = readLine(input)
             if (line.isEmpty()) break
