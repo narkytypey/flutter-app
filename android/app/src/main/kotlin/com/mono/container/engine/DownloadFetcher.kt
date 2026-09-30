@@ -116,11 +116,11 @@ class DownloadFetcher(
     }
 
     /**
-     * Mirrors [RequestInterceptor]'s mapping so a download names the same cause
-     * a page load would.
+     * Mirrors the mapping the interceptor used for proxied page loads before
+     * P2 (Plan 13), so a download names the same cause a page load did.
      *
-     * [route] is why this is not a verbatim copy of that mapping. `fetchThrough`
-     * only ever runs for a [Route.Proxy], so it can read a
+     * [route] is why this is not a verbatim copy of that mapping. The
+     * interceptor's fetch only ever ran for a [Route.Proxy], so it could read a
      * [java.net.ConnectException] as "the proxy is down". This function also
      * runs for [Route.Direct], where there is no proxy to be unreachable and the
      * same exception means the destination refused the connection — reporting

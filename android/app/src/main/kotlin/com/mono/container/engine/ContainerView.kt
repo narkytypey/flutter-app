@@ -38,8 +38,6 @@ class ContainerView(
 
     private val teardown = Teardown { destroyAndWipe() }
 
-    private val declaredLengths = DeclaredLengths()
-
     /** Declared before `init`, which hands the clients that feed it to the WebView. */
     private val navigation = NavigationTracker(firstLoadUrl(config.url, session.initialUrl))
 
@@ -61,7 +59,7 @@ class ContainerView(
         // Must precede the first load, or the request goes to the default store.
         androidx.webkit.WebViewCompat.setProfile(webView, config.profileId)
         val live = { if (!closing.get()) onLive() }
-        webView.webViewClient = interceptor.clientFor(config, { credentials.credentialFor(config.profileId) }, live, declaredLengths, closing = { closing.get() }, page = object : PageCallbacks {
+        webView.webViewClient = interceptor.clientFor(config, { credentials.credentialFor(config.profileId) }, live, closing = { closing.get() }, page = object : PageCallbacks {
             override fun started(url: String) = report { navigation.started(url) }
             override fun finished(url: String) {
                 if (closing.get()) teardown.pageFinished(url) else report { navigation.finished(url) }
@@ -86,10 +84,9 @@ class ContainerView(
                 mimeType?.substringAfter('/') ?: ""
             }
             val resolvedMimeType = mimeType?.ifEmpty { null } ?: "application/octet-stream"
-            // Not currentRoute(): that probes the proxy, and this is the main
-            // thread. Any mode but direct means RequestInterceptor supplied
-            // this response, so contentLength is not the server's number.
-            val size = heldDownloadSize(config.proxyMode != "direct", contentLength, declaredLengths.take(url))
+            // Chromium fetched this on every route since P2, so its
+            // contentLength means the same everywhere: 0 is unknown.
+            val size = heldDownloadSize(contentLength)
             onDownload(url, resolvedMimeType, fileName, size, extension.uppercase().ifEmpty { "FILE" })
         }
 

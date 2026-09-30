@@ -47,8 +47,7 @@ object ProxyHttpClient {
      * (RFC 9112 §6.3), so it never describes these bytes. When the last
      * transfer coding is `chunked`, the framing is decoded here, and `chunked`
      * is dropped from the list if other codings precede it.
-     * `Transfer-Encoding` itself is kept whenever it was sent, so
-     * [declaredLength] still reads no declared length for such a response.
+     * `Transfer-Encoding` itself is kept whenever it was sent.
      */
     private fun bodyOf(input: InputStream, headers: MutableMap<String, String>): InputStream {
         val codings = headers["Transfer-Encoding"]?.split(',')?.map { it.trim() }?.filter { it.isNotEmpty() }

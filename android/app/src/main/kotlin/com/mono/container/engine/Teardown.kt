@@ -6,27 +6,21 @@ internal sealed class Disposition {
     object Closed : Disposition()
     /** A filter list matched: an empty 204. */
     object Blocked : Disposition()
-    /** WebView fetches it itself — only ever for a direct route. */
+    /** Chromium fetches it, through the loopback proxy, on the site's route (P2 spec §1.4). */
     object ByWebView : Disposition()
-    data class Through(val route: Route.Proxy) : Disposition()
-    data class Refused(val failure: RouteFailure) : Disposition()
 }
 
 /**
  * [closing] is checked first and alone. A view is closing from the moment it
  * is disposed until WebView is destroyed, and what a page sends then — its
- * pagehide beacons, keepalive fetches — is refused outright: never routed and
- * never direct (user's ruling, 2026-09-30). It must not wait on [route], which
- * probes the proxy.
+ * pagehide beacons, keepalive fetches — is refused outright: never routed,
+ * never direct, and never even handed to the loopback proxy (user's ruling,
+ * 2026-09-30).
  */
-internal fun dispositionFor(closing: Boolean, blockedByFilter: () -> Boolean, route: () -> Route): Disposition {
+internal fun dispositionFor(closing: Boolean, blockedByFilter: () -> Boolean): Disposition {
     if (closing) return Disposition.Closed
     if (blockedByFilter()) return Disposition.Blocked
-    return when (val r = route()) {
-        is Route.Direct -> Disposition.ByWebView
-        is Route.Proxy -> Disposition.Through(r)
-        is Route.Refused -> Disposition.Refused(r.failure)
-    }
+    return Disposition.ByWebView
 }
 
 /**

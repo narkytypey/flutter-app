@@ -1,6 +1,7 @@
 package com.mono.container.engine
 
 import android.webkit.HttpAuthHandler
+import android.webkit.WebResourceError
 import android.webkit.WebResourceRequest
 import android.webkit.WebResourceResponse
 import android.webkit.WebView
@@ -18,29 +19,40 @@ interface PageCallbacks {
     }
 }
 
+/**
+ * A site's WebView hooks. Since P2 (spec §1.4) Chromium does every fetch
+ * itself, through the loopback proxy, which routes it by the site's credential
+ * — so proxied sites keep cookies, follow redirects and send POST bodies. What
+ * is left here happens before a request reaches Chromium's network stack: a
+ * closing view refuses everything, and a filter-list match is blocked.
+ * [onRefused] hears a main frame's failure ([mainFrameFailure]).
+ */
 class RequestInterceptor(private val filters: FilterEngine, private val onRefused: (RouteFailure) -> Unit = {}) {
     /** [proxyCredential] answers the loopback proxy's `407` (P2 spec §1.4): every
-     *  call, at once, from memory. [lengths] records each proxied response's
-     *  declared length, for the view's held-download sheet. [page] hears the
-     *  page starting, finishing and moving through history (browser-chrome spec
-     *  §3.1). [closing] is this one view's: once it is true, every request is
-     *  refused (see [dispositionFor]). It is per view, not per interceptor,
-     *  because a session — and its interceptor — outlives the views that show it. */
+     *  call, at once, from memory. [page] hears the page starting, finishing and
+     *  moving through history (browser-chrome spec §3.1). [closing] is this one
+     *  view's: once it is true, every request is refused (see [dispositionFor]).
+     *  It is per view, not per interceptor, because a session — and its
+     *  interceptor — outlives the views that show it. */
     fun clientFor(
         config: SiteConfig,
         proxyCredential: () -> ProxyCredential,
         onLoaded: () -> Unit = {},
-        lengths: DeclaredLengths? = null,
         page: PageCallbacks = PageCallbacks.NONE,
         closing: () -> Boolean = { false },
     ): WebViewClient = object : WebViewClient() {
         override fun shouldInterceptRequest(view: WebView, request: WebResourceRequest): WebResourceResponse? =
-            intercept(config, request, lengths, closing())
+            intercept(config, request, closing())
 
         override fun onReceivedHttpAuthRequest(view: WebView, handler: HttpAuthHandler, host: String?, realm: String?) {
             val answer = proxyAuthAnswer(host, realm, proxyCredential)
             if (answer != null) handler.proceed(answer.user, answer.password)
             else super.onReceivedHttpAuthRequest(view, handler, host, realm)
+        }
+
+        /** A subresource's failure never takes over the screen (P2 spec §3.3). */
+        override fun onReceivedError(view: WebView, request: WebResourceRequest, error: WebResourceError) {
+            if (request.isForMainFrame && !closing()) mainFrameFailure(error.errorCode)?.let(onRefused)
         }
 
         override fun onPageStarted(view: WebView, url: String?, favicon: android.graphics.Bitmap?) {
@@ -57,25 +69,14 @@ class RequestInterceptor(private val filters: FilterEngine, private val onRefuse
         }
     }
 
-    /** A service worker's requests for [config]'s site, routed like its pages. */
+    /** A service worker's requests for [config]'s site, gated like its pages. */
     fun serviceWorkerClient(config: SiteConfig): (WebResourceRequest) -> WebResourceResponse? = { request -> intercept(config, request) }
 
-    private fun intercept(
-        config: SiteConfig,
-        request: WebResourceRequest,
-        lengths: DeclaredLengths? = null,
-        closing: Boolean = false,
-    ): WebResourceResponse? =
-        when (val disposition = dispositionFor(
-            closing,
-            blockedByFilter = { config.blockTrackers && filters.matches(request.url.toString()) != null },
-            route = { config.currentRoute() },
-        )) {
+    private fun intercept(config: SiteConfig, request: WebResourceRequest, closing: Boolean = false): WebResourceResponse? =
+        when (dispositionFor(closing, blockedByFilter = { config.blockTrackers && filters.matches(request.url.toString()) != null })) {
             Disposition.Closed -> closed()
             Disposition.Blocked -> blocked()
             Disposition.ByWebView -> null
-            is Disposition.Through -> fetchThrough(disposition.route, request, lengths)
-            is Disposition.Refused -> { onRefused(disposition.failure); refused(disposition.failure) }
         }
 
     companion object {
@@ -88,54 +89,14 @@ class RequestInterceptor(private val filters: FilterEngine, private val onRefuse
     }
 
     private fun blocked() = WebResourceResponse("text/plain", "utf-8", 204, "Blocked", emptyMap(), ByteArrayInputStream(ByteArray(0)))
-
-    private fun refused(failure: RouteFailure) = WebResourceResponse(
-        "text/plain", "utf-8", 523, "Route refused", mapOf("X-Container-Refusal" to failure.name), ByteArrayInputStream(ByteArray(0))
-    )
-
-    private fun fetchThrough(route: Route.Proxy, request: WebResourceRequest, lengths: DeclaredLengths?): WebResourceResponse {
-        val url = request.url
-        val host = url.host ?: return refused(RouteFailure.MISCONFIGURED)
-        val port = if (url.port != -1) url.port else if (url.scheme == "https") 443 else 80
-        return runCatching {
-            val path = (url.path?.ifEmpty { "/" } ?: "/") + (url.query?.let { "?$it" } ?: "")
-            val response = ProxyHttpClient.fetch(route, host, port, url.scheme == "https", request.method, path, request.requestHeaders)
-            lengths?.record(url.toString(), response.headers)
-            val (mimeType, charset) = mediaTypeOf(response.headers)
-            WebResourceResponse(mimeType, charset, response.status, response.reason, response.headers, response.body)
-        }.getOrElse { error ->
-            refused(when (error) {
-                is ProxyTunnelException -> RouteFailure.PROXY_REFUSED
-                is java.net.SocketTimeoutException -> RouteFailure.UPSTREAM_TIMEOUT
-                is javax.net.ssl.SSLException -> RouteFailure.TLS_FAILURE
-                is java.net.ConnectException -> RouteFailure.PROXY_UNREACHABLE
-                // Router.resolve admits only the modes connect() can open, so
-                // nothing reaches this today. Kept so that any future
-                // unsupported Proxy.Type can never again surface to the user
-                // as a bogus upstream timeout.
-                is IllegalArgumentException -> RouteFailure.MISCONFIGURED
-                else -> RouteFailure.UPSTREAM_TIMEOUT
-            })
-        }
-    }
 }
 
 /**
- * The media type and charset WebView is handed for a proxied response.
- *
- * Header names and parameter names are case-insensitive (RFC 9110 §5.1,
- * §8.3.1), and a parameter value may be quoted. A case-sensitive lookup made
- * a server that sends `content-type` look like it sent none, so its page was
- * held as a download.
+ * The failure a main frame's WebView error reports, or null. Chromium does the
+ * TLS since P2 (spec §3.3), so a handshake that fails arrives as
+ * `ERROR_FAILED_SSL_HANDSHAKE`. Every other code — the loopback proxy's `502`
+ * and `504` included — is left to WebView's own error page. Certificate errors
+ * never come here: they go to `onReceivedSslError`, whose default cancels.
  */
-internal fun mediaTypeOf(headers: Map<String, String>): Pair<String, String> {
-    val contentType = headers.entries.firstOrNull { it.key.equals("Content-Type", ignoreCase = true) }?.value
-    val parts = contentType?.split(';').orEmpty()
-    val mimeType = parts.firstOrNull()?.trim()?.ifEmpty { null } ?: "application/octet-stream"
-    val charset = parts.drop(1)
-        .map { it.trim() }
-        .firstOrNull { it.startsWith("charset=", ignoreCase = true) }
-        ?.substringAfter('=')?.trim()?.removeSurrounding("\"")?.ifEmpty { null }
-        ?: "utf-8"
-    return mimeType to charset
-}
+internal fun mainFrameFailure(errorCode: Int): RouteFailure? =
+    if (errorCode == WebViewClient.ERROR_FAILED_SSL_HANDSHAKE) RouteFailure.TLS_FAILURE else null

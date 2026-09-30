@@ -2089,7 +2089,7 @@ git commit -m "feat: route every site through the loopback proxy, refusing proxi
   - `internal fun heldDownloadSize(listenerLength: Long): Long?`
   - `RequestInterceptor.clientFor(config, proxyCredential, onLoaded, page, closing)`, whose `lengths` parameter is gone
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 Replace `DispositionTest.kt`:
 
@@ -2184,12 +2184,12 @@ In `ProxyHttpClientTest.kt`, in "a chunked body is handed on decoded, with no de
 
 Delete `RequestInterceptorMediaTypeTest.kt`: `git rm android/app/src/test/kotlin/com/mono/container/engine/RequestInterceptorMediaTypeTest.kt`.
 
-- [ ] **Step 2: Run the tests and confirm they fail**
+- [x] **Step 2: Run the tests and confirm they fail**
 
 Run: `./gradlew :app:testDebugUnitTest --tests "com.mono.container.engine.DispositionTest" --tests "com.mono.container.engine.DownloadSizeTest" --tests "com.mono.container.engine.MainFrameFailureTest"`
 Expected: a compilation failure. `dispositionFor` has no overload without `route`, `heldDownloadSize` wants three arguments, and `mainFrameFailure` is unresolved.
 
-- [ ] **Step 3: `Teardown.kt`**
+- [x] **Step 3: `Teardown.kt`**
 
 Replace lines 3–30 (the `Disposition` class and `dispositionFor`):
 
@@ -2218,7 +2218,7 @@ internal fun dispositionFor(closing: Boolean, blockedByFilter: () -> Boolean): D
 }
 ```
 
-- [ ] **Step 4: `RequestInterceptor.kt`: the whole file**
+- [x] **Step 4: `RequestInterceptor.kt`: the whole file**
 
 ```kotlin
 package com.mono.container.engine
@@ -2325,7 +2325,7 @@ internal fun mainFrameFailure(errorCode: Int): RouteFailure? =
     if (errorCode == WebViewClient.ERROR_FAILED_SSL_HANDSHAKE) RouteFailure.TLS_FAILURE else null
 ```
 
-- [ ] **Step 5: `DownloadSize.kt`: the whole file**
+- [x] **Step 5: `DownloadSize.kt`: the whole file**
 
 ```kotlin
 package com.mono.container.engine
@@ -2342,7 +2342,7 @@ package com.mono.container.engine
 internal fun heldDownloadSize(listenerLength: Long): Long? = listenerLength.takeIf { it > 0 }
 ```
 
-- [ ] **Step 6: `ContainerView.kt` and `ProxyHttpClient.kt`**
+- [x] **Step 6: `ContainerView.kt` and `ProxyHttpClient.kt`**
 
 In `ContainerView.kt`:
 - delete `private val declaredLengths = DeclaredLengths()` and the blank line after it;
@@ -2368,26 +2368,26 @@ to:
      * `Transfer-Encoding` itself is kept whenever it was sent.
 ```
 
-- [ ] **Step 7: Confirm nothing else used the removed names**
+- [x] **Step 7: Confirm nothing else used the removed names**
 
 Run: `grep -rn "fetchThrough\|DeclaredLengths\|declaredLength\|mediaTypeOf\|Disposition.Through\|Disposition.Refused\|blockAutofillQueries" android/app/src`
 Expected: no output.
 
-- [ ] **Step 8: Run the tests and confirm they pass**
+- [x] **Step 8: Run the tests and confirm they pass**
 
 Run: `./gradlew :app:testDebugUnitTest`
 Expected, from the XML:
 - the total is Task 5's total − 3 (`DispositionTest` 6→3) − 9 (`DownloadSizeTest` 11→2) − 4 (`RequestInterceptorMediaTypeTest` deleted) + 2 (`MainFrameFailureTest`);
 - no failures. Recount if the old classes had other counts, and record what you see.
 
-- [ ] **Step 9: Run the full gates**: zero `e:` lines, `flutter analyze` clean, `flutter test` unchanged.
+- [x] **Step 9: Run the full gates**: zero `e:` lines, `flutter analyze` clean, `flutter test` unchanged.
 
-- [ ] **Step 10: Quick device check.** Install and check these three:
+- [ ] **Step 10: Quick device check.** *(Not run: the executing session had no emulator. Carried to Task 7.)* Install and check these three:
   1. A saved SOCKS5 site loads `https://httpbin.org/cookies/set?p2=1`, which redirects to `/cookies` and shows `p2`. Before this task that failed with `net::ERR_HTTP_RESPONSE_CODE_FAILURE`.
   2. A direct site still loads.
   3. A held download on the SOCKS5 site (`https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf` as the site's URL) reads `13.0 KB · from www.w3.org`.
 
-- [ ] **Step 11: Commit**
+- [x] **Step 11: Commit**
 
 ```bash
 git add -A android/app/src/main/kotlin android/app/src/test/kotlin
@@ -2490,6 +2490,11 @@ Kotlin JVM 128 tests, 0 failures, 0 errors (23 JUnit XML files);
   543/543; analyze clean; APK zero `e:` lines. **Step 10, the early device
   check, was not run** (no emulator here). Its four checks, the re-challenge
   loop above all, move to Task 7 and must run before anything else there.
+- Task 6: JVM 167 (181 − 3 `DispositionTest` − 9 `DownloadSizeTest` − 4
+  `RequestInterceptorMediaTypeTest` + 2 `MainFrameFailureTest`), 0 failures,
+  27 JUnit XML files; `flutter test` 543/543; analyze clean; APK zero `e:`
+  lines. Step 7's grep printed nothing. **Step 10, the quick device check,
+  was not run.** Its three checks move to Task 7.
 
 **Deviations from the plan's text:**
 
@@ -2497,6 +2502,31 @@ Kotlin JVM 128 tests, 0 failures, 0 errors (23 JUnit XML files);
   (`5-106`) is 46 lines, and `ContainerViewFactory.kt` (`239-244`) is 63
   lines with its `ContainerView(` call at line 30. The content each describes
   matched, and the changes were made there.
+- Task 6 Step 7's grep expects no output, but `DownloadFetcher.kt`'s
+  `failureFor` doc comment named `fetchThrough` and said it "mirrors
+  [RequestInterceptor]'s mapping", which Task 6 removes. The plan does not
+  list that file. The comment was reworded to say it mirrors the mapping the
+  interceptor used before P2, with the same reasoning and no mention of the
+  removed name. Comment only: no code in that file changed.
+
+**What Task 7 must check first**, before its own list:
+
+1. Task 5 Step 10 (the early device check), above all item 2: after a
+   credential is unbound, a reload gets `403` and the log shows a small,
+   bounded number of `403`s and `407`s, not a loop. A loop stops the plan.
+2. That the proxy actually started. `Loopback.start()` binds its
+   `ServerSocket` on the main thread in `configureFlutterEngine`. If Android's
+   thread policy refused that, `start()` returns false. The failure is closed
+   and nothing leaks, but every proxied site would then show "This phone
+   cannot route sites through a proxy" on a WebView that supports the
+   override. So a proxied site loading at all shows the proxy is up.
+3. Task 6 Step 10's three checks: cookies and a redirect on SOCKS5
+   (`httpbin.org/cookies/set?p2=1`), a direct site, and a SOCKS5 held
+   download reading `13.0 KB · from www.w3.org`.
+4. `adb shell ss -tnpe` during a proxied page's first load. If the app's uid
+   makes any socket other than to `127.0.0.1:<loopback port>` before the
+   first `CONNECT` reaches the proxy, that is open question 1 below
+   happening.
 
 **Open design questions for the user** (found while executing; not decided
 here, and no code was changed for them):
