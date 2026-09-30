@@ -35,7 +35,9 @@ object HttpConnectTunnel {
         try {
             socket.connect(InetSocketAddress(proxyHost, proxyPort), CONNECT_TIMEOUT_MS)
             socket.soTimeout = CONNECT_TIMEOUT_MS
-            val authority = "$targetHost:$targetPort"
+            // RFC 9110 §7.2: an IPv6 literal is bracketed in an authority.
+            val host = if (':' in targetHost && !targetHost.startsWith("[")) "[$targetHost]" else targetHost
+            val authority = "$host:$targetPort"
             val out = socket.getOutputStream()
             out.write("CONNECT $authority HTTP/1.1\r\n".toByteArray(Charsets.US_ASCII))
             out.write("Host: $authority\r\n".toByteArray(Charsets.US_ASCII))

@@ -49,7 +49,8 @@ internal object Loopback {
 
     /**
      * Starts the proxy and installs the override, once. True when WebView's
-     * traffic now goes through it. When it cannot, proxied sites are refused
+     * traffic goes through it once [applied] is released: WebView applies the
+     * override asynchronously. When it cannot, proxied sites are refused
      * at open (`UNSUPPORTED`) and direct sites load as before. Autofill's
      * query then cannot be blocked either, and that is logged rather than
      * hidden.

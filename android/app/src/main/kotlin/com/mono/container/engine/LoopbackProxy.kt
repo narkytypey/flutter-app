@@ -109,8 +109,8 @@ class LoopbackProxy(
      * A socket to [host]:[port] on [binding]'s route, or null once [output]
      * has been answered. A refused route is reported to the site, as the
      * interceptor reported it before P2, unless its session has closed
-     * meanwhile. A failed connection is answered
-     * and reported to no one (plan deviation 1).
+     * meanwhile. A failed connection is answered and reported to no one (plan
+     * deviation 1).
      */
     private fun upstream(binding: ProxyBinding, host: String, port: Int, output: OutputStream, label: String): Socket? {
         val route = resolve(binding.config)

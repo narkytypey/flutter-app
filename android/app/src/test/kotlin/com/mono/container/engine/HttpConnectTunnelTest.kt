@@ -59,6 +59,21 @@ class HttpConnectTunnelTest {
         }
     }
 
+    /**
+     * RFC 9110 §7.2: an IPv6 literal in an authority is bracketed. The loopback
+     * proxy hands over the host without brackets (`parseAuthority`), so a
+     * direct site behind a Wi-Fi proxy, or an http-mode site, at
+     * `https://[2001:db8::1]/` would otherwise send `CONNECT 2001:db8::1:443`.
+     */
+    @Test fun `brackets an IPv6 literal target, once`() {
+        for (target in listOf("2001:db8::1", "[2001:db8::1]")) {
+            FakeProxy("HTTP/1.1 200 Connection established\r\n\r\n", echo = false).use { proxy ->
+                HttpConnectTunnel.open("127.0.0.1", proxy.server.localPort, target, 443).close()
+                assertEquals("CONNECT [2001:db8::1]:443 HTTP/1.1", proxy.requestLines.take())
+            }
+        }
+    }
+
     @Test fun `returns a still-open socket on 200`() {
         FakeProxy("HTTP/1.1 200 Connection established\r\n\r\n", echo = true).use { proxy ->
             HttpConnectTunnel.open("127.0.0.1", proxy.server.localPort, "example.com", 443).use { socket ->

@@ -2595,6 +2595,7 @@ These come from spec §6 and this plan's deviations. They are recorded, not fixe
   - one that cannot be reached reads "The destination did not respond" on a download (`UPSTREAM_TIMEOUT`), and WebView's error page on a page;
   - a proxied site's connection to its own proxy does not go through it;
   - a PAC setup works only through the local proxy Android runs for it; until that reports a port, direct sites connect straight.
+- **A direct site's `http://` request behind a system proxy** is tunnelled with `CONNECT host:80`, which some proxies refuse. The shipped app refuses cleartext before such requests are made (deviation 3).
 - **An override that never applies leaves every site on its opening checklist** (user's ruling, 2026-09-30: wait, no timeout, no copy).
 
 ## Handoff
