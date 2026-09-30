@@ -982,6 +982,24 @@ verified on a physical phone.** The emulator's vault was found wiped before
 that run (stores gone, profiles swept — the shape a panic leaves); no session
 reported touching it, and the cause is unknown.
 
+**Site wipe (branch `fix-site-wipe`, 2026-09-30, session flutter-app-85).**
+
+- **The row menu's "Wipe this site's data" (`7b`) was wired to nothing** (Plan 6's Known gaps: nothing decided what confirms a destructive wipe).
+  - It now asks in `WipeSiteSheet`, with copy the user approved: "Wipe this site's data?" / "Its logins, storage and downloads are destroyed. The site stays in its workspace." / "Wipe" / "Cancel".
+  - The sheet has no jade and opens on the open vault's own navigator. Cancel, a tap outside or back do nothing, and nothing is shown after a wipe.
+  - Wipe runs `wipeSavedSite` (`lib/data/services/site_wipe.dart`): close the session, wipe the profile and its kept downloads, then **write the row back with a fresh `profileId`**. The site keeps its id, settings and script assignments.
+- **Every close-and-wipe of a saved site goes through that helper**: `6c`, `2c` and `8c` (`ContainerRoute._closeAndWipe`). A throwaway has no row, so it is only closed and wiped.
+  - Why the fresh id: a profile this run has loaded is only cleared in place (cookies, web storage, permissions), and the rest waits in the pending-deletion journal. Reopening the site under the same id took it off that journal, so its cache, history and network state survived every wipe.
+  - **Known gap (ruling):** a wipe-on-exit site's automatic per-close wipe does not rotate. Only HSTS/alt-svc network state and history can survive it, and only if the site is reopened in the same run.
+- **"Remove site" deleted only the row**, leaving the site's WebView profile (logins, storage, cache) and its kept downloads on disk, and an open session running. It now closes, wipes, then deletes (`removeSavedSite`, in `WorkspaceActions.delete`'s order). Its confirmation behaviour is unchanged (none).
+- Commits `2a94e2c` (helper and 6c/2c/8c rotation), `60686d9` (Remove site), `5fe8391` (row-menu wipe and sheet), `07e1dec` (docs).
+- Tests: `site_wipe_test.dart` 5, `container_route_test.dart` +4 (rotation on 6c/2c/8c, none for a throwaway), `dashboard_site_actions_test.dart` 3, `wipe_site_sheet_test.dart` 7.
+- Verified: `flutter analyze` clean, `flutter test` 540/540, `flutter build apk --debug` with zero `e:` lines (no Kotlin changed).
+- **Seen on the emulator:**
+  - SpikeX's session was open. After the row-menu wipe, the sheet showed the approved copy. Tapping Wipe kept the row and took it off OPEN NOW (`0 SESSIONS`), and its old profile `8f9f47e6…` was journaled.
+  - Reopening created a new profile `d05ba47e…`, and the old one stayed journaled.
+  - Remove site on SpikeY deleted its profile (`4b77d5f1…`, not loaded that run) from disk and from WebView's registry at once.
+
 ## Working on this repo
 
 - ~~No git repo initialized yet, and Flutter isn't installed on this machine as
