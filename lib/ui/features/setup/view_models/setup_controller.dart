@@ -55,6 +55,11 @@ class SetupController {
   final SessionOpener _openSession;
 
   Future<void> complete({required String mainPin, String? decoyPin}) async {
+    // One PIN must never open both vaults; `SetupFlow` refuses it first.
+    if (decoyPin == mainPin) {
+      // The message carries no digits: a PIN must never reach a log.
+      throw ArgumentError('the decoy PIN must differ from the main PIN');
+    }
     // Setup only runs with no `meta.bin`, so any store still on disk belongs
     // to keys that no longer exist — an interrupted panic's leftovers.
     for (final vault in VaultId.values) {

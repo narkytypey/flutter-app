@@ -25,8 +25,26 @@ class _SetupFlowState extends ConsumerState<SetupFlow> {
   String _decoyPin = '';
   bool _completing = false;
 
+  /// Set when the decoy PIN matched the main one; cleared at the next key.
+  bool _decoyRefused = false;
+
   void _appendMain(String key) => setState(() => _mainPin = _apply(_mainPin, key));
-  void _appendDecoy(String key) => setState(() => _decoyPin = _apply(_decoyPin, key));
+  void _appendDecoy(String key) => setState(() {
+        _decoyRefused = false;
+        _decoyPin = _apply(_decoyPin, key);
+      });
+
+  /// One PIN must never open both vaults (user's ruling, 2026-09-30): it would
+  /// open only whichever is tried first. The dots clear and a line asks for
+  /// another, without saying why.
+  void _continueFromDecoyPin() => setState(() {
+        if (_decoyPin == _mainPin) {
+          _decoyPin = '';
+          _decoyRefused = true;
+        } else {
+          _step = _SetupStep.defaults;
+        }
+      });
 
   String _apply(String digits, String key) {
     if (key == '⌫') {
@@ -70,9 +88,8 @@ class _SetupFlowState extends ConsumerState<SetupFlow> {
       _SetupStep.decoyPin => SetupPinScreen(
           filled: _decoyPin.length,
           onKey: _appendDecoy,
-          onContinue: _decoyPin.length == 6
-              ? () => setState(() => _step = _SetupStep.defaults)
-              : null,
+          onContinue: _decoyPin.length == 6 ? _continueFromDecoyPin : null,
+          notice: _decoyRefused ? 'Choose a different PIN' : null,
         ),
       _SetupStep.defaults => SetupDefaultsScreen(onFinish: _finish),
     };

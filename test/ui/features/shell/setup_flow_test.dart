@@ -9,6 +9,7 @@ import 'package:container/data/services/app_database.dart';
 import 'package:container/data/services/vault_store.dart';
 import 'package:container/domain/models/vault.dart';
 import 'package:container/ui/core/widgets/app_toggle.dart';
+import 'package:container/ui/core/widgets/pin_dots.dart';
 import 'package:container/ui/features/setup/view_models/setup_controller.dart';
 import 'package:container/ui/features/shell/view_models/session_controller.dart';
 import 'package:container/ui/features/shell/views/setup_flow.dart';
@@ -135,6 +136,49 @@ void main() {
     expect(calls, hasLength(1));
     expect(calls.single.mainPin, '123456');
     expect(calls.single.decoyPin, '987654');
+  });
+
+  Future<void> toDecoyPin(WidgetTester tester) async {
+    await enterSixDigits(tester, ['1', '2', '3', '4', '5', '6']);
+    await tester.tap(find.text('Continue'));
+    await tester.pump();
+    await tester.tap(find.byType(AppToggle));
+    await tester.pump();
+    await tester.tap(find.text('Continue'));
+    await tester.pump();
+  }
+
+  /// User's ruling, 2026-09-30: a decoy PIN equal to the main PIN would open
+  /// only whichever vault is tried first. It is refused with a line that
+  /// never says why.
+  testWidgets('a decoy PIN equal to the main PIN is refused', (tester) async {
+    await pump(tester);
+    await toDecoyPin(tester);
+    await enterSixDigits(tester, ['1', '2', '3', '4', '5', '6']);
+    await tester.tap(find.text('Continue'));
+    await tester.pump();
+
+    expect(find.text('Choose a different PIN'), findsOneWidget);
+    expect(find.text('Choose a PIN'), findsOneWidget);
+    expect(find.text('How sites will behave'), findsNothing);
+    expect(tester.widget<PinDots>(find.byType(PinDots)).filled, 0);
+  });
+
+  testWidgets('the refusal clears at the next key', (tester) async {
+    await pump(tester);
+    await toDecoyPin(tester);
+    await enterSixDigits(tester, ['1', '2', '3', '4', '5', '6']);
+    await tester.tap(find.text('Continue'));
+    await tester.pump();
+    await enterSixDigits(tester, ['9']);
+
+    expect(find.text('Choose a different PIN'), findsNothing);
+    expect(tester.widget<PinDots>(find.byType(PinDots)).filled, 1);
+  });
+
+  testWidgets('the main PIN screen shows no refusal line', (tester) async {
+    await pump(tester);
+    expect(find.text('Choose a different PIN'), findsNothing);
   });
 }
 

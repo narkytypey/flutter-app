@@ -138,4 +138,15 @@ void main() {
       isFalse,
     );
   });
+
+  /// User's ruling, 2026-09-30: one PIN must never open both vaults. The flow
+  /// refuses it before this; the controller refuses it too, and writes nothing.
+  test('equal PINs are refused before anything is provisioned', () async {
+    await expectLater(
+      controller().complete(mainPin: '111111', decoyPin: '111111'),
+      throwsArgumentError,
+    );
+    expect(File('${dir.path}/meta.bin').existsSync(), isFalse);
+    expect(sessions, isEmpty);
+  });
 }

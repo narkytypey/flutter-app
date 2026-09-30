@@ -12,9 +12,15 @@ class SetupPinScreen extends StatelessWidget {
     required this.filled,
     required this.onKey,
     required this.onContinue,
+    this.notice,
   });
 
   final int filled;
+
+  /// A line under the dots, for a PIN that was refused: 'Choose a different
+  /// PIN' when it would also open the other vault (user's ruling,
+  /// 2026-09-30). It never says why, so a coerced session learns nothing.
+  final String? notice;
   final void Function(String) onKey;
 
   /// Null until six digits are entered.
@@ -46,6 +52,10 @@ class SetupPinScreen extends StatelessWidget {
                     ),
                     const SizedBox(height: 26),
                     PinDots(filled: filled),
+                    if (notice != null) ...[
+                      const SizedBox(height: 16),
+                      Text(notice!, style: ui(size: 14, color: C.danger)),
+                    ],
                   ],
                 ),
               ),
