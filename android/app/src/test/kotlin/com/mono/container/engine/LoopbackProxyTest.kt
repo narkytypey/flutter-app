@@ -589,4 +589,75 @@ class LoopbackProxyTest {
         Thread.sleep(200)
         assertTrue(reported.isEmpty())
     }
+
+    // --- Open problem 2: a device run's request log --------------------------
+
+    /** `android.util.Log` throws on the JVM's stub android.jar; it once turned every reply into a silent close. */
+    @Test fun `a logger that throws changes nothing`() {
+        val credentials = SiteCredentials()
+        credentials.bind("p1", ProxyBinding(config("p1")) {})
+        EchoServer().use { echo ->
+            LoopbackProxy(credentials, bySettings, log = { throw RuntimeException("Method d in android.util.Log not mocked") }).start().use { proxy ->
+                send(proxy, "CONNECT localhost:${echo.port} HTTP/1.1\r\n\r\n").use { socket ->
+                    assertEquals(407, statusOf(socket))
+                }
+                send(proxy, "CONNECT localhost:${echo.port} HTTP/1.1\r\n${auth(credentials.credentialFor("p1"))}\r\n").use { socket ->
+                    assertEquals(200, statusOf(socket))
+                    ping(socket)
+                }
+            }
+        }
+    }
+
+    @Test fun `each request is logged with its outcome, and never its credential`() {
+        val lines = CopyOnWriteArrayList<String>()
+        val credentials = SiteCredentials()
+        credentials.bind("p1", ProxyBinding(config("p1")) {})
+        credentials.bind("p2", ProxyBinding(config("p2", mode = "socks5")) {})
+        EchoServer().use { echo ->
+            LoopbackProxy(
+                credentials,
+                resolve = { if (it.proxyMode == "socks5") Route.Refused(RouteFailure.PROXY_UNREACHABLE) else Route.Direct },
+                log = { lines += it },
+            ).start().use { proxy ->
+                send(proxy, "HELLO\r\n\r\n").use { socket -> assertEquals(400, statusOf(socket)) }
+                send(proxy, "CONNECT localhost:${echo.port} HTTP/1.1\r\n\r\n").use { socket -> assertEquals(407, statusOf(socket)) }
+                send(proxy, "CONNECT localhost:${echo.port} HTTP/1.1\r\n${auth(credentials.credentialFor("p1"))}\r\n").use { socket ->
+                    assertEquals(200, statusOf(socket))
+                    ping(socket)
+                }
+                send(proxy, "CONNECT example.test:443 HTTP/1.1\r\n${auth(credentials.credentialFor("p2"))}\r\n").use { socket ->
+                    assertEquals(502, statusOf(socket))
+                }
+            }
+            // Each line is written before its reply, so the order is the requests' order.
+            assertEquals(
+                listOf(
+                    "? -> 400",
+                    "CONNECT localhost:${echo.port} -> 407",
+                    "CONNECT localhost:${echo.port} -> 200 tunnel",
+                    "CONNECT example.test:443 -> 502 refused route (PROXY_UNREACHABLE)",
+                ),
+                lines.toList(),
+            )
+        }
+        val secrets = listOf("p1", "p2").map(credentials::credentialFor).flatMap { listOf(it.user, it.password) }
+        assertTrue(lines.none { line -> secrets.any { it in line } })
+    }
+
+    @Test fun `a failed upstream connection is logged with its status and error type`() {
+        val lines = CopyOnWriteArrayList<String>()
+        val credentials = SiteCredentials()
+        credentials.bind("p1", ProxyBinding(config("p1")) {})
+        LoopbackProxy(
+            credentials, bySettings,
+            connect = { _, _, _ -> throw SocketTimeoutException("slow") },
+            log = { lines += it },
+        ).start().use { proxy ->
+            send(proxy, "CONNECT example.test:443 HTTP/1.1\r\n${auth(credentials.credentialFor("p1"))}\r\n").use { socket ->
+                assertEquals(504, statusOf(socket))
+            }
+        }
+        assertEquals(listOf("CONNECT example.test:443 -> 504 upstream failed (SocketTimeoutException)"), lines.toList())
+    }
 }

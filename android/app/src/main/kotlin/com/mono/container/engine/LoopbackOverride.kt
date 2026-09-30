@@ -43,6 +43,7 @@ internal object Loopback {
             android.util.Log.w("ContainerEngine", "WebView cannot override its proxy: proxied sites are refused, and Autofill queries are not blocked")
             return false
         }
+        // No `log`: its lines name hosts. A device run may pass one here locally, never committed.
         val proxy = runCatching { LoopbackProxy(credentials).start() }.getOrElse {
             android.util.Log.w("ContainerEngine", "The loopback proxy could not start: proxied sites are refused", it)
             return false

@@ -21,11 +21,19 @@ import java.util.concurrent.Executors
  *
  * [resolve] and [connect] are parameters so the JVM tests can refuse a route
  * or fail a connection. The app uses the defaults.
+ *
+ * [log] gets one line per request, `METHOD host:port -> outcome`, written
+ * before the reply. It never sees a credential, but it does name the host, so
+ * the app passes none. A device run may pass `{ Log.d(...) }` from
+ * [Loopback] locally, never committed. Never call `android.util.Log` in here:
+ * it throws on the JVM tests' stub `android.jar` (open problem 2). A [log] that
+ * throws is ignored.
  */
 class LoopbackProxy(
     private val credentials: SiteCredentials,
     private val resolve: (SiteConfig) -> Route = { it.currentRoute() },
     private val connect: (Route, String, Int) -> Socket = Router::connect,
+    private val log: (String) -> Unit = {},
 ) : AutoCloseable {
 
     /** `127.0.0.1` only, never any other interface; the OS picks the port. */
@@ -60,14 +68,24 @@ class LoopbackProxy(
                 client.soTimeout = HEAD_TIMEOUT_MS
                 val input = client.getInputStream().buffered()
                 val output = client.getOutputStream()
-                when (val decision = decide(readHead(input)?.let(::parseRequest), credentials::lookup)) {
-                    is ProxyDecision.Reply -> output.write(statusResponse(decision.status))
-                    is ProxyDecision.Tunnel -> heldBy(decision.binding, client) { tunnel(client, input, output, decision) }
-                    is ProxyDecision.Forward -> heldBy(decision.binding, client) { forward(client, input, output, decision) }
+                val request = readHead(input)?.let(::parseRequest)
+                val label = request?.let { "${it.method} ${it.host}:${it.port}" } ?: "?"
+                when (val decision = decide(request, credentials::lookup)) {
+                    is ProxyDecision.Reply -> {
+                        note("$label -> ${decision.status}")
+                        output.write(statusResponse(decision.status))
+                    }
+                    is ProxyDecision.Tunnel -> heldBy(decision.binding, client, label) { tunnel(client, input, output, decision, label) }
+                    is ProxyDecision.Forward -> heldBy(decision.binding, client, label) { forward(client, input, output, decision, label) }
                 }
                 output.flush()
             }
         }
+    }
+
+    /** A throwing [log] must not turn a reply into a silent close. */
+    private fun note(line: String) {
+        runCatching { log(line) }
     }
 
     /**
@@ -75,8 +93,11 @@ class LoopbackProxy(
      * session, or rebinding it, closes the socket and ends the relay (open
      * problem 1). Nothing runs when the binding is already revoked.
      */
-    private inline fun heldBy(binding: ProxyBinding, socket: Socket, relay: () -> Unit) {
-        if (!binding.hold(socket)) return
+    private inline fun heldBy(binding: ProxyBinding, socket: Socket, label: String, relay: () -> Unit) {
+        if (!binding.hold(socket)) {
+            note("$label -> closed: session closed")
+            return
+        }
         try {
             relay()
         } finally {
@@ -91,11 +112,12 @@ class LoopbackProxy(
      * meanwhile. A failed connection is answered
      * and reported to no one (plan deviation 1).
      */
-    private fun upstream(binding: ProxyBinding, host: String, port: Int, output: OutputStream): Socket? {
+    private fun upstream(binding: ProxyBinding, host: String, port: Int, output: OutputStream, label: String): Socket? {
         val route = resolve(binding.config)
         if (route is Route.Refused) {
             // A new session on the same site must not hear the old one's failure.
             if (!binding.isRevoked) binding.onRefused(route.failure)
+            note("$label -> 502 refused route (${route.failure})")
             output.write(statusResponse(502))
             return null
         }
@@ -103,17 +125,20 @@ class LoopbackProxy(
             // HttpConnectTunnel leaves its handshake timeout set; a relay has none.
             connect(route, host, port).apply { soTimeout = 0 }
         } catch (error: Exception) {
-            output.write(statusResponse(upstreamFailureStatus(error)))
+            val status = upstreamFailureStatus(error)
+            note("$label -> $status upstream failed (${error.javaClass.simpleName})")
+            output.write(statusResponse(status))
             null
         }
     }
 
-    private fun tunnel(client: Socket, input: InputStream, output: OutputStream, tunnel: ProxyDecision.Tunnel) {
-        val upstream = upstream(tunnel.binding, tunnel.host, tunnel.port, output) ?: return
+    private fun tunnel(client: Socket, input: InputStream, output: OutputStream, tunnel: ProxyDecision.Tunnel, label: String) {
+        val upstream = upstream(tunnel.binding, tunnel.host, tunnel.port, output, label) ?: return
         // Revoked while connecting: the page's side is closed already, and hold closes this one.
-        heldBy(tunnel.binding, upstream) {
+        heldBy(tunnel.binding, upstream, label) {
             upstream.use {
                 client.soTimeout = 0
+                note("$label -> 200 tunnel")
                 output.write(CONNECTION_ESTABLISHED)
                 output.flush()
                 val back = workers.submit(Runnable {
@@ -133,11 +158,12 @@ class LoopbackProxy(
      * so requests to different hosts never share one. Only the declared body
      * is sent on; anything the client sends after it ends the connection.
      */
-    private fun forward(client: Socket, input: InputStream, output: OutputStream, forward: ProxyDecision.Forward) {
-        val upstream = upstream(forward.binding, forward.host, forward.port, output) ?: return
-        heldBy(forward.binding, upstream) {
+    private fun forward(client: Socket, input: InputStream, output: OutputStream, forward: ProxyDecision.Forward, label: String) {
+        val upstream = upstream(forward.binding, forward.host, forward.port, output, label) ?: return
+        heldBy(forward.binding, upstream, label) {
             upstream.use {
                 client.soTimeout = 0
+                note("$label -> forward")
                 val toUpstream = upstream.getOutputStream()
                 toUpstream.write(forward.head.toByteArray(Charsets.ISO_8859_1))
                 copyExactly(input, toUpstream, forward.bodyLength)

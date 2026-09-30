@@ -131,6 +131,20 @@ Nothing to fix on `main`, which doesn't have it. But:
   `connect` already are. Don't call `android.util.Log` from engine code the
   JVM tests run.
 
+**✅ Logger added 2026-09-30 (branch `second/modest-knuth-f83zbx`).**
+`LoopbackProxy` takes `log: (String) -> Unit`, a no-op by default, which gets
+one line per request before its reply: `METHOD host:port -> outcome`, where
+the outcome is `407`, `403`, `400`, `200 tunnel`, `forward`, `502 refused
+route (PROXY_UNREACHABLE)`, `504 upstream failed (SocketTimeoutException)` or
+`closed: session closed`. It never sees a credential, and a logger that
+throws is ignored, so the stub `android.jar` can no longer turn replies into
+silent closes. The app passes none. For a device run, change the one call in
+`Loopback.install` (`LoopbackOverride.kt`) locally to
+`LoopbackProxy(credentials, log = { android.util.Log.d("P2", it) })`, and
+don't commit it. Tests (`LoopbackProxyTest`, +3): the throwing logger (fails
+without the guard), the lines and their order with no credential in any,
+and a failed connection's line.
+
 ## 3. The vault was wiped twice with no known cause
 
 Both times on the emulator, on 2026-09-30.
