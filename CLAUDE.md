@@ -962,6 +962,10 @@ header lookups (g).
   proxied site. With Plan 10's unfollowed redirects, `httpbin.org/cookies/set`
   on SOCKS5 fails with `net::ERR_HTTP_RESPONSE_CODE_FAILURE`.
 - The add-site form's `×` has no tap handler (system back works).
+  **✅ Fixed 2026-09-30 (`693a5f5`, branch `fix-add-site-close`).** The `×`
+  pops the form without saving, like `10b`'s; the canvas implies no discard
+  confirmation. Test: `add_site_test.dart`'s "× leaves the form without
+  saving". `flutter test` 521/521. **Not verified on a device.**
 
 Proxy leak fixes (branch `fix-proxy-leaks`), device-checked 2026-09-30 on the
 emulator, with DNS logged by pointing `-dns-server` at a logging forwarder on
