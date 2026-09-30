@@ -76,7 +76,7 @@ The path is user-reachable: `ProxyMode.http` is an option in `lib/domain/models/
 
   Task 2 calls `HttpConnectTunnel.open`; Task 3 catches `ProxyTunnelException`.
 
-**Design note requiring approval:** this hand-rolls CONNECT rather than adding OkHttp, which supports HTTP proxies natively. Hand-rolling matches the existing code — `ProxyHttpClient` already speaks raw HTTP over a socket rather than using a library — and adds no dependency to a privacy-first app. The cost is that redirects, chunked transfer, proxy authentication and keep-alive stay unimplemented here, exactly as they already are in `ProxyHttpClient`.
+**Design note requiring approval:** this hand-rolls CONNECT rather than adding OkHttp, which supports HTTP proxies natively. Hand-rolling matches the existing code — `ProxyHttpClient` already speaks raw HTTP over a socket rather than using a library — and adds no dependency to a privacy-first app. The cost is that redirects, chunked transfer, proxy authentication and keep-alive stay unimplemented here, exactly as they already are in `ProxyHttpClient`. *(Update, 2026-09-30: `ProxyHttpClient` now decodes chunked transfer — `ChunkedBody`, branch `fix-proxy-leaks`, see `2026-09-30-proxy-leak-fixes.md`. Redirects, proxy authentication and keep-alive are still unimplemented.)*
 
 - [ ] **Step 1: Write the failing test**
 
