@@ -5,7 +5,6 @@ import android.view.View
 import android.webkit.MimeTypeMap
 import android.webkit.WebView
 import android.webkit.WebSettings
-import androidx.webkit.ServiceWorkerControllerCompat
 import androidx.webkit.WebSettingsCompat
 import androidx.webkit.WebViewFeature
 import io.flutter.plugin.platform.PlatformView
@@ -30,6 +29,13 @@ class ContainerView(
 
     private var disposed = false
 
+    /** True from [dispose] until WebView is destroyed; read on WebView's IO threads. */
+    private val closing = java.util.concurrent.atomic.AtomicBoolean(false)
+
+    private var wipeOnClose = false
+
+    private val teardown = Teardown { destroyAndWipe() }
+
     private val declaredLengths = DeclaredLengths()
 
     /** Declared before `init`, which hands the clients that feed it to the WebView. */
@@ -52,9 +58,12 @@ class ContainerView(
     init {
         // Must precede the first load, or the request goes to the default store.
         androidx.webkit.WebViewCompat.setProfile(webView, config.profileId)
-        webView.webViewClient = interceptor.clientFor(config, onLive, declaredLengths, object : PageCallbacks {
+        val live = { if (!closing.get()) onLive() }
+        webView.webViewClient = interceptor.clientFor(config, live, declaredLengths, closing = { closing.get() }, page = object : PageCallbacks {
             override fun started(url: String) = report { navigation.started(url) }
-            override fun finished(url: String) = report { navigation.finished(url) }
+            override fun finished(url: String) {
+                if (closing.get()) teardown.pageFinished(url) else report { navigation.finished(url) }
+            }
             override fun visited(url: String) = report { navigation.visited(url) }
         })
         webView.webChromeClient = Shields.chromeClientFor(
@@ -83,8 +92,10 @@ class ContainerView(
         }
 
         if (WebViewFeature.isFeatureSupported(WebViewFeature.SERVICE_WORKER_BASIC_USAGE)) {
-            ServiceWorkerControllerCompat.getInstance()
-                .setServiceWorkerClient(interceptor.serviceWorkerClient(config))
+            routeServiceWorkers(
+                WebViewServiceWorkerControllers(profiles), config.profileId,
+                site = interceptor.serviceWorkerClient(config), refuseAll = RequestInterceptor.refuseAll,
+            )
         }
 
         webView.loadUrl(firstLoadUrl(config.url, session.initialUrl))
@@ -158,13 +169,28 @@ class ContainerView(
      * platform view down both land here, in either order, and destroying a
      * WebView twice is not safe.
      */
+    /**
+     * Closes the view without letting the page's last requests escape (see
+     * [Teardown]): from here every request is refused, the page is unloaded
+     * by loading about:blank, and WebView is destroyed once that has finished,
+     * or after [Teardown.TIMEOUT_MS]. Nothing waits on this — panic's key
+     * steps do not — and the view refuses everything meanwhile.
+     */
     override fun dispose() {
         if (disposed) return
         disposed = true
-        webView.stopLoading()
+        closing.set(true)
         // The session's flag, not the config's: `keep` turns it off for a
         // throwaway saved as a site while its page is still open.
-        val wipe = session.wipeOnExit
+        wipeOnClose = session.wipeOnExit
+        webView.stopLoading()
+        webView.loadUrl(Teardown.BLANK)
+        android.os.Handler(android.os.Looper.getMainLooper())
+            .postDelayed({ teardown.timedOut() }, Teardown.TIMEOUT_MS)
+    }
+
+    private fun destroyAndWipe() {
+        val wipe = wipeOnClose
         // The profile this view used cannot be deleted until the next start
         // (see ProfileManager.wipe), and its HTTP cache has no profile-level
         // clear — the view is the only handle on it, so empty it now.
