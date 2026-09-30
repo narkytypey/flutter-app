@@ -20,14 +20,19 @@ interface PageCallbacks {
 class RequestInterceptor(private val filters: FilterEngine, private val onRefused: (RouteFailure) -> Unit = {}) {
     /** [lengths] records each proxied response's declared length, for the
      *  view's held-download sheet. [page] hears the page starting, finishing
-     *  and moving through history (browser-chrome spec §3.1). */
+     *  and moving through history (browser-chrome spec §3.1). [closing] is
+     *  this one view's: once it is true, every request is refused (see
+     *  [dispositionFor]). It is per view, not per interceptor, because a
+     *  session — and its interceptor — outlives the views that show it. */
     fun clientFor(
         config: SiteConfig,
         onLoaded: () -> Unit = {},
         lengths: DeclaredLengths? = null,
         page: PageCallbacks = PageCallbacks.NONE,
+        closing: () -> Boolean = { false },
     ): WebViewClient = object : WebViewClient() {
-        override fun shouldInterceptRequest(view: WebView, request: WebResourceRequest): WebResourceResponse? = intercept(config, request, lengths)
+        override fun shouldInterceptRequest(view: WebView, request: WebResourceRequest): WebResourceResponse? =
+            intercept(config, request, lengths, closing())
 
         override fun onPageStarted(view: WebView, url: String?, favicon: android.graphics.Bitmap?) {
             if (url != null) page.started(url)
@@ -46,14 +51,23 @@ class RequestInterceptor(private val filters: FilterEngine, private val onRefuse
     /** A service worker's requests for [config]'s site, routed like its pages. */
     fun serviceWorkerClient(config: SiteConfig): (WebResourceRequest) -> WebResourceResponse? = { request -> intercept(config, request) }
 
-    private fun intercept(config: SiteConfig, request: WebResourceRequest, lengths: DeclaredLengths? = null): WebResourceResponse? {
-        if (config.blockTrackers && filters.matches(request.url.toString()) != null) return blocked()
-        return when (val route = config.currentRoute()) {
-            is Route.Direct -> null
-            is Route.Proxy -> fetchThrough(route, request, lengths)
-            is Route.Refused -> { onRefused(route.failure); refused(route.failure) }
+    private fun intercept(
+        config: SiteConfig,
+        request: WebResourceRequest,
+        lengths: DeclaredLengths? = null,
+        closing: Boolean = false,
+    ): WebResourceResponse? =
+        when (val disposition = dispositionFor(
+            closing,
+            blockedByFilter = { config.blockTrackers && filters.matches(request.url.toString()) != null },
+            route = { config.currentRoute() },
+        )) {
+            Disposition.Closed -> closed()
+            Disposition.Blocked -> blocked()
+            Disposition.ByWebView -> null
+            is Disposition.Through -> fetchThrough(disposition.route, request, lengths)
+            is Disposition.Refused -> { onRefused(disposition.failure); refused(disposition.failure) }
         }
-    }
 
     companion object {
         /** For requests that belong to no site: refused, and reported to no one. */
