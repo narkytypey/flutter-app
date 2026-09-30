@@ -107,10 +107,9 @@ class SettingsScreen extends StatelessWidget {
                     SettingRow(
                       title: 'Decoy vault',
                       subtitle: 'A second PIN opens a harmless board',
-                      trailing: AppToggle(
-                        value: decoyEnabled,
-                        onChanged: (v) => onChanged('decoy', v),
-                      ),
+                      // Shown, not offered (user's ruling, 2026-09-30):
+                      // turning a decoy off is not built.
+                      trailing: AppToggle(value: decoyEnabled),
                     ),
                     SettingRow(
                         title: 'Sites shown in decoy',
@@ -122,10 +121,9 @@ class SettingsScreen extends StatelessWidget {
                     SettingRow(
                       title: 'Hide from app switcher',
                       subtitle: 'Blurs previews, blocks screenshots',
-                      trailing: AppToggle(
-                        value: hideFromSwitcher,
-                        onChanged: (v) => onChanged('hideFromSwitcher', v),
-                      ),
+                      // Always on (user's ruling, 2026-09-30): FLAG_SECURE is
+                      // set before the window exists, never per screen.
+                      trailing: AppToggle(value: hideFromSwitcher),
                     ),
                   ],
                   const SizedBox(height: 24),
@@ -138,10 +136,8 @@ class SettingsScreen extends StatelessWidget {
                       onChanged: (v) => onChanged('panicOnFlip', v),
                     ),
                   ),
-                  SettingRow(
-                      title: 'On panic',
-                      value: onPanicLabel,
-                      onTap: () => onTap('onPanic')),
+                  // The only behaviour there is (user's ruling, 2026-09-30).
+                  SettingRow(title: 'On panic', value: onPanicLabel),
                   const SizedBox(height: 22),
                   Text(
                     'Nothing leaves this device. There is no account and no '

@@ -11,8 +11,14 @@ void main() {
     expect(settingsDestination('resyncDecoy'), isA<DecoyResyncRoute>());
   });
 
+  /// User's ruling, 2026-09-30: which sites the decoy shows is decided per
+  /// workspace ("Show in decoy vault", `10b`), so the row opens Workspaces.
+  test('Sites shown in decoy opens Workspaces', () {
+    expect(settingsDestination('decoySites'), isA<WorkspacesRoute>());
+  });
+
   test('rows with nothing built behind them lead nowhere', () {
-    for (final key in ['autoLock', 'changePin', 'decoySites', 'onPanic']) {
+    for (final key in ['autoLock', 'changePin', 'onPanic']) {
       expect(settingsDestination(key), isNull, reason: key);
     }
   });

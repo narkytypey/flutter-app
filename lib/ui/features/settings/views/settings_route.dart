@@ -15,6 +15,9 @@ import 'settings_screen.dart';
 Widget? settingsDestination(String key) => switch (key) {
       'resyncDecoy' => const DecoyResyncRoute(),
       'workspaces' => const WorkspacesRoute(),
+      // Each workspace's "Show in decoy vault" decides it (user's ruling,
+      // 2026-09-30).
+      'decoySites' => const WorkspacesRoute(),
       'scripts' => const ScriptsRoute(),
       _ => null,
     };

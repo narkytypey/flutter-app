@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:container/ui/core/widgets/app_toggle.dart';
+import 'package:container/ui/core/widgets/setting_row.dart';
 import 'package:container/ui/features/settings/views/settings_screen.dart';
 
 void main() {
@@ -152,4 +153,65 @@ void main() {
     await tester.tap(find.text('Search engine'));
     expect(tapped, 'searchEngine');
   });
+
+  // User's rulings, 2026-09-30: rows whose value cannot change are shown, not
+  // offered.
+
+  AppToggle toggleIn(WidgetTester tester, String title) => tester.widget<AppToggle>(find.descendant(
+        of: find.ancestor(of: find.text(title), matching: find.byType(SettingRow)),
+        matching: find.byType(AppToggle),
+      ));
+
+  testWidgets('Hide from app switcher is on and cannot be switched off', (tester) async {
+    await pump(tester, decoyConfigured: true);
+    final toggle = toggleIn(tester, 'Hide from app switcher');
+    expect(toggle.value, isTrue);
+    expect(toggle.onChanged, isNull);
+  });
+
+  testWidgets('the Decoy vault switch is on and cannot be switched off', (tester) async {
+    await pump(tester, decoyConfigured: true);
+    final toggle = toggleIn(tester, 'Decoy vault');
+    expect(toggle.value, isTrue);
+    expect(toggle.onChanged, isNull);
+  });
+
+  testWidgets('On panic shows its value and reports no tap', (tester) async {
+    final tapped = <String>[];
+    tester.view.physicalSize = const Size(500, 1600);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    await tester.pumpWidget(MaterialApp(
+      home: SettingsScreen(
+        biometrics: true,
+        biometricsAvailable: true,
+        autoLockLabel: 'After 1 min',
+        decoyEnabled: true,
+        decoySiteCount: 4,
+        hideFromSwitcher: true,
+        panicOnFlip: false,
+        onPanicLabel: 'Wipe + lock',
+        searchEngineName: 'DuckDuckGo',
+        onChanged: (_, __) {},
+        onTap: tapped.add,
+      ),
+    ));
+    await tester.tap(find.text('On panic'));
+    await tester.tap(find.text('Sites shown in decoy'));
+    expect(tapped, ['decoySites']);
+  });
+
+  testWidgets('an inert switch is drawn dimmed, a live one is not', (tester) async {
+    await tester.pumpWidget(const Directionality(
+      textDirection: TextDirection.ltr,
+      child: Row(children: [AppToggle(value: true), AppToggle(value: true, onChanged: _ignore)]),
+    ));
+    final opacities = tester.widgetList<Opacity>(find.byType(Opacity)).map((o) => o.opacity).toList();
+    expect(opacities, hasLength(2));
+    expect(opacities.first, lessThan(1));
+    expect(opacities.last, 1);
+  });
 }
+
+void _ignore(bool _) {}
