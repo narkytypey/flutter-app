@@ -577,6 +577,17 @@ task that covers it.
   section, gated behind a PIN-entry screen that checks the decoy PIN via the
   existing `VaultUnlocker`/attempt-gate before opening the decoy vault just
   long enough to sync and close it again.
+- **P2 — loopback authenticating proxy (next project; user's ruling
+  2026-09-30).** All WebView traffic goes through `ProxyController` to an
+  in-app loopback proxy. Each site's WebView answers the proxy's 407 with
+  random per-site credentials (`onReceivedHttpAuthRequest`), and the proxy
+  routes each connection by them. This closes preconnect (a1) even against a
+  hostile page, and hands Chromium the HTTP work (cookies on proxied sites,
+  redirects, POST bodies). It will not close dns-prefetch (a2): `ResolveHost`
+  ignores proxies. It needs its own spec, which must first prove two
+  assumptions: that the HTTP auth cache is isolated per profile, and that the
+  407 callback reaches the app for subresource requests. See
+  `docs/superpowers/plans/2026-09-30-proxy-leak-fixes.md` "Handoff".
 - **Gaps Plan 10 (HTTP CONNECT tunnel) leaves open.** The mode works now; these
   are the edges it deliberately does not cover, recorded verbatim from that
   plan's Task 4 Step 3 so they are not rediscovered as bugs:
@@ -901,7 +912,15 @@ slow behind a proof-of-work page, and not seen for Brave Search, whose bot
 check this network cannot pass (`curl` from the host gets 429) — kept in the
 picker by the user's ruling. Details are in the plan's "Device checks".
 Found along the way, all older than Plan 12. The user chose on 2026-09-30 to
-fix the first three next (unowned until a plan exists):
+fix the first three next.
+**✅ Fixed 2026-09-30 (branch `fix-proxy-leaks`, `5b00193`..`198cdda`,
+session flutter-app-85), except the preconnect itself: see
+`docs/superpowers/plans/2026-09-30-proxy-leak-fixes.md`.** Investigating found
+the three were five: preconnect (a1), dns-prefetch (a2), requests sent as a
+view is destroyed (a3), service workers never intercepted (a4), and WebView's
+Autofill queries (b). Two further pre-existing bugs were fixed on the same
+branch: chunked bodies handed to WebView raw (f), and case-sensitive response
+header lookups (g).
 - **A proxied site's `<link rel="preconnect">` goes direct.** Chromium opens
   a preconnect's socket without `shouldInterceptRequest`, so the app's own
   uid opened `48.222.183.128:443` (links.duckduckgo.com) directly one second
@@ -909,18 +928,55 @@ fix the first three next (unowned until a plan exists):
   duckduckgo.com does the same. It exposes the device's real IP, and via SNI
   the host, to any origin a proxied page preconnects to. This breaks "the
   interceptor never falls back to direct" in effect, if not in code.
+  **Still open — known gap, and the next project's (P2, under Unassigned
+  work).** dns-prefetch (a DNS lookup only) is the same kind of leak, and P2
+  will not close it. Two neighbours found with it are fixed: a view's
+  pagehide/unload requests went direct because `ContainerView.dispose`
+  destroyed the WebView at once; a closing view now refuses everything, loads
+  `about:blank`, and is destroyed after that finishes or after 1 s
+  (`Teardown`, user's ruling: refuse). The closing flag is per view, not per
+  interceptor, because a session outlives its views. Service workers were
+  never intercepted, because the client was set on the default profile's
+  controller and every site has its own profile; `routeServiceWorkers` now
+  sets it per profile and the default profile refuses everything.
 - **A direct IPv6 connection to Google** (`2001:4860:4842:400::`,
   `…4843:400::`, the googleapis range) from the app's uid during those
   loads, which DuckDuckGo's page does not reference. Its SNI could not be
   captured on a user-build image.
+  **✅ Fixed.** It was Chromium Autofill server predictions
+  (`content-autofill.googleapis.com`): WebView queries it for every form, from
+  the browser process, and no WebView setting turns it off. At start,
+  `ProxyController`'s reverse-bypass override sends that one host to
+  `127.0.0.1:1` with no DIRECT fallback (`AutofillBlock.kt`; user's ruling:
+  block). Seen: no lookup or socket for it; TCP `AttemptFails` +5 on a fresh
+  form page, matching Chromium's 5 attempts.
 - **Proxied routes resolve DNS on the device.** The SOCKS5 proxy only ever
   receives IP addresses.
+  **✅ Fixed.** `Router.connect` passes the SOCKS target unresolved, so the
+  proxy receives the hostname (seen: `duckduckgo.com:443`, `squoosh.app:443`
+  at the proxy, with no device lookup). A SOCKS4-only proxy no longer works
+  (user accepted: the mode is SOCKS5).
 - **A proxied site keeps no HTTP cookies.** WebView ignores `Set-Cookie` on
   an intercepted response and `ProxyHttpClient` sends no `Cookie`, so "Keep
   for this site · Stays signed in" cannot hold an HTTP-cookie login on any
   proxied site. With Plan 10's unfollowed redirects, `httpbin.org/cookies/set`
   on SOCKS5 fails with `net::ERR_HTTP_RESPONSE_CODE_FAILURE`.
 - The add-site form's `×` has no tap handler (system back works).
+
+Proxy leak fixes (branch `fix-proxy-leaks`), device-checked 2026-09-30 on the
+emulator, with DNS logged by pointing `-dns-server` at a logging forwarder on
+the host. Seen: DuckDuckGo, a service-worker site (squoosh.app) and a pagehide
+probe on SOCKS5 sent every request through the proxy by hostname, and the
+device looked up nothing but the page's own preconnect/dns-prefetch hints (the
+known gap); leaving a page sent nothing; no Autofill query went anywhere;
+example.org rendered without its chunk sizes, and a `Content-type` page
+rendered instead of being held as a download; panic still showed `3c` and
+deleted the stores. Gates at `198cdda`: `flutter analyze` clean, `flutter
+test` 520/520, Kotlin JVM 128/128 (JUnit XML; re-run independently by
+flutter-app-77), `flutter build apk --debug` with zero `e:` lines. **Not
+verified on a physical phone.** The emulator's vault was found wiped before
+that run (stores gone, profiles swept — the shape a panic leaves); no session
+reported touching it, and the cause is unknown.
 
 ## Working on this repo
 
