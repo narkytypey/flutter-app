@@ -112,4 +112,22 @@ class ProxyHttpClientTest {
             assertEquals("3", response.headers["content-length"])
         }
     }
+
+    /**
+     * Found on a device: example.org over SOCKS5 showed its chunk sizes
+     * (`2c9`, `0`) as page text, because the raw framing was handed to WebView
+     * as the body. The body is now decoded, and `Content-Length` — which a
+     * `Transfer-Encoding` overrides (RFC 9112 §6.3) — no longer describes it,
+     * so it is dropped; `declaredLength` still reads no length, as before.
+     */
+    @Test fun `a chunked body is handed on decoded, with no declared length`() {
+        val head = "HTTP/1.1 200 OK\r\nContent-Type: text/html\r\nTransfer-Encoding: chunked\r\nContent-Length: 999\r\n\r\n"
+        val body = "5;x=y\r\nhello\r\n6\r\n world\r\n0\r\nX-Trailer: t\r\n\r\n"
+        FakeOrigin(body = body, responseHead = head).use { origin ->
+            val response = fetchAgainst(origin, emptyMap())
+            assertEquals("hello world", response.body.use { it.readBytes().toString(Charsets.US_ASCII) })
+            assertEquals(null, response.headers["Content-Length"])
+            assertEquals(null, declaredLength(response.headers))
+        }
+    }
 }

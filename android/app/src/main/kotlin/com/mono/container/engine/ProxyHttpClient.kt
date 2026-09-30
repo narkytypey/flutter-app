@@ -38,7 +38,26 @@ object ProxyHttpClient {
             val separator = line.indexOf(':')
             if (separator > 0) headers[line.substring(0, separator).trim()] = line.substring(separator + 1).trim()
         }
-        return FetchedResponse(status, reason, headers, input)
+        return FetchedResponse(status, reason, headers, bodyOf(input, headers))
+    }
+
+    /**
+     * The body as its bytes, not its framing. Whenever `Transfer-Encoding` is
+     * present, `Content-Length` is removed: the former overrides the latter
+     * (RFC 9112 §6.3), so it never describes these bytes. When the last
+     * transfer coding is `chunked`, the framing is decoded here, and `chunked`
+     * is dropped from the list if other codings precede it.
+     * `Transfer-Encoding` itself is kept whenever it was sent, so
+     * [declaredLength] still reads no declared length for such a response.
+     */
+    private fun bodyOf(input: InputStream, headers: MutableMap<String, String>): InputStream {
+        val codings = headers["Transfer-Encoding"]?.split(',')?.map { it.trim() }?.filter { it.isNotEmpty() }
+            ?: return input
+        headers.remove("Content-Length")
+        if (!codings.last().equals("chunked", ignoreCase = true)) return input
+        val rest = codings.dropLast(1)
+        headers["Transfer-Encoding"] = if (rest.isEmpty()) "chunked" else rest.joinToString(", ")
+        return ChunkedBody(input)
     }
 
     /**
@@ -91,5 +110,62 @@ object ProxyHttpClient {
             if (byte != '\r'.code) line.append(byte.toChar())
         }
         return line.toString()
+    }
+}
+
+/**
+ * Decodes RFC 9112 §7.1 chunked framing: each chunk is a hex size (with any
+ * `;extension` ignored), CRLF, that many bytes, CRLF; a zero size ends the
+ * body, and the trailer section after it is read and discarded up to its
+ * blank line, so nothing past the body is consumed.
+ *
+ * A stream that ends before the zero-size chunk throws rather than ending
+ * early: a cut-off body must never pass for a complete, shorter one.
+ */
+class ChunkedBody(private val input: java.io.InputStream) : java.io.InputStream() {
+    private var remaining = 0L
+    private var finished = false
+
+    override fun read(): Int {
+        val one = ByteArray(1)
+        return if (read(one, 0, 1) == -1) -1 else one[0].toInt() and 0xff
+    }
+
+    override fun read(buffer: ByteArray, offset: Int, length: Int): Int {
+        if (length == 0) return 0
+        if (finished) return -1
+        if (remaining == 0L) {
+            remaining = nextChunkSize()
+            if (remaining == 0L) {
+                while (readLine().isNotEmpty()) { /* trailer fields are not used */ }
+                finished = true
+                return -1
+            }
+        }
+        val count = input.read(buffer, offset, minOf(length.toLong(), remaining).toInt())
+        if (count == -1) throw java.io.EOFException("chunked body ended inside a chunk")
+        remaining -= count
+        if (remaining == 0L && readLine().isNotEmpty()) throw java.io.IOException("chunk not followed by CRLF")
+        return count
+    }
+
+    override fun close() = input.close()
+
+    private fun nextChunkSize(): Long {
+        val size = readLine().substringBefore(';').trim()
+        val hex = size.isNotEmpty() && size.length <= 15 &&
+            size.all { it in '0'..'9' || it in 'a'..'f' || it in 'A'..'F' }
+        if (!hex) throw java.io.IOException("bad chunk size: $size")
+        return size.toLong(16)
+    }
+
+    private fun readLine(): String {
+        val line = StringBuilder()
+        while (true) {
+            val byte = input.read()
+            if (byte == -1) throw java.io.EOFException("chunked body ended before its last chunk")
+            if (byte == '\n'.code) return line.toString()
+            if (byte != '\r'.code) line.append(byte.toChar())
+        }
     }
 }
