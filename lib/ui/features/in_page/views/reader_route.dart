@@ -31,12 +31,19 @@ class _ReaderRouteState extends ConsumerState<ReaderRoute> {
     _load();
   }
 
+  /// A vault that cannot be read (it closed under the reader) leaves the
+  /// standard style: the article still reads.
   Future<void> _load() async {
-    final settings = ref.read(settingsRepositoryProvider);
-    final stored = ReaderStyle.fromStored(
-      size: await settings.getString('reader_text_size'),
-      contrast: await settings.getString('reader_contrast'),
-    );
+    final ReaderStyle stored;
+    try {
+      final settings = ref.read(settingsRepositoryProvider);
+      stored = ReaderStyle.fromStored(
+        size: await settings.getString('reader_text_size'),
+        contrast: await settings.getString('reader_contrast'),
+      );
+    } catch (_) {
+      return;
+    }
     if (mounted && !_changed) setState(() => _style = stored);
   }
 
@@ -45,9 +52,12 @@ class _ReaderRouteState extends ConsumerState<ReaderRoute> {
       _changed = true;
       _style = style;
     });
-    final settings = ref.read(settingsRepositoryProvider);
-    await settings.setString('reader_text_size', style.storedSize);
-    await settings.setString('reader_contrast', style.storedContrast);
+    // The page has changed either way; a vault that closed keeps nothing.
+    try {
+      final settings = ref.read(settingsRepositoryProvider);
+      await settings.setString('reader_text_size', style.storedSize);
+      await settings.setString('reader_contrast', style.storedContrast);
+    } catch (_) {}
   }
 
   @override

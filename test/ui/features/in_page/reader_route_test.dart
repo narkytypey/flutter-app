@@ -70,4 +70,22 @@ void main() {
     expect(settings.values['reader_text_size'], ReaderTextSize.larger.name);
     expect(settings.values['reader_contrast'], 'soft');
   });
+
+  /// The vault can close under an open reader (a lock). The article still
+  /// reads, in the standard style, and a tap still changes the page.
+  testWidgets('settings that cannot be read or saved leave the standard style working',
+      (tester) async {
+    await tester.pumpWidget(ProviderScope(
+      overrides: [settingsRepositoryProvider.overrideWith((ref) => throw StateError('closed'))],
+      child: MaterialApp(home: ReaderRoute(article: article, onClose: () {})),
+    ));
+    await tester.pumpAndSettle();
+    expect(styleShown(tester).size, ReaderTextSize.standard);
+
+    await tester.tap(find.text('Aa'));
+    await tester.pumpAndSettle();
+    expect(styleShown(tester).size, ReaderTextSize.larger);
+    expect(tester.takeException(), isNull);
+  });
 }
+
