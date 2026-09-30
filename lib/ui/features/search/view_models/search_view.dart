@@ -1,5 +1,6 @@
 import '../../../../domain/models/site.dart';
 import '../../../../domain/models/workspace.dart';
+import '../../../../domain/site_search.dart';
 
 class SearchResultEntry {
   const SearchResultEntry({
@@ -41,24 +42,9 @@ List<SearchResultEntry> searchResults({
   required String query,
 }) {
   final workspacesById = {for (final w in workspaces) w.id: w};
-  final q = query.trim().toLowerCase();
-
-  final matches = sites.where((site) {
-    if (q.isEmpty) return true;
-    return site.name.toLowerCase().contains(q) ||
-        site.host.toLowerCase().contains(q);
-  }).toList()
-    ..sort((a, b) {
-      final at = a.lastVisitedAt;
-      final bt = b.lastVisitedAt;
-      if (at == null && bt == null) return 0;
-      if (at == null) return 1;
-      if (bt == null) return -1;
-      return bt.compareTo(at);
-    });
 
   final entries = <SearchResultEntry>[];
-  for (final site in matches) {
+  for (final site in sitesMatching(sites, query)) {
     final workspace = workspacesById[site.workspaceId];
     if (workspace == null) continue;
     entries.add(SearchResultEntry(

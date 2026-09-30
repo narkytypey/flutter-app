@@ -6,6 +6,8 @@ import com.mono.container.engine.ContainerViewFactory
 import com.mono.container.engine.EngineChannel
 import com.mono.container.engine.PendingDeletions
 import com.mono.container.engine.ProfileManager
+import com.mono.container.engine.ThrowawayJournal
+import com.mono.container.engine.deleteDownloadsDir
 import io.flutter.embedding.android.FlutterFragmentActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
@@ -37,9 +39,11 @@ class MainActivity : FlutterFragmentActivity() {
         val profiles = ProfileManager(
             PendingDeletions(java.io.File(applicationContext.filesDir, "pending-profile-deletions")),
         )
+        val throwaways = ThrowawayJournal(java.io.File(applicationContext.filesDir, "throwaway-profiles"))
         // Before anything can load a profile: a loaded one cannot be deleted.
         profiles.sweepPendingDeletions()
-        val engine = EngineChannel(applicationContext, profiles)
+        profiles.sweepThrowaways(throwaways) { deleteDownloadsDir(applicationContext, it) }
+        val engine = EngineChannel(applicationContext, profiles, throwaways)
         engine.attach(flutterEngine.dartExecutor.binaryMessenger)
 
         flutterEngine.platformViewsController.registry.registerViewFactory(

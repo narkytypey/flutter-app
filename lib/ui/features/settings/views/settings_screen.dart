@@ -31,6 +31,7 @@ class SettingsScreen extends StatelessWidget {
     required this.hideFromSwitcher,
     required this.panicOnFlip,
     required this.onPanicLabel,
+    required this.searchEngineName,
     required this.onChanged,
     required this.onTap,
   });
@@ -43,6 +44,9 @@ class SettingsScreen extends StatelessWidget {
   final bool hideFromSwitcher;
   final bool panicOnFlip;
   final String onPanicLabel;
+
+  /// The current engine's name (spec §6.7); empty while it loads.
+  final String searchEngineName;
   final void Function(String key, bool value) onChanged;
   final void Function(String key) onTap;
 
@@ -90,6 +94,13 @@ class SettingsScreen extends StatelessWidget {
                   SettingRow(title: 'Workspaces', onTap: () => onTap('workspaces')),
                   SettingRow(
                       title: 'Scripts and filters', onTap: () => onTap('scripts')),
+                  const SizedBox(height: 24),
+                  Text('BROWSING', style: T.sectionLabel),
+                  SettingRow(
+                    title: 'Search engine',
+                    value: searchEngineName,
+                    onTap: () => onTap('searchEngine'),
+                  ),
                   if (decoyEnabled) ...[
                     const SizedBox(height: 24),
                     Text('VAULT', style: T.sectionLabel),

@@ -53,7 +53,12 @@ data class PendingDownload(
  * because `2c` and the Today log report a blocked count *per site*. Its
  * rules are the open vault's enabled lists, sent by Dart with each open.
  */
-class Session(val config: SiteConfig) {
+class Session(
+    val config: SiteConfig,
+    /** The address typed to open it, for the view's first load only: [config]
+     * keeps the stored one, which scopes scripts and names the site. */
+    val initialUrl: String? = null,
+) {
 
     val filters = FilterEngine(config.filterRules)
     val counters = SideCounters()
@@ -69,6 +74,16 @@ class Session(val config: SiteConfig) {
     var lastActiveAtMs: Long? = null
     var failure: String? = null
     var view: ContainerView? = null
+
+    /** The last `navigation` event this session's view reported, for
+     *  `navigationState`: Dart may start listening after the first load has
+     *  already reported (browser-chrome spec §3.2). */
+    var navigation: NavigationSnapshot? = null
+
+    /** Starts as the config's; `keep` turns it off for a throwaway saved as a
+     *  site while its page is still open (spec §5.3). [ContainerView.dispose]
+     *  reads this, not the config. */
+    var wipeOnExit: Boolean = config.wipeOnExit
 
     /** Set by [EngineChannel] after construction; lets a live session's
      * dropped tunnel reach the event sink without `Session` holding a
@@ -137,6 +152,8 @@ class PendingOpens {
 class EngineChannel(
     private val context: Context,
     private val profiles: ProfileManager,
+    /** Throwaways whose profile may still be on disk; see [ThrowawayJournal]. */
+    val throwaways: ThrowawayJournal,
 ) : MethodChannel.MethodCallHandler, EventChannel.StreamHandler {
 
     private val sessions = LinkedHashMap<String, Session>()
@@ -209,6 +226,31 @@ class EngineChannel(
         ))
     }
 
+    /**
+     * Called by [ContainerView] on every page change. [session] is the one the
+     * view was made for: only the site's current session reaches Dart, since
+     * a reopened site's older view still reports. Kept per session for
+     * `navigationState`.
+     */
+    fun onNavigation(session: Session, snapshot: NavigationSnapshot) {
+        session.navigation = snapshot
+        val siteId = session.config.siteId
+        if (sessions[siteId] !== session) return
+        sink?.success(snapshot.toEvent(siteId))
+    }
+
+    /** Called by [ContainerView] once a find has finished counting. */
+    fun onFindResult(session: Session, activeMatch: Int, matchCount: Int) {
+        val siteId = session.config.siteId
+        if (sessions[siteId] !== session) return
+        sink?.success(findResultEvent(siteId, activeMatch, matchCount))
+    }
+
+    /** The open view for the call's `siteId`. Every in-page control is a
+     *  silent no-op on a closed or unknown session, like `reload`. */
+    private fun viewFor(call: MethodCall): ContainerView? =
+        sessions[call.argument<String>("siteId")]?.view
+
     // --- Method channel ----------------------------------------------------
 
     override fun onMethodCall(call: MethodCall, result: MethodChannel.Result) {
@@ -224,6 +266,39 @@ class EngineChannel(
                     sessions[call.argument<String>("siteId")]?.view?.reload()
                     result.success(null)
                 }
+                "goBack" -> {
+                    viewFor(call)?.goBack()
+                    result.success(null)
+                }
+                "goForward" -> {
+                    viewFor(call)?.goForward()
+                    result.success(null)
+                }
+                "stop" -> {
+                    viewFor(call)?.stop()
+                    result.success(null)
+                }
+                "loadUrl" -> {
+                    // ContainerView.load refuses every scheme but http(s).
+                    viewFor(call)?.load(call.argument<String>("url")!!)
+                    result.success(null)
+                }
+                "find" -> {
+                    viewFor(call)?.find(call.argument<String>("query")!!)
+                    result.success(null)
+                }
+                "findNext" -> {
+                    viewFor(call)?.findNext(call.argument<Boolean>("forward") ?: true)
+                    result.success(null)
+                }
+                "clearFind" -> {
+                    viewFor(call)?.clearFind()
+                    result.success(null)
+                }
+                "navigationState" -> {
+                    val siteId = call.argument<String>("siteId")!!
+                    result.success(sessions[siteId]?.navigation?.toEvent(siteId))
+                }
                 "wipe" -> {
                     val profileId = call.argument<String>("profileId")!!
                     deleteDownloadsDir(context, profileId)
@@ -232,6 +307,10 @@ class EngineChannel(
                 }
                 "wipeAll" -> {
                     wipeAll()
+                    result.success(null)
+                }
+                "keep" -> {
+                    keep(call.argument<String>("siteId")!!)
                     result.success(null)
                 }
                 "liveSessions" -> result.success(sessions.values.map(Session::toMap))
@@ -268,9 +347,15 @@ class EngineChannel(
      * answered without being registered — see [PendingOpens].
      */
     private fun open(call: MethodCall, result: MethodChannel.Result) {
-        val config = configFrom(call)
+        val throwaway = call.argument<Boolean>("throwaway") ?: false
+        val initialUrl = call.argument<String>("initialUrl")
+        // A throwaway always wipes on exit, whatever else the call says.
+        val config = configFrom(call).let { if (throwaway) it.copy(wipeOnExit = true) else it }
+        // Listed before its profile can exist (register() creates it), so a
+        // crash from here on still leaves it for the next start's sweep.
+        if (throwaway) throwaways.add(config.profileId)
         if (!profiles.isAvailable()) {
-            result.success(register(config, route = null))
+            result.success(register(config, route = null, initialUrl = initialUrl))
             return
         }
         val ticket = pendingOpens.begin(config.siteId)
@@ -283,7 +368,7 @@ class EngineChannel(
                 }
                 // Off onMethodCall's try/catch now, so a throw here would
                 // crash the main thread rather than reach Dart as an error.
-                route.mapCatching { register(config, it) }.fold(
+                route.mapCatching { register(config, it, initialUrl) }.fold(
                     onSuccess = { result.success(it) },
                     onFailure = { result.error("engine", it.message, null) },
                 )
@@ -292,8 +377,8 @@ class EngineChannel(
     }
 
     /** [route] is null only when isolation itself is unavailable. */
-    private fun register(config: SiteConfig, route: Route?): Map<String, Any?> {
-        val session = Session(config)
+    private fun register(config: SiteConfig, route: Route?, initialUrl: String?): Map<String, Any?> {
+        val session = Session(config, initialUrl)
         session.onTunnelDropped = { failure -> onTunnelDropped(config.siteId, failure) }
         sessions[config.siteId] = session
 
@@ -414,6 +499,15 @@ class EngineChannel(
         for (siteId in sessions.keys.toList()) close(siteId)
         java.io.File(context.filesDir, "downloads").deleteRecursively()
         profiles.wipeAll()
+        // Every profile is gone, throwaways included: nothing left to sweep.
+        throwaways.clear()
+    }
+
+    /** `keep` (spec §5.3–5.4): a throwaway saved as a site. A no-op on an
+     *  unknown session, like every in-page control. */
+    private fun keep(siteId: String) {
+        val session = sessions[siteId] ?: return
+        keepThrowaway(session.config.profileId, throwaways) { session.wipeOnExit = false }
     }
 
     private fun configFrom(call: MethodCall) = SiteConfig(

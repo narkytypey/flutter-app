@@ -1,0 +1,54 @@
+import 'package:flutter/widgets.dart';
+
+import '../icons.dart';
+import '../tokens.dart';
+
+/// A tap target drawn as one [AppIcon] — every button in the container's
+/// chrome. [label] names it for screen readers, from spec §7's list; it is
+/// null only where the spec gives none. A null [onTap] dims the icon and
+/// makes it inert: back and forward with no history that way (§3.3).
+class IconTap extends StatelessWidget {
+  const IconTap({
+    super.key,
+    required this.glyph,
+    required this.label,
+    required this.onTap,
+    this.size = 40,
+    this.iconSize = 20,
+    this.color = C.icon,
+    this.background,
+    this.radius,
+  });
+
+  final AppGlyph glyph;
+  final String? label;
+  final VoidCallback? onTap;
+  final double size;
+  final double iconSize;
+  final Color color;
+  final Color? background;
+
+  /// Corner radius; null draws a circle, like `2b`'s 40px round targets.
+  final double? radius;
+
+  @override
+  Widget build(BuildContext context) {
+    final corner = radius;
+    final target = GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: onTap,
+      child: Container(
+        width: size,
+        height: size,
+        alignment: Alignment.center,
+        decoration: corner == null
+            ? BoxDecoration(color: background, shape: BoxShape.circle)
+            : BoxDecoration(color: background, borderRadius: BorderRadius.circular(corner)),
+        child: AppIcon(glyph, size: iconSize, color: onTap == null ? C.textDisabled : color),
+      ),
+    );
+    final name = label;
+    if (name == null) return target;
+    return Semantics(label: name, button: true, enabled: onTap != null, child: target);
+  }
+}

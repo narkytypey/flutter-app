@@ -1,0 +1,62 @@
+import 'package:flutter/material.dart';
+
+import '../../../core/icons.dart';
+import '../../../core/tokens.dart';
+import '../../../core/typography.dart';
+import '../../../core/widgets/icon_tap.dart';
+import '../../../core/widgets/pill_button.dart';
+
+/// Browser-chrome spec §5.3/§6.3: offered in a throwaway once its first load
+/// has finished, directly above the bottom bar. Neutral throughout — jade
+/// stays on the live dot; saving is not this screen's affirmative action.
+///
+/// The hairline below it is the bottom bar's own, not a second one.
+class ThrowawaySaveBar extends StatelessWidget {
+  const ThrowawaySaveBar({super.key, required this.onSave, required this.onDismiss});
+
+  final VoidCallback onSave;
+
+  /// Hides the bar for this throwaway.
+  final VoidCallback onDismiss;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(16, 8, 8, 8),
+      decoration: const BoxDecoration(
+        color: C.raised,
+        border: Border(top: BorderSide(color: C.line07)),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(
+              'Not saved · wiped when you close it',
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: ui(size: 12, color: C.textMuted),
+            ),
+          ),
+          const SizedBox(width: 10),
+          PillButton(
+            label: 'Save as a site',
+            height: 32,
+            padding: const EdgeInsets.symmetric(horizontal: 14),
+            onTap: onSave,
+          ),
+          const SizedBox(width: 2),
+          // Unlabelled: spec §7's screen-reader list has no name for this ×
+          // (see the plan's Design questions).
+          IconTap(
+            key: const Key('save-bar-dismiss'),
+            glyph: AppGlyph.close,
+            label: null,
+            onTap: onDismiss,
+            size: 36,
+            iconSize: 16,
+          ),
+        ],
+      ),
+    );
+  }
+}

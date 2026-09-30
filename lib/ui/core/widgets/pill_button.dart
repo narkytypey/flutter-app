@@ -25,6 +25,7 @@ class PillButton extends StatelessWidget {
     this.tone = PillTone.neutral,
     this.height = 48,
     this.radius,
+    this.padding,
   });
 
   final String label;
@@ -33,6 +34,11 @@ class PillButton extends StatelessWidget {
   final PillTone tone;
   final double height;
   final double? radius;
+
+  /// Around the label, inside the pill. Null, the default, changes nothing:
+  /// a full-width pill is as wide as its parent makes it. A pill in a row
+  /// sizes to its label and needs this to breathe.
+  final EdgeInsetsGeometry? padding;
 
   @override
   Widget build(BuildContext context) {
@@ -58,6 +64,7 @@ class PillButton extends StatelessWidget {
         borderRadius: r,
         child: Container(
           height: height,
+          padding: padding,
           decoration: BoxDecoration(borderRadius: r, border: border),
           alignment: Alignment.center,
           child: Column(

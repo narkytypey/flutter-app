@@ -1,21 +1,31 @@
 import 'package:flutter/material.dart';
 
+import '../../../core/icons.dart';
 import '../../../core/tokens.dart';
 import '../../../core/typography.dart';
+import '../../../core/widgets/icon_tap.dart';
+import 'panic_square.dart';
 
-/// Spec `2b`'s minimal top bar. Panic is always reachable here — never
-/// hidden behind an overflow menu.
+/// Browser-chrome spec §6.1's top bar (layout C). Keeps `2b`'s 12/8 padding,
+/// 34px pill, 6px dot and 32px panic square; `2b`'s ‹ and ⟳ are gone — back
+/// is on the bottom bar, reload in the ☰ menu. The pill ends in the shield,
+/// which opens `6c`, and while the page loads a stop × sits just before it.
+/// A tap anywhere else on the pill starts typing an address (§6.2). Panic is
+/// always here, never behind a menu.
 class ContainerTopBar extends StatelessWidget {
   const ContainerTopBar({
     super.key,
     required this.host,
     required this.routeLabel,
     required this.live,
-    required this.onBack,
-    required this.onReload,
+    required this.loading,
+    required this.onEditAddress,
+    required this.onStop,
+    required this.onSiteDetails,
     required this.onPanic,
   });
 
+  /// The page's host: after following a link, the other site's.
   final String host;
 
   /// `site.proxyMode.name.toUpperCase()` for a proxied site, empty for a
@@ -26,8 +36,15 @@ class ContainerTopBar extends StatelessWidget {
   /// Jade while the tunnel is up; amber while the container is still opening.
   final bool live;
 
-  final VoidCallback onBack;
-  final VoidCallback onReload;
+  /// Shows the stop ×.
+  final bool loading;
+
+  /// The pill, outside its stop and shield: typing an address.
+  final VoidCallback onEditAddress;
+  final VoidCallback onStop;
+
+  /// The shield: `6c`.
+  final VoidCallback onSiteDetails;
   final VoidCallback onPanic;
 
   @override
@@ -39,88 +56,66 @@ class ContainerTopBar extends StatelessWidget {
       ),
       child: Row(
         children: [
-          _IconSquare(glyph: '‹', size: 16, onTap: onBack),
-          const SizedBox(width: 8),
           Expanded(
-            child: Container(
-              height: 34,
-              padding: const EdgeInsets.symmetric(horizontal: 12),
-              decoration: BoxDecoration(
-                color: C.surface,
-                borderRadius: BorderRadius.circular(17),
-                border: Border.all(color: C.line08),
-              ),
-              child: Row(
-                children: [
-                  Container(
-                    width: 6,
-                    height: 6,
-                    decoration: BoxDecoration(
-                      color: live ? C.jade : C.warning,
-                      shape: BoxShape.circle,
+            child: GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: onEditAddress,
+              child: Container(
+                height: 34,
+                padding: const EdgeInsets.only(left: 12, right: 3),
+                decoration: BoxDecoration(
+                  color: C.surface,
+                  borderRadius: BorderRadius.circular(17),
+                  border: Border.all(color: C.line08),
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 6,
+                      height: 6,
+                      decoration: BoxDecoration(
+                        color: live ? C.jade : C.warning,
+                        shape: BoxShape.circle,
+                      ),
                     ),
-                  ),
-                  const SizedBox(width: 7),
-                  Flexible(
-                    child: Text(
-                      host,
-                      overflow: TextOverflow.ellipsis,
-                      style: ui(size: 11.5, color: const Color(0xFFA9B0AE)),
+                    const SizedBox(width: 7),
+                    Expanded(
+                      child: Text(
+                        host,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: ui(size: 11.5, color: const Color(0xFFA9B0AE)),
+                      ),
                     ),
-                  ),
-                  if (routeLabel.isNotEmpty) ...[
-                    const Spacer(),
-                    Text(routeLabel,
-                        style: ui(size: 9.5, weight: 500, color: C.textFaint)),
+                    if (routeLabel.isNotEmpty) ...[
+                      const SizedBox(width: 8),
+                      Text(routeLabel,
+                          style: ui(size: 9.5, weight: 500, color: C.textFaint)),
+                      const SizedBox(width: 2),
+                    ],
+                    if (loading)
+                      IconTap(
+                        glyph: AppGlyph.stop,
+                        label: 'Stop',
+                        onTap: onStop,
+                        size: 28,
+                        iconSize: 14,
+                      ),
+                    IconTap(
+                      glyph: AppGlyph.shield,
+                      label: 'Site details',
+                      onTap: onSiteDetails,
+                      size: 28,
+                      iconSize: 15,
+                    ),
                   ],
-                ],
+                ),
               ),
             ),
           ),
           const SizedBox(width: 8),
-          _IconSquare(glyph: '⟳', size: 14, onTap: onReload),
-          const SizedBox(width: 8),
-          _IconSquare(
-            glyph: '◉',
-            size: 13,
-            onTap: onPanic,
-            background: C.danger.withValues(alpha: 0.14),
-            color: C.danger,
-          ),
+          PanicSquare(onTap: onPanic),
         ],
-      ),
-    );
-  }
-}
-
-class _IconSquare extends StatelessWidget {
-  const _IconSquare({
-    required this.glyph,
-    required this.size,
-    required this.onTap,
-    this.background,
-    this.color = C.icon,
-  });
-
-  final String glyph;
-  final double size;
-  final VoidCallback onTap;
-  final Color? background;
-  final Color color;
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        width: 32,
-        height: 32,
-        alignment: Alignment.center,
-        decoration: BoxDecoration(
-          color: background,
-          borderRadius: BorderRadius.circular(9),
-        ),
-        child: Text(glyph, style: ui(size: size, color: color)),
       ),
     );
   }
