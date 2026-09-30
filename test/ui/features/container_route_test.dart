@@ -365,7 +365,7 @@ void main() {
 
   testWidgets('close and wipe from the site sheet wipes this profile', (tester) async {
     final engine = FakeContainerEngine();
-    await _pump(tester, engine, _site());
+    await _pump(tester, engine, _site(), sites: _RecordingSiteRepository());
     await tester.pumpAndSettle();
 
     await tester.tap(_icon('Site details'));
@@ -382,7 +382,7 @@ void main() {
   // opening checklist, its session already gone.
   testWidgets('close all and wipe from the switcher returns to the route underneath', (tester) async {
     final engine = FakeContainerEngine();
-    await _pump(tester, engine, _site(), overHome: true);
+    await _pump(tester, engine, _site(), sites: _RecordingSiteRepository(), overHome: true);
     await tester.pumpAndSettle();
 
     await tester.tap(find.text('1 OPEN'));
@@ -421,7 +421,8 @@ void main() {
   Future<Set<String>> openIdsAfterClosing(
       WidgetTester tester, Future<void> Function() close) async {
     final engine = FakeContainerEngine();
-    await _pump(tester, engine, _site(), overHome: true, overrides: [
+    // A wipe writes the site's fresh profile back to the vault.
+    await _pump(tester, engine, _site(), sites: _RecordingSiteRepository(), overHome: true, overrides: [
       openSiteIdsProvider.overrideWith((ref) => {'s1', 'other'}),
     ]);
     await tester.pumpAndSettle();
@@ -1195,6 +1196,80 @@ void main() {
     expect(engine.wentBack, isEmpty);
     expect(engine.loaded, isEmpty);
     expect(find.byType(ContainerRoute), findsOneWidget);
+  });
+
+  // A saved site keeps its row through a close-and-wipe, under a new profile:
+  // reopened under the old one, the rest of the wipe waiting in the
+  // pending-deletion journal would be called off. See `wipeSavedSite`.
+  group('close and wipe gives a saved site a fresh profile', () {
+    void expectRotated(FakeContainerEngine engine, _RecordingSiteRepository sites) {
+      expect(engine.wiped, contains('a' * 32));
+      expect(sites.upserts.last.id, 's1');
+      expect(sites.upserts.last.profileId, isNot('a' * 32));
+    }
+
+    testWidgets("from the site sheet (6c)", (tester) async {
+      final engine = FakeContainerEngine();
+      final sites = _RecordingSiteRepository();
+      await _pump(tester, engine, _site(), sites: sites);
+      await tester.pumpAndSettle();
+
+      await tester.tap(_icon('Site details'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Close and wipe this session'));
+      await tester.pumpAndSettle();
+
+      expectRotated(engine, sites);
+    });
+
+    testWidgets('from the switcher (2c)', (tester) async {
+      final engine = FakeContainerEngine();
+      final sites = _RecordingSiteRepository();
+      await _pump(tester, engine, _site(), sites: sites, overHome: true);
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('1 OPEN'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Close all and wipe'));
+      await tester.pumpAndSettle();
+
+      expectRotated(engine, sites);
+    });
+
+    testWidgets('from the tunnel-dropped screen (8c)', (tester) async {
+      final engine = FakeContainerEngine();
+      final sites = _RecordingSiteRepository();
+      await _pump(tester, engine, _site(), sites: sites, overHome: true);
+      await tester.pumpAndSettle();
+      engine.emitTunnelDropped(TunnelDroppedEvent(
+        siteId: 's1', host: 'forum.example.com', droppedAt: DateTime(2026, 9, 30),
+      ));
+      await tester.pump();
+      await tester.pump();
+      await tester.pump();
+
+      await tester.tap(find.text('Close and wipe'));
+      await tester.pumpAndSettle();
+
+      expectRotated(engine, sites);
+    });
+
+    // A throwaway has no row: its profile is journaled from before it exists
+    // and wiped with it.
+    testWidgets('but never writes a throwaway into the vault', (tester) async {
+      final engine = FakeContainerEngine();
+      final sites = _RecordingSiteRepository();
+      await _pump(tester, engine, _throwaway(), sites: sites, throwaway: true, throwaways: [_throwaway()]);
+      await tester.pumpAndSettle();
+
+      await tester.tap(_icon('Site details'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Close and wipe this session'));
+      await tester.pumpAndSettle();
+
+      expect(engine.wiped, contains('c' * 32));
+      expect(sites.upserts, isEmpty);
+    });
   });
 }
 
