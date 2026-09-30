@@ -17,6 +17,8 @@ class ContainerView(
     private val session: Session,
     /** Throwaways still on disk (spec §5.4); a wipe here takes this one off. */
     private val throwaways: ThrowawayJournal,
+    /** Answers the loopback proxy's challenge with this profile's credential (P2 spec §2). */
+    private val credentials: SiteCredentials,
     private val onLive: () -> Unit = {},
     private val onAsk: (PendingPermission) -> String = { "" },
     /** [sizeBytes] is null when the size is unknown — see [heldDownloadSize]. */
@@ -59,7 +61,7 @@ class ContainerView(
         // Must precede the first load, or the request goes to the default store.
         androidx.webkit.WebViewCompat.setProfile(webView, config.profileId)
         val live = { if (!closing.get()) onLive() }
-        webView.webViewClient = interceptor.clientFor(config, live, declaredLengths, closing = { closing.get() }, page = object : PageCallbacks {
+        webView.webViewClient = interceptor.clientFor(config, { credentials.credentialFor(config.profileId) }, live, declaredLengths, closing = { closing.get() }, page = object : PageCallbacks {
             override fun started(url: String) = report { navigation.started(url) }
             override fun finished(url: String) {
                 if (closing.get()) teardown.pageFinished(url) else report { navigation.finished(url) }

@@ -1,5 +1,6 @@
 package com.mono.container.engine
 
+import android.webkit.HttpAuthHandler
 import android.webkit.WebResourceRequest
 import android.webkit.WebResourceResponse
 import android.webkit.WebView
@@ -18,14 +19,16 @@ interface PageCallbacks {
 }
 
 class RequestInterceptor(private val filters: FilterEngine, private val onRefused: (RouteFailure) -> Unit = {}) {
-    /** [lengths] records each proxied response's declared length, for the
-     *  view's held-download sheet. [page] hears the page starting, finishing
-     *  and moving through history (browser-chrome spec §3.1). [closing] is
-     *  this one view's: once it is true, every request is refused (see
-     *  [dispositionFor]). It is per view, not per interceptor, because a
-     *  session — and its interceptor — outlives the views that show it. */
+    /** [proxyCredential] answers the loopback proxy's `407` (P2 spec §1.4): every
+     *  call, at once, from memory. [lengths] records each proxied response's
+     *  declared length, for the view's held-download sheet. [page] hears the
+     *  page starting, finishing and moving through history (browser-chrome spec
+     *  §3.1). [closing] is this one view's: once it is true, every request is
+     *  refused (see [dispositionFor]). It is per view, not per interceptor,
+     *  because a session — and its interceptor — outlives the views that show it. */
     fun clientFor(
         config: SiteConfig,
+        proxyCredential: () -> ProxyCredential,
         onLoaded: () -> Unit = {},
         lengths: DeclaredLengths? = null,
         page: PageCallbacks = PageCallbacks.NONE,
@@ -33,6 +36,12 @@ class RequestInterceptor(private val filters: FilterEngine, private val onRefuse
     ): WebViewClient = object : WebViewClient() {
         override fun shouldInterceptRequest(view: WebView, request: WebResourceRequest): WebResourceResponse? =
             intercept(config, request, lengths, closing())
+
+        override fun onReceivedHttpAuthRequest(view: WebView, handler: HttpAuthHandler, host: String?, realm: String?) {
+            val answer = proxyAuthAnswer(host, realm, proxyCredential)
+            if (answer != null) handler.proceed(answer.user, answer.password)
+            else super.onReceivedHttpAuthRequest(view, handler, host, realm)
+        }
 
         override fun onPageStarted(view: WebView, url: String?, favicon: android.graphics.Bitmap?) {
             if (url != null) page.started(url)

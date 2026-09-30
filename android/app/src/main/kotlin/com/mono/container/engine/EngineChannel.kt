@@ -154,6 +154,10 @@ class EngineChannel(
     private val profiles: ProfileManager,
     /** Throwaways whose profile may still be on disk; see [ThrowawayJournal]. */
     val throwaways: ThrowawayJournal,
+    /** Which credential routes which open site through the loopback proxy (P2 spec §2). */
+    val credentials: SiteCredentials,
+    /** Whether WebView's traffic goes through the loopback proxy at all (P2 spec §1.3). */
+    private val proxyOverride: Boolean,
 ) : MethodChannel.MethodCallHandler, EventChannel.StreamHandler {
 
     private val sessions = LinkedHashMap<String, Session>()
@@ -360,7 +364,7 @@ class EngineChannel(
         }
         val ticket = pendingOpens.begin(config.siteId)
         networkExecutor.execute {
-            val route = runCatching { config.currentRoute() }
+            val route = runCatching { routeAtOpen(config, proxyOverride) { config.currentRoute() } }
             mainHandler.post {
                 if (!pendingOpens.finish(config.siteId, ticket)) {
                     result.success(Session(config).toMap())
@@ -380,6 +384,11 @@ class EngineChannel(
     private fun register(config: SiteConfig, route: Route?, initialUrl: String?): Map<String, Any?> {
         val session = Session(config, initialUrl)
         session.onTunnelDropped = { failure -> onTunnelDropped(config.siteId, failure) }
+        // A reopen normally follows a close. If one arrives on a different
+        // profile without it, the old profile's credential must stop routing.
+        sessions[config.siteId]?.config?.profileId
+            ?.takeIf { it != config.profileId }
+            ?.let(credentials::unbind)
         sessions[config.siteId] = session
 
         when (route) {
@@ -396,6 +405,13 @@ class EngineChannel(
                 // Creates the profile now so the view can attach it before its
                 // first load, and so a wipe has something to delete.
                 profiles.profileFor(config.profileId)
+                // From here until close, the loopback proxy routes this
+                // profile's requests on this config. Its reports arrive on the
+                // proxy's threads; the session map and the event sink are the
+                // main thread's.
+                credentials.bind(config.profileId, ProxyBinding(config) { failure ->
+                    mainHandler.post { onTunnelDropped(config.siteId, failure) }
+                })
                 session.lastActiveAtMs = System.currentTimeMillis()
             }
         }
@@ -483,6 +499,8 @@ class EngineChannel(
     private fun close(siteId: String) {
         pendingOpens.cancel(siteId)
         val session = sessions.remove(siteId) ?: return
+        // Chromium keeps sending this profile's credential; the proxy now answers 403.
+        credentials.unbind(session.config.profileId)
         // Flutter disposes the platform view when its AndroidView leaves the
         // tree, but `close` can also arrive from `2c` while the view is
         // detached — ContainerView.dispose is idempotent for that reason.
@@ -566,6 +584,7 @@ fun routeFailureToDartName(kotlinName: String): String = when (kotlinName) {
     "PROXY_REFUSED" -> "proxyRefused"
     "UPSTREAM_TIMEOUT" -> "upstreamTimeout"
     "TLS_FAILURE" -> "tlsFailure"
+    "UNSUPPORTED" -> "unsupported"
     else -> "misconfigured"
 }
 

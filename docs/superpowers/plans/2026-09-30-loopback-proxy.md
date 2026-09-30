@@ -1685,7 +1685,7 @@ After this task all WebView traffic goes through the loopback proxy. A proxied s
   - `RequestInterceptor.clientFor(config, proxyCredential: () -> ProxyCredential, onLoaded, lengths, page, closing)`
   - `ContainerView(…, credentials: SiteCredentials, …)`
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 `LoopbackOverrideTest.kt`:
 
@@ -1773,12 +1773,12 @@ Add to `RouterTest.kt`, which needs `import org.junit.Assert.assertFalse`:
     }
 ```
 
-- [ ] **Step 2: Run the tests and confirm they fail**
+- [x] **Step 2: Run the tests and confirm they fail**
 
 Run: `./gradlew :app:testDebugUnitTest --tests "com.mono.container.engine.LoopbackOverrideTest" --tests "com.mono.container.engine.RouteFailureNameTest" --tests "com.mono.container.engine.RouterTest"`
 Expected: a compilation failure, with `Unresolved reference: loopbackProxyConfig` / `UNSUPPORTED` / `routeAtOpen`.
 
-- [ ] **Step 3: Router**
+- [x] **Step 3: Router**
 
 In `Router.kt`:
 
@@ -1803,7 +1803,7 @@ fun routeAtOpen(config: SiteConfig, proxyOverride: Boolean, resolve: () -> Route
     if (config.proxyMode != "direct" && !proxyOverride) Route.Refused(RouteFailure.UNSUPPORTED) else resolve()
 ```
 
-- [ ] **Step 4: The override and the process singleton**
+- [x] **Step 4: The override and the process singleton**
 
 Create `LoopbackOverride.kt`:
 
@@ -1865,7 +1865,7 @@ internal object Loopback {
 
 Delete `AutofillBlock.kt` and `AutofillBlockTest.kt`: `git rm android/app/src/main/kotlin/com/mono/container/engine/AutofillBlock.kt android/app/src/test/kotlin/com/mono/container/engine/AutofillBlockTest.kt`.
 
-- [ ] **Step 5: Answer the proxy's challenge**
+- [x] **Step 5: Answer the proxy's challenge**
 
 In `RequestInterceptor.kt`, add `import android.webkit.HttpAuthHandler`. Then give `clientFor` a `proxyCredential` parameter and override `onReceivedHttpAuthRequest`:
 
@@ -1925,7 +1925,7 @@ In `ContainerViewFactory.kt`, pass the table. Also split the line that has two a
             credentials = engine.credentials,
 ```
 
-- [ ] **Step 6: Bind credentials to open sessions**
+- [x] **Step 6: Bind credentials to open sessions**
 
 In `EngineChannel.kt`:
 
@@ -2004,7 +2004,7 @@ In `routeFailureToDartName`:
     else -> "misconfigured"
 ```
 
-- [ ] **Step 7: Start it in `MainActivity`**
+- [x] **Step 7: Start it in `MainActivity`**
 
 Replace the `blockAutofillQueries` import with `import com.mono.container.engine.Loopback`. Then replace:
 
@@ -2023,19 +2023,19 @@ with:
         val engine = EngineChannel(applicationContext, profiles, throwaways, Loopback.credentials, proxyOverride)
 ```
 
-- [ ] **Step 8: Run the tests and confirm they pass**
+- [x] **Step 8: Run the tests and confirm they pass**
 
 Run: `./gradlew :app:testDebugUnitTest`
 Expected, all read from the XML:
 - the total is Task 3's total + 3 (`LoopbackOverrideTest`) + 1 (`RouteFailureNameTest`) + 3 (`RouterTest`) − 3 (`AutofillBlockTest` deleted);
 - no failures.
 
-- [ ] **Step 9: Run the full gates**
+- [x] **Step 9: Run the full gates**
   - `flutter build apk --debug` with zero `e:` lines;
   - `flutter analyze` clean;
   - `flutter test` unchanged since Task 4.
 
-- [ ] **Step 10: Early device check (spec §7). The first build that has a running proxy.**
+- [ ] **Step 10: Early device check (spec §7). The first build that has a running proxy.** *(Not run: the executing session had no emulator. Carried to Task 7; see "Execution record".)*
 
   **Scratch logging patch.** Never commit it. In `LoopbackProxy.handle`, after `decide`, add:
 
@@ -2060,7 +2060,7 @@ Expected, all read from the XML:
 
   Then **revert the scratch patch.** `git diff` must show none of it.
 
-- [ ] **Step 11: Commit**
+- [x] **Step 11: Commit**
 
 ```bash
 git add -A android/app/src/main/kotlin android/app/src/test/kotlin
@@ -2485,6 +2485,11 @@ Kotlin JVM 128 tests, 0 failures, 0 errors (23 JUnit XML files);
 - Task 4: `flutter test` 543/543 (540 + 3); analyze clean; JVM unchanged at
   177; APK zero `e:` lines. The two new strings are the Global Constraints'
   own, character for character.
+- Task 5: JVM 181 (177 + 3 `LoopbackOverrideTest` + 1 `RouteFailureNameTest`
+  + 3 `RouterTest` − 3 `AutofillBlockTest`), 0 failures; `flutter test`
+  543/543; analyze clean; APK zero `e:` lines. **Step 10, the early device
+  check, was not run** (no emulator here). Its four checks, the re-challenge
+  loop above all, move to Task 7 and must run before anything else there.
 
 **Deviations from the plan's text:**
 
@@ -2492,6 +2497,31 @@ Kotlin JVM 128 tests, 0 failures, 0 errors (23 JUnit XML files);
   (`5-106`) is 46 lines, and `ContainerViewFactory.kt` (`239-244`) is 63
   lines with its `ContainerView(` call at line 30. The content each describes
   matched, and the changes were made there.
+
+**Open design questions for the user** (found while executing; not decided
+here, and no code was changed for them):
+
+1. **The override is applied asynchronously, and nothing waits for it.**
+   androidx.webkit 1.12's `ProxyController.setProxyOverride` documents:
+   "Network connections are not guaranteed to immediately use the new proxy
+   setting; wait for the listener before loading a page." `Loopback.start()`
+   passes an empty listener and reports success at once, as the removed
+   `blockAutofillQueries()` did. Until the override applies, a WebView request
+   goes direct. After Task 6 that includes a proxied site's page loads, which
+   nothing else routes any more. In practice a vault unlock (a PIN and
+   Argon2id) comes before any site can open, so the window is very likely
+   closed by then. That is an inference, not something observed. Closing it
+   for certain means holding proxied opens until the listener has run, and
+   deciding what a site shows if it never runs. That is new behaviour, and
+   possibly new copy.
+2. **A system-wide (Wi-Fi) proxy is ignored for direct sites. This is an
+   observation, not a P2 regression.** The same javadoc says "calling
+   setProxyOverride will cause any existing system wide setting to be
+   ignored". The Autofill block's override (`198cdda`) already did this: it
+   sent every host but one direct. Under P2 the loopback proxy opens a direct
+   site with a plain socket, so a network that only works through a
+   configured proxy still cannot load direct sites. Neither the spec nor the
+   findings mention it.
 
 ## Verification
 

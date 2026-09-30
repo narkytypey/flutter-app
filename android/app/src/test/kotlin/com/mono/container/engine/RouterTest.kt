@@ -1,6 +1,7 @@
 package com.mono.container.engine
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -129,5 +130,24 @@ class RouterTest {
         }
         assertEquals("3 localhost:443", requests.poll(5, java.util.concurrent.TimeUnit.SECONDS))
         proxy.close()
+    }
+
+    @Test fun `a direct site opens without a proxy override`() {
+        assertEquals(Route.Direct, routeAtOpen(config(mode = "direct"), proxyOverride = false) { Route.Direct })
+    }
+
+    /** P2 spec §1.4: refused, never sent direct, and not even probed. */
+    @Test fun `a proxied site is refused when WebView cannot override its proxy`() {
+        for (mode in listOf("socks5", "http")) {
+            var probed = false
+            val route = routeAtOpen(config(mode = mode), proxyOverride = false) { probed = true; Route.Direct }
+            assertEquals(Route.Refused(RouteFailure.UNSUPPORTED), route)
+            assertFalse(probed)
+        }
+    }
+
+    @Test fun `with the override a proxied site is resolved as before`() {
+        val proxied = Route.Proxy("127.0.0.1", 9050, socks = true)
+        assertEquals(proxied, routeAtOpen(config(), proxyOverride = true) { proxied })
     }
 }

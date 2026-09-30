@@ -4,10 +4,10 @@ import android.os.Bundle
 import android.view.WindowManager
 import com.mono.container.engine.ContainerViewFactory
 import com.mono.container.engine.EngineChannel
+import com.mono.container.engine.Loopback
 import com.mono.container.engine.PendingDeletions
 import com.mono.container.engine.ProfileManager
 import com.mono.container.engine.ThrowawayJournal
-import com.mono.container.engine.blockAutofillQueries
 import com.mono.container.engine.deleteDownloadsDir
 import io.flutter.embedding.android.FlutterFragmentActivity
 import io.flutter.embedding.engine.FlutterEngine
@@ -44,9 +44,10 @@ class MainActivity : FlutterFragmentActivity() {
         // Before anything can load a profile: a loaded one cannot be deleted.
         profiles.sweepPendingDeletions()
         profiles.sweepThrowaways(throwaways) { deleteDownloadsDir(applicationContext, it) }
-        // Before any page can load, like the sweeps above.
-        blockAutofillQueries()
-        val engine = EngineChannel(applicationContext, profiles, throwaways)
+        // Before any page can load, like the sweeps above: from here every
+        // site's traffic goes through the loopback proxy (P2 spec §1).
+        val proxyOverride = Loopback.start()
+        val engine = EngineChannel(applicationContext, profiles, throwaways, Loopback.credentials, proxyOverride)
         engine.attach(flutterEngine.dartExecutor.binaryMessenger)
 
         flutterEngine.platformViewsController.registry.registerViewFactory(

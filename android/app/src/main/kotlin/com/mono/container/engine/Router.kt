@@ -1,7 +1,9 @@
 package com.mono.container.engine
 
 enum class RouteFailure {
-    PROXY_UNREACHABLE, PROXY_REFUSED, UPSTREAM_TIMEOUT, TLS_FAILURE, MISCONFIGURED
+    PROXY_UNREACHABLE, PROXY_REFUSED, UPSTREAM_TIMEOUT, TLS_FAILURE, MISCONFIGURED,
+    /** This WebView cannot override its proxy, so a proxied site cannot be routed (P2 spec §3.3). */
+    UNSUPPORTED,
 }
 
 sealed class Route {
@@ -71,3 +73,12 @@ object Router {
 /** Resolves a site's live route consistently for pages and downloads. */
 fun SiteConfig.currentRoute(): Route =
     Router.resolve(this, ProxyProbe.reachable(proxyHost ?: "", proxyPort ?: -1))
+
+/**
+ * The route `open` decides (P2 spec §1.4). Every site's traffic reaches its
+ * route through the loopback proxy, which needs WebView's proxy override.
+ * Without it a proxied site is refused, never sent direct, and [resolve] —
+ * which probes — is not called. A direct site opens as it always has.
+ */
+fun routeAtOpen(config: SiteConfig, proxyOverride: Boolean, resolve: () -> Route): Route =
+    if (config.proxyMode != "direct" && !proxyOverride) Route.Refused(RouteFailure.UNSUPPORTED) else resolve()
