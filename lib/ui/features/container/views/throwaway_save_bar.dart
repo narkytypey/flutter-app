@@ -45,12 +45,11 @@ class ThrowawaySaveBar extends StatelessWidget {
             onTap: onSave,
           ),
           const SizedBox(width: 2),
-          // Unlabelled: spec §7's screen-reader list has no name for this ×
-          // (see the plan's Design questions).
+          // Not in spec §7's list; the user's ruling of 2026-10-02.
           IconTap(
             key: const Key('save-bar-dismiss'),
             glyph: AppGlyph.close,
-            label: null,
+            label: 'Dismiss',
             onTap: onDismiss,
             size: 36,
             iconSize: 16,

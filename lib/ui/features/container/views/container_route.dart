@@ -79,9 +79,18 @@ class ContainerRoute extends ConsumerStatefulWidget {
   ConsumerState<ContainerRoute> createState() => _ContainerRouteState();
 }
 
+/// Each mounted container's own route, by site id: at most one container per
+/// site (user's ruling, 2026-10-02). The engine keys sessions by site id, so a
+/// second container for a site would take its session over and leave the
+/// first acting on nothing. Torn down with the open vault's navigator, since
+/// each container removes itself as it is disposed.
+final _containerRoutesProvider = Provider<Map<String, Route<Object?>>>((ref) => {});
+
 class _ContainerRouteState extends ConsumerState<ContainerRoute> {
   /// Captured in [initState]: [dispose] may not read providers.
   late final ContainerEngine _engine;
+  late final Map<String, Route<Object?>> _containerRoutes;
+  Route<Object?>? _ownRoute;
 
   /// Whether leaving this route closes its native session: a throwaway's,
   /// until it is saved as a site. Kept here rather than read from
@@ -136,6 +145,7 @@ class _ContainerRouteState extends ConsumerState<ContainerRoute> {
   void initState() {
     super.initState();
     _engine = ref.read(containerEngineProvider);
+    _containerRoutes = ref.read(_containerRoutesProvider);
     final engine = _engine;
     _permissionSub = engine
         .permissionRequests()
@@ -178,7 +188,20 @@ class _ContainerRouteState extends ConsumerState<ContainerRoute> {
   }
 
   @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final route = ModalRoute.of(context);
+    if (route != null && route != _ownRoute) {
+      _ownRoute = route;
+      _containerRoutes[widget.site.id] = route;
+    }
+  }
+
+  @override
   void dispose() {
+    if (_ownRoute != null && _containerRoutes[widget.site.id] == _ownRoute) {
+      _containerRoutes.remove(widget.site.id);
+    }
     _permissionSub?.cancel();
     _downloadSub?.cancel();
     _downloadResultSub?.cancel();
@@ -430,6 +453,8 @@ class _ContainerRouteState extends ConsumerState<ContainerRoute> {
   /// Spec §5.2: where a typed address or search opens. A saved site's
   /// container and a throwaway are pushed over this one, on the open vault's
   /// navigator, so system back comes back here with this page still live.
+  /// A saved site whose container is already lower in the stack is returned
+  /// to instead, and loads the address there (user's ruling, 2026-10-02).
   Future<void> _openDestination(Destination destination) async {
     switch (destination) {
       case ThisContainer(:final url):
@@ -438,6 +463,16 @@ class _ContainerRouteState extends ConsumerState<ContainerRoute> {
         // As the dashboard and search open a site: marked open, the visit
         // recorded. Its stored address is not touched.
         openSite(ref, site.id);
+        final existing = _containerRoutes[site.id];
+        if (existing != null) {
+          // Every route above it is popped, this one included: a throwaway
+          // among them is wiped as when it is left, a saved site's session
+          // stays open. [_engine] outlives this state.
+          final engine = _engine;
+          Navigator.popUntil(context, (route) => route == existing);
+          await engine.loadUrl(site.id, url.toString());
+          return;
+        }
         await Navigator.push(context, MaterialPageRoute<void>(
           builder: (_) => ContainerRoute(site: site, initialUrl: url.toString()),
         ));

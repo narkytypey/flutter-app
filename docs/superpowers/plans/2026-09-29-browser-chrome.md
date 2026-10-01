@@ -62,10 +62,10 @@ Each is behaviour, not copy; flag any the user disagrees with.
 
 ## Design questions (not invented; built so no step needs an answer)
 
-1. **The save bar's × has no screen-reader label.** Spec §7's label list has none for it, so it ships unlabelled (tests find it by `Key('save-bar-dismiss')`). Which label, if any?
-2. **Typing the address of a saved site that already has a container lower in this stack** pushes a second container for it (spec §5.2: "push a new `ContainerRoute`"). The engine keys sessions by site id, so the newer open replaces the native session; once the top one is popped, the lower one's back, forward, reload and find act on nothing until it is reopened. Should the address bar instead return to the existing container? Implemented as specified; recorded in Known gaps.
-3. **The rulings above on `6c` for a throwaway and on back closing find** are the spec's to confirm.
-4. **A Unicode host typed bare (`münchen.de`) is searched for**, because §4.1's bare-host rule only admits letter/digit/hyphen labels. Should IDN hosts be typeable?
+1. **The save bar's × has no screen-reader label.** Spec §7's label list has none for it, so it ships unlabelled (tests find it by `Key('save-bar-dismiss')`). Which label, if any? **✅ Answered 2026-10-02: `Dismiss`.**
+2. **Typing the address of a saved site that already has a container lower in this stack** pushes a second container for it (spec §5.2: "push a new `ContainerRoute`"). The engine keys sessions by site id, so the newer open replaces the native session; once the top one is popped, the lower one's back, forward, reload and find act on nothing until it is reopened. Should the address bar instead return to the existing container? Implemented as specified; recorded in Known gaps. **✅ Answered 2026-10-02: return to it.** The address bar pops back down to that site's container and loads the address there; every route above it is popped (a throwaway among them is wiped as when left, a saved site's session stays open). `ContainerRoute` keeps each mounted container's route by site id to find it.
+3. **The rulings above on `6c` for a throwaway and on back closing find** are the spec's to confirm. **✅ Both confirmed by the user, 2026-10-02.**
+4. **A Unicode host typed bare (`münchen.de`) is searched for**, because §4.1's bare-host rule only admits letter/digit/hyphen labels. Should IDN hosts be typeable? **✅ Answered 2026-10-02: yes.** Labels may use any script's letters, and the host opens in its punycode form (`hostToAscii`, `lib/domain/idn.dart`, hand-written RFC 3492), bare or after `https://` (where `Uri` would otherwise percent-encode it). Not full IDNA: no Unicode normalization beyond lower-casing.
 
 ## Review Focus
 

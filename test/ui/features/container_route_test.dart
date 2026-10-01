@@ -189,9 +189,10 @@ const _market = Site(
   url: 'https://market.example.com', profileId: 'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb',
 );
 
-/// Taps the forum's pill and types [text] into the address field.
-Future<void> _typeAddress(WidgetTester tester, String text) async {
-  await tester.tap(find.text('forum.example.com'));
+/// Taps [pill], the forum's by default, and types [text] into the address field.
+Future<void> _typeAddress(WidgetTester tester, String text,
+    {String pill = 'forum.example.com'}) async {
+  await tester.tap(find.text(pill));
   await tester.pumpAndSettle();
   await tester.enterText(find.byType(TextField), text);
   await tester.pump();
@@ -1136,6 +1137,36 @@ void main() {
     expect(find.text('forum.example.com'), findsOneWidget);
     // Left, a saved site's session stays open in the background.
     expect(engine.closed, isEmpty);
+  });
+
+  // User's ruling, 2026-10-02: one container per site. A second one would
+  // take over the native session and leave the lower one acting on nothing.
+  testWidgets("a saved site's address returns to its container lower in the stack, at that address", (tester) async {
+    final engine = FakeContainerEngine();
+    await _pump(tester, engine, _site(),
+        sites: _RecordingSiteRepository(), saved: [_site(), _market], overHome: true);
+    await tester.pumpAndSettle();
+    await _typeAddress(tester, 'market.example.com/deals');
+    expect(find.text('ITS OWN CONTAINER'), findsOneWidget);
+    await tester.testTextInput.receiveAction(TextInputAction.go);
+    await tester.pumpAndSettle();
+    expect(find.byType(ContainerRoute, skipOffstage: false), findsNWidgets(2));
+
+    await _typeAddress(tester, 'forum.example.com/new', pill: 'market.example.com');
+    expect(find.text('ITS OWN CONTAINER'), findsOneWidget);
+    await tester.testTextInput.receiveAction(TextInputAction.go);
+    await tester.pumpAndSettle();
+
+    // Back on the first container, which loads the address in place.
+    expect(find.byType(ContainerRoute, skipOffstage: false), findsOneWidget);
+    expect(find.text('forum.example.com'), findsOneWidget);
+    expect(engine.loaded, [(siteId: 's1', url: 'https://forum.example.com/new')]);
+    expect(engine.openedInitialUrls['s1'], isNull);
+    // The container left on the way down is a saved site: its session stays open.
+    expect(engine.closed, isEmpty);
+
+    await _systemBack(tester);
+    expect(find.text(_homeMarker), findsOneWidget);
   });
 
   testWidgets("anything else opens a throwaway on this container's route; leaving it closes and forgets it", (tester) async {

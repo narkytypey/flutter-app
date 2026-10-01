@@ -90,4 +90,25 @@ void main() {
       expect(parseAddressInput(raw), isA<AddressSearch>(), reason: raw);
     }
   });
+
+  // User's ruling, 2026-10-02: a Unicode host opens as an address, in its
+  // punycode form, typed bare or with a scheme.
+
+  test('a bare Unicode host is an address, in punycode', () {
+    expect(_url('münchen.de'), 'https://xn--mnchen-3ya.de');
+    expect(_url('MÜNCHEN.de/straße?q=ö'),
+        'https://xn--mnchen-3ya.de/stra%C3%9Fe?q=%C3%B6');
+    expect(_url('пример.испытание:8443'), 'https://xn--e1afmkfd.xn--80akhbyknj4f:8443');
+  });
+
+  test('an explicit address with a Unicode host gets its punycode host', () {
+    expect(_url('https://münchen.de/ä'), 'https://xn--mnchen-3ya.de/%C3%A4');
+    expect(_url('http://user@bücher.example:8080/x'),
+        'http://user@xn--bcher-kva.example:8080/x');
+  });
+
+  test('a Unicode word with no top-level domain is still a search', () {
+    expect(_search('münchen'), 'münchen');
+    expect(_search('${'ü' * 60}.de'), '${'ü' * 60}.de');
+  });
 }

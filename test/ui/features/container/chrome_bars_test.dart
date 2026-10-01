@@ -136,6 +136,15 @@ void main() {
     expect(colours, isNot(contains(C.jade)));
   });
 
+  // User's ruling, 2026-10-02.
+  testWidgets("the save bar's × is announced as Dismiss", (tester) async {
+    final semantics = tester.ensureSemantics();
+    await _pump(tester, ThrowawaySaveBar(onSave: () {}, onDismiss: () {}));
+
+    expect(find.bySemanticsLabel('Dismiss'), findsOneWidget);
+    semantics.dispose();
+  });
+
   testWidgets('the find count reads from one, says No matches, and waits for the page', (tester) async {
     final controller = TextEditingController(text: 'fox');
     addTearDown(controller.dispose);
