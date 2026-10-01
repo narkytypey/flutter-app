@@ -466,15 +466,17 @@ void main() {
     expect(container.read(sessionProvider), isA<SessionLocked>());
   });
 
-  // User's ruling, 2026-09-30: the open vault's Auto-lock choice decides 9b's
-  // window and 9c's line.
+  // User's rulings, 2026-09-30 and 2026-10-01: the Auto-lock choice, one for
+  // both vaults, decides 9b's window and 9c's line.
 
-  test("an unlocked vault's auto-lock sets 9b's deadline and 9c's line", () async {
+  test("the shared auto-lock sets 9b's deadline and 9c's line, not the vault's own row", () async {
     await vaultStore.provision(pin: '111111', vault: VaultId.a);
     await vaultStore.provisionUnopenable(VaultId.b);
+    await vaultStore.saveAutoLock(AutoLockPolicy.fiveMinutes);
+    // A row left by the per-vault build (2026-09-30) is ignored.
     Future<AppDatabase> vaultWithFiveMinutes() async {
       final db = await AppDatabase.open(path: inMemoryDatabasePath, factory: databaseFactoryFfi);
-      await SqliteSettingsRepository(db).setString('auto_lock', AutoLockPolicy.fiveMinutes.stored);
+      await SqliteSettingsRepository(db).setString('auto_lock', AutoLockPolicy.fifteenMinutes.stored);
       return db;
     }
 

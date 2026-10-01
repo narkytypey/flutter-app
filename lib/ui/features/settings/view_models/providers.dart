@@ -62,11 +62,13 @@ final searchEngineProvider = FutureProvider<SearchEngine>((ref) async {
   return SearchEngine.fromStored(stored);
 });
 
-/// The open vault's Auto-lock choice (user's ruling, 2026-09-30), stored as
-/// whole minutes in `auto_lock`.
-final autoLockProvider = FutureProvider<AutoLockPolicy>((ref) async {
-  final stored = await ref.watch(settingsRepositoryProvider).getString('auto_lock');
-  return AutoLockPolicy.fromStored(stored);
+/// The Auto-lock choice (user's ruling, 2026-09-30), one for both vaults
+/// (2026-10-01): kept in the key file beside the slots, never in either vault,
+/// since the lock screen names it before any unlock. Read again each time a
+/// vault opens, since a panic and a new setup replace the key file.
+final autoLockProvider = FutureProvider<AutoLockPolicy>((ref) {
+  ref.watch(databaseProvider);
+  return ref.watch(vaultStoreProvider).autoLock();
 });
 
 /// Settings' "Trigger by flipping face down" for the open vault (user's
@@ -159,10 +161,10 @@ class SettingsController {
     _ref.invalidate(biometricsEnabledProvider);
   }
 
-  /// Saves the open vault's choice, and applies it from the next time the app
-  /// goes to the background.
+  /// Saves the choice for both vaults, and applies it from the next time the
+  /// app goes to the background.
   Future<void> setAutoLock(AutoLockPolicy policy) async {
-    await _ref.read(settingsRepositoryProvider).setString('auto_lock', policy.stored);
+    await _ref.read(vaultStoreProvider).saveAutoLock(policy);
     _ref.read(sessionProvider.notifier).setAutoLock(policy);
     _ref.invalidate(autoLockProvider);
   }

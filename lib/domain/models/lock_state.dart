@@ -3,7 +3,8 @@ enum ReturnDestination { board, pin }
 
 /// How long the app may sit in the background before the PIN is required
 /// again. Default is "After 1 min" (spec `2d`); the user's ruling of
-/// 2026-09-30 adds 5 and 15 minutes ([choices]), chosen per vault.
+/// 2026-09-30 adds 5 and 15 minutes ([choices]), and that of 2026-10-01 makes
+/// it one choice for both vaults (`VaultStore.autoLock`).
 ///
 /// This policy decides the destination and nothing else. It does not decide
 /// whether the app is masked in recents — that happens the instant focus is
@@ -29,10 +30,10 @@ class AutoLockPolicy {
     return 'Locked after $minutes ${minutes == 1 ? 'minute' : 'minutes'} in the background';
   }
 
-  /// The vault's `auto_lock` setting: whole minutes.
+  /// How `VaultStore` keeps it: whole minutes.
   String get stored => '${grace.inMinutes}';
 
-  /// Reads the `auto_lock` setting. Anything but a [choices] value, including
+  /// Reads [stored]. Anything but a [choices] value, including
   /// no setting at all, is the default.
   static AutoLockPolicy fromStored(String? value) =>
       choices.firstWhere((policy) => policy.stored == value, orElse: () => oneMinute);
@@ -45,6 +46,9 @@ class AutoLockPolicy {
 
   @override
   int get hashCode => grace.hashCode;
+
+  @override
+  String toString() => 'AutoLockPolicy($label)';
 }
 
 class LockState {

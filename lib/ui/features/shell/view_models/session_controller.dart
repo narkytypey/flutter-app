@@ -203,7 +203,7 @@ class SessionController extends Notifier<Session> {
           dataKey: dataKey,
         );
         await ensureWorkspace(database);
-        await _loadAutoLock(database);
+        await _loadAutoLock();
         state = SessionOpen(
           vault: vault,
           database: database,
@@ -289,7 +289,7 @@ class SessionController extends Notifier<Session> {
       dataKey: dataKey,
     );
     await ensureWorkspace(database);
-    await _loadAutoLock(database);
+    await _loadAutoLock();
     state = SessionOpen(
       vault: current.biometricVault!,
       database: database,
@@ -321,21 +321,21 @@ class SessionController extends Notifier<Session> {
     required AppDatabase database,
     required Uint8List dataKey,
   }) {
-    // A new vault has made no Auto-lock choice yet.
+    // Setup has just written a fresh key file, with no Auto-lock choice yet.
     _lifecycle.policy = AutoLockPolicy.oneMinute;
     state = SessionOpen(vault: vault, database: database, dataKey: dataKey);
   }
 
-  /// The open vault's Auto-lock choice (user's ruling, 2026-09-30), read as it
-  /// opens and held here, since its database closes the moment the app goes
-  /// to the background, before the return decides between `9b` and `9c`.
-  Future<void> _loadAutoLock(AppDatabase database) async {
-    _lifecycle.policy = AutoLockPolicy.fromStored(
-        await SqliteSettingsRepository(database).getString('auto_lock'));
+  /// The Auto-lock choice, one for both vaults (user's rulings, 2026-09-30 and
+  /// 2026-10-01), read from the key file as a vault opens and held here, so
+  /// the return can decide between `9b` and `9c` without touching storage.
+  /// Any `auto_lock` row a vault kept from the per-vault build is ignored.
+  Future<void> _loadAutoLock() async {
+    _lifecycle.policy = await _vaultStore.autoLock();
   }
 
-  /// Called by `SettingsController` once the open vault's choice is saved,
-  /// so the next return uses it.
+  /// Called by `SettingsController` once the choice is saved, so the next
+  /// return uses it.
   void setAutoLock(AutoLockPolicy policy) => _lifecycle.policy = policy;
 
   @visibleForTesting

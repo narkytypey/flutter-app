@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:container/data/services/app_database.dart';
+import 'package:container/data/services/vault_store.dart';
 import 'package:container/domain/models/attempt_gate.dart';
 import 'package:container/domain/models/vault.dart';
 import 'package:container/ui/core/widgets/pin_dots.dart';
@@ -14,6 +15,7 @@ import 'package:container/ui/features/lock/views/lock_body.dart'
 import 'package:container/ui/features/lock/views/lock_screen.dart';
 import 'package:container/ui/features/shell/view_models/session_controller.dart';
 
+import '../../../domain/vault_unlocker_test.dart' show FakeCrypto;
 import 'session_controller_test.dart' show FakeBiometricService;
 
 void main() {
@@ -118,15 +120,19 @@ void main() {
         biometricServiceProvider.overrideWithValue(biometrics),
         vaultOpenerProvider.overrideWithValue(
             ({required String path, required Uint8List dataKey}) async => db),
+        // Resuming reads the shared Auto-lock from the key file; this one
+        // does not exist, so it reads the default.
+        vaultStoreProvider.overrideWithValue(
+            VaultStore(FakeCrypto(), File('${dir.path}/meta.bin'))),
       ],
       child: const MaterialApp(home: LockScreen()),
     ));
 
     expect(find.text('Use fingerprint'), findsOneWidget);
     await tester.tap(find.text('Use fingerprint'));
-    // Resuming queries the database (`ensureWorkspace`), a real sqflite
-    // round-trip that, like the open above, only completes outside the
-    // fake-async zone.
+    // Resuming queries the database (`ensureWorkspace`) and checks for the
+    // key file, real I/O that, like the open above, only completes outside
+    // the fake-async zone.
     await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 200)));
     await tester.pumpAndSettle();
 

@@ -1010,11 +1010,20 @@ User's rulings of 2026-09-30, branch `second/modest-knuth-f83zbx`
 (`9da830e`..`702f60a`). **None of it is verified on a device.**
 
 - **`2d` Settings.**
-  - *Auto-lock* opens a picker: "After 1 min", "After 5 min", "After 15 min",
-    saved per vault as `auto_lock`. `SessionController` holds the open
-    vault's choice (the database closes on backgrounding) and uses it for
-    `9b`/`9c` and `9b`'s deadline. `9c` reads "Locked after N minutes in the
-    background" ("1 minute" singular).
+  - *Auto-lock* opens a picker: "After 1 min", "After 5 min", "After 15 min".
+    `SessionController` holds the choice and uses it for `9b`/`9c` and `9b`'s
+    deadline. `9c` reads "Locked after N minutes in the background" ("1
+    minute" singular).
+    **✅ One choice for both vaults (user's ruling 2026-10-01, branch
+    `shared-auto-lock`).** It was first saved per vault, but the lock screen
+    names it before any unlock, so a real vault on 15 minutes and a decoy on
+    1 let someone compare the lock screen with the decoy's Settings and see
+    there is a second vault. It now lives in the key file beside the slots
+    (`VaultStore.autoLock`/`saveAutoLock`, key `autoLock`), so either vault's
+    Settings reads and writes the same value. Panic deletes it with the key
+    file. An `auto_lock` row a vault kept from the per-vault build is
+    ignored, so an upgrade reads 1 minute until it is chosen again. Don't
+    move it back into the vault databases.
   - *Change main PIN* is built (`ChangePinRoute`): current PIN ("Enter your
     PIN"), then the new PIN twice on setup's PIN screen without its step bar.
     `VaultStore.rewrap` re-wraps the same data key; the store is not
@@ -1035,9 +1044,8 @@ User's rulings of 2026-09-30, branch `second/modest-knuth-f83zbx`
 - **`10d`:** the "Update over the proxy · Next check · Update now" block is
   left out; the lists are bundled and the app makes no requests of its own.
 - An inert `AppToggle` is drawn at 40% opacity.
-- **Open design question:** with a 5- or 15-minute Auto-lock, `9b`'s
-  "locks in Ns" counts in seconds ("locks in 897s"). Minutes would be new
-  copy.
+- **Known gap (user's ruling 2026-10-01: leave it):** with a 5- or 15-minute
+  Auto-lock, `9b`'s "locks in Ns" counts in seconds ("locks in 897s").
 
 ## Working on this repo
 

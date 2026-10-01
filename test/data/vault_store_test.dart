@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:container/domain/models/attempt_gate.dart';
+import 'package:container/domain/models/lock_state.dart';
 import 'package:container/domain/models/vault.dart';
 import 'package:container/domain/services/vault_unlocker.dart';
 import 'package:container/data/services/vault_store.dart';
@@ -116,5 +117,27 @@ void main() {
     await store.saveGate(const AttemptGate(failures: 2));
     await store.rewrap(vault: VaultId.a, pin: '333333', dataKey: key);
     expect((await store.gate()).failures, 2);
+  });
+
+  // Auto-lock is one setting for both vaults (user's ruling, 2026-10-01): the
+  // lock screen names it before any unlock, so a per-vault value would let
+  // the decoy's Settings contradict it.
+
+  test('auto-lock is the default until one is chosen', () async {
+    expect(await store.autoLock(), AutoLockPolicy.oneMinute);
+    await store.provision(pin: '111111', vault: VaultId.a);
+    expect(await store.autoLock(), AutoLockPolicy.oneMinute);
+  });
+
+  test('a chosen auto-lock survives every write to the slots and the counter', () async {
+    final key = await store.provision(pin: '111111', vault: VaultId.a);
+    await store.provisionUnopenable(VaultId.b);
+
+    await store.saveAutoLock(AutoLockPolicy.fifteenMinutes);
+    await store.saveGate(const AttemptGate(failures: 1));
+    await store.rewrap(vault: VaultId.a, pin: '333333', dataKey: key);
+    await store.provision(pin: '222222', vault: VaultId.b);
+
+    expect(await store.autoLock(), AutoLockPolicy.fifteenMinutes);
   });
 }

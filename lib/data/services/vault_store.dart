@@ -3,10 +3,11 @@ import 'dart:io';
 import 'dart:typed_data';
 
 import '../../domain/models/attempt_gate.dart';
+import '../../domain/models/lock_state.dart';
 import '../../domain/models/vault.dart';
 import '../../domain/services/crypto_service.dart';
 
-/// Persists the two vault slots and the attempt counter.
+/// Persists the two vault slots, the attempt counter and the Auto-lock choice.
 ///
 /// The file always contains exactly two slots of identical shape. A device
 /// with no decoy configured is byte-indistinguishable from one that has a
@@ -46,6 +47,22 @@ class VaultStore {
     final data = await _read();
     data['failures'] = gate.failures;
     data['lockedUntil'] = gate.lockedUntil?.millisecondsSinceEpoch;
+    await _write(data);
+  }
+
+  /// Settings' Auto-lock, one choice for both vaults (user's ruling,
+  /// 2026-10-01). It lives here, outside either vault, because the lock screen
+  /// names it before any unlock (`9b`'s countdown, `9c`'s line): a per-vault
+  /// choice would let the decoy's Settings contradict what the lock screen
+  /// said, which would show there is another vault.
+  Future<AutoLockPolicy> autoLock() async {
+    if (!await exists) return AutoLockPolicy.oneMinute;
+    return AutoLockPolicy.fromStored((await _read())['autoLock'] as String?);
+  }
+
+  Future<void> saveAutoLock(AutoLockPolicy policy) async {
+    final data = await _read();
+    data['autoLock'] = policy.stored;
     await _write(data);
   }
 

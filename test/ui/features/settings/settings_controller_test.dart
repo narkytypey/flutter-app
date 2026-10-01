@@ -176,13 +176,43 @@ void main() {
     });
   });
 
-  test('choosing an auto-lock saves it in the open vault and applies it now', () async {
+  test('choosing an auto-lock saves it once for both vaults and applies it now', () async {
     await container.read(settingsControllerProvider).setAutoLock(AutoLockPolicy.fiveMinutes);
 
-    expect(await container.read(settingsRepositoryProvider).getString('auto_lock'),
-        AutoLockPolicy.fiveMinutes.stored);
+    expect(await container.read(vaultStoreProvider).autoLock(), AutoLockPolicy.fiveMinutes);
+    expect(await container.read(settingsRepositoryProvider).getString('auto_lock'), isNull);
     expect(await container.read(autoLockProvider.future), AutoLockPolicy.fiveMinutes);
     expect(container.read(sessionProvider.notifier).debugAutoLock, AutoLockPolicy.fiveMinutes);
+  });
+
+  test("the other vault's Settings shows the same auto-lock", () async {
+    await container.read(settingsControllerProvider).setAutoLock(AutoLockPolicy.fifteenMinutes);
+
+    final decoyDb = await AppDatabase.open(path: inMemoryDatabasePath, factory: databaseFactoryFfi);
+    final decoy = ProviderContainer(overrides: [
+      cryptoServiceProvider.overrideWithValue(FakeCrypto()),
+      vaultStoreProvider.overrideWithValue(container.read(vaultStoreProvider)),
+      documentsDirectoryProvider.overrideWithValue(dir),
+      biometricServiceProvider.overrideWithValue(biometrics),
+      initialSessionProvider.overrideWithValue(
+          SessionOpen(vault: VaultId.b, database: decoyDb, dataKey: Uint8List(32))),
+    ]);
+    addTearDown(decoy.dispose);
+
+    expect(await decoy.read(autoLockProvider.future), AutoLockPolicy.fifteenMinutes);
+  });
+
+  test('the auto-lock shown is read again once another vault opens', () async {
+    expect(await container.read(autoLockProvider.future), AutoLockPolicy.oneMinute);
+
+    // Written behind Settings' back, as a panic and a new setup would.
+    await container.read(vaultStoreProvider).saveAutoLock(AutoLockPolicy.fiveMinutes);
+    final next = await AppDatabase.open(path: inMemoryDatabasePath, factory: databaseFactoryFfi);
+    container
+        .read(sessionProvider.notifier)
+        .completeSetup(vault: VaultId.a, database: next, dataKey: Uint8List(32));
+
+    expect(await container.read(autoLockProvider.future), AutoLockPolicy.fiveMinutes);
   });
 
   // Change main PIN (user's ruling, 2026-09-30).
