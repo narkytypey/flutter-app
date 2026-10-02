@@ -1158,8 +1158,12 @@ Found, open (none fixed here):
   likely also explains the "Keep-in-container over HTTPS fails mid-body on
   the emulator" note above. Don't "fix" `LoopbackProxy`'s close for it; test
   `http://` against an origin that doesn't close that way, or on a phone.
-- **"+ New workspace"** (`10a`) opens only from a tap on its text, not the
-  row's centre: the bug `bf32358` fixed for "+ New script".
+- ~~**"+ New workspace"** (`10a`) opens only from a tap on its text, not the
+  row's centre: the bug `bf32358` fixed for "+ New script".~~ **✅ Fixed
+  2026-10-02** (branch `fix-new-workspace-row`) the same way:
+  `HitTestBehavior.opaque` on its row. `workspaces_screen_test.dart`'s "New
+  workspace opens from anywhere on its row" fails without it. Not re-checked
+  on a device.
 - **"Trigger by flipping face down"**: a tap on the row's text does nothing;
   only the switch toggles.
 - **A site whose address is itself a file** stays on `8a`'s checklist after

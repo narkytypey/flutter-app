@@ -75,6 +75,8 @@ class WorkspacesScreen extends StatelessWidget {
                   Padding(
                     padding: const EdgeInsets.only(top: 20),
                     child: GestureDetector(
+                      // The whole row, not only its glyphs.
+                      behavior: HitTestBehavior.opaque,
                       onTap: onNewWorkspace,
                       child: Row(
                         children: [

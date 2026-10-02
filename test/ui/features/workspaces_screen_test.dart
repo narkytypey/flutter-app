@@ -71,4 +71,18 @@ void main() {
     expect(deleted, ['ws-work']);
     expect(opened, isEmpty);
   });
+
+  // Found on a device: only the glyphs of "+ New workspace" took a tap. The
+  // row runs the screen's width, and a tap anywhere on it opens the form.
+  testWidgets('New workspace opens from anywhere on its row', (tester) async {
+    var newTaps = 0;
+    await tester.pumpWidget(host(onNewWorkspace: () => newTaps++));
+
+    final row = tester.getRect(find.ancestor(
+        of: find.text('New workspace'), matching: find.byType(Row)).first);
+    final text = tester.getRect(find.text('New workspace'));
+    await tester.tapAt(Offset((text.right + row.right) / 2, text.center.dy));
+
+    expect(newTaps, 1);
+  });
 }
