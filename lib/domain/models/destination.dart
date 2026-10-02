@@ -28,15 +28,20 @@ class SavedSiteContainer extends Destination {
 }
 
 /// Opens a new throwaway container at [url], on the route of the container
-/// it was typed in: [mode], [proxyHost] and [proxyPort] exactly as they are.
+/// it was typed in: [mode], [proxyHost], [proxyPort] and its proxy login
+/// exactly as they are (proxy-auth spec §4).
 class Throwaway extends Destination {
-  const Throwaway(this.url, this.mode, this.proxyHost, this.proxyPort);
+  const Throwaway(this.url, this.mode, this.proxyHost, this.proxyPort,
+      {this.proxyUser, this.proxyPassword, this.proxyLoginPerSite = false});
 
   @override
   final Uri url;
   final ProxyMode mode;
   final String? proxyHost;
   final int? proxyPort;
+  final String? proxyUser;
+  final String? proxyPassword;
+  final bool proxyLoginPerSite;
 }
 
 /// Hosts compare lowercase with one leading `www.` removed. Subdomains stay
@@ -82,7 +87,10 @@ Destination destinationFor(
     return SavedSiteContainer(matches.first, url);
   }
 
-  return Throwaway(url, current.proxyMode, current.proxyHost, current.proxyPort);
+  return Throwaway(url, current.proxyMode, current.proxyHost, current.proxyPort,
+      proxyUser: current.proxyUser,
+      proxyPassword: current.proxyPassword,
+      proxyLoginPerSite: current.proxyLoginPerSite);
 }
 
 /// Sites in [workspaceId] first, then the most recently visited; never

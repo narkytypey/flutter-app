@@ -15,6 +15,7 @@ final _current = Site(
   forceDark: false, openInReader: true, pageZoom: 150,
   customCss: 'a{}', customJs: 'x()', cookiePolicy: CookiePolicy.keep,
   proxyMode: ProxyMode.socks5, proxyHost: '127.0.0.1', proxyPort: 9050,
+  proxyUser: 'alice', proxyPassword: 's3cret',
   requirePin: true, showInDecoy: true,
   lastVisitedAt: DateTime(2026, 9, 1), sortIndex: 4,
 );
@@ -49,6 +50,9 @@ void main() {
     expect(throwaway.proxyMode, ProxyMode.socks5);
     expect(throwaway.proxyHost, '127.0.0.1');
     expect(throwaway.proxyPort, 9050);
+    expect(throwaway.proxyUser, 'alice');
+    expect(throwaway.proxyPassword, 's3cret');
+    expect(throwaway.proxyLoginPerSite, isFalse);
 
     expect(throwaway.blockWebRtc, defaults.blockWebRtc);
     expect(throwaway.blockTrackers, defaults.blockTrackers);
@@ -67,6 +71,21 @@ void main() {
     expect(throwaway.showInDecoy, defaults.showInDecoy);
     expect(throwaway.lastVisitedAt, isNull);
     expect(throwaway.sortIndex, 0);
+  });
+
+  test('a throwaway from a per-site container is per-site, on its own profile', () {
+    final destination = destinationFor(
+      Uri.parse('https://news.example.org/today'),
+      current: _current.copyWith(proxyLoginPerSite: true),
+      saved: const [],
+    ) as Throwaway;
+    var next = 0;
+    final throwaway = buildThrowaway(
+        destination: destination, current: _current, newId: () => 'id${next++}');
+
+    expect(throwaway.proxyLoginPerSite, isTrue);
+    expect(throwaway.profileId, isNot(_current.profileId),
+        reason: 'its own profile id gives it its own login (spec §4)');
   });
 
   test('it never takes a library script applied to the site it was typed in', () {
