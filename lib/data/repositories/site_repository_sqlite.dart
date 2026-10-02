@@ -51,4 +51,22 @@ class SqliteSiteRepository implements SiteRepository {
       whereArgs: [id],
     );
   }
+
+  @override
+  Future<DateTime?> lastWorked(String id) async {
+    final rows = await _database.db.query('sites',
+        columns: ['last_worked_at'], where: 'id = ?', whereArgs: [id]);
+    final ms = rows.isEmpty ? null : rows.first['last_worked_at'] as int?;
+    return ms == null ? null : DateTime.fromMillisecondsSinceEpoch(ms, isUtc: true);
+  }
+
+  @override
+  Future<void> setLastWorked(String id, DateTime? at) async {
+    await _database.db.update(
+      'sites',
+      {'last_worked_at': at?.millisecondsSinceEpoch},
+      where: 'id = ?',
+      whereArgs: [id],
+    );
+  }
 }

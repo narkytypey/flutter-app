@@ -72,7 +72,7 @@ class AppDatabase {
 
   final Database db;
 
-  static const schemaVersion = 7;
+  static const schemaVersion = 8;
 
   static Future<AppDatabase> open({
     required String path,
@@ -125,6 +125,10 @@ class AppDatabase {
               -- and rows in the decoy's own store do not use it.
               show_in_decoy   INTEGER NOT NULL DEFAULT 0,
               last_visited_at INTEGER,
+              -- When the site last went live on its own route (`8b`'s "Last
+              -- worked"). Not a `Site` field: an edit never writes it, and a
+              -- decoy sync never copies it.
+              last_worked_at  INTEGER,
               sort_index      INTEGER NOT NULL DEFAULT 0,
               profile_id          TEXT    NOT NULL,
               block_webrtc        INTEGER NOT NULL DEFAULT 1,
@@ -199,6 +203,11 @@ class AppDatabase {
             await db.execute('ALTER TABLE sites ADD COLUMN proxy_password TEXT');
             await db.execute(
                 'ALTER TABLE sites ADD COLUMN proxy_login_per_site INTEGER NOT NULL DEFAULT 0');
+          }
+          if (from < 8) {
+            // `8b`'s "Last worked": no site has worked yet as far as this
+            // vault knows.
+            await db.execute('ALTER TABLE sites ADD COLUMN last_worked_at INTEGER');
           }
         },
       ),

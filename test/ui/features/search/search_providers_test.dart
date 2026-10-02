@@ -25,6 +25,10 @@ class FakeSiteRepository implements SiteRepository {
   Future<void> touch(String id, DateTime at) async => touched[id] = at;
   @override
   Future<Site?> byId(String id) => throw UnimplementedError();
+  @override
+  Future<DateTime?> lastWorked(String id) => throw UnimplementedError();
+  @override
+  Future<void> setLastWorked(String id, DateTime? at) => throw UnimplementedError();
 }
 
 void main() {
