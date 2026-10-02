@@ -73,7 +73,6 @@ Future<ProviderContainer> _pump(WidgetTester tester, _Engine engine, _Sites site
                 id: 'ws', name: 'Personal', markerIndex: 0, storageRule: StorageRule.keep),
             sites: const [_forum],
             openSiteIds: const {'st-forum'},
-            leakCount: 0,
             now: _now,
           )),
       workspaceOptionsProvider.overrideWith((ref) async => const []),

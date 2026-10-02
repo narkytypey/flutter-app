@@ -3,7 +3,6 @@ import 'package:container/domain/models/blocked_tally.dart';
 import 'package:container/domain/models/site.dart';
 import 'package:container/ui/features/container/view_models/providers.dart';
 import 'package:container/ui/features/dashboard/view_models/blocked_tally_controller.dart';
-import 'package:container/ui/features/dashboard/view_models/providers.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -45,18 +44,6 @@ void main() {
     final tally = container.read(blockedTallyProvider);
     expect(_count(tally, BlockedCategory.trackers), 8);
     expect(tally.sites.single.count, 8);
-  });
-
-  test('leakCountProvider mirrors the tally total', () async {
-    final engine = FakeContainerEngine();
-    final site = _site('s1');
-    final container = _container(engine, (id) async => id == 's1' ? site : null);
-
-    await engine.open(site);
-    engine.addBlocked('s1', BlockedCategory.ads, 2);
-    await _settle();
-
-    expect(container.read(leakCountProvider), 2);
   });
 
   // A session whose site is not in the open vault belongs to the other one.

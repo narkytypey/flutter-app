@@ -34,7 +34,6 @@ DashboardView _personal({Set<String> open = const {'st-notes', 'st-webmail'}}) {
           const Duration(days: 3), pin: true),
     ],
     openSiteIds: open,
-    leakCount: 0,
     now: _now,
   );
 }
@@ -55,12 +54,14 @@ Future<void> _pump(WidgetTester tester, DashboardView view,
 }
 
 void main() {
-  testWidgets('the bar names the workspace and counts sessions and leaks',
+  testWidgets('the bar names the workspace and counts sessions, and no leaks',
       (tester) async {
     await _pump(tester, _personal());
 
     expect(find.text('Personal'), findsOneWidget);
-    expect(find.text('2 SESSIONS · 0 LEAKS'), findsOneWidget);
+    expect(find.text('2 SESSIONS'), findsOneWidget);
+    // User's ruling 2026-10-02: the dashboard shows no leak count.
+    expect(find.textContaining('LEAK'), findsNothing);
   });
 
   testWidgets('sites are grouped into OPEN NOW and IDLE', (tester) async {
@@ -110,7 +111,7 @@ void main() {
 
     expect(find.text('OPEN NOW'), findsNothing);
     expect(find.text('IDLE'), findsOneWidget);
-    expect(find.text('0 SESSIONS · 0 LEAKS'), findsOneWidget);
+    expect(find.text('0 SESSIONS'), findsOneWidget);
   });
 
   testWidgets('the footer offers Add site and reports taps', (tester) async {
@@ -132,7 +133,6 @@ void main() {
             storageRule: StorageRule.wipeOnExit),
         sites: const [],
         openSiteIds: const {},
-        leakCount: 0,
         now: _now,
       ),
     );
@@ -151,7 +151,6 @@ void main() {
             storageRule: StorageRule.wipeOnExit),
         sites: const [],
         openSiteIds: const {},
-        leakCount: 0,
         now: _now,
       ),
     );
@@ -176,7 +175,6 @@ void main() {
             storageRule: StorageRule.wipeOnExit),
         sites: const [],
         openSiteIds: const {},
-        leakCount: 0,
         now: _now,
       ),
     );

@@ -70,6 +70,12 @@ fetched at runtime. No code generation anywhere (no `build_runner`,
 - **Threat model is coerced unlock**, not forensic disk imaging — the decoy
   vault must be convincing to a person compelling an unlock, not to someone
   imaging the device.
+- **No leak count, anywhere** (user's ruling, 2026-10-02). The dashboard bar
+  reads `N SESSIONS`; `1b`'s `· 0 LEAKS` was removed from both spec HTML files
+  (`app-design.pdf` still shows it, and is not authoritative). Never add a leak
+  count back, under that name or another. The blocked-request tally (Today,
+  `5c`, and the container's blocked-today count) is a different number and
+  stays.
 
 Each plan repeats the subset of these it depends on in its own "Global
 Constraints" section — that repetition is intentional so a plan can be read

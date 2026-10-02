@@ -7,7 +7,7 @@ void main() {
         home: Scaffold(
           body: WorkspaceBar(
             name: 'Personal',
-            trailing: '2 SESSIONS · 0 LEAKS',
+            trailing: '2 SESSIONS',
             trailingIsBadge: false,
             onTap: () {},
             onOverflow: onOverflow,
@@ -20,7 +20,7 @@ void main() {
     await tester.pumpWidget(harness(onOverflow: () {}));
 
     expect(find.text('Personal'), findsOneWidget);
-    expect(find.text('2 SESSIONS · 0 LEAKS'), findsOneWidget);
+    expect(find.text('2 SESSIONS'), findsOneWidget);
   });
 
   testWidgets('tapping the overflow icon calls onOverflow', (tester) async {

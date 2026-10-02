@@ -5,8 +5,7 @@ import '../../../core/tokens.dart';
 import '../../../core/typography.dart';
 
 /// Spec `2a`, Network tab. `blockedCount` has no live source in this task's
-/// interface (no engine seam is in scope here — see Plan 1's `leakCountProvider`
-/// for the same kind of not-yet-wired number), so its copy uses the spec's own
+/// interface (no engine seam is in scope here), so its copy uses the spec's own
 /// example value rather than inventing a parameter nothing feeds yet.
 class NetworkTab extends StatelessWidget {
   const NetworkTab({

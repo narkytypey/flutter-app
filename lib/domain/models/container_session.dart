@@ -20,7 +20,7 @@ class ContainerSession {
   final DateTime? lastActiveAt;
 
   /// Rules matched in this session. Feeds spec `2a`'s "42 rules matched today"
-  /// and fills Plan 1's `leakCountProvider` seam.
+  /// and the blocked tally.
   final int blockedCount;
 
   /// Cumulative blocks for this session, broken down by [BlockedCategory].

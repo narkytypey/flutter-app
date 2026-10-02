@@ -41,7 +41,7 @@ class DashboardBody extends StatelessWidget {
               name: view.workspaceName,
               trailing: view.wipesOnExit
                   ? 'WIPES ON EXIT'
-                  : '${view.sessionCount} SESSIONS · ${view.leakCount} LEAKS',
+                  : '${view.sessionCount} SESSIONS',
               trailingIsBadge: view.wipesOnExit,
               onTap: onWorkspaceTap,
               onOverflow: onOverflow,

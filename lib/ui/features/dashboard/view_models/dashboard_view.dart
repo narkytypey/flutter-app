@@ -32,7 +32,6 @@ class DashboardView {
     required this.workspaceName,
     required this.wipesOnExit,
     required this.sessionCount,
-    required this.leakCount,
     required this.open,
     required this.idle,
   });
@@ -43,7 +42,6 @@ class DashboardView {
   /// `WIPES ON EXIT` instead of the session counts (spec `5b`).
   final bool wipesOnExit;
   final int sessionCount;
-  final int leakCount;
   final List<SessionEntry> open;
   final List<SessionEntry> idle;
 
@@ -56,7 +54,6 @@ class DashboardView {
     required Workspace workspace,
     required List<Site> sites,
     required Set<String> openSiteIds,
-    required int leakCount,
     required DateTime now,
   }) {
     SessionEntry entry(Site s, bool live) => SessionEntry(
@@ -79,7 +76,6 @@ class DashboardView {
       workspaceName: workspace.name,
       wipesOnExit: workspace.storageRule == StorageRule.wipeOnExit,
       sessionCount: open.length,
-      leakCount: leakCount,
       open: open,
       idle: idle,
     );

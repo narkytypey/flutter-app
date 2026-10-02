@@ -21,10 +21,10 @@ import '../../../../domain/models/site.dart';
 import '../../../../domain/models/throwaway.dart';
 import '../../../../domain/models/workspace.dart';
 import '../../add_site/views/add_site_screen.dart';
+import '../../dashboard/view_models/blocked_tally_controller.dart' show blockedTallyProvider;
 import '../../dashboard/view_models/providers.dart'
     show
         closeSite,
-        leakCountProvider,
         openSite,
         siteRepositoryProvider,
         workspacesProvider;
@@ -529,7 +529,7 @@ class _ContainerRouteState extends ConsumerState<ContainerRoute> {
     _isThrowaway = ref.watch(throwawaySitesProvider).any((site) => site.id == widget.site.id);
     final navigation = ref.watch(navigationForSiteProvider(widget.site.id)).valueOrNull;
     final workspaces = ref.watch(workspacesProvider).valueOrNull ?? const <Workspace>[];
-    final blockedToday = ref.watch(leakCountProvider);
+    final blockedToday = ref.watch(blockedTallyProvider.select((tally) => tally.total));
     // What typed text is matched against (spec §4.4): this vault's sites and
     // search engine, watched from the start so the first keystroke has them.
     final saved = ref.watch(allSitesProvider).valueOrNull ?? const <Site>[];
