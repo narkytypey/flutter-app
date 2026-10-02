@@ -5,10 +5,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  test("the set is spec §6.6's fifteen glyphs", () {
+  test("the set is spec §6.6's fifteen glyphs, then the restyle's eight", () {
     expect(AppGlyph.values.map((g) => g.name), [
       'back', 'forward', 'reload', 'stop', 'shield', 'panic', 'menu', 'find',
       'reader', 'link', 'search', 'globe', 'chevronUp', 'chevronDown', 'close',
+      'check', 'plus', 'more', 'vault', 'fingerprint', 'backspace', 'refused',
+      'contrast',
     ]);
   });
 
@@ -31,6 +33,32 @@ void main() {
     }
     expect(tester.getSize(find.byWidgetPredicate((w) => w is AppIcon && w.size == 13)),
         const Size(13, 13));
+  });
+
+  testWidgets('the restyle glyphs paint at small and large sizes', (tester) async {
+    const added = [
+      AppGlyph.check, AppGlyph.plus, AppGlyph.more, AppGlyph.vault,
+      AppGlyph.fingerprint, AppGlyph.backspace, AppGlyph.refused, AppGlyph.contrast,
+    ];
+    await tester.pumpWidget(Directionality(
+      textDirection: TextDirection.ltr,
+      child: Center(
+        child: Wrap(children: [
+          for (final glyph in added) ...[
+            AppIcon(glyph, size: 12, color: C.jade),
+            AppIcon(glyph, size: 28, color: C.danger),
+          ],
+        ]),
+      ),
+    ));
+
+    expect(tester.takeException(), isNull);
+    for (final glyph in added) {
+      final sizes = tester
+          .widgetList<AppIcon>(find.byWidgetPredicate((w) => w is AppIcon && w.glyph == glyph))
+          .map((icon) => icon.size);
+      expect(sizes, [12, 28], reason: glyph.name);
+    }
   });
 
   test('the painter repaints only for a new glyph or colour', () {

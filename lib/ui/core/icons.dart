@@ -1,8 +1,11 @@
+import 'dart:math' as math;
+
 import 'package:flutter/widgets.dart';
 
 import 'tokens.dart';
 
-/// Spec §6.6's set, drawn in-repo: no icon font, no dependency.
+/// Spec §6.6's set, drawn in-repo: no icon font, no dependency. The last
+/// eight are the restyle's (`2026-10-02-restyle-design.md` §2).
 enum AppGlyph {
   back,
   forward,
@@ -19,10 +22,20 @@ enum AppGlyph {
   chevronUp,
   chevronDown,
   close,
+  check,
+  plus,
+  more,
+  vault,
+  fingerprint,
+  backspace,
+  refused,
+  contrast,
 }
 
-/// One line icon at the size the caller passes. Replaces `2b`'s Unicode
-/// glyphs on the container screen; other screens keep theirs until project 4.
+/// One line icon at the size the caller passes. Every icon in the app is one
+/// of these: the restyle spec's §6 test fails on a Unicode glyph or a
+/// Material `Icons.*`. Place it under loose constraints — under tight ones a
+/// `CustomPaint` fills its box and the glyph scales with it.
 class AppIcon extends StatelessWidget {
   const AppIcon(this.glyph, {super.key, this.size = 20, this.color = C.icon});
 
@@ -147,9 +160,76 @@ class AppIconPainter extends CustomPainter {
             ..close(),
           stroke,
         );
+      case AppGlyph.check:
+        _lines(canvas, stroke, const [Offset(5, 12.5), Offset(10, 17.5), Offset(19, 7.5)]);
+      case AppGlyph.plus:
+        _lines(canvas, stroke, const [Offset(12, 5), Offset(12, 19)]);
+        _lines(canvas, stroke, const [Offset(5, 12), Offset(19, 12)]);
+      case AppGlyph.more:
+        final dot = Paint()..color = color;
+        for (final x in const [5.5, 12.0, 18.5]) {
+          canvas.drawCircle(Offset(x, 12), 1.75, dot);
+        }
+      case AppGlyph.vault:
+        canvas.drawPath(
+          Path()
+            ..moveTo(12, 3.5)
+            ..lineTo(20.5, 12)
+            ..lineTo(12, 20.5)
+            ..lineTo(3.5, 12)
+            ..close(),
+          stroke,
+        );
+      case AppGlyph.fingerprint:
+        canvas.drawArc(Rect.fromCircle(center: const Offset(12, 13), radius: 8.5),
+            _radians(200), _radians(140), false, stroke);
+        canvas.drawPath(
+          Path()
+            ..moveTo(6.5, 16)
+            ..lineTo(6.5, 13)
+            ..arcToPoint(const Offset(17.5, 13), radius: const Radius.circular(5.5))
+            ..lineTo(17.5, 17),
+          stroke,
+        );
+        canvas.drawPath(
+          Path()
+            ..moveTo(9.5, 18)
+            ..lineTo(9.5, 13)
+            ..arcToPoint(const Offset(14.5, 13), radius: const Radius.circular(2.5))
+            ..lineTo(14.5, 20),
+          stroke,
+        );
+        _lines(canvas, stroke, const [Offset(12, 13), Offset(12, 16.5)]);
+      case AppGlyph.backspace:
+        canvas.drawPath(
+          Path()
+            ..moveTo(8.5, 5.5)
+            ..lineTo(20, 5.5)
+            ..lineTo(20, 18.5)
+            ..lineTo(8.5, 18.5)
+            ..lineTo(3.5, 12)
+            ..close(),
+          stroke,
+        );
+        _lines(canvas, stroke, const [Offset(11.5, 9.5), Offset(16.5, 14.5)]);
+        _lines(canvas, stroke, const [Offset(16.5, 9.5), Offset(11.5, 14.5)]);
+      case AppGlyph.refused:
+        canvas.drawCircle(const Offset(12, 12), 8.5, stroke);
+        _lines(canvas, stroke, const [Offset(6, 18), Offset(18, 6)]);
+      case AppGlyph.contrast:
+        canvas.drawCircle(const Offset(12, 12), 8, stroke);
+        canvas.drawPath(
+          Path()
+            ..moveTo(12, 4)
+            ..arcToPoint(const Offset(12, 20), radius: const Radius.circular(8))
+            ..close(),
+          Paint()..color = color,
+        );
     }
     canvas.restore();
   }
+
+  static double _radians(double degrees) => degrees * math.pi / 180;
 
   static void _lines(Canvas canvas, Paint paint, List<Offset> points) {
     final path = Path()..moveTo(points.first.dx, points.first.dy);
