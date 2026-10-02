@@ -72,7 +72,7 @@ object Router {
                 ?: java.net.Socket(targetHost, targetPort)
             is Route.Proxy ->
                 if (route.socks) Socks5Tunnel.open(route.host, route.port, targetHost, targetPort, route.login)
-                else HttpConnectTunnel.open(route.host, route.port, targetHost, targetPort)
+                else HttpConnectTunnel.open(route.host, route.port, targetHost, targetPort, route.login)
             is Route.Refused -> error("connect() called for a refused route")
         }
 }
