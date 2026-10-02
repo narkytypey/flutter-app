@@ -73,16 +73,17 @@ class Session(
     var phase: String = PHASE_OPENING
     var lastActiveAtMs: Long? = null
     var failure: String? = null
-    var view: ContainerView? = null
 
-    /** The last `navigation` event this session's view reported, for
-     *  `navigationState`: Dart may start listening after the first load has
-     *  already reported (browser-chrome spec §3.2). */
-    var navigation: NavigationSnapshot? = null
+    /** Opening order (tabs spec §3.1). A closing page has already left, so
+     *  this counts live pages only. */
+    val pages = LinkedHashMap<String, Page>()
+
+    /** Which page asked each pending permission or held download, by request id. */
+    val pageOf = HashMap<String, String>()
 
     /** Starts as the config's; `keep` turns it off for a throwaway saved as a
-     *  site while its page is still open (spec §5.3). [ContainerView.dispose]
-     *  reads this, not the config. */
+     *  site while its page is still open (spec §5.3). A `close` without its
+     *  own `wipe` reads this, not the config. */
     var wipeOnExit: Boolean = config.wipeOnExit
 
     /** Set by [EngineChannel] after construction; lets a live session's
@@ -102,6 +103,7 @@ class Session(
             "permissionAsks" to counters.permissionAsks.get(),
         ),
         "failure" to failure,
+        "pages" to pagesToEvent(pages.values.map { it.id to it.openerId }),
     )
 
     companion object {
@@ -137,6 +139,16 @@ class PendingOpens {
         tickets.remove(siteId)
         return true
     }
+}
+
+/** "Keep blocked": only the resources this ask was about are refused — a
+ *  resource already pre-authorized by the stored config (`granted`) is honored
+ *  regardless, per "a stored allow* flag pre-grants silently." */
+internal fun answerKeepBlocked(pending: PendingPermission) = when (pending) {
+    is PendingPermission.Hardware ->
+        if (pending.granted.isNotEmpty()) pending.request.grant(pending.granted.toTypedArray())
+        else pending.request.deny()
+    is PendingPermission.Geolocation -> pending.callback.invoke(pending.origin, false, false)
 }
 
 /** What a route refusal reported by the loopback proxy does to the session it reached. */
@@ -175,7 +187,7 @@ class EngineChannel(
     private val proxyOverride: Boolean,
     /** Blocks until WebView has applied that override; see [routeAtOpen]. */
     private val awaitOverride: () -> Unit,
-) : MethodChannel.MethodCallHandler, EventChannel.StreamHandler {
+) : MethodChannel.MethodCallHandler, EventChannel.StreamHandler, PageEvents {
 
     private val sessions = LinkedHashMap<String, Session>()
     private val pendingOpens = PendingOpens()
@@ -191,16 +203,27 @@ class EngineChannel(
         EventChannel(messenger, EVENT_CHANNEL).setStreamHandler(this)
     }
 
-    // --- The seam the view factory reads -----------------------------------
+    // --- Pages -------------------------------------------------------------
 
-    /** The config `open` registered, or null when no `open` preceded the view. */
-    fun session(siteId: String): Session? = sessions[siteId]
-
-    fun attachView(siteId: String, view: ContainerView) {
-        sessions[siteId]?.view = view
+    /** The page with [pageId], in whichever session holds it; null once it
+     *  has started closing. [PageHostFactory] binds a view to exactly this. */
+    fun page(pageId: String): Page? {
+        for (session in sessions.values) session.pages[pageId]?.let { return it }
+        return null
     }
 
-    /** Called by [ContainerView] when the first load finishes. */
+    /** The registered session [page] belongs to, or null once the page (or
+     *  its session) has started closing: a closing page speaks for no one. */
+    private fun sessionOf(page: Page): Session? =
+        sessions.values.firstOrNull { it.pages[page.id] === page }
+
+    private fun newPage(session: Session, openerId: String?, firstUrl: String?): Page {
+        val page = Page(newPageId(), openerId, context, session.config, session, profiles, credentials, firstUrl, this)
+        session.pages[page.id] = page
+        return page
+    }
+
+    /** Called on every finished main-frame load. */
     fun markLive(siteId: String) {
         val session = sessions[siteId] ?: return
         if (session.phase == Session.PHASE_REFUSED) return
@@ -208,6 +231,151 @@ class EngineChannel(
         session.lastActiveAtMs = System.currentTimeMillis()
         emitSessions()
     }
+
+    override fun loaded(page: Page) {
+        val session = sessionOf(page) ?: return
+        markLive(session.config.siteId)
+    }
+
+    /**
+     * A hardware or location permission the site's stored config does not
+     * already grant, asked live. A page that is closing has no one to ask:
+     * it is answered "keep blocked" at once.
+     */
+    override fun ask(page: Page, pending: PendingPermission): String {
+        val requestId = nextRequestId()
+        val session = sessionOf(page) ?: return requestId.also { answerKeepBlocked(pending) }
+        session.pageOf[requestId] = page.id
+        session.counters.permissionAsks.incrementAndGet()
+        val kind = when (pending) {
+            is PendingPermission.Geolocation -> "location"
+            is PendingPermission.Hardware -> if (pending.toAsk.contains(
+                    android.webkit.PermissionRequest.RESOURCE_AUDIO_CAPTURE)) "microphone" else "camera"
+        }
+        sink?.success(mapOf(
+            "type" to "permission_request",
+            "siteId" to session.config.siteId, "pageId" to page.id,
+            "host" to hostOf(session.config), "kind" to kind, "requestId" to requestId,
+        ))
+        return requestId
+    }
+
+    override fun download(
+        page: Page, url: String, mimeType: String, fileName: String, sizeBytes: Long?, kindLabel: String,
+    ): String {
+        val requestId = nextRequestId()
+        val session = sessionOf(page) ?: return requestId
+        session.pendingDownloads[requestId] = PendingDownload(url, mimeType, fileName, sizeBytes, kindLabel)
+        session.pageOf[requestId] = page.id
+        sink?.success(mapOf(
+            "type" to "download",
+            "siteId" to session.config.siteId, "pageId" to page.id,
+            "fileName" to fileName, "sizeBytes" to sizeBytes,
+            "sourceHost" to hostOf(session.config), "kindLabel" to kindLabel, "requestId" to requestId,
+        ))
+        return requestId
+    }
+
+    /** Only a registered page reaches Dart: a reopened site's older pages,
+     *  still tearing down, must not speak for the newer session. */
+    override fun navigated(page: Page, snapshot: NavigationSnapshot) {
+        val session = sessionOf(page) ?: return
+        sink?.success(snapshot.toEvent(session.config.siteId, page.id))
+    }
+
+    override fun found(page: Page, activeMatch: Int, matchCount: Int) {
+        val session = sessionOf(page) ?: return
+        sink?.success(findResultEvent(session.config.siteId, page.id, activeMatch, matchCount))
+    }
+
+    /**
+     * Tabs spec §5.2. Without a user gesture nothing opens. At the cap the
+     * link loads in the page it was tapped in. Otherwise a new page in the
+     * same session — same profile, route and credential — takes the
+     * transport, with its profile set before the transport hands it the
+     * first navigation (the [Page] constructor does that).
+     */
+    override fun newWindow(page: Page, isUserGesture: Boolean, resultMsg: android.os.Message): Boolean {
+        val session = sessionOf(page) ?: return false
+        val transport = resultMsg.obj as? android.webkit.WebView.WebViewTransport ?: return false
+        return when (newWindowAction(isUserGesture, session.pages.size)) {
+            NewWindowAction.REFUSE -> false
+            NewWindowAction.LOAD_IN_PLACE -> {
+                capture(session.config, transport, resultMsg) { url ->
+                    // The opener may have closed while the capture ran.
+                    inPlaceUrl(url)?.let { target -> if (sessionOf(page) != null) page.load(target) }
+                }
+                true
+            }
+            NewWindowAction.NEW_PAGE -> {
+                val opened = newPage(session, page.id, firstUrl = null)
+                transport.webView = opened.webView
+                resultMsg.sendToTarget()
+                sink?.success(pageOpenedEvent(session.config.siteId, opened.id, page.id))
+                emitSessions()
+                true
+            }
+        }
+    }
+
+    /** A page's own `window.close()`. Posted, so the page is not torn down
+     *  from inside its own chrome client's callback. */
+    override fun closeRequested(page: Page) {
+        mainHandler.post { closePage(page.id) }
+    }
+
+    /**
+     * Tabs spec §5.2: a capped link's URL, read without fetching anything. A
+     * short-lived WebView on the same profile takes the new window; it refuses
+     * every request, records the first URL it is asked to load, cancels that
+     * load, and is destroyed. [onUrl] runs at most once; a window that names
+     * no URL within [Teardown.TIMEOUT_MS] is dropped.
+     */
+    private fun capture(
+        config: SiteConfig,
+        transport: android.webkit.WebView.WebViewTransport,
+        resultMsg: android.os.Message,
+        onUrl: (String?) -> Unit,
+    ) {
+        val capture = android.webkit.WebView(android.content.MutableContextWrapper(context))
+        // Never consulted for a load this view cancels, but never asked to
+        // ping Google either (see Page's settings).
+        capture.settings.setSafeBrowsingEnabled(false)
+        androidx.webkit.WebViewCompat.setProfile(capture, config.profileId)
+        var done = false
+        fun finish(url: String?) {
+            if (done) return
+            done = true
+            mainHandler.post {
+                capture.stopLoading()
+                capture.destroy()
+                onUrl(url)
+            }
+        }
+        capture.webViewClient = object : android.webkit.WebViewClient() {
+            override fun shouldInterceptRequest(
+                view: android.webkit.WebView, request: android.webkit.WebResourceRequest,
+            ): android.webkit.WebResourceResponse? = RequestInterceptor.refuseAll(request)
+
+            override fun shouldOverrideUrlLoading(
+                view: android.webkit.WebView, request: android.webkit.WebResourceRequest,
+            ): Boolean {
+                finish(request.url.toString())
+                return true
+            }
+
+            override fun onPageStarted(view: android.webkit.WebView, url: String?, favicon: android.graphics.Bitmap?) {
+                view.stopLoading()
+                finish(url)
+            }
+        }
+        transport.webView = capture
+        resultMsg.sendToTarget()
+        mainHandler.postDelayed({ finish(null) }, Teardown.TIMEOUT_MS)
+    }
+
+    private fun hostOf(config: SiteConfig): String =
+        runCatching { java.net.URI(config.url).host }.getOrNull() ?: config.url
 
     /** Called by [RequestInterceptor] when a *live* session's fetch starts
      * refusing mid-browse — spec §3's `tunnel_dropped`, distinct from an
@@ -239,59 +407,14 @@ class EngineChannel(
         sink?.success(mapOf(
             "type" to "tunnel_dropped",
             "siteId" to siteId,
-            "host" to (runCatching { java.net.URI(session.config.url).host }.getOrNull() ?: session.config.url),
+            "host" to hostOf(session.config),
             "droppedAtMs" to System.currentTimeMillis(),
         ))
     }
 
-    /** Called by [ContainerViewFactory]'s `onAsk` callback when a hardware
-     * permission the site's stored config does not already grant is
-     * requested live. */
-    fun onPermissionAskPublic(siteId: String, host: String, kind: String, requestId: String) {
-        sessions[siteId]?.counters?.permissionAsks?.incrementAndGet()
-        sink?.success(mapOf(
-            "type" to "permission_request",
-            "siteId" to siteId, "host" to host, "kind" to kind, "requestId" to requestId,
-        ))
-    }
-
-    /** Called by [ContainerView]'s `DownloadListener`. */
-    fun onDownload(siteId: String, requestId: String, url: String, mimeType: String, fileName: String, sizeBytes: Long?, kindLabel: String) {
-        val session = sessions[siteId] ?: return
-        session.pendingDownloads[requestId] = PendingDownload(url, mimeType, fileName, sizeBytes, kindLabel)
-        val host = runCatching { java.net.URI(session.config.url).host }.getOrNull()
-            ?: session.config.url
-        sink?.success(mapOf(
-            "type" to "download",
-            "siteId" to siteId, "fileName" to fileName, "sizeBytes" to sizeBytes,
-            "sourceHost" to host, "kindLabel" to kindLabel, "requestId" to requestId,
-        ))
-    }
-
-    /**
-     * Called by [ContainerView] on every page change. [session] is the one the
-     * view was made for: only the site's current session reaches Dart, since
-     * a reopened site's older view still reports. Kept per session for
-     * `navigationState`.
-     */
-    fun onNavigation(session: Session, snapshot: NavigationSnapshot) {
-        session.navigation = snapshot
-        val siteId = session.config.siteId
-        if (sessions[siteId] !== session) return
-        sink?.success(snapshot.toEvent(siteId, siteId))
-    }
-
-    /** Called by [ContainerView] once a find has finished counting. */
-    fun onFindResult(session: Session, activeMatch: Int, matchCount: Int) {
-        val siteId = session.config.siteId
-        if (sessions[siteId] !== session) return
-        sink?.success(findResultEvent(siteId, siteId, activeMatch, matchCount))
-    }
-
-    /** The open view for the call's `siteId`. Every in-page control is a
-     *  silent no-op on a closed or unknown session, like `reload`. */
-    private fun viewFor(call: MethodCall): ContainerView? =
-        sessions[call.argument<String>("siteId")]?.view
+    /** The page the call's `pageId` names. Every in-page control is a silent
+     *  no-op on a closed or unknown page, like `reload`. */
+    private fun pageFor(call: MethodCall): Page? = call.argument<String>("pageId")?.let(::page)
 
     // --- Method channel ----------------------------------------------------
 
@@ -301,50 +424,58 @@ class EngineChannel(
                 "isolationAvailable" -> result.success(profiles.isAvailable())
                 "open" -> open(call, result)
                 "close" -> {
-                    close(call.argument<String>("siteId")!!)
+                    close(call.argument<String>("siteId")!!, wipe = call.argument<Boolean>("wipe"))
+                    result.success(null)
+                }
+                "closePage" -> {
+                    closePage(call.argument<String>("pageId")!!)
+                    result.success(null)
+                }
+                "closeAll" -> {
+                    closeAll()
                     result.success(null)
                 }
                 "reload" -> {
-                    sessions[call.argument<String>("siteId")]?.view?.reload()
+                    pageFor(call)?.reload()
                     result.success(null)
                 }
                 "goBack" -> {
-                    viewFor(call)?.goBack()
+                    pageFor(call)?.goBack()
                     result.success(null)
                 }
                 "goForward" -> {
-                    viewFor(call)?.goForward()
+                    pageFor(call)?.goForward()
                     result.success(null)
                 }
                 "stop" -> {
-                    viewFor(call)?.stop()
+                    pageFor(call)?.stop()
                     result.success(null)
                 }
                 "loadUrl" -> {
-                    // ContainerView.load refuses every scheme but http(s).
-                    viewFor(call)?.load(call.argument<String>("url")!!)
+                    // Page.load refuses every scheme but http(s).
+                    pageFor(call)?.load(call.argument<String>("url")!!)
                     result.success(null)
                 }
                 "find" -> {
-                    viewFor(call)?.find(call.argument<String>("query")!!)
+                    pageFor(call)?.find(call.argument<String>("query")!!)
                     result.success(null)
                 }
                 "findNext" -> {
-                    viewFor(call)?.findNext(call.argument<Boolean>("forward") ?: true)
+                    pageFor(call)?.findNext(call.argument<Boolean>("forward") ?: true)
                     result.success(null)
                 }
                 "clearFind" -> {
-                    viewFor(call)?.clearFind()
+                    pageFor(call)?.clearFind()
                     result.success(null)
                 }
                 "navigationState" -> {
-                    val siteId = call.argument<String>("siteId")!!
-                    result.success(sessions[siteId]?.navigation?.toEvent(siteId, siteId))
+                    val page = pageFor(call)
+                    val session = page?.let(::sessionOf)
+                    result.success(if (page == null || session == null) null
+                        else page.snapshot?.toEvent(session.config.siteId, page.id))
                 }
                 "wipe" -> {
-                    val profileId = call.argument<String>("profileId")!!
-                    deleteDownloadsDir(context, profileId)
-                    profiles.wipe(profileId)
+                    wipeProfile(call.argument<String>("profileId")!!)
                     result.success(null)
                 }
                 "wipeAll" -> {
@@ -364,7 +495,7 @@ class EngineChannel(
                     resolveDownload(call.argument<String>("requestId")!!, call.argument<String>("decision")!!)
                     result.success(null)
                 }
-                "extractArticle" -> extractArticle(call.argument<String>("siteId")!!, result)
+                "extractArticle" -> extractArticle(pageFor(call), result)
                 else -> result.notImplemented()
             }
         } catch (e: Exception) {
@@ -418,11 +549,21 @@ class EngineChannel(
         }
     }
 
-    /** [route] is null only when isolation itself is unavailable. */
+    /**
+     * [route] is null only when isolation itself is unavailable. A route that
+     * binds also gets the container's first page, loading
+     * [firstLoadUrl]; the returned map lists it, and that page id is the only
+     * thing a view for this open may bind to.
+     *
+     * A site that still has a session (`8b`'s reopen, a route change) has that
+     * session's pages torn down first, without a wipe (Plan 15 deviation 4):
+     * pages no longer die with their view, so nothing else would end them.
+     */
     private fun register(config: SiteConfig, route: Route?, initialUrl: String?): Map<String, Any?> {
         val session = Session(config, initialUrl)
         session.onTunnelDropped = { failure -> onTunnelDropped(config.siteId, failure) }
-        val previousProfileId = sessions[config.siteId]?.config?.profileId
+        val previous = sessions.remove(config.siteId)
+        previous?.let { closePages(it, wipe = false) }
         sessions[config.siteId] = session
 
         val binding = when (route) {
@@ -451,7 +592,21 @@ class EngineChannel(
                 }
             }
         }
-        credentials.openSession(previousProfileId, config.profileId, binding)
+        credentials.openSession(previous?.config?.profileId, config.profileId, binding)
+
+        if (binding != null) {
+            try {
+                newPage(session, openerId = null, firstUrl = firstLoadUrl(config.url, initialUrl))
+            } catch (e: Exception) {
+                // No session without its page: the open reaches Dart as an
+                // error, and nothing stays bound or registered for it.
+                sessions.remove(config.siteId)
+                credentials.unbind(config.profileId)
+                closePages(session, wipe = false)
+                emitSessions()
+                throw e
+            }
+        }
 
         emitSessions()
         return session.toMap()
@@ -460,33 +615,19 @@ class EngineChannel(
     private fun resolvePermission(requestId: String, decisionName: String) {
         for (session in sessions.values) {
             val pending = session.pendingPermissions.remove(requestId) ?: continue
+            session.pageOf.remove(requestId)
+            if (decisionName == "keepBlocked") {
+                answerKeepBlocked(pending)
+                return
+            }
             when (pending) {
-                is PendingPermission.Hardware -> when (decisionName) {
-                    "keepBlocked" -> {
-                        // Only the resources this ask was actually about are
-                        // refused — a resource already pre-authorized by the
-                        // stored config (`granted`) is honored regardless of
-                        // this decision, per "a stored allow* flag pre-grants
-                        // silently."
-                        if (pending.granted.isNotEmpty()) {
-                            pending.request.grant(pending.granted.toTypedArray())
-                        } else {
-                            pending.request.deny()
-                        }
-                    }
-                    else -> {
-                        if (decisionName == "allowWhileOpen") {
-                            session.sessionGrants.addAll(pending.toAsk)
-                        }
-                        pending.request.grant((pending.granted + pending.toAsk).toTypedArray())
-                    }
+                is PendingPermission.Hardware -> {
+                    if (decisionName == "allowWhileOpen") session.sessionGrants.addAll(pending.toAsk)
+                    pending.request.grant((pending.granted + pending.toAsk).toTypedArray())
                 }
-                is PendingPermission.Geolocation -> when (decisionName) {
-                    "keepBlocked" -> pending.callback.invoke(pending.origin, false, false)
-                    else -> {
-                        if (decisionName == "allowWhileOpen") session.sessionGrants.add("geolocation")
-                        pending.callback.invoke(pending.origin, true, false)
-                    }
+                is PendingPermission.Geolocation -> {
+                    if (decisionName == "allowWhileOpen") session.sessionGrants.add("geolocation")
+                    pending.callback.invoke(pending.origin, true, false)
                 }
             }
             return
@@ -498,6 +639,7 @@ class EngineChannel(
     private fun resolveDownload(requestId: String, decisionName: String) {
         for (session in sessions.values) {
             val pending = session.pendingDownloads.remove(requestId) ?: continue
+            session.pageOf.remove(requestId)
             if (decisionName == "discard") return
             // Built here, on the platform thread, because it reads the site's
             // profile through androidx.webkit's UI-thread-only ProfileStore.
@@ -524,36 +666,135 @@ class EngineChannel(
         sink?.success(mapOf("type" to "download_result", "requestId" to requestId, "outcome" to name, "reason" to reason))
     }
 
-    private fun extractArticle(siteId: String, result: MethodChannel.Result) {
-        val view = sessions[siteId]?.view
-        if (view == null) {
+    private fun extractArticle(page: Page?, result: MethodChannel.Result) {
+        if (page == null) {
             result.success(null)
             return
         }
-        view.extractArticle { article -> result.success(article) }
+        page.extractArticle { article -> result.success(article) }
     }
 
-    private fun close(siteId: String) {
+    // --- Closing -------------------------------------------------------------
+
+    /** Every pending ask and held download of [pageId] — of every page when
+     *  null — answered, never left hanging (tabs spec §5.6): an ask is denied
+     *  as "keep blocked", a held download discarded. */
+    private fun answerPendingOf(session: Session, pageId: String?) {
+        val requestIds = session.pageOf.filterValues { pageId == null || it == pageId }.keys.toList()
+        for (requestId in requestIds) {
+            session.pageOf.remove(requestId)
+            session.pendingPermissions.remove(requestId)?.let(::answerKeepBlocked)
+            session.pendingDownloads.remove(requestId)
+        }
+    }
+
+    /** A profile whose pages are still tearing down, and what waits for them. */
+    private class Draining {
+        /** [closePages] calls on this profile not yet finished. */
+        var closes = 0
+        val then = mutableListOf<() -> Unit>()
+    }
+
+    /** By profile id. Main thread only. */
+    private val tearingDown = HashMap<String, Draining>()
+
+    /**
+     * Tears down every page of [session], each through its own Teardown, and
+     * — when [wipe] — wipes the profile once, after the last page on that
+     * profile is destroyed (tabs spec §5.8a): a profile with a live WebView
+     * on it cannot be deleted, only cleared in place. "Last" counts every
+     * close still draining on the profile, not only this one: a reopened
+     * site's previous pages may still be tearing down on it.
+     */
+    private fun closePages(session: Session, wipe: Boolean) {
+        answerPendingOf(session, null)
+        val pages = session.pages.values.toList()
+        session.pages.clear()
+        val profileId = session.config.profileId
+        val draining = tearingDown.getOrPut(profileId) { Draining() }
+        draining.closes++
+        if (wipe) {
+            draining.then += {
+                // Off the throwaway journal only once the wipe has run: a
+                // wipe that throws leaves it for the next start's sweep.
+                wipeThenForget(profileId, throwaways) {
+                    deleteDownloadsDir(context, profileId)
+                    profiles.wipe(profileId)
+                }
+            }
+        }
+        val countdown = CloseCountdown(pages.map(Page::id)) { closeDrained(profileId, draining) }
+        for (page in pages) page.close(clearCache = wipe) { countdown.destroyed(page.id) }
+    }
+
+    private fun closeDrained(profileId: String, draining: Draining) {
+        draining.closes--
+        if (draining.closes > 0) return
+        if (tearingDown[profileId] === draining) tearingDown.remove(profileId)
+        for (next in draining.then) {
+            // One failing wipe must not stop the others, nor reach WebView's
+            // callback that destroyed the page.
+            runCatching(next)
+        }
+    }
+
+    /**
+     * The `wipe` method (tabs spec §5.8a): never while a page of [profileId]
+     * is alive. A live session on it is closed with a wipe; pages still
+     * tearing down make it wait for them; otherwise it runs now.
+     */
+    private fun wipeProfile(profileId: String) {
+        val live = sessions.values.firstOrNull { it.config.profileId == profileId }
+        if (live != null) return close(live.config.siteId, wipe = true)
+        val wipe = {
+            deleteDownloadsDir(context, profileId)
+            profiles.wipe(profileId)
+        }
+        val draining = tearingDown[profileId]
+        if (draining != null) draining.then += wipe else wipe()
+    }
+
+    /**
+     * Closes a container: every page torn down, then — when it is to be
+     * wiped — its profile wiped once (see [closePages]). [wipe] overrides the
+     * session's own wipe-on-exit for this close only (tabs spec §5.7).
+     */
+    private fun close(siteId: String, wipe: Boolean? = null) {
         pendingOpens.cancel(siteId)
         val session = sessions.remove(siteId) ?: return
         // Chromium keeps sending this profile's credential; the proxy now
         // answers 403, and closes every tunnel it opened on this session's
         // route, which Chromium would otherwise reuse on the next open.
         credentials.unbind(session.config.profileId)
-        // Flutter disposes the platform view when its AndroidView leaves the
-        // tree, but `close` can also arrive from `2c` while the view is
-        // detached — ContainerView.dispose is idempotent for that reason.
-        session.view?.dispose()
+        // The session's flag, not the config's: `keep` turns it off for a
+        // throwaway saved as a site while its page is still open.
+        closePages(session, wipe ?: session.wipeOnExit)
         emitSessions()
+    }
+
+    /** One page. A container's last page closes the container. */
+    private fun closePage(pageId: String) {
+        val session = sessions.values.firstOrNull { it.pages.containsKey(pageId) } ?: return
+        if (session.pages.size <= 1) return close(session.config.siteId)
+        answerPendingOf(session, pageId)
+        session.pages.remove(pageId)?.close(clearCache = false) {}
+        emitSessions()
+    }
+
+    /** Tabs spec §5.8: every lock, and panic's first step. */
+    private fun closeAll() {
+        pendingOpens.cancelAll()
+        for (siteId in sessions.keys.toList()) close(siteId)
     }
 
     /**
      * Panic's first step. `deleteProfile` throws while a profile is attached to
-     * a live WebView, so every session closes before the store is emptied.
+     * a live WebView, so every session closes before the store is emptied;
+     * panic does not wait for the pages' Teardown, and
+     * [ProfileManager.wipeAll] journals whatever is still in use.
      */
     private fun wipeAll() {
-        pendingOpens.cancelAll()
-        for (siteId in sessions.keys.toList()) close(siteId)
+        closeAll()
         java.io.File(context.filesDir, "downloads").deleteRecursively()
         profiles.wipeAll()
         // Every profile is gone, throwaways included: nothing left to sweep.

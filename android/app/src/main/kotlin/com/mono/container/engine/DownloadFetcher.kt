@@ -201,7 +201,7 @@ class DownloadFetcher(
      *
      * The cookies come from **this site's** profile, not from
      * `CookieManager.getInstance()`, which is the default profile's jar and
-     * holds nothing this site ever set — `ContainerView` puts every site on
+     * holds nothing this site ever set — every [Page] puts its site on
      * its own profile via `WebViewCompat.setProfile`. Reading the global jar
      * is both wrong (the session cookie is not in it) and the exact
      * degrade-to-default that [ProfileManager.profileFor] exists to refuse, so
