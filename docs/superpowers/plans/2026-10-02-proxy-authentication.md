@@ -1900,9 +1900,27 @@ git commit -m "docs: proxy authentication run sheet and plan record"
 
 ---
 
+## Device checks
+
+Run 2026-10-02 by session flutter-app-21 on the `Pixel_9` emulator (API 36, not a physical phone), with a debug build of `efd69c4` (the branch tip, so without `main`'s `0069a7b`, `e6ccd7a` and `bf32358`; none touches the proxy path) installed fresh, and `tool/device-check/proxy.py` on the host. The run sheet in `tool/device-check/README.md`, each check:
+
+1. **Seen.** SOCKS5 `https://example.com` via `10.0.2.2:1080` with `alice`/`s3cret`: `login accepted for user 'alice'`, then `SOCKS5 NAME example.com:443`, and the page rendered. The regression half, with `proxy.py` taking no login and none typed: `SOCKS5 NAME example.com:443` and the page rendered.
+2. **Seen.** Password `wrong`: `login rejected for user 'alice'`, no `NAME` line after it, and `8b` read "The proxy rejected the login". The first try showed `8c` instead, and that is correct: the reopened site's page came from WebView's HTTP cache with no request at all, so the session was already live when ⟳ reached the proxy. A close and wipe (a fresh profile, so an empty cache) then gave `8b`.
+3. **Seen.** No login typed: `rejected: no login offered`, and `8b`.
+4. **Seen** over HTTP CONNECT via `10.0.2.2:8888`: `CONNECT example.com:443 login accepted for user 'alice'` and the page; `login rejected for user 'alice'` and `8b`; `login missing for user None` and `8b`.
+5. **Seen** with `--any-login`: two SOCKS5 sites logged `ab7bc607…` and `5985688b…`. After "Wipe this site's data" on the first, it logged `6fff2c18…`, and the second, reloaded, still `5985688b…`. An HTTP site logged `CONNECT example.com:443 login accepted for user 'b80ee44a…'`. All 32 hex digits.
+6. **Seen.** `example.org` typed in a logged-in SOCKS5 site's pill opened `THROWAWAY · SOCKS5`, which logged `login accepted for user 'alice'` and `SOCKS5 NAME example.org:443`.
+7. **Seen.** With the site live, `proxy.py` restarted with `--password other` and ⟳: `login rejected for user 'alice'`, and `8c` "Tunnel dropped".
+
+Found along the way, none from this plan:
+
+- **`8b`'s three buttons do nothing.** "Try again", "Change proxy settings" and "Open without the tunnel" each call `Navigator.pop(context)` with the `ContainerRoute`'s context, captured before `_handleRefusal`'s `pushReplacement` replaced that route (`container_route.dart`, `_handleRefusal`). Taps changed nothing and logged nothing. System back works.
+- **A refused site stays under OPEN NOW** and in `N SESSIONS`, and `2c`'s "Close all and wipe" leaves it there. Reopening it opens a fresh session normally.
+- **`8b` always reads "Last worked · never on this device"**: `_handleRefusal` passes the literal, even for a site that loaded minutes before.
+
 ## Known gaps
 
-- **Not device-verified** until the run sheet is run; the SOCKS client in particular now replaces the platform's for every SOCKS site, so check 1 is also a regression check for every existing SOCKS5 site.
+- **Device-verified on an emulator only** (see Device checks), not a physical phone, and never against a real-world proxy or Tor: every check talked to `tool/device-check/proxy.py`.
 - **`ProxyProbe` checks no login** (ruling 11): a site with a wrong password reads as reachable until its first request.
 - **A rejected login on a main-frame TLS path is not a route refusal:** `Session.onTunnelDropped` (the interceptor's TLS report) still only reaches live sessions. Ruling 6 is applied to the loopback proxy's reports, which are the only route refusals.
 - **The derived login is not shown anywhere.** A user who wants to see which Tor circuit a site uses has no UI for it; the spec draws none.
