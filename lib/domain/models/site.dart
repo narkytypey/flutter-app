@@ -1,3 +1,5 @@
+import 'security_level.dart';
+
 /// Whether a site's cookies survive closing it.
 enum CookiePolicy { keep, wipeOnExit }
 
@@ -41,6 +43,7 @@ class Site {
     this.showInDecoy = false,
     this.lastVisitedAt,
     this.sortIndex = 0,
+    this.securityLevel,
   });
 
   final String id;
@@ -88,6 +91,11 @@ class Site {
   final DateTime? lastVisitedAt;
   final int sortIndex;
 
+  /// This site's own level, or null to follow the vault default
+  /// (privacy-controls spec §2.1). A setting, not data: no wipe and no New
+  /// identity changes it, and decoy re-sync copies it.
+  final SecurityLevel? securityLevel;
+
   /// The bare host shown in the dashboard's meta line — `forum.example.com`
   /// from `https://forum.example.com/threads`.
   String get host => Uri.tryParse(url)?.host ?? url;
@@ -121,6 +129,7 @@ class Site {
     bool? showInDecoy,
     DateTime? lastVisitedAt,
     int? sortIndex,
+    SecurityLevel? securityLevel,
   }) {
     return Site(
       id: id,
@@ -153,6 +162,7 @@ class Site {
       showInDecoy: showInDecoy ?? this.showInDecoy,
       lastVisitedAt: lastVisitedAt ?? this.lastVisitedAt,
       sortIndex: sortIndex ?? this.sortIndex,
+      securityLevel: securityLevel ?? this.securityLevel,
     );
   }
 
@@ -184,6 +194,43 @@ class Site {
         showInDecoy: showInDecoy,
         lastVisitedAt: lastVisitedAt,
         sortIndex: sortIndex,
+        securityLevel: securityLevel,
+      );
+
+  /// This site with [level] as its own level; null clears it, so the site
+  /// follows the vault default again. `copyWith` cannot set null.
+  Site withSecurityLevel(SecurityLevel? level) => Site(
+        id: id,
+        workspaceId: workspaceId,
+        name: name,
+        monogram: monogram,
+        url: url,
+        profileId: profileId,
+        blockWebRtc: blockWebRtc,
+        blockTrackers: blockTrackers,
+        antiFingerprinting: antiFingerprinting,
+        allowCamera: allowCamera,
+        allowMicrophone: allowMicrophone,
+        allowLocation: allowLocation,
+        allowClipboard: allowClipboard,
+        userAgentMode: userAgentMode,
+        forceDark: forceDark,
+        openInReader: openInReader,
+        pageZoom: pageZoom,
+        customCss: customCss,
+        customJs: customJs,
+        cookiePolicy: cookiePolicy,
+        proxyMode: proxyMode,
+        proxyHost: proxyHost,
+        proxyPort: proxyPort,
+        proxyUser: proxyUser,
+        proxyPassword: proxyPassword,
+        proxyLoginPerSite: proxyLoginPerSite,
+        requirePin: requirePin,
+        showInDecoy: showInDecoy,
+        lastVisitedAt: lastVisitedAt,
+        sortIndex: sortIndex,
+        securityLevel: level,
       );
 
   /// Identity-only equality: two [Site]s are equal iff their ids are equal.
