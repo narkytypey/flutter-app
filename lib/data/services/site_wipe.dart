@@ -10,8 +10,13 @@ import 'container_engine.dart';
 /// wipe this session", `2c`'s "Close all and wipe" and `8c`'s "Close and
 /// wipe" — so they cannot drift apart.
 ///
-/// Closed first, since a profile in use cannot be deleted. The fresh id is
-/// what makes the wipe whole: a profile this run has loaded can only have its
+/// Closed first with `wipe: true` (tabs spec §5.8a): a profile in use cannot
+/// be deleted, so the native close tears down every page of the container
+/// and only then wipes its profile. The separate `wipe(profileId)` after it
+/// covers a site with no open session, and natively it waits for any of the
+/// profile's pages still tearing down.
+///
+/// The fresh id is what makes the wipe whole: a profile this run has loaded can only have its
 /// cookies, web storage and permissions cleared in place, and the rest waits
 /// in the pending-deletion journal for the next start. Opening the site again
 /// under the same id would take it off that journal (`ProfileManager
@@ -27,13 +32,13 @@ import 'container_engine.dart';
 /// calling the engine directly.
 ///
 /// Not used for a wipe-on-exit site's automatic wipe, which runs natively
-/// whenever its view closes — see Plan 6's Known gaps.
+/// whenever its container closes — see Plan 6's Known gaps.
 Future<Site> wipeSavedSite({
   required ContainerEngine engine,
   required SiteRepository sites,
   required Site site,
 }) async {
-  await engine.close(site.id);
+  await engine.close(site.id, wipe: true);
   await engine.wipe(site.profileId);
   final fresh = site.copyWith(profileId: newProfileId());
   await sites.upsert(fresh);
@@ -51,7 +56,7 @@ Future<void> removeSavedSite({
   required SiteRepository sites,
   required Site site,
 }) async {
-  await engine.close(site.id);
+  await engine.close(site.id, wipe: true);
   await engine.wipe(site.profileId);
   await sites.delete(site.id);
 }

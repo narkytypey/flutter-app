@@ -66,10 +66,13 @@ class WorkspaceActions {
   /// Every site's container is closed and its profile wiped before the rows
   /// go: the database cascade removes the sites, but their WebView profiles
   /// — logins and stored data, which `10c` promises are destroyed — live on
-  /// disk outside it. Closed first, since a profile in use cannot be deleted.
+  /// disk outside it. Closed first, with `wipe: true`, since a profile in use
+  /// cannot be deleted: the native close wipes after the container's last
+  /// page is gone, and `wipe(profileId)` covers a site with no open session
+  /// (tabs spec §5.8a).
   Future<void> delete(Workspace workspace) async {
     for (final site in await sites.inWorkspace(workspace.id)) {
-      await engine.close(site.id);
+      await engine.close(site.id, wipe: true);
       await engine.wipe(site.profileId);
     }
     await workspaces.delete(workspace.id);

@@ -9,7 +9,7 @@ import org.junit.rules.TemporaryFolder
 
 /**
  * A throwaway's profile is on disk while its page is open (browser-chrome
- * spec §5.4). If the app dies before `ContainerView.dispose`, nothing else
+ * spec §5.4). If the app dies before its container closes (`Page.close`), nothing else
  * would ever wipe it, so it is listed from before it exists until it is
  * wiped or kept, and every start wipes whatever is still listed.
  */

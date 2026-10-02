@@ -164,6 +164,6 @@ class _WipeAllThrows extends FakeContainerEngine {
 
 class _CloseThrows extends FakeContainerEngine {
   @override
-  Future<void> close(String siteId) async =>
+  Future<void> close(String siteId, {bool? wipe}) async =>
       throw PlatformException(code: 'engine', message: 'close failed');
 }

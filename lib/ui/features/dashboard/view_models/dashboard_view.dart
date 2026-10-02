@@ -50,10 +50,14 @@ class DashboardView {
   /// Which sites are live is runtime state, not stored state: sessions do not
   /// survive the app closing, so [openSiteIds] comes from a provider rather
   /// than from the database.
+  ///
+  /// [throwawaysOpen] counts toward `N SESSIONS` but is never listed: OPEN
+  /// NOW shows saved sites only (tabs spec §5.4).
   static DashboardView from({
     required Workspace workspace,
     required List<Site> sites,
     required Set<String> openSiteIds,
+    int throwawaysOpen = 0,
     required DateTime now,
   }) {
     SessionEntry entry(Site s, bool live) => SessionEntry(
@@ -75,7 +79,7 @@ class DashboardView {
     return DashboardView(
       workspaceName: workspace.name,
       wipesOnExit: workspace.storageRule == StorageRule.wipeOnExit,
-      sessionCount: open.length,
+      sessionCount: open.length + throwawaysOpen,
       open: open,
       idle: idle,
     );

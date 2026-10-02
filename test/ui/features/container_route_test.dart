@@ -15,6 +15,7 @@ import 'package:container/domain/models/find_result.dart';
 import 'package:container/domain/models/held_download.dart';
 import 'package:container/domain/models/monogram_suggestion.dart';
 import 'package:container/domain/models/navigation_state.dart';
+import 'package:container/domain/models/permissions.dart';
 import 'package:container/domain/models/reader_article.dart';
 import 'package:container/domain/models/route_decision.dart';
 import 'package:container/domain/models/search_engine.dart';
@@ -25,8 +26,8 @@ import 'package:container/domain/repositories/repositories.dart';
 import 'package:container/ui/core/widgets/app_toggle.dart';
 import 'package:container/ui/core/widgets/icon_tap.dart';
 import 'package:container/ui/features/add_site/views/add_site_screen.dart';
+import 'package:container/ui/features/container/view_models/open_containers.dart';
 import 'package:container/ui/features/container/view_models/providers.dart';
-import 'package:container/ui/features/container/view_models/throwaway_sites.dart';
 import 'package:container/ui/features/container/views/address_suggestions.dart';
 import 'package:container/ui/features/container/views/container_route.dart';
 import 'package:container/ui/features/container/views/container_web_view.dart';
@@ -37,6 +38,8 @@ import 'package:container/ui/features/dashboard/view_models/blocked_tally_contro
     show siteLookupProvider;
 import 'package:container/ui/features/dashboard/view_models/providers.dart'
     show databaseProvider, openSiteIdsProvider, siteRepositoryProvider, workspacesProvider;
+import 'package:container/ui/features/container/views/opening_screen.dart';
+import 'package:container/ui/features/in_page/views/permission_request_sheet.dart';
 import 'package:container/ui/features/in_page/views/proxy_unreachable_screen.dart';
 import 'package:container/ui/features/in_page/views/reader_screen.dart';
 import 'package:container/ui/features/report/views/today_route.dart';
@@ -46,9 +49,9 @@ import 'package:container/ui/features/settings/view_models/providers.dart'
     show searchEngineProvider;
 import 'package:container/ui/features/settings/views/settings_route.dart';
 import 'package:container/ui/features/shell/view_models/session_controller.dart'
-    show biometricServiceProvider;
+    show Session, SessionController, SessionUnconfigured, biometricServiceProvider, sessionProvider;
 import 'package:container/ui/features/workspaces/views/workspaces_route.dart';
-import 'package:flutter/material.dart';
+import 'package:flutter/material.dart' hide PageView;
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -70,11 +73,13 @@ Site _throwaway() => Site(
     );
 
 /// Holds an [open] back until the test releases it — the real engine's open
-/// returns only after a worker thread has decided the route.
+/// returns only after a worker thread has decided the route — and counts
+/// every open.
 class _GatedEngine extends FakeContainerEngine {
   _GatedEngine({super.opensLive});
 
   Completer<void>? _gate;
+  int opens = 0;
 
   Completer<void> holdNextOpen() => _gate = Completer<void>();
 
@@ -85,6 +90,7 @@ class _GatedEngine extends FakeContainerEngine {
     bool throwaway = false,
     String? initialUrl,
   }) async {
+    opens++;
     final gate = _gate;
     _gate = null;
     if (gate != null) await gate.future;
@@ -146,20 +152,23 @@ class _LoggingEngine extends FakeContainerEngine {
   }
 }
 
-/// The real registry empties itself on leaving `SessionOpen`, which needs a
-/// session this file does not build.
-class _Throwaways extends ThrowawaySites {
-  _Throwaways(this.initial);
-
-  final List<Site> initial;
-
+/// The registry watches the session only to empty itself on leaving
+/// `SessionOpen`, which these tests never do; the real controller needs a
+/// vault store.
+class _Session extends SessionController {
   @override
-  List<Site> build() => initial;
+  Session build() => const SessionUnconfigured();
 }
 
-List<Site> _registry(WidgetTester tester) =>
+OpenContainersState _tabs(WidgetTester tester) =>
     ProviderScope.containerOf(tester.element(find.byType(MaterialApp)))
-        .read(throwawaySitesProvider);
+        .read(openContainersProvider);
+
+/// The page id the host shows.
+String? _shownPage(WidgetTester tester) {
+  final views = find.byType(PageView);
+  return views.evaluate().isEmpty ? null : tester.widget<PageView>(views).pageId;
+}
 
 Finder _icon(String label) =>
     find.byWidgetPredicate((w) => w is IconTap && w.label == label);
@@ -213,9 +222,26 @@ Future<void> _typeAddress(WidgetTester tester, String text,
 const _workspace = Workspace(
     id: 'w', name: 'Personal', markerIndex: 0, storageRule: StorageRule.keep);
 
-/// Stands in for the dashboard when [_pump] is given `overHome: true`.
+/// The stand-in dashboard: the open vault navigator's first route.
 const _homeMarker = 'Home route';
+const _openLabel = 'Open site';
 
+class _Dashboard extends ConsumerWidget {
+  const _Dashboard(this.open);
+
+  final void Function(BuildContext context, WidgetRef ref) open;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) => Scaffold(
+        body: Column(children: [
+          const Text(_homeMarker),
+          TextButton(onPressed: () => open(context, ref), child: const Text(_openLabel)),
+        ]),
+      );
+}
+
+/// Shows [site] the way the dashboard does: its button calls [showContainer]
+/// on the open vault's navigator, whose first route is the stand-in.
 Future<void> _pump(
   WidgetTester tester,
   FakeContainerEngine engine,
@@ -223,10 +249,8 @@ Future<void> _pump(
   SiteRepository? sites,
   bool realExtras = false,
   List<Override> overrides = const [],
-  bool overHome = false,
   bool throwaway = false,
   String? initialUrl,
-  List<Site> throwaways = const [],
   Size size = const Size(800, 1600),
   List<Site> saved = const [],
   SearchEngine searchEngine = SearchEngine.duckDuckGo,
@@ -239,8 +263,6 @@ Future<void> _pump(
   addTearDown(tester.view.reset);
   tester.view.physicalSize = size;
   tester.view.devicePixelRatio = 1;
-  final navigator = GlobalKey<NavigatorState>();
-  Widget route() => ContainerRoute(site: site, initialUrl: initialUrl, throwaway: throwaway);
   // The vault holds what the address bar suggests from, unless a test says
   // otherwise.
   final repository = sites ?? _RecordingSiteRepository();
@@ -250,7 +272,8 @@ Future<void> _pump(
       containerEngineProvider.overrideWithValue(engine),
       siteRepositoryProvider.overrideWithValue(repository),
       workspacesProvider.overrideWith((ref) async => const [_workspace]),
-      throwawaySitesProvider.overrideWith(() => _Throwaways(throwaways)),
+      sessionProvider.overrideWith(_Session.new),
+      tabsClockProvider.overrideWithValue(() => DateTime(2026, 10, 2, 12)),
       // Today's tally, which the ☰ menu shows, looks each session's site up
       // in the vault. These tests have no vault.
       siteLookupProvider.overrideWithValue((_) async => null),
@@ -265,15 +288,12 @@ Future<void> _pump(
       ...overrides,
     ],
     child: MaterialApp(
-      navigatorKey: navigator,
-      home: overHome ? const Scaffold(body: Text(_homeMarker)) : route(),
+      home: _Dashboard((context, ref) => showContainer(context, ref, site,
+          initialUrl: initialUrl, throwaway: throwaway)),
     ),
   ));
-  // Pushed the way the dashboard pushes it, so a test can see whether leaving
-  // the container lands back on what was underneath.
-  if (overHome) {
-    navigator.currentState!.push(MaterialPageRoute<void>(builder: (_) => route()));
-  }
+  await tester.tap(find.text(_openLabel));
+  await tester.pump();
 }
 
 void main() {
@@ -304,7 +324,7 @@ void main() {
 
     // This test's `_open` awaits a real database round trip before the
     // session goes live, so the loop below drives it via `runAsync`. That
-    // moves ContainerWebView's `PlatformViewLink.create()` call onto a real
+    // moves PageView's `PlatformViewLink.create()` call onto a real
     // async gap too, where its normally-forever-pending platform channel
     // call actually settles — with no handler registered, as
     // MissingPluginException, unhandled, and fatal to the test. No other
@@ -377,7 +397,7 @@ void main() {
     Future<int> readsAfter(WidgetTester tester, Future<void> Function() act) async {
       var reads = 0;
       await _pump(tester, FakeContainerEngine(), _site(),
-          sites: _RecordingSiteRepository(), saved: [_site(), _market], overHome: true,
+          sites: _RecordingSiteRepository(), saved: [_site(), _market],
           onSavedRead: () => reads++);
       await tester.pumpAndSettle();
       final container = ProviderScope.containerOf(tester.element(find.byType(MaterialApp)));
@@ -448,29 +468,36 @@ void main() {
     expect(engine.wiped, contains('a' * 32));
   });
 
-  // The switcher is a modal sheet on top of this route. Popping "the top
-  // route" once closes only the sheet and leaves the user on this site's
-  // opening checklist, its session already gone.
-  testWidgets('close all and wipe from the switcher returns to the route underneath', (tester) async {
+  // Tabs spec §5.1: every open container is closed and wiped, a saved site
+  // under a fresh profile, and you land on the dashboard.
+  testWidgets('close all and wipe from the switcher closes and wipes every container, then the dashboard',
+      (tester) async {
     final engine = FakeContainerEngine();
-    await _pump(tester, engine, _site(), sites: _RecordingSiteRepository(), overHome: true);
+    final sites = _RecordingSiteRepository();
+    await _pump(tester, engine, _site(), sites: sites, saved: [_site(), _market]);
+    await tester.pumpAndSettle();
+    await _typeAddress(tester, 'market.example.com/deals');
+    await tester.testTextInput.receiveAction(TextInputAction.go);
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('1 OPEN'));
+    await tester.tap(find.text('2 OPEN'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Close all and wipe'));
     await tester.pumpAndSettle();
 
-    expect(engine.closed, contains('s1'));
-    expect(engine.wiped, contains('a' * 32));
+    expect(engine.closed, containsAll(['s1', 'm1']));
+    expect(engine.wiped, containsAll(['a' * 32, _market.profileId]));
+    expect(sites.upserts.map((s) => s.id), containsAll(['s1', 'm1']));
+    expect(_tabs(tester).containers, isEmpty);
     expect(find.byType(SwitcherSheet), findsNothing);
     expect(find.byType(ContainerRoute), findsNothing);
     expect(find.text(_homeMarker), findsOneWidget);
   });
 
-  testWidgets("closing this site's own session from the switcher returns to the route underneath", (tester) async {
+  // Tabs spec §5.1: closing the viewed container lands on the dashboard.
+  testWidgets("closing this site's own session from the switcher lands on the dashboard", (tester) async {
     final engine = FakeContainerEngine();
-    await _pump(tester, engine, _site(), overHome: true);
+    await _pump(tester, engine, _site());
     await tester.pumpAndSettle();
 
     await tester.tap(find.text('1 OPEN'));
@@ -487,21 +514,21 @@ void main() {
   });
 
   // The dashboard's OPEN NOW rows and session count, search's live rail and
-  // `9c`'s closed-session count all read openSiteIdsProvider. A session
-  // closed here but left in it went on reading as open. Seen on the emulator.
+  // `9b`'s session count all read openSiteIdsProvider. A session closed here
+  // but left in it went on reading as open. Seen on the emulator. It is the
+  // registry's now (tabs spec §5.4), so a closed container leaves it.
   Future<Set<String>> openIdsAfterClosing(
       WidgetTester tester, Future<void> Function() close) async {
     final engine = FakeContainerEngine();
     // A wipe writes the site's fresh profile back to the vault.
-    await _pump(tester, engine, _site(), sites: _RecordingSiteRepository(), overHome: true, overrides: [
-      openSiteIdsProvider.overrideWith((ref) => {'s1', 'other'}),
-    ]);
+    await _pump(tester, engine, _site(), sites: _RecordingSiteRepository());
     await tester.pumpAndSettle();
+    final providers = ProviderScope.containerOf(tester.element(find.byType(MaterialApp)));
+    expect(providers.read(openSiteIdsProvider), {'s1'});
     await close();
     await tester.pumpAndSettle();
     expect(engine.closed, contains('s1'));
-    return ProviderScope.containerOf(tester.element(find.text(_homeMarker)))
-        .read(openSiteIdsProvider);
+    return providers.read(openSiteIdsProvider);
   }
 
   testWidgets("closing this site's session from the switcher stops it reading as open",
@@ -513,7 +540,7 @@ void main() {
         of: find.byType(SwitcherSheet), matching: find.text('×'),
       ));
     });
-    expect(open, {'other'});
+    expect(open, isEmpty);
   });
 
   testWidgets('close all and wipe from the switcher stops the site reading as open',
@@ -523,7 +550,7 @@ void main() {
       await tester.pumpAndSettle();
       await tester.tap(find.text('Close all and wipe'));
     });
-    expect(open, {'other'});
+    expect(open, isEmpty);
   });
 
   testWidgets("close and wipe from the site sheet stops the site reading as open",
@@ -533,26 +560,27 @@ void main() {
       await tester.pumpAndSettle();
       await tester.tap(find.text('Close and wipe this session'));
     });
-    expect(open, {'other'});
+    expect(open, isEmpty);
   });
 
   testWidgets('opening a site shows the checklist, then the container', (tester) async {
-    final engine = FakeContainerEngine();
+    // Held, so the checklist's frames are seen: the fake's open otherwise
+    // returns before the host's first frame.
+    final engine = _GatedEngine();
+    final gate = engine.holdNextOpen();
     await _pump(tester, engine, _site());
-    // sessionForSiteProvider is still AsyncLoading for exactly the first
-    // frame — [FakeContainerEngine.open] already ran synchronously inside
-    // initState by this point, but the provider's `liveSessions()` snapshot
-    // needs one microtask hop to resolve, so the very first frame is
-    // guaranteed to be the opening checklist.
+    // Past the push's first frame, which builds the new route offstage.
+    await tester.pumpAndSettle();
     expect(find.text('Starting a clean container'), findsOneWidget);
 
+    gate.complete();
     await tester.pump();
     await tester.pump();
     expect(find.text('forum.example.com'), findsOneWidget);
   });
 
   // The real engine reports `opening` until the native view's first load
-  // finishes, and that view only exists once ContainerWebView is built. A
+  // finishes, and that view only exists once PageView is built. A
   // route that waits for `live` before building it never gets there — on a
   // device every site sat on the checklist forever.
   testWidgets('while opening, the page view is already built under the checklist', (tester) async {
@@ -562,7 +590,7 @@ void main() {
     await tester.pump();
 
     expect(find.text('Starting a clean container'), findsOneWidget);
-    expect(find.byType(ContainerWebView), findsOneWidget);
+    expect(find.byType(PageView), findsOneWidget);
   });
 
   // A site reopened while its last session is still open used to build its
@@ -582,19 +610,20 @@ void main() {
     await tester.pump();
     await tester.pump();
 
-    expect(find.byType(ContainerWebView), findsNothing);
+    expect(find.byType(PageView), findsNothing);
     expect(find.text('Starting a clean container'), findsOneWidget);
 
     gate.complete();
     await tester.pump();
     await tester.pump();
 
-    expect(find.byType(ContainerWebView), findsOneWidget);
+    expect(find.byType(PageView), findsOneWidget);
+    // Bound to the page its own open returned, never the previous visit's.
+    expect(tester.widget<PageView>(find.byType(PageView)).pageId, 's1-p2');
   });
 
-  // Rebuilding the view on the handoff would dispose the native WebView —
-  // which, for a wipe-on-exit site, destroys its profile — and load the page
-  // a second time.
+  // Rebuilding the view on the handoff would detach and reattach the page
+  // for nothing, and flicker.
   testWidgets('going live reveals the same page view rather than a new one', (tester) async {
     final engine = FakeContainerEngine(opensLive: false);
     await _pump(tester, engine, _site());
@@ -628,7 +657,7 @@ void main() {
       final engine = FakeContainerEngine(proxyReachable: false);
       final sites = _RecordingSiteRepository();
       await _pump(tester, engine, _socksSite(),
-          sites: sites, overHome: true, overrides: overrides);
+          sites: sites, overrides: overrides);
       await tester.pumpAndSettle();
       expect(find.byType(ProxyUnreachableScreen), findsOneWidget);
       return (engine, sites);
@@ -642,7 +671,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.byType(ProxyUnreachableScreen), findsNothing);
-      expect(find.byType(ContainerWebView), findsOneWidget);
+      expect(find.byType(PageView), findsOneWidget);
       expect(engine.openedSites['s1']!.proxyMode, ProxyMode.socks5);
     });
 
@@ -673,7 +702,7 @@ void main() {
       expect(engine.openedSites['s1']!.proxyMode, ProxyMode.direct);
       expect(find.byType(AddSiteScreen), findsNothing);
       expect(find.byType(ProxyUnreachableScreen), findsNothing);
-      expect(find.byType(ContainerWebView), findsOneWidget);
+      expect(find.byType(PageView), findsOneWidget);
     });
 
     testWidgets('leaving the form without saving returns to 8b', (tester) async {
@@ -716,20 +745,21 @@ void main() {
 
     testWidgets('a refused site stops reading as open, and its session is closed',
         (tester) async {
-      final (engine, _) = await refuse(tester, overrides: [
-        openSiteIdsProvider.overrideWith((ref) => {'s1', 'other'}),
-      ]);
+      final (engine, _) = await refuse(tester);
 
       expect(engine.closed, contains('s1'));
+      // A refused saved container is not listed (tabs plan, Deviation 2).
       final open = ProviderScope.containerOf(tester.element(find.byType(ProxyUnreachableScreen)))
           .read(openSiteIdsProvider);
-      expect(open, {'other'});
+      expect(open, isEmpty);
     });
 
     testWidgets('trying again puts the site back under OPEN NOW', (tester) async {
-      final (engine, _) = await refuse(tester, overrides: [
-        openSiteIdsProvider.overrideWith((ref) => {'s1'}),
-      ]);
+      final (engine, _) = await refuse(tester);
+      expect(
+          ProviderScope.containerOf(tester.element(find.byType(ProxyUnreachableScreen)))
+              .read(openSiteIdsProvider),
+          isEmpty);
 
       engine.proxyReachable = true;
       await tester.tap(find.text('Try again'));
@@ -761,10 +791,10 @@ void main() {
       final engine = FakeContainerEngine(proxyReachable: false);
       final throwaway = _throwaway().copyWith(
           proxyMode: ProxyMode.socks5, proxyHost: '127.0.0.1', proxyPort: 9050);
-      await _pump(tester, engine, throwaway, throwaway: true, throwaways: [throwaway]);
+      await _pump(tester, engine, throwaway, throwaway: true);
       await tester.pumpAndSettle();
       expect(find.byType(ProxyUnreachableScreen), findsOneWidget);
-      expect(engine.closed, isEmpty, reason: 'a throwaway closes when it is left');
+      expect(engine.closed, isEmpty, reason: 'a throwaway closes when it is closed');
 
       engine.proxyReachable = true;
       engine.openedAsThrowaway.clear();
@@ -772,7 +802,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(engine.openedAsThrowaway, {'t1'});
-      expect(_registry(tester).map((s) => s.id), ['t1']);
+      expect(_tabs(tester).byId('t1')!.throwaway, isTrue);
     });
 
     // As Edit on a throwaway does: its form saves it.
@@ -783,7 +813,7 @@ void main() {
       final throwaway = _throwaway().copyWith(
           proxyMode: ProxyMode.socks5, proxyHost: '127.0.0.1', proxyPort: 9050);
       await _pump(tester, engine, throwaway,
-          sites: sites, throwaway: true, throwaways: [throwaway]);
+          sites: sites, throwaway: true);
       await tester.pumpAndSettle();
 
       await tester.tap(find.text('Change proxy settings'));
@@ -798,10 +828,10 @@ void main() {
       expect(sites.upserts.single.cookiePolicy, CookiePolicy.keep,
           reason: 'as "Save as a site" starts it');
       expect(engine.kept, ['t1']);
-      expect(_registry(tester), isEmpty);
+      expect(_tabs(tester).byId('t1')!.throwaway, isFalse);
       expect(engine.openedAsThrowaway, isEmpty, reason: 'reopened as the saved site');
       expect(engine.openedSites['t1']!.proxyMode, ProxyMode.direct);
-      expect(find.byType(ContainerWebView), findsOneWidget);
+      expect(find.byType(PageView), findsOneWidget);
     });
 
     testWidgets("a throwaway typed during a direct visit keeps the site's own route",
@@ -840,7 +870,7 @@ void main() {
   testWidgets('a throwaway records nothing in the vault', (tester) async {
     final sites = _RecordingSiteRepository();
     await _pump(tester, FakeContainerEngine(), _throwaway(),
-        sites: sites, throwaway: true, throwaways: [_throwaway()]);
+        sites: sites, throwaway: true);
     await tester.pumpAndSettle();
 
     expect(sites.worked, isEmpty);
@@ -901,7 +931,7 @@ void main() {
     await tester.pumpAndSettle();
 
     engine.emitDownload(const HeldDownloadEvent(
-      siteId: 's1', requestId: 'req-1',
+      siteId: 's1', pageId: 's1-p1', requestId: 'req-1',
       download: HeldDownload(
         fileName: 'notes.pdf', sizeBytes: 1024,
         sourceHost: 'forum.example.com', kindLabel: 'PDF',
@@ -922,7 +952,7 @@ void main() {
     await tester.pumpAndSettle();
 
     engine.emitDownload(const HeldDownloadEvent(
-      siteId: 's1', requestId: 'req-1',
+      siteId: 's1', pageId: 's1-p1', requestId: 'req-1',
       download: HeldDownload(
         fileName: 'a.pdf', sizeBytes: 100,
         sourceHost: 'forum.example.com', kindLabel: 'PDF',
@@ -987,45 +1017,47 @@ void main() {
     expect(sites.upserts, isEmpty);
   });
 
-  testWidgets('leaving a throwaway closes its session', (tester) async {
+  // Replaces "leaving a throwaway closes its session" (tabs spec §5.3): a
+  // throwaway's back with no history goes to its opener container, and the
+  // throwaway stays open, reachable from 2c.
+  testWidgets("back on a throwaway's first page views its opener container, and the throwaway stays open",
+      (tester) async {
     final engine = FakeContainerEngine();
-    await _pump(tester, engine, _throwaway(), throwaway: true, overHome: true);
+    await _pump(tester, engine, _socksSite());
     await tester.pumpAndSettle();
-
-    Navigator.of(tester.element(find.byType(ContainerRoute))).pop();
+    await _typeAddress(tester, 'news.example.org/today');
+    await tester.testTextInput.receiveAction(TextInputAction.go);
     await tester.pumpAndSettle();
+    final id = engine.openedAsThrowaway.single;
+    expect(_tabs(tester).viewedSiteId, id);
 
-    expect(engine.closed, ['t1']);
+    await _systemBack(tester);
+
+    expect(_tabs(tester).viewedSiteId, 's1');
+    expect(_shownPage(tester), 's1-p1');
+    expect(find.text('forum.example.com'), findsOneWidget);
+    expect(_tabs(tester).byId(id)!.throwaway, isTrue);
+    expect(find.text('2 OPEN'), findsOneWidget);
+    expect(engine.closed, isEmpty);
   });
 
   testWidgets('leaving a saved site leaves its session open', (tester) async {
     final engine = FakeContainerEngine();
-    await _pump(tester, engine, _site(), overHome: true);
+    await _pump(tester, engine, _site());
     await tester.pumpAndSettle();
 
-    Navigator.of(tester.element(find.byType(ContainerRoute))).pop();
-    await tester.pumpAndSettle();
+    await _systemBack(tester);
 
+    expect(find.text(_homeMarker), findsOneWidget);
     expect(engine.closed, isEmpty);
-  });
-
-  // Review Focus 4: a lock or panic disposes the open vault's navigator, and
-  // every route in it, without popping anything.
-  testWidgets('a throwaway torn down with its navigator is closed too', (tester) async {
-    final engine = FakeContainerEngine();
-    await _pump(tester, engine, _throwaway(), throwaway: true);
-    await tester.pumpAndSettle();
-
-    await tester.pumpWidget(const SizedBox.shrink());
-
-    expect(engine.closed, ['t1']);
+    expect(_tabs(tester).openSiteIds, {'s1'});
   });
 
   testWidgets("a throwaway's site sheet changes nothing in the vault", (tester) async {
     final engine = FakeContainerEngine();
     final sites = _RecordingSiteRepository();
     await _pump(tester, engine, _throwaway(), sites: sites,
-        throwaway: true, throwaways: [_throwaway()]);
+        throwaway: true);
     await tester.pumpAndSettle();
 
     await tester.tap(_icon('Site details'));
@@ -1044,7 +1076,7 @@ void main() {
     final engine = _LoggingEngine(events);
     final sites = _RecordingSiteRepository(events: events);
     await _pump(tester, engine, _throwaway(), sites: sites,
-        throwaway: true, throwaways: [_throwaway()]);
+        throwaway: true);
     await tester.pumpAndSettle();
 
     await tester.tap(_icon('Site details'));
@@ -1062,7 +1094,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(events, ['upsert t1', 'keep t1']);
-    expect(_registry(tester), isEmpty);
+    expect(_tabs(tester).byId('t1')!.throwaway, isFalse);
   });
 
   // Saved, it is a site like any other: leaving it must not close — and so
@@ -1070,7 +1102,7 @@ void main() {
   testWidgets('a saved throwaway is not closed when left', (tester) async {
     final engine = FakeContainerEngine();
     await _pump(tester, engine, _throwaway(), sites: _RecordingSiteRepository(),
-        throwaway: true, throwaways: [_throwaway()], overHome: true);
+        throwaway: true);
     await tester.pumpAndSettle();
 
     await tester.tap(_icon('Site details'));
@@ -1079,9 +1111,10 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('Save'));
     await tester.pumpAndSettle();
-    Navigator.of(tester.element(find.byType(ContainerRoute))).pop();
-    await tester.pumpAndSettle();
+    // A saved container's back goes to the dashboard and leaves it open.
+    await _systemBack(tester);
 
+    expect(find.text(_homeMarker), findsOneWidget);
     expect(engine.kept, ['t1']);
     expect(engine.closed, isEmpty);
   });
@@ -1091,7 +1124,7 @@ void main() {
     final engine = _LoggingEngine(events);
     final sites = _RecordingSiteRepository(events: events);
     await _pump(tester, engine, _throwaway(), sites: sites,
-        throwaway: true, throwaways: [_throwaway()]);
+        throwaway: true);
     await tester.pumpAndSettle();
 
     await tester.tap(_icon('Site details'));
@@ -1115,11 +1148,11 @@ void main() {
     // There is no DIRECT label; the route used to pass one.
     expect(find.text('DIRECT'), findsNothing);
 
-    engine.emitNavigation(const NavigationState(siteId: 's1', url: 'https://elsewhere.example.net/a'));
+    engine.emitNavigation(const NavigationState(siteId: 's1', pageId: 's1-p1', url: 'https://elsewhere.example.net/a'));
     await tester.pumpAndSettle();
     expect(find.text('elsewhere.example.net'), findsOneWidget);
 
-    engine.emitNavigation(const NavigationState(siteId: 's1', url: 'about:blank'));
+    engine.emitNavigation(const NavigationState(siteId: 's1', pageId: 's1-p1', url: 'about:blank'));
     await tester.pumpAndSettle();
     expect(find.text('forum.example.com'), findsOneWidget);
   });
@@ -1133,7 +1166,7 @@ void main() {
     expect(_icon('Stop'), findsNothing);
 
     engine.emitNavigation(const NavigationState(
-      siteId: 's1', url: 'https://forum.example.com/t/9',
+      siteId: 's1', pageId: 's1-p1', url: 'https://forum.example.com/t/9',
       canGoBack: true, canGoForward: true, loading: true, progress: 50,
     ));
     await tester.pumpAndSettle();
@@ -1141,24 +1174,24 @@ void main() {
     await tester.tap(_icon('Forward'));
     await tester.tap(_icon('Stop'));
 
-    expect(engine.wentBack, ['s1']);
-    expect(engine.wentForward, ['s1']);
-    expect(engine.stopped, ['s1']);
+    expect(engine.wentBack, ['s1-p1']);
+    expect(engine.wentForward, ['s1-p1']);
+    expect(engine.stopped, ['s1-p1']);
   });
 
   testWidgets('system back goes back in the page first, then leaves the container', (tester) async {
     final engine = FakeContainerEngine();
-    await _pump(tester, engine, _site(), overHome: true);
+    await _pump(tester, engine, _site());
     await tester.pumpAndSettle();
     engine.emitNavigation(const NavigationState(
-        siteId: 's1', url: 'https://forum.example.com/t/9', canGoBack: true));
+        siteId: 's1', pageId: 's1-p1', url: 'https://forum.example.com/t/9', canGoBack: true));
     await tester.pumpAndSettle();
 
     await _systemBack(tester);
-    expect(engine.wentBack, ['s1']);
+    expect(engine.wentBack, ['s1-p1']);
     expect(find.byType(ContainerRoute), findsOneWidget);
 
-    engine.emitNavigation(const NavigationState(siteId: 's1', url: 'https://forum.example.com/'));
+    engine.emitNavigation(const NavigationState(siteId: 's1', pageId: 's1-p1', url: 'https://forum.example.com/'));
     await tester.pumpAndSettle();
     await _systemBack(tester);
 
@@ -1175,7 +1208,7 @@ void main() {
     addTearDown(() => tester.runAsync(database.close));
     _standInForPlatformViews(tester);
     final engine = FakeContainerEngine();
-    await _pump(tester, engine, _site(), overHome: true, overrides: [
+    await _pump(tester, engine, _site(), overrides: [
       databaseProvider.overrideWithValue(database),
       biometricServiceProvider.overrideWithValue(FakeBiometricService()),
     ]);
@@ -1221,7 +1254,7 @@ void main() {
     final engine = FakeContainerEngine();
     await _pump(tester, engine, _site());
     await tester.pumpAndSettle();
-    engine.emitNavigation(const NavigationState(siteId: 's1', url: 'https://forum.example.com/t/9'));
+    engine.emitNavigation(const NavigationState(siteId: 's1', pageId: 's1-p1', url: 'https://forum.example.com/t/9'));
     await tester.pumpAndSettle();
 
     await tester.tap(_icon('Menu'));
@@ -1244,10 +1277,10 @@ void main() {
 
     await tester.enterText(find.byType(TextField), 'fox');
     await tester.pump();
-    expect(engine.findQueries, [(siteId: 's1', query: 'fox')]);
+    expect(engine.findQueries, [(pageId: 's1-p1', query: 'fox')]);
 
-    engine.emitFindResult(const FindResult(siteId: 's1', activeMatch: 0, matchCount: 4));
-    engine.emitFindResult(const FindResult(siteId: 'other', activeMatch: 0, matchCount: 9));
+    engine.emitFindResult(const FindResult(siteId: 's1', pageId: 's1-p1', activeMatch: 0, matchCount: 4));
+    engine.emitFindResult(const FindResult(siteId: 'other', pageId: 'other-p1', activeMatch: 0, matchCount: 9));
     await tester.pumpAndSettle();
     expect(find.text('1/4'), findsOneWidget);
 
@@ -1255,8 +1288,8 @@ void main() {
     await tester.tap(_icon('Close find'));
     await tester.pumpAndSettle();
 
-    expect(engine.findSteps, [(siteId: 's1', forward: true)]);
-    expect(engine.clearedFind, ['s1']);
+    expect(engine.findSteps, [(pageId: 's1-p1', forward: true)]);
+    expect(engine.clearedFind, ['s1-p1']);
     expect(find.byType(FindBar), findsNothing);
   });
 
@@ -1265,15 +1298,15 @@ void main() {
     final engine = _LoggingEngine(events);
     final sites = _RecordingSiteRepository(events: events);
     await _pump(tester, engine, _throwaway(), sites: sites,
-        throwaway: true, throwaways: [_throwaway()]);
+        throwaway: true);
     await tester.pumpAndSettle();
 
     engine.emitNavigation(const NavigationState(
-        siteId: 't1', url: 'https://news.example.org/', loading: true, progress: 30));
+        siteId: 't1', pageId: 't1-p1', url: 'https://news.example.org/', loading: true, progress: 30));
     await tester.pumpAndSettle();
     expect(find.byType(ThrowawaySaveBar), findsNothing);
 
-    engine.emitNavigation(const NavigationState(siteId: 't1', url: 'https://news.example.org/today'));
+    engine.emitNavigation(const NavigationState(siteId: 't1', pageId: 't1-p1', url: 'https://news.example.org/today'));
     await tester.pumpAndSettle();
     expect(find.text('Not saved · wiped when you close it'), findsOneWidget);
 
@@ -1291,12 +1324,12 @@ void main() {
   testWidgets('saving a throwaway that moved to another site names that site', (tester) async {
     final engine = FakeContainerEngine();
     await _pump(tester, engine, _throwaway(), sites: _RecordingSiteRepository(),
-        throwaway: true, throwaways: [_throwaway()]);
+        throwaway: true);
     await tester.pumpAndSettle();
 
     engine.emitNavigation(const NavigationState(
-        siteId: 't1', url: 'https://elsewhere.example.net/a', loading: true, progress: 30));
-    engine.emitNavigation(const NavigationState(siteId: 't1', url: 'https://elsewhere.example.net/a'));
+        siteId: 't1', pageId: 't1-p1', url: 'https://elsewhere.example.net/a', loading: true, progress: 30));
+    engine.emitNavigation(const NavigationState(siteId: 't1', pageId: 't1-p1', url: 'https://elsewhere.example.net/a'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Save as a site'));
     await tester.pumpAndSettle();
@@ -1312,7 +1345,7 @@ void main() {
     await _pump(tester, engine, _site());
     await tester.pumpAndSettle();
 
-    engine.emitNavigation(const NavigationState(siteId: 's1', url: 'https://forum.example.com/'));
+    engine.emitNavigation(const NavigationState(siteId: 's1', pageId: 's1-p1', url: 'https://forum.example.com/'));
     await tester.pumpAndSettle();
 
     expect(find.byType(ThrowawaySaveBar), findsNothing);
@@ -1320,14 +1353,14 @@ void main() {
 
   testWidgets('dismissing the save bar hides it for this throwaway', (tester) async {
     final engine = FakeContainerEngine();
-    await _pump(tester, engine, _throwaway(), throwaway: true, throwaways: [_throwaway()]);
+    await _pump(tester, engine, _throwaway(), throwaway: true);
     await tester.pumpAndSettle();
-    engine.emitNavigation(const NavigationState(siteId: 't1', url: 'https://news.example.org/'));
+    engine.emitNavigation(const NavigationState(siteId: 't1', pageId: 't1-p1', url: 'https://news.example.org/'));
     await tester.pumpAndSettle();
 
     await tester.tap(find.byKey(const Key('save-bar-dismiss')));
     await tester.pumpAndSettle();
-    engine.emitNavigation(const NavigationState(siteId: 't1', url: 'https://news.example.org/next'));
+    engine.emitNavigation(const NavigationState(siteId: 't1', pageId: 't1-p1', url: 'https://news.example.org/next'));
     await tester.pumpAndSettle();
 
     expect(find.byType(ThrowawaySaveBar), findsNothing);
@@ -1340,16 +1373,16 @@ void main() {
     final site = _throwaway().copyWith(
       url: url, proxyMode: ProxyMode.socks5, proxyHost: '127.0.0.1', proxyPort: 9050,
     );
-    await _pump(tester, engine, site, throwaway: true, throwaways: [site]);
+    await _pump(tester, engine, site, throwaway: true);
     await tester.pumpAndSettle();
     // Phone width once live: this is about the container's chrome. `8a`'s
     // checklist, shown for the first frames, is outside this plan.
     tester.view.physicalSize = const Size(360, 740);
     await tester.pump();
-    engine.emitNavigation(const NavigationState(siteId: 't1', url: '$url/'));
+    engine.emitNavigation(const NavigationState(siteId: 't1', pageId: 't1-p1', url: '$url/'));
     await tester.pumpAndSettle();
     engine.emitNavigation(const NavigationState(
-        siteId: 't1', url: '$url/today', loading: true, progress: 40));
+        siteId: 't1', pageId: 't1-p1', url: '$url/today', loading: true, progress: 40));
     await tester.pumpAndSettle();
 
     expect(find.byType(ThrowawaySaveBar), findsOneWidget);
@@ -1370,15 +1403,15 @@ void main() {
   // which wipes a throwaway.
   testWidgets('the page view outlives every change of chrome', (tester) async {
     final engine = FakeContainerEngine();
-    await _pump(tester, engine, _throwaway(), throwaway: true, throwaways: [_throwaway()]);
+    await _pump(tester, engine, _throwaway(), throwaway: true);
     await tester.pumpAndSettle();
     final page = tester.state(find.byType(PlatformViewLink));
 
     engine.emitNavigation(const NavigationState(
-        siteId: 't1', url: 'https://news.example.org/', loading: true, progress: 20));
+        siteId: 't1', pageId: 't1-p1', url: 'https://news.example.org/', loading: true, progress: 20));
     await tester.pumpAndSettle();
     engine.emitNavigation(const NavigationState(
-        siteId: 't1', url: 'https://news.example.org/', canGoBack: true));
+        siteId: 't1', pageId: 't1-p1', url: 'https://news.example.org/', canGoBack: true));
     await tester.pumpAndSettle();
     expect(find.byType(ThrowawaySaveBar), findsOneWidget);
     await tester.tap(_icon('Menu'));
@@ -1404,15 +1437,15 @@ void main() {
     await tester.testTextInput.receiveAction(TextInputAction.go);
     await tester.pumpAndSettle();
 
-    expect(engine.loaded, [(siteId: 's1', url: 'https://forum.example.com/latest')]);
+    expect(engine.loaded, [(pageId: 's1-p1', url: 'https://forum.example.com/latest')]);
     expect(engine.openedSites.keys, ['s1']);
     expect(find.byType(AddressSuggestions), findsNothing);
   });
 
-  testWidgets("a saved site's address opens its own container over this one, at that address", (tester) async {
+  testWidgets("a saved site's address opens its own container in this host, at that address", (tester) async {
     final engine = FakeContainerEngine();
     final sites = _RecordingSiteRepository();
-    await _pump(tester, engine, _site(), sites: sites, saved: [_site(), _market], overHome: true);
+    await _pump(tester, engine, _site(), sites: sites, saved: [_site(), _market]);
     await tester.pumpAndSettle();
 
     await _typeAddress(tester, 'market.example.com/deals');
@@ -1423,44 +1456,55 @@ void main() {
     expect(engine.openedSites['m1']!.url, 'https://market.example.com');
     expect(engine.openedInitialUrls['m1'], 'https://market.example.com/deals');
     expect(engine.openedAsThrowaway, isEmpty);
-    // Marked open and visited, as the dashboard opens a site; its stored
-    // address is untouched.
+    // Open in the registry and visited, as the dashboard opens a site; its
+    // stored address is untouched.
     expect(sites.touched, ['m1']);
     expect(sites.upserts, isEmpty);
     expect(ProviderScope.containerOf(tester.element(find.byType(MaterialApp)))
         .read(openSiteIdsProvider), contains('m1'));
 
+    // One host, switched in place (tabs spec §4.2): no second route.
+    expect(find.byType(ContainerRoute, skipOffstage: false), findsOneWidget);
+    expect(find.text('2 OPEN'), findsOneWidget);
+
+    // A saved container's back goes to the dashboard (tabs spec §5.3), and
+    // both containers stay open in the background.
     await _systemBack(tester);
-    expect(find.text('forum.example.com'), findsOneWidget);
-    // Left, a saved site's session stays open in the background.
+    expect(find.text(_homeMarker), findsOneWidget);
     expect(engine.closed, isEmpty);
+    expect(_tabs(tester).openSiteIds, {'s1', 'm1'});
   });
 
-  // User's ruling, 2026-10-02: one container per site. A second one would
-  // take over the native session and leave the lower one acting on nothing.
-  testWidgets("a saved site's address returns to its container lower in the stack, at that address", (tester) async {
-    final engine = FakeContainerEngine();
+  // User's ruling, 2026-10-02, carried over to tabs (tabs spec §5.5): one
+  // container per site. Typing an open saved site's address switches to its
+  // container and loads there, in its last viewed page; it is not opened
+  // again.
+  testWidgets("a saved site's address switches to its open container and loads there, with no second open",
+      (tester) async {
+    final engine = _GatedEngine();
     await _pump(tester, engine, _site(),
-        sites: _RecordingSiteRepository(), saved: [_site(), _market], overHome: true);
+        sites: _RecordingSiteRepository(), saved: [_site(), _market]);
     await tester.pumpAndSettle();
     await _typeAddress(tester, 'market.example.com/deals');
     expect(find.text('ITS OWN CONTAINER'), findsOneWidget);
     await tester.testTextInput.receiveAction(TextInputAction.go);
     await tester.pumpAndSettle();
-    expect(find.byType(ContainerRoute, skipOffstage: false), findsNWidgets(2));
+    expect(_tabs(tester).viewedSiteId, 'm1');
 
     await _typeAddress(tester, 'forum.example.com/new', pill: 'market.example.com');
     expect(find.text('ITS OWN CONTAINER'), findsOneWidget);
     await tester.testTextInput.receiveAction(TextInputAction.go);
     await tester.pumpAndSettle();
 
-    // Back on the first container, which loads the address in place.
-    expect(find.byType(ContainerRoute, skipOffstage: false), findsOneWidget);
+    expect(_tabs(tester).viewedSiteId, 's1');
+    expect(_shownPage(tester), 's1-p1');
     expect(find.text('forum.example.com'), findsOneWidget);
-    expect(engine.loaded, [(siteId: 's1', url: 'https://forum.example.com/new')]);
+    expect(engine.loaded, [(pageId: 's1-p1', url: 'https://forum.example.com/new')]);
+    expect(engine.opens, 2, reason: 's1 and m1, once each');
     expect(engine.openedInitialUrls['s1'], isNull);
-    // The container left on the way down is a saved site: its session stays open.
+    // The container switched away from is a saved site: it stays open.
     expect(engine.closed, isEmpty);
+    expect(find.byType(ContainerRoute, skipOffstage: false), findsOneWidget);
 
     await _systemBack(tester);
     expect(find.text(_homeMarker), findsOneWidget);
@@ -1472,7 +1516,7 @@ void main() {
       (tester) async {
     final engine = FakeContainerEngine();
     final sites = _RecordingSiteRepository()..stored = [_site()];
-    await _pump(tester, engine, _site(), sites: sites, saved: [_site(), _market], overHome: true);
+    await _pump(tester, engine, _site(), sites: sites, saved: [_site(), _market]);
     await tester.pumpAndSettle();
 
     await _typeAddress(tester, 'market.example.com/deals');
@@ -1495,7 +1539,7 @@ void main() {
       profileId: 'cccccccccccccccccccccccccccccccc',
     );
     final sites = _RecordingSiteRepository()..stored = [_site(), now];
-    await _pump(tester, engine, _site(), sites: sites, saved: [_site(), _market], overHome: true);
+    await _pump(tester, engine, _site(), sites: sites, saved: [_site(), _market]);
     await tester.pumpAndSettle();
 
     await _typeAddress(tester, 'market.example.com/deals');
@@ -1508,9 +1552,9 @@ void main() {
     expect(opened.profileId, 'cccccccccccccccccccccccccccccccc');
   });
 
-  testWidgets("anything else opens a throwaway on this container's route; leaving it closes and forgets it", (tester) async {
+  testWidgets("anything else opens a throwaway on this container's route, with this one as its opener", (tester) async {
     final engine = FakeContainerEngine();
-    await _pump(tester, engine, _socksSite(), overHome: true);
+    await _pump(tester, engine, _socksSite());
     await tester.pumpAndSettle();
 
     await _typeAddress(tester, 'news.example.org/today');
@@ -1525,15 +1569,11 @@ void main() {
     expect((opened.proxyMode, opened.proxyHost, opened.proxyPort),
         (ProxyMode.socks5, '127.0.0.1', 9050));
     expect(opened.cookiePolicy, CookiePolicy.wipeOnExit);
-    expect(_registry(tester).map((site) => site.id), [id]);
-
-    await _systemBack(tester);
-
-    // Its route closed its session, which wipes it natively.
-    expect(engine.closed, [id]);
-    expect(_registry(tester), isEmpty);
-    expect(find.byType(ContainerRoute), findsOneWidget);
-    expect(find.text('forum.example.com'), findsOneWidget);
+    final throwaway = _tabs(tester).byId(id)!;
+    expect(throwaway.throwaway, isTrue);
+    expect(throwaway.openerSiteId, 's1');
+    expect(_tabs(tester).viewedSiteId, id);
+    expect(find.text('news.example.org'), findsOneWidget);
   });
 
   testWidgets('suggestions come from this vault only, and name the chosen engine', (tester) async {
@@ -1553,10 +1593,10 @@ void main() {
   // Review Focus 2.
   testWidgets('back while typing leaves editing, and neither goes back nor leaves', (tester) async {
     final engine = FakeContainerEngine();
-    await _pump(tester, engine, _site(), overHome: true);
+    await _pump(tester, engine, _site());
     await tester.pumpAndSettle();
     engine.emitNavigation(const NavigationState(
-        siteId: 's1', url: 'https://forum.example.com/t/9', canGoBack: true));
+        siteId: 's1', pageId: 's1-p1', url: 'https://forum.example.com/t/9', canGoBack: true));
     await tester.pumpAndSettle();
 
     await _typeAddress(tester, 'news');
@@ -1595,7 +1635,7 @@ void main() {
     testWidgets('from the switcher (2c)', (tester) async {
       final engine = FakeContainerEngine();
       final sites = _RecordingSiteRepository();
-      await _pump(tester, engine, _site(), sites: sites, overHome: true);
+      await _pump(tester, engine, _site(), sites: sites);
       await tester.pumpAndSettle();
 
       await tester.tap(find.text('1 OPEN'));
@@ -1609,7 +1649,7 @@ void main() {
     testWidgets('from the tunnel-dropped screen (8c)', (tester) async {
       final engine = FakeContainerEngine();
       final sites = _RecordingSiteRepository();
-      await _pump(tester, engine, _site(), sites: sites, overHome: true);
+      await _pump(tester, engine, _site(), sites: sites);
       await tester.pumpAndSettle();
       engine.emitTunnelDropped(TunnelDroppedEvent(
         siteId: 's1', host: 'forum.example.com', droppedAt: DateTime(2026, 9, 30),
@@ -1629,7 +1669,7 @@ void main() {
     testWidgets('but never writes a throwaway into the vault', (tester) async {
       final engine = FakeContainerEngine();
       final sites = _RecordingSiteRepository();
-      await _pump(tester, engine, _throwaway(), sites: sites, throwaway: true, throwaways: [_throwaway()]);
+      await _pump(tester, engine, _throwaway(), sites: sites, throwaway: true);
       await tester.pumpAndSettle();
 
       await tester.tap(_icon('Site details'));
@@ -1637,8 +1677,230 @@ void main() {
       await tester.tap(find.text('Close and wipe this session'));
       await tester.pumpAndSettle();
 
-      expect(engine.wiped, contains('c' * 32));
+      // Closed with its wipe, natively, after its last page is gone (tabs
+      // spec §5.8a): never a separate wipe of a profile still in use.
+      expect(engine.closedWith['t1'], isTrue);
+      expect(engine.wiped, isEmpty);
       expect(sites.upserts, isEmpty);
+      expect(find.text(_homeMarker), findsOneWidget);
+    });
+  });
+
+
+  // Tabs plan Task 7: one host route, driven by the registry.
+  group('tabs', () {
+    /// Forum, then Marketplace typed in it: two saved containers, Marketplace
+    /// viewed.
+    Future<_GatedEngine> twoContainers(WidgetTester tester) async {
+      final engine = _GatedEngine();
+      await _pump(tester, engine, _site(),
+          sites: _RecordingSiteRepository(), saved: [_site(), _market]);
+      await tester.pumpAndSettle();
+      await _typeAddress(tester, 'market.example.com/deals');
+      await tester.testTextInput.receiveAction(TextInputAction.go);
+      await tester.pumpAndSettle();
+      return engine;
+    }
+
+    /// A throwaway typed in the viewed container, whose pill is [pill].
+    Future<String> typeThrowaway(WidgetTester tester, FakeContainerEngine engine,
+        {String pill = 'forum.example.com'}) async {
+      await _typeAddress(tester, 'news.example.org/today', pill: pill);
+      await tester.testTextInput.receiveAction(TextInputAction.go);
+      await tester.pumpAndSettle();
+      return engine.openedAsThrowaway.single;
+    }
+
+    testWidgets('a link page comes to the front, and N OPEN still counts containers',
+        (tester) async {
+      final engine = FakeContainerEngine();
+      await _pump(tester, engine, _site());
+      await tester.pumpAndSettle();
+      expect(_shownPage(tester), 's1-p1');
+
+      final link = engine.openPageFromLink('s1', openerPageId: 's1-p1');
+      await tester.pumpAndSettle();
+
+      expect(_shownPage(tester), link);
+      expect(find.text('1 OPEN'), findsOneWidget);
+    });
+
+    testWidgets('back on a link page with no history closes it and shows its opener',
+        (tester) async {
+      final engine = FakeContainerEngine();
+      await _pump(tester, engine, _site());
+      await tester.pumpAndSettle();
+      final link = engine.openPageFromLink('s1', openerPageId: 's1-p1');
+      await tester.pumpAndSettle();
+
+      await _systemBack(tester);
+
+      expect(engine.closedPages, [link]);
+      expect(engine.closed, isEmpty);
+      expect(_shownPage(tester), 's1-p1');
+      expect(find.byType(ContainerRoute), findsOneWidget);
+    });
+
+    testWidgets("back on a saved container's first page lands on the dashboard; showing it again opens nothing",
+        (tester) async {
+      final engine = _GatedEngine();
+      await _pump(tester, engine, _site());
+      await tester.pumpAndSettle();
+
+      await _systemBack(tester);
+      expect(find.text(_homeMarker), findsOneWidget);
+      expect(find.byType(ContainerRoute), findsNothing);
+      expect(_tabs(tester).viewedSiteId, isNull);
+      expect(_tabs(tester).openSiteIds, {'s1'});
+
+      await tester.tap(find.text(_openLabel));
+      await tester.pumpAndSettle();
+
+      expect(engine.opens, 1);
+      expect(_shownPage(tester), 's1-p1');
+    });
+
+    testWidgets('a throwaway whose opener is closed goes back to the most recently viewed container',
+        (tester) async {
+      final engine = await twoContainers(tester);
+      final id = await typeThrowaway(tester, engine, pill: 'market.example.com');
+      expect(_tabs(tester).byId(id)!.openerSiteId, 'm1');
+
+      await engine.close('m1');
+      await tester.pumpAndSettle();
+      await _systemBack(tester);
+
+      expect(_tabs(tester).viewedSiteId, 's1');
+      expect(_shownPage(tester), 's1-p1');
+      expect(_tabs(tester).byId(id), isNotNull);
+      expect(engine.closed, ['m1']);
+    });
+
+    testWidgets('a throwaway with nothing else open is closed with its wipe, and you land on the dashboard',
+        (tester) async {
+      final engine = FakeContainerEngine();
+      await _pump(tester, engine, _site());
+      await tester.pumpAndSettle();
+      final id = await typeThrowaway(tester, engine);
+
+      await engine.close('s1');
+      await tester.pumpAndSettle();
+      expect(find.byType(ContainerRoute), findsOneWidget, reason: 's1 was in the background');
+      await _systemBack(tester);
+
+      expect(engine.closedWith[id], isTrue);
+      expect(_tabs(tester).containers, isEmpty);
+      expect(find.byType(ContainerRoute), findsNothing);
+      expect(find.text(_homeMarker), findsOneWidget);
+    });
+
+    testWidgets("N OPEN reads the registry's count of open containers", (tester) async {
+      await twoContainers(tester);
+
+      expect(find.text('2 OPEN'), findsOneWidget);
+      expect(_tabs(tester).openCount, 2);
+    });
+
+    testWidgets('2c lists both containers, the viewed first, and a tap switches without opening',
+        (tester) async {
+      final engine = await twoContainers(tester);
+
+      await tester.tap(find.text('2 OPEN'));
+      await tester.pumpAndSettle();
+      final sheet = find.byType(SwitcherSheet);
+      final market = find.descendant(of: sheet, matching: find.text('Marketplace'));
+      final forum = find.descendant(of: sheet, matching: find.text('Forum'));
+      expect(tester.getTopLeft(market).dy, lessThan(tester.getTopLeft(forum).dy));
+      expect(find.text('2 OPEN SESSIONS'), findsOneWidget);
+      expect(find.text('viewing now · direct'), findsOneWidget);
+      expect(find.text('background · now'), findsOneWidget);
+
+      await tester.tap(forum);
+      await tester.pumpAndSettle();
+
+      expect(find.byType(SwitcherSheet), findsNothing);
+      expect(_tabs(tester).viewedSiteId, 's1');
+      expect(_shownPage(tester), 's1-p1');
+      expect(find.text('forum.example.com'), findsOneWidget);
+      expect(engine.opens, 2);
+      expect(engine.closed, isEmpty);
+    });
+
+    testWidgets("a page row's × closes that page only", (tester) async {
+      final engine = FakeContainerEngine();
+      await _pump(tester, engine, _site());
+      await tester.pumpAndSettle();
+      final link = engine.openPageFromLink('s1', openerPageId: 's1-p1');
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('1 OPEN'));
+      await tester.pumpAndSettle();
+      // The container row's ×, then one per page in opening order.
+      final closes = find.descendant(of: find.byType(SwitcherSheet), matching: find.text('×'));
+      expect(closes, findsNWidgets(3));
+      await tester.tap(closes.at(1));
+      await tester.pumpAndSettle();
+
+      expect(engine.closedPages, ['s1-p1']);
+      expect(engine.closed, isEmpty);
+      expect(_shownPage(tester), link);
+      expect(_tabs(tester).byId('s1')!.pages.map((p) => p.pageId), [link]);
+    });
+
+    testWidgets('an ask from a page not on screen waits, and shows once that page is viewed',
+        (tester) async {
+      final engine = FakeContainerEngine();
+      await _pump(tester, engine, _site());
+      await tester.pumpAndSettle();
+      engine.openPageFromLink('s1', openerPageId: 's1-p1');
+      await tester.pumpAndSettle();
+
+      engine.emitPermissionRequest(const PendingPermissionRequest(
+        siteId: 's1', pageId: 's1-p1', host: 'forum.example.com',
+        kind: PermissionKind.camera, requestId: 'r1',
+      ));
+      await tester.pumpAndSettle();
+      expect(find.byType(PermissionRequestSheet), findsNothing);
+      expect(engine.resolvedPermissions, isEmpty, reason: 'held, not answered');
+
+      await tester.tap(find.text('1 OPEN'));
+      await tester.pumpAndSettle();
+      // The first page row's title: its page has no title, so its host.
+      await tester.tap(find
+          .descendant(of: find.byType(SwitcherSheet), matching: find.text('forum.example.com'))
+          .first);
+      await tester.pumpAndSettle();
+
+      expect(_shownPage(tester), 's1-p1');
+      expect(find.byType(PermissionRequestSheet), findsOneWidget);
+    });
+
+    testWidgets("the opening checklist's Cancel closes the container and lands on the dashboard",
+        (tester) async {
+      final engine = FakeContainerEngine(opensLive: false);
+      await _pump(tester, engine, _site());
+      await tester.pumpAndSettle();
+      expect(find.text('Starting a clean container'), findsOneWidget);
+
+      await tester.tap(find.descendant(of: find.byType(OpeningBody), matching: find.text('×')));
+      await tester.pumpAndSettle();
+
+      expect(engine.closed, ['s1']);
+      expect(_tabs(tester).containers, isEmpty);
+      expect(find.byType(ContainerRoute), findsNothing);
+      expect(find.text(_homeMarker), findsOneWidget);
+    });
+
+    testWidgets('a viewed container closed elsewhere removes the host', (tester) async {
+      final engine = FakeContainerEngine();
+      await _pump(tester, engine, _site());
+      await tester.pumpAndSettle();
+
+      await engine.close('s1');
+      await tester.pumpAndSettle();
+
+      expect(find.byType(ContainerRoute), findsNothing);
+      expect(find.text(_homeMarker), findsOneWidget);
     });
   });
 }

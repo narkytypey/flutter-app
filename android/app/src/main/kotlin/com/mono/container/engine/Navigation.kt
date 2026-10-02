@@ -11,9 +11,10 @@ data class NavigationSnapshot(
     val progress: Int,
 ) {
     /** Also what `navigationState` returns; Dart decodes both the same way. */
-    fun toEvent(siteId: String): Map<String, Any?> = mapOf(
+    fun toEvent(siteId: String, pageId: String): Map<String, Any?> = mapOf(
         "type" to "navigation",
         "siteId" to siteId,
+        "pageId" to pageId,
         "url" to url,
         "title" to title,
         "canGoBack" to canGoBack,
@@ -73,9 +74,10 @@ class NavigationTracker(initialUrl: String) {
 }
 
 /** The `find_result` event (spec §6.5). [activeMatch] is WebView's zero-based ordinal. */
-fun findResultEvent(siteId: String, activeMatch: Int, matchCount: Int): Map<String, Any?> = mapOf(
+fun findResultEvent(siteId: String, pageId: String, activeMatch: Int, matchCount: Int): Map<String, Any?> = mapOf(
     "type" to "find_result",
     "siteId" to siteId,
+    "pageId" to pageId,
     "activeMatch" to activeMatch,
     "matchCount" to matchCount,
 )

@@ -8,7 +8,7 @@ import android.webkit.WebView
 import android.webkit.WebViewClient
 import java.io.ByteArrayInputStream
 
-/** The page events [ContainerView] builds its navigation state from. */
+/** The page events a [Page] builds its navigation state from. */
 interface PageCallbacks {
     fun started(url: String) {}
     fun finished(url: String) {}
@@ -31,9 +31,9 @@ class RequestInterceptor(private val filters: FilterEngine, private val onRefuse
     /** [proxyCredential] answers the loopback proxy's `407` (P2 spec §1.4): every
      *  call, at once, from memory. [page] hears the page starting, finishing and
      *  moving through history (browser-chrome spec §3.1). [closing] is this one
-     *  view's: once it is true, every request is refused (see [dispositionFor]).
-     *  It is per view, not per interceptor, because a session — and its
-     *  interceptor — outlives the views that show it. */
+     *  page's: once it is true, every request is refused (see [dispositionFor]).
+     *  It is per page, not per interceptor, because a session's pages share
+     *  its interceptor and close one at a time (tabs spec §3.1). */
     fun clientFor(
         config: SiteConfig,
         proxyCredential: () -> ProxyCredential,

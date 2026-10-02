@@ -18,7 +18,8 @@ import '../../../../domain/services/biometric_service.dart';
 import '../../../../domain/services/crypto_service.dart';
 import '../../../../domain/services/panic_service.dart';
 import '../../../../domain/services/vault_unlocker.dart';
-import '../../dashboard/view_models/providers.dart' show openSiteIdsProvider;
+import '../../container/view_models/open_containers.dart' show openContainerCountProvider;
+import '../../container/view_models/providers.dart' show containerEngineProvider;
 import '../../lock/views/lock_body.dart' show LockMood;
 import '../../setup/view_models/setup_controller.dart';
 import 'lifecycle_controller.dart';
@@ -350,7 +351,6 @@ class SessionController extends Notifier<Session> {
     if (current is! SessionLocked || current.mood != LockMood.welcomeBack) {
       return;
     }
-    ref.read(openSiteIdsProvider.notifier).state = {};
     state = SessionLocked(
       mood: LockMood.afterTimeout,
       gate: current.gate,
@@ -376,20 +376,25 @@ class SessionController extends Notifier<Session> {
     final current = state;
     if (current is! SessionOpen) return;
     unawaited(current.database.close());
+    // `9b`'s count, read before anything closes: every listed container,
+    // throwaways included (tabs spec §5.4).
+    final openSessionCount = ref.read(openContainerCountProvider).value;
+    // Pages outlive the widget tree; the registry's reset sends this too, but
+    // no lock may depend on when Riverpod rebuilds it (tabs spec §5.8).
+    unawaited(ref.read(containerEngineProvider).closeAll());
 
     switch (destination) {
       case ReturnDestination.board:
         state = SessionLocked(
           mood: LockMood.welcomeBack,
           gate: const AttemptGate(),
-          openSessionCount: ref.read(openSiteIdsProvider).length,
+          openSessionCount: openSessionCount,
           lockDeadline: DateTime.now().add(_lifecycle.policy.grace),
           biometricVault: current.vault,
           biometricWrappedKey: current.biometricWrappedKey,
           lockedAfter: _lifecycle.policy,
         );
       case ReturnDestination.pin:
-        ref.read(openSiteIdsProvider.notifier).state = {};
         state = SessionLocked(
           mood: LockMood.afterTimeout,
           gate: const AttemptGate(),
