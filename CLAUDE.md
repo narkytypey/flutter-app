@@ -1065,13 +1065,15 @@ User's rulings of 2026-09-30, branch `second/modest-knuth-f83zbx`
 - ~~No git repo initialized yet, and Flutter isn't installed on this machine as
   of the last check — Plan 1 Task 1 Step 1 bootstraps both.~~ Both exist now;
   `main` tracks `origin/main` on GitHub.
-- **This machine cannot reach GitHub** (as of 2026-09-29: pushing fails, and
-  a TCP connection to github.com:443 is "destination host unreachable"). The
-  `sqlite3` package's native-assets hook downloads a prebuilt binary from
-  GitHub, so `flutter test` in a fresh checkout or worktree fails with
-  "Building native assets failed" until the main checkout's
-  `.dart_tool/hooks_runner` is copied in. Flutter and Gradle commands also
-  need the Bash sandbox disabled.
+- **GitHub is reachable again** (`git fetch` and `git push origin main`
+  worked on 2026-10-02). On 2026-09-29 it was not: pushing failed, and a TCP
+  connection to github.com:443 was "destination host unreachable". If that
+  recurs, `flutter test` in a fresh checkout or worktree fails with "Building
+  native assets failed", because the `sqlite3` package's native-assets hook
+  downloads a prebuilt binary from GitHub. Copying in the main checkout's
+  `.dart_tool/hooks_runner` works around it. Whether a fresh worktree now
+  builds without that copy was not checked. Flutter and Gradle commands need
+  the Bash sandbox disabled.
 - Multiple Claude sessions may be working here in parallel; check in before
   starting implementation work on a plan another session may already have
   picked up (`ListAgents` / cross-session message), since there's no git
