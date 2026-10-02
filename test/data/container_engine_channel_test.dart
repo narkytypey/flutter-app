@@ -113,6 +113,22 @@ void main() {
     expect(sessionsFromEvent(event).single.pages, isEmpty);
   });
 
+  test("a session map's grants decode to their PermissionKind, unknown names dropped", () {
+    Map<Object?, Object?> event(Object? grants) => <Object?, Object?>{
+          'type': 'sessions',
+          'sessions': [
+            {
+              'siteId': 's1', 'phase': 'live', 'lastActiveAt': null,
+              'blockedCount': 0, 'categoryCounts': <String, Object?>{}, 'failure': null,
+              if (grants != null) 'grants': grants,
+            },
+          ],
+        };
+    expect(sessionsFromEvent(event(['camera', 'location', 'bogus'])).single.grants,
+        {PermissionKind.camera, PermissionKind.location});
+    expect(sessionsFromEvent(event(null)).single.grants, isEmpty);
+  });
+
   test('navigation, find_result, permission_request and download decode their page', () {
     final navigation = navigationFromEvent(<Object?, Object?>{
       'type': 'navigation', 'siteId': 's1', 'pageId': 'pg-2', 'url': 'https://a.example/',
@@ -289,6 +305,21 @@ void main() {
       expect(calls[8].arguments, {'pageId': 'pg-1'});
       expect(calls[9].arguments, {'pageId': 'pg-1'});
       expect(calls[10].arguments, {'pageId': 'pg-1'});
+    });
+
+    test('revokeGrant sends the site and the kind by name', () async {
+      messenger.setMockStreamHandler(events, MockStreamHandler.inline(onListen: (_, __) {}));
+      final calls = <MethodCall>[];
+      messenger.setMockMethodCallHandler(methods, (call) async {
+        calls.add(call);
+        return null;
+      });
+      final engine = ChannelContainerEngine();
+
+      await engine.revokeGrant('s1', PermissionKind.microphone);
+
+      expect(calls.single.method, 'revokeGrant');
+      expect(calls.single.arguments, {'siteId': 's1', 'kind': 'microphone'});
     });
 
     test('close, closePage and closeAll send what Kotlin reads', () async {

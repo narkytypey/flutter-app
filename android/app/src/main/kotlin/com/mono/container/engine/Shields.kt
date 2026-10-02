@@ -107,7 +107,7 @@ object Shields {
         override fun onGeolocationPermissionsShowPrompt(
             origin: String, callback: android.webkit.GeolocationPermissions.Callback,
         ) {
-            if (config.allowLocation || session.sessionGrants.contains("geolocation")) {
+            if (config.allowLocation || session.sessionGrants.contains(SessionGrants.GEOLOCATION)) {
                 callback.invoke(origin, true, false)
                 return
             }

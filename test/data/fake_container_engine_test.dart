@@ -2,6 +2,7 @@ import 'package:container/data/services/fake_container_engine.dart';
 import 'package:container/domain/models/container_session.dart';
 import 'package:container/domain/models/engine_events.dart';
 import 'package:container/domain/models/open_page.dart';
+import 'package:container/domain/models/permissions.dart';
 import 'package:container/domain/models/site.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -117,5 +118,33 @@ void main() {
     expect(engine.reloaded, ['s1-p1']);
     expect(engine.wentBack, ['s1-p1']);
     expect(engine.loaded, [(pageId: 's1-p1', url: 'https://s1.example.com/a')]);
+  });
+
+  test('a while-open grant shows in the session, and revokeGrant takes only that kind', () async {
+    final engine = FakeContainerEngine();
+    await engine.open(_site('s1'));
+    final emitted = <List<ContainerSession>>[];
+    final sub = engine.sessions().listen(emitted.add);
+
+    engine.grantWhileOpen('s1', PermissionKind.camera);
+    engine.grantWhileOpen('s1', PermissionKind.location);
+    await engine.revokeGrant('s1', PermissionKind.camera);
+    await engine.revokeGrant('s1', PermissionKind.microphone);
+    await engine.revokeGrant('nobody', PermissionKind.location);
+    await Future<void>.delayed(Duration.zero);
+    await sub.cancel();
+
+    expect((await engine.liveSessions()).single.grants, {PermissionKind.location});
+    expect(engine.revokedGrants.map((r) => (r.siteId, r.kind)), [
+      ('s1', PermissionKind.camera),
+      ('s1', PermissionKind.microphone),
+      ('nobody', PermissionKind.location),
+    ]);
+    // Two grants and one real revoke; a kind not granted emits nothing.
+    expect(emitted.map((list) => list.single.grants), [
+      {PermissionKind.camera},
+      {PermissionKind.camera, PermissionKind.location},
+      {PermissionKind.location},
+    ]);
   });
 }

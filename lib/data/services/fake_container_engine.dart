@@ -249,6 +249,25 @@ class FakeContainerEngine implements ContainerEngine {
   @override
   Future<void> keep(String siteId) async => kept.add(siteId);
 
+  final revokedGrants = <({String siteId, PermissionKind kind})>[];
+
+  /// Test helper: an "allow while open" decision, as the native session records it.
+  void grantWhileOpen(String siteId, PermissionKind kind) {
+    final current = _sessions[siteId];
+    if (current == null) return;
+    _sessions[siteId] = current.copyWith(grants: {...current.grants, kind});
+    _emit();
+  }
+
+  @override
+  Future<void> revokeGrant(String siteId, PermissionKind kind) async {
+    revokedGrants.add((siteId: siteId, kind: kind));
+    final current = _sessions[siteId];
+    if (current == null || !current.grants.contains(kind)) return;
+    _sessions[siteId] = current.copyWith(grants: {...current.grants}..remove(kind));
+    _emit();
+  }
+
   /// Test helpers: push one event of each new kind.
   void emitPermissionRequest(PendingPermissionRequest request) =>
       _permissionController.add(request);

@@ -1,6 +1,7 @@
 import 'route_decision.dart' show RouteFailure;
 import 'blocked_tally.dart' show BlockedCategory;
 import 'open_page.dart';
+import 'permissions.dart';
 
 /// Runtime-only. Never persisted — Plan 1's rule: sessions do not survive the
 /// app closing.
@@ -15,6 +16,7 @@ class ContainerSession {
     this.categoryCounts = const {},
     this.failure,
     this.pages = const [],
+    this.grants = const {},
   });
 
   final String siteId;
@@ -38,6 +40,10 @@ class ContainerSession {
   /// In opening order; empty for a refused open.
   final List<OpenPage> pages;
 
+  /// "Allow while this site is open" grants in this session (spec §3).
+  /// Never "allow once", never clipboard.
+  final Set<PermissionKind> grants;
+
   ContainerSession copyWith({
     SessionPhase? phase,
     DateTime? lastActiveAt,
@@ -45,6 +51,7 @@ class ContainerSession {
     Map<BlockedCategory, int>? categoryCounts,
     RouteFailure? failure,
     List<OpenPage>? pages,
+    Set<PermissionKind>? grants,
   }) =>
       ContainerSession(
         siteId: siteId,
@@ -54,5 +61,6 @@ class ContainerSession {
         categoryCounts: categoryCounts ?? this.categoryCounts,
         failure: failure ?? this.failure,
         pages: pages ?? this.pages,
+        grants: grants ?? this.grants,
       );
 }
