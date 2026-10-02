@@ -3,10 +3,14 @@
          debug and profile manifests (for hot reload), so without this line a
          release build ships unable to load a single page. -->
     <uses-permission android:name="android.permission.INTERNET"/>
+    <!-- usesCleartextTraffic: the address bar and the site form accept
+         http:// (user's ruling 2026-10-02: allow them). Without it, targetSdk
+         28+ makes WebView refuse every http:// page before a request leaves. -->
     <application
         android:label="Container"
         android:name="${applicationName}"
-        android:icon="@mipmap/ic_launcher">
+        android:icon="@mipmap/ic_launcher"
+        android:usesCleartextTraffic="true">
         <activity
             android:name=".MainActivity"
             android:exported="true"
