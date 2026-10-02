@@ -92,7 +92,7 @@ the caller passes, in the colour the caller passes.
 | `plus` | `10a`/`10d`'s `+` | (12, 5)–(12, 19) and (5, 12)–(19, 12) |
 | `more` | `⋯` | three **filled** dots, r 1.75, at (5.5, 12), (12, 12), (18.5, 12) |
 | `vault` | `◇` | closed diamond (12, 3.5) (20.5, 12) (12, 20.5) (3.5, 12) |
-| `fingerprint` | `☉` | concentric open arcs about (12, 13), r 8.5 / 5.5 / 2.5, the inner one running into a short tail down to (12, 20) |
+| `fingerprint` | `☉` | concentric open arcs about (12, 13), r 8.5 / 5.5 / 2.5, the two inner ones running down into short tails, and a short centre stroke |
 | `backspace` | `⌫` | outline (8.5, 5.5) (20, 5.5) (20, 18.5) (8.5, 18.5) (3.5, 12) closed, with an × from (11.5, 9.5) to (16.5, 14.5) |
 | `refused` | `⛌` | circle r 8.5 at (12, 12) and a slash (6, 18)–(18, 6) |
 | `contrast` | `◑` | circle r 8 stroked, its right half filled |
@@ -180,7 +180,7 @@ says Figtree needs to render at the right weight. Every other raw
 
 ## 6. Guarding it
 
-A test reads every `.dart` file under `lib/ui` and fails if a line outside a
+A test reads every `.dart` file under `lib/` and fails if a line outside a
 comment has `Icons.` or any of `‹ › × ⟳ ◑ ◉ ◇ ☉ ⛌ ✓ ⋯ ▲ ▼ ⌕ ☰ ≡`. `⌫` is
 allowed only as the keypad's key value. Copy punctuation (`·`, `“ ”`) is not
 in the set.
