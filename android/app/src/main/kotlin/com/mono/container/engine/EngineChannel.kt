@@ -278,14 +278,14 @@ class EngineChannel(
         session.navigation = snapshot
         val siteId = session.config.siteId
         if (sessions[siteId] !== session) return
-        sink?.success(snapshot.toEvent(siteId))
+        sink?.success(snapshot.toEvent(siteId, siteId))
     }
 
     /** Called by [ContainerView] once a find has finished counting. */
     fun onFindResult(session: Session, activeMatch: Int, matchCount: Int) {
         val siteId = session.config.siteId
         if (sessions[siteId] !== session) return
-        sink?.success(findResultEvent(siteId, activeMatch, matchCount))
+        sink?.success(findResultEvent(siteId, siteId, activeMatch, matchCount))
     }
 
     /** The open view for the call's `siteId`. Every in-page control is a
@@ -339,7 +339,7 @@ class EngineChannel(
                 }
                 "navigationState" -> {
                     val siteId = call.argument<String>("siteId")!!
-                    result.success(sessions[siteId]?.navigation?.toEvent(siteId))
+                    result.success(sessions[siteId]?.navigation?.toEvent(siteId, siteId))
                 }
                 "wipe" -> {
                     val profileId = call.argument<String>("profileId")!!
