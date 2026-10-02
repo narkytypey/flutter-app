@@ -116,6 +116,12 @@ void main() {
   testWidgets('saving keeps the typed login', (tester) async {
     Site? saved;
     await _pump(tester, onSave: (s) => saved = s);
+    // Save stays inert until the address is one the engine would load.
+    await tester.tap(find.text('Basics'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byKey(const Key('add-site-address')), 'https://forum.example.com');
+    await tester.tap(find.text('Network'));
+    await tester.pumpAndSettle();
     await tester.tap(find.byKey(const Key('proxy-enabled')));
     await tester.pumpAndSettle();
     await tester.enterText(find.byKey(const Key('proxy-user')), 'alice');
