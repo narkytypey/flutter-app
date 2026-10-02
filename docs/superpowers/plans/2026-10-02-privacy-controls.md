@@ -2179,7 +2179,12 @@ Plan 15's registry (`OpenContainers`) owns every open, close and reopen. It alre
 
 ## Device checks
 
-**Not verified on a device.** No emulator or phone was available where this plan was written. Task 11 adds the run sheet to `tool/device-check/README.md`. Fill in this section with what was seen, check by check, when it is run, as Plans 13 and 14 did.
+**Not verified on a device.** No emulator or phone was available where this plan was written or executed (2026-10-02). Task 11 added the run sheet, "Run sheet: privacy controls (Plan 16)" in `tool/device-check/README.md`, and its test pages, `tool/device-check/pages.py` on `:8099`. Fill in this section with what was seen, check by check, when it is run, as Plans 13 and 14 did.
+
+Not one of the run sheet's eight checks has been run. In particular:
+- **Check 1, Safer's `http:` CSP, comes first.** If a meta CSP inserted at document start does not stop the parser's later scripts in WebView, Safer does not do what its picker line says on `http:` pages. The fallback, per-navigation `javaScriptEnabled`, is the user's call.
+- **Reader at Safest** (check 3) is expected to extract nothing, since `extractArticle` runs JavaScript.
+- **Revoke ending a live microphone stream** (check 7) comes from the WebView contract (a reload tears the document down), not from observation.
 
 ## Known gaps
 
@@ -2197,6 +2202,13 @@ From spec §1.4 and §9, and this plan:
 - **Plan 15's gap "cosmetic setting changes wait until an open container is closed and reopened" is closed for `6c`'s switches**, which now reopen in place. A change made in the full form (Edit) still waits, unless it changes the route or cookie policy (tabs spec §5.7).
 - **The level is not shown in the address pill** (user's ruling).
 
+Found while executing (2026-10-02):
+
+- **A reopen in place loses `8b`'s "Open without the tunnel".** A container on that one-visit direct open that gets a level or `6c` switch change reopens through its saved route (`reopenInPlace` calls `reopen` with `withoutTunnel: false`). This is fail-safe, since nothing goes direct that was not asked for, but the direct visit ends and, with the proxy still down, `8b` shows again. Not raised with the user; the spec did not cover it.
+- **Safer's script is appended to the shields' one `*`-origin document-start script**, not added as a second one as spec §1.2 describes. Same reach (every document and frame), same order (before the page's own scripts, and before the WebRTC and fingerprinting shields in the same script).
+- **Spec §7's Kotlin test "a swap not wiping, and a close still wiping" is a Dart test here.** The no-wipe swap is Dart's choice (`_engine.close(siteId, wipe: false)` in `reopenInPlace`), pinned by `open_containers_test.dart` against `FakeContainerEngine.closedWith`; the native close honours the flag it is given, as Plan 15 built it.
+- **`buildSite` dropped the level** (fixed, `b1b902f`): see the Execution record.
+
 ## Handoff
 
 - **`SecurityLevel` / `securityPolicyFor`** (Kotlin) is the one place a level becomes WebView settings and scripts. A new measure goes there, and in `safer.js` if it is a script, with its JVM test.
@@ -2207,8 +2219,43 @@ From spec §1.4 and §9, and this plan:
 
 ## Verification
 
-*(Filled in by Task 12.)*
+At `a5589ce` (Task 11, the last code-and-tool commit), on a clean tree, run by the controller after every task had passed its own gates:
+
+| Gate | Result |
+|---|---|
+| `flutter analyze` | No issues found |
+| `flutter test` | 825/825 passing (baseline 760) |
+| Kotlin JVM (`./gradlew :app:testDebugUnitTest --rerun`, old results deleted first) | 261 tests in 37 JUnit XML files, 0 failures, 0 errors, 0 skipped (baseline 250 in 35) |
+| `flutter build apk --debug` | Built on the first try, zero `e:` lines |
+
+Then `b1b902f` (Dart only: `buildSite` and one test): `flutter analyze` clean, `flutter test` **826/826**. No Kotlin changed after `a5589ce`, so the JVM count and the APK build stand.
+
+Spec re-read against the tree (Task 12 Step 2), section by section:
+- **§1 levels:** `SecurityPolicy.kt` / `securityPolicyFor`, `shields/safer.js`, `Shields.apply`'s early return, `Page.kt`'s two settings; `SecurityPolicyTest` (7). §1.5's fail-closed: `SecurityLevel.fromChannel` (Kotlin) and `SecurityLevel.fromStored` (Dart), both tested.
+- **§2.1 storage:** schema 9 (`security_level_storage_test.dart`: round trip, upgrade, decoy copy, throwaway null); the form keeping the level (`add_site_login_test.dart`, after the fix). **§2.2:** `engineExtrasFor` and the channel's `securityLevel` (`engine_extras_builder_test.dart`, `container_engine_channel_test.dart`). **§2.3:** both pickers and the Settings row (`security_level_picker_test.dart`, `security_level_setting_test.dart`), the ☰ and `6c` rows (`address_and_menu_test.dart`, `site_sheet_test.dart`). **§2.4:** `reopenInPlace` (`open_containers_test.dart`; `container_route_test.dart`'s "privacy controls" group, one test per switch and one for the level).
+- **§3 `6c`:** `site_sheet_test.dart` (level value with and without `· default`, category rows only above 0, `Allowed`/`Revoke`, Edit the only jade, no overflow at 360px); `revokeGrant` (`SessionGrantsTest`, the channel test, the fake's test, and the host test that Revoke calls it).
+- **§4 New identity:** `new_identity_sheet_test.dart`; `newIdentity` in `open_containers_test.dart` (saved, throwaway, per-site login, no other container touched) and two host tests (Cancel, confirm).
+- **§5 copy:** every new string checked against §5 when its task was reviewed; the confirm sheet word for word.
+- **§6:** no code asks which vault is open; the vault default is read from the open vault's `app_settings` only after an unlock; nothing new makes a request. Checked by reading the diffs; there is no test that could show the absence of a request.
+- Anything not carried is under Known gaps.
 
 ## Execution record
 
-*(Before Task 1: the baseline counts and the Plan 15 name table go here; then one entry per task, with its commit.)*
+Executed 2026-10-02 on branch `plan-16-privacy-controls` (from `c67f868`, this plan revised on top of `c4824bc`, a merge of `main` at `9bf5a39`), one implementer subagent per task, each diff reviewed by the controller before the next task started. Nothing was pushed or merged during execution.
+
+**Baseline** (before Task 1, clean tree): `flutter analyze` clean; `flutter test` 760/760; Kotlin JVM 250 tests in 35 JUnit XML files, 0 failures, 0 errors; `flutter build apk --debug` zero `e:` lines (the first attempt hit HTTP 429 from Maven Central; a retry built). The Plan 15 name table is in the header above: every name it gives was found in the tree as written.
+
+| Task | Commit | Dart tests after | Notes |
+|---|---|---|---|
+| 1 | `0ba1708` | 768 | As written. |
+| 2 | `1b96024` | 774 | The decoy re-sync test's site needed `showInDecoy: true` (re-sync copies only flagged sites); fixed in this plan too (`f7f7669`). |
+| 3 | `ddff522` | 780 | As written; `settings_test.dart`'s four `SettingsScreen` calls gained `securityLevelName`. |
+| 4 | `8fb7908` | 785 | The builder test's `build()` helper gained an optional site. |
+| 5 | `7c5d307` | 785 | JVM 257 in 36. `Page.kt`'s policy is a property (its `init` needs it too). |
+| 6 | `f00d684` | 791 | JVM 261 in 37. The emit after an "allow while open" grant follows WebView's answer. One extra fake-engine test. |
+| 7 | `b96d977` | 797 | `_SheetInfoRow` wraps instead of overflowing (the 360px test failed otherwise); three `container_route_test.dart` tests found `6c`'s switches by index and now find them by title. |
+| 8 | `d35c578` | 801 | `container_screen_test.dart` is at `test/ui/features/`; its close-before-report test gained the two rows. |
+| 9 | `75dbcf2` | 818 | `OpenContainers.updateSite` removed (its only caller was the throwaway branch `reopenInPlace` replaces). Two existing host tests reopen `6c` between switches, since each switch now closes it. Registry test ids are two characters (`_site` needs them). |
+| 10 | `39f1b59` | 825 | "Last worked" is cleared and then recorded again by the live reopen, so the registry test pins the sequence `[now, null, now]` instead of a final null. |
+| 11 | `a5589ce` | 825 | Added `/article.html` (check 3 needs an article page), `no-store` on every response, `/mic.html` opened as `http://localhost` on a SOCKS5 site (a secure context, which `getUserMedia` needs), and a `--bind` option. |
+| 12 | `b1b902f`, then the docs commit | 826 | **Found re-reading the spec: `buildSite` (`add_site_view.dart`) built the `Site` afresh and dropped `securityLevel`,** so Edit, `8b`'s Change proxy settings and Save as a site reset a site's own level to the default. Spec §2.1 says saving the form keeps it; this plan never named `buildSite`. Fixed with a test that fails without it. |
