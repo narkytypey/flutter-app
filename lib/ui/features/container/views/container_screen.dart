@@ -68,7 +68,10 @@ class ContainerScreen extends StatefulWidget {
     required this.onClearFind,
     required this.onSaveAsSite,
     required this.onDismissSaveBar,
+    required this.onViewContainer,
+    required this.onViewPage,
     required this.onCloseSession,
+    required this.onClosePage,
     required this.onCloseAllAndWipe,
   });
 
@@ -140,7 +143,15 @@ class ContainerScreen extends StatefulWidget {
   final VoidCallback onClearFind;
   final VoidCallback onSaveAsSite;
   final VoidCallback onDismissSaveBar;
+  /// `2c`'s container row: view that container on its last viewed page.
+  final void Function(String siteId) onViewContainer;
+
+  /// `2c`'s page row: view that page.
+  final void Function(String siteId, String pageId) onViewPage;
   final void Function(String siteId) onCloseSession;
+
+  /// `2c`'s × on a page row: close that page only.
+  final void Function(String siteId, String pageId) onClosePage;
   final VoidCallback onCloseAllAndWipe;
 
   @override
@@ -230,9 +241,23 @@ class _ContainerScreenState extends State<ContainerScreen> {
       builder: (sheetContext) => SwitcherSheet(
         entries: widget.entries,
         workspaceName: widget.workspaceName,
+        // Each one closes the sheet by its own context first, so whatever it
+        // does acts on the route under the sheet, never on the sheet.
+        onViewContainer: (siteId) {
+          Navigator.pop(sheetContext);
+          widget.onViewContainer(siteId);
+        },
+        onViewPage: (siteId, pageId) {
+          Navigator.pop(sheetContext);
+          widget.onViewPage(siteId, pageId);
+        },
         onCloseSession: (siteId) {
           Navigator.pop(sheetContext);
           widget.onCloseSession(siteId);
+        },
+        onClosePage: (siteId, pageId) {
+          Navigator.pop(sheetContext);
+          widget.onClosePage(siteId, pageId);
         },
         onCloseAllAndWipe: () {
           Navigator.pop(sheetContext);

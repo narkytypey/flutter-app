@@ -14,6 +14,7 @@ import 'package:container/ui/features/container/views/container_bottom_bar.dart'
 import 'package:container/ui/features/container/views/container_screen.dart';
 import 'package:container/ui/features/container/views/container_top_bar.dart';
 import 'package:container/ui/features/container/views/find_bar.dart';
+import 'package:container/ui/features/container/views/switcher_sheet.dart';
 import 'package:container/ui/features/container/views/throwaway_save_bar.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -86,6 +87,15 @@ ContainerScreen _screen({
   FindResult? findResult,
   bool showSaveBar = false,
   String address = 'https://forum.example.com/t/9',
+  List<SwitcherEntry> entries = const [
+    SwitcherEntry(
+      siteId: 's1',
+      name: 'Forum',
+      monogram: 'Fr',
+      meta: 'viewing now · socks5',
+      live: true,
+    ),
+  ],
 }) =>
     ContainerScreen(
       host: host,
@@ -94,15 +104,7 @@ ContainerScreen _screen({
       navigation: navigation,
       openCount: 3,
       body: const _Page(),
-      entries: const [
-        SwitcherEntry(
-          siteId: 's1',
-          name: 'Forum',
-          monogram: 'Fr',
-          meta: 'viewing now · socks5',
-          live: true,
-        ),
-      ],
+      entries: entries,
       workspaceName: 'Personal',
       siteMonogram: 'Fr',
       siteName: 'Forum',
@@ -131,7 +133,10 @@ ContainerScreen _screen({
       onClearFind: () => _calls.add('clear find'),
       onSaveAsSite: () => _calls.add('save as a site'),
       onDismissSaveBar: () => _calls.add('dismiss save bar'),
+      onViewContainer: (siteId) => _calls.add('view $siteId'),
+      onViewPage: (siteId, pageId) => _calls.add('view $siteId $pageId'),
       onCloseSession: (siteId) => _calls.add('close $siteId'),
+      onClosePage: (siteId, pageId) => _calls.add('close $siteId $pageId'),
       onCloseAllAndWipe: () => _calls.add('close all and wipe'),
     );
 
@@ -241,6 +246,54 @@ void main() {
 
     expect(find.text('1 OPEN SESSIONS'), findsOneWidget);
     expect(find.text('viewing now · socks5'), findsOneWidget);
+  });
+
+  testWidgets('the switcher closes itself before each view or close it reports', (tester) async {
+    const entries = [
+      SwitcherEntry(
+        siteId: 's1',
+        name: 'Forum',
+        monogram: 'Fr',
+        meta: 'viewing now · socks5',
+        live: true,
+        pages: [
+          SwitcherPage(
+              pageId: 'p1', title: 'Thread: rules',
+              host: 'forum.example.com', current: true),
+          SwitcherPage(
+              pageId: 'p2', title: 'Members',
+              host: 'forum.example.com', current: false),
+        ],
+      ),
+    ];
+    await tester.pumpWidget(_app(_screen(entries: entries)));
+
+    final taps = <(Finder Function(), String)>[
+      (
+        () => find.descendant(
+            of: find.byType(SwitcherSheet), matching: find.text('Forum')),
+        'view s1'
+      ),
+      (() => find.text('Members'), 'view s1 p2'),
+      (
+        () => find.descendant(
+            of: find.byType(SwitcherSheet), matching: find.text('×')).at(1),
+        'close s1 p1'
+      ),
+      (
+        () => find.descendant(
+            of: find.byType(SwitcherSheet), matching: find.text('×')).first,
+        'close s1'
+      ),
+    ];
+    for (final (target, call) in taps) {
+      await tester.tap(find.text('3 OPEN'));
+      await tester.pumpAndSettle();
+      await tester.tap(target());
+      await tester.pumpAndSettle();
+      expect(find.byType(SwitcherSheet), findsNothing, reason: call);
+      expect(_calls.last, call);
+    }
   });
 
   testWidgets('the ☰ menu names this site, and closes itself before each action it reports', (tester) async {

@@ -815,6 +815,10 @@ class _ContainerRouteState extends ConsumerState<ContainerRoute> {
             onDismissSaveBar: () => setState(() => _saveBarDismissed = true),
             // The switcher has already closed itself by now. Only closing
             // this route's own site leaves it with nothing to show.
+            // Task 7 of the tabs plan wires these to the registry.
+            onViewContainer: (_) {},
+            onViewPage: (_, __) {},
+            onClosePage: (_, __) {},
             onCloseSession: (siteId) async {
               closeSite(ref, siteId);
               await _engine.close(siteId);
