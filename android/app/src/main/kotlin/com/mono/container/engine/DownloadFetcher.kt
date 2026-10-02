@@ -66,7 +66,7 @@ class IncompleteDownloadException(val received: Long, val expected: Long) :
  * non-2xx answer never becomes the file at all — a 401 login page kept as
  * `report.pdf` would read as a success.
  *
- * A read error is rethrown unchanged so `failureFor` can still name it.
+ * A read error is rethrown unchanged so [downloadFailureFor] can still name it.
  */
 fun writeDownload(response: ProxyHttpClient.FetchedResponse, target: java.io.File) {
     if (response.status !in 200..299) {
@@ -87,6 +87,33 @@ fun writeDownload(response: ProxyHttpClient.FetchedResponse, target: java.io.Fil
     }
 }
 
+/**
+ * The failure a download's outcome line names. Mirrors the mapping the
+ * interceptor used for proxied page loads before P2 (Plan 13), so a download
+ * names the same cause a page load did.
+ *
+ * [route] is why this is not a verbatim copy of that mapping. The
+ * interceptor's fetch only ever ran for a [Route.Proxy], so it could read a
+ * [java.net.ConnectException] as "the proxy is down". This function also runs
+ * for [Route.Direct], where there is no proxy to be unreachable and the same
+ * exception means the destination refused the connection — reporting
+ * PROXY_UNREACHABLE there would show "Cannot reach the proxy" for a site that
+ * has no proxy configured.
+ *
+ * A rejected login is named on any route: on a direct one it can only come
+ * from the network's own proxy, which really did reject it.
+ */
+internal fun downloadFailureFor(error: Throwable, route: Route): RouteFailure? = when (error) {
+    is ProxyLoginRejectedException -> RouteFailure.PROXY_LOGIN_REJECTED
+    is ProxyTunnelException -> RouteFailure.PROXY_REFUSED
+    is java.net.SocketTimeoutException -> RouteFailure.UPSTREAM_TIMEOUT
+    is javax.net.ssl.SSLException -> RouteFailure.TLS_FAILURE
+    is java.net.ConnectException ->
+        if (route is Route.Proxy) RouteFailure.PROXY_UNREACHABLE
+        else RouteFailure.UPSTREAM_TIMEOUT
+    else -> null
+}
+
 class DownloadFetcher(
     private val context: android.content.Context,
     private val profiles: ProfileManager,
@@ -103,38 +130,16 @@ class DownloadFetcher(
         val fileName = sanitizeFileName(pending.fileName)
         return when (decisionName) {
             "keepInContainer" -> runCatching { keepInContainer(route, config, pending, request, fileName) }
-                .getOrElse { DownloadOutcome.Failed(failureFor(it, route)) }
+                .getOrElse { DownloadOutcome.Failed(downloadFailureFor(it, route)) }
             "saveToDevice" -> when (route) {
                 is Route.Direct -> runCatching { saveViaDownloadManager(pending, request, fileName) }
-                    .getOrElse { DownloadOutcome.Failed(failureFor(it, route)) }
+                    .getOrElse { DownloadOutcome.Failed(downloadFailureFor(it, route)) }
                 is Route.Proxy -> runCatching { saveViaMediaStore(route, pending, request, fileName) }
-                    .getOrElse { DownloadOutcome.Failed(failureFor(it, route)) }
+                    .getOrElse { DownloadOutcome.Failed(downloadFailureFor(it, route)) }
                 is Route.Refused -> error("handled above")
             }
             else -> error("unsupported download decision")
         }
-    }
-
-    /**
-     * Mirrors the mapping the interceptor used for proxied page loads before
-     * P2 (Plan 13), so a download names the same cause a page load did.
-     *
-     * [route] is why this is not a verbatim copy of that mapping. The
-     * interceptor's fetch only ever ran for a [Route.Proxy], so it could read a
-     * [java.net.ConnectException] as "the proxy is down". This function also
-     * runs for [Route.Direct], where there is no proxy to be unreachable and the
-     * same exception means the destination refused the connection — reporting
-     * PROXY_UNREACHABLE there would show "Cannot reach the proxy" for a site
-     * that has no proxy configured.
-     */
-    private fun failureFor(error: Throwable, route: Route): RouteFailure? = when (error) {
-        is ProxyTunnelException -> RouteFailure.PROXY_REFUSED
-        is java.net.SocketTimeoutException -> RouteFailure.UPSTREAM_TIMEOUT
-        is javax.net.ssl.SSLException -> RouteFailure.TLS_FAILURE
-        is java.net.ConnectException ->
-            if (route is Route.Proxy) RouteFailure.PROXY_UNREACHABLE
-            else RouteFailure.UPSTREAM_TIMEOUT
-        else -> null
     }
 
     private fun keepInContainer(route: Route, config: SiteConfig, pending: PendingDownload, request: DownloadRequest, fileName: String): DownloadOutcome {

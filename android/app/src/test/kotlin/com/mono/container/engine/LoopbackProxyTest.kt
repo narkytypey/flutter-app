@@ -368,6 +368,32 @@ class LoopbackProxyTest {
         assertTrue(reported.isEmpty())
     }
 
+    /** Proxy-auth spec §3: a rejected login is the route's fault, so it is reported like a refused route. */
+    @Test fun `a rejected login answers 502 and tells the site`() {
+        val reported = CopyOnWriteArrayList<RouteFailure>()
+        val credentials = SiteCredentials()
+        credentials.bind("p1", ProxyBinding(config("p1", mode = "socks5", host = "127.0.0.1", port = 1)) { reported += it })
+        LoopbackProxy(credentials, bySettings, connect = { _, _, _ -> throw ProxyLoginRejectedException("rejected") }).start().use { proxy ->
+            send(proxy, "CONNECT example.test:443 HTTP/1.1\r\n${auth(credentials.credentialFor("p1"))}\r\n").use { socket ->
+                assertEquals(502, statusOf(socket))
+            }
+        }
+        assertEquals(listOf(RouteFailure.PROXY_LOGIN_REJECTED), reported)
+    }
+
+    /** A direct site behind a Wi-Fi proxy that wants a login: answered, never reported (spec §3, "only for a Route.Proxy"). */
+    @Test fun `a rejected login on a direct route is not reported`() {
+        val reported = CopyOnWriteArrayList<RouteFailure>()
+        val credentials = SiteCredentials()
+        credentials.bind("p1", ProxyBinding(config("p1")) { reported += it })
+        LoopbackProxy(credentials, bySettings, connect = { _, _, _ -> throw ProxyLoginRejectedException("rejected") }).start().use { proxy ->
+            send(proxy, "CONNECT example.test:443 HTTP/1.1\r\n${auth(credentials.credentialFor("p1"))}\r\n").use { socket ->
+                assertEquals(502, statusOf(socket))
+            }
+        }
+        assertTrue(reported.isEmpty())
+    }
+
     @Test fun `an upstream timeout answers 504`() {
         val credentials = SiteCredentials()
         credentials.bind("p1", ProxyBinding(config("p1")) {})

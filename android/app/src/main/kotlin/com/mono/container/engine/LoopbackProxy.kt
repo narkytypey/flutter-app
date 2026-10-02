@@ -109,8 +109,9 @@ class LoopbackProxy(
      * A socket to [host]:[port] on [binding]'s route, or null once [output]
      * has been answered. A refused route is reported to the site, as the
      * interceptor reported it before P2, unless its session has closed
-     * meanwhile. A failed connection is answered and reported to no one (plan
-     * deviation 1).
+     * meanwhile. A failed connection is answered and, unless it is a rejected
+     * login on a proxied route ([reportedUpstreamFailure]), reported to no one
+     * (plan deviation 1).
      */
     private fun upstream(binding: ProxyBinding, host: String, port: Int, output: OutputStream, label: String): Socket? {
         val route = resolve(binding.config)
@@ -125,6 +126,7 @@ class LoopbackProxy(
             // HttpConnectTunnel leaves its handshake timeout set; a relay has none.
             connect(route, host, port).apply { soTimeout = 0 }
         } catch (error: Exception) {
+            reportedUpstreamFailure(error, route)?.let { if (!binding.isRevoked) binding.onRefused(it) }
             val status = upstreamFailureStatus(error)
             note("$label -> $status upstream failed (${error.javaClass.simpleName})")
             output.write(statusResponse(status))
