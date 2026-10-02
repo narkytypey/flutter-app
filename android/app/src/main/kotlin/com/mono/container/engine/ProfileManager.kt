@@ -90,7 +90,7 @@ class ProfileManager(private val pending: PendingDeletions) {
 
     /**
      * Wipes every throwaway that outlived its page — the app died with it
-     * open, so `ContainerView.dispose` never ran (browser-chrome spec §5.4).
+     * open, so its container never closed (browser-chrome spec §5.4).
      * Like [sweepPendingDeletions] this runs before anything loads a profile,
      * so each [wipe] deletes outright. One whose wipe throws stays listed for
      * the next start. With nothing listed, WebView is not started at all.

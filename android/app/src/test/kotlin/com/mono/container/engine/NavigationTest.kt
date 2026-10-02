@@ -89,18 +89,18 @@ class NavigationTest {
     @Test fun `the navigation event carries every key Dart reads`() {
         assertEquals(
             mapOf(
-                "type" to "navigation", "siteId" to "s1", "url" to "https://a.example/x",
+                "type" to "navigation", "siteId" to "s1", "pageId" to "p1", "url" to "https://a.example/x",
                 "title" to "X", "canGoBack" to true, "canGoForward" to false,
                 "loading" to false, "progress" to 100,
             ),
-            NavigationSnapshot("https://a.example/x", "X", true, false, false, 100).toEvent("s1"),
+            NavigationSnapshot("https://a.example/x", "X", true, false, false, 100).toEvent("s1", "p1"),
         )
     }
 
     @Test fun `the find result event carries every key Dart reads`() {
         assertEquals(
-            mapOf("type" to "find_result", "siteId" to "s1", "activeMatch" to 2, "matchCount" to 7),
-            findResultEvent("s1", 2, 7),
+            mapOf("type" to "find_result", "siteId" to "s1", "pageId" to "p1", "activeMatch" to 2, "matchCount" to 7),
+            findResultEvent("s1", "p1", 2, 7),
         )
     }
 

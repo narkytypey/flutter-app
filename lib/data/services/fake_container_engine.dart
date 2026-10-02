@@ -7,6 +7,7 @@ import '../../domain/models/engine_extras.dart';
 import '../../domain/models/find_result.dart';
 import '../../domain/models/held_download.dart' show DownloadDecision;
 import '../../domain/models/navigation_state.dart';
+import '../../domain/models/open_page.dart';
 import '../../domain/models/permissions.dart';
 import '../../domain/models/reader_article.dart';
 import '../../domain/models/route_decision.dart';
@@ -35,6 +36,20 @@ class FakeContainerEngine implements ContainerEngine {
   final wiped = <String>[];
   final closed = <String>[];
 
+  /// The `wipe` argument of each site's latest [close], by site id: null for
+  /// a close that left it to the session's own wipe-on-exit.
+  final closedWith = <String, bool?>{};
+
+  /// Every page id passed to [closePage], in order.
+  final closedPages = <String>[];
+
+  /// How many times [closeAll] was called.
+  int closedAll = 0;
+
+  /// How many pages each site has been given, across every open: a page id
+  /// is `'<siteId>-p<n>'` and is never reused.
+  final _pageCounts = <String, int>{};
+
   /// The extras each site was last opened with, by site id.
   final openedExtras = <String, EngineExtras>{};
 
@@ -47,12 +62,14 @@ class FakeContainerEngine implements ContainerEngine {
   /// The ids of the sites opened as throwaways.
   final openedAsThrowaway = <String>{};
 
+  // The in-page controls, each recording the page ids it was called with.
+  final reloaded = <String>[];
   final wentBack = <String>[];
   final wentForward = <String>[];
   final stopped = <String>[];
-  final loaded = <({String siteId, String url})>[];
-  final findQueries = <({String siteId, String query})>[];
-  final findSteps = <({String siteId, bool forward})>[];
+  final loaded = <({String pageId, String url})>[];
+  final findQueries = <({String pageId, String query})>[];
+  final findSteps = <({String pageId, bool forward})>[];
   final clearedFind = <String>[];
   final kept = <String>[];
 
@@ -62,12 +79,29 @@ class FakeContainerEngine implements ContainerEngine {
   final _tunnelDroppedController = StreamController<TunnelDroppedEvent>.broadcast();
   final _navigationController = StreamController<NavigationState>.broadcast();
   final _findController = StreamController<FindResult>.broadcast();
+  final _pageOpenedController = StreamController<PageOpened>.broadcast();
+
+  /// The last navigation state of each page, by page id.
   final _navigation = <String, NavigationState>{};
   final resolvedPermissions = <String, PermissionDecision>{};
   final resolvedDownloads = <({String requestId, DownloadDecision decision})>[];
   ReaderArticle? articleToReturn;
 
   void _emit() => _controller.add(_sessions.values.toList());
+
+  String _newPageId(String siteId) {
+    final n = (_pageCounts[siteId] ?? 0) + 1;
+    _pageCounts[siteId] = n;
+    return '$siteId-p$n';
+  }
+
+  /// The site whose container holds [pageId], or null.
+  String? _siteOfPage(String pageId) {
+    for (final session in _sessions.values) {
+      if (session.pages.any((page) => page.pageId == pageId)) return session.siteId;
+    }
+    return null;
+  }
 
   @override
   Future<bool> isolationAvailable() async => isolation;
@@ -84,12 +118,15 @@ class FakeContainerEngine implements ContainerEngine {
     openedInitialUrls[site.id] = initialUrl;
     if (throwaway) openedAsThrowaway.add(site.id);
     final decision = resolveRoute(site, proxyReachable: proxyReachable);
+    final refused = decision is RouteRefused;
     final session = ContainerSession(
       siteId: site.id,
-      phase: decision is RouteRefused
+      phase: refused
           ? SessionPhase.refused
           : (opensLive ? SessionPhase.live : SessionPhase.opening),
       lastActiveAt: DateTime(2026, 8, 30, 12),
+      // A refused open has no page; a routable one starts with one.
+      pages: refused ? const [] : [OpenPage(pageId: _newPageId(site.id))],
     );
     _sessions[site.id] = session;
     _emit();
@@ -109,11 +146,39 @@ class FakeContainerEngine implements ContainerEngine {
   }
 
   @override
-  Future<void> close(String siteId) async {
+  Future<void> close(String siteId, {bool? wipe}) async {
     closed.add(siteId);
+    closedWith[siteId] = wipe;
     _sessions.remove(siteId);
     _emit();
   }
+
+  @override
+  Future<void> closePage(String pageId) async {
+    closedPages.add(pageId);
+    final siteId = _siteOfPage(pageId);
+    if (siteId == null) return;
+    final session = _sessions[siteId]!;
+    if (session.pages.length <= 1) {
+      await close(siteId);
+      return;
+    }
+    _sessions[siteId] = session.copyWith(
+      pages: [for (final page in session.pages) if (page.pageId != pageId) page],
+    );
+    _emit();
+  }
+
+  @override
+  Future<void> closeAll() async {
+    closedAll++;
+    for (final siteId in _sessions.keys.toList()) {
+      await close(siteId);
+    }
+  }
+
+  @override
+  Stream<PageOpened> pageOpened() => _pageOpenedController.stream;
 
   @override
   Stream<List<ContainerSession>> sessions() => _controller.stream;
@@ -123,7 +188,7 @@ class FakeContainerEngine implements ContainerEngine {
       _sessions.values.toList();
 
   @override
-  Future<void> reload(String siteId) async {}
+  Future<void> reload(String pageId) async => reloaded.add(pageId);
 
   @override
   Stream<PendingPermissionRequest> permissionRequests() => _permissionController.stream;
@@ -146,40 +211,40 @@ class FakeContainerEngine implements ContainerEngine {
   Stream<TunnelDroppedEvent> tunnelDropped() => _tunnelDroppedController.stream;
 
   @override
-  Future<ReaderArticle?> extractArticle(String siteId) async => articleToReturn;
+  Future<ReaderArticle?> extractArticle(String pageId) async => articleToReturn;
 
   @override
   Stream<NavigationState> navigation() => _navigationController.stream;
 
   @override
-  Future<NavigationState?> navigationState(String siteId) async => _navigation[siteId];
+  Future<NavigationState?> navigationState(String pageId) async => _navigation[pageId];
 
   @override
   Stream<FindResult> findResults() => _findController.stream;
 
   @override
-  Future<void> goBack(String siteId) async => wentBack.add(siteId);
+  Future<void> goBack(String pageId) async => wentBack.add(pageId);
 
   @override
-  Future<void> goForward(String siteId) async => wentForward.add(siteId);
+  Future<void> goForward(String pageId) async => wentForward.add(pageId);
 
   @override
-  Future<void> stop(String siteId) async => stopped.add(siteId);
+  Future<void> stop(String pageId) async => stopped.add(pageId);
 
   @override
-  Future<void> loadUrl(String siteId, String url) async =>
-      loaded.add((siteId: siteId, url: url));
+  Future<void> loadUrl(String pageId, String url) async =>
+      loaded.add((pageId: pageId, url: url));
 
   @override
-  Future<void> find(String siteId, String query) async =>
-      findQueries.add((siteId: siteId, query: query));
+  Future<void> find(String pageId, String query) async =>
+      findQueries.add((pageId: pageId, query: query));
 
   @override
-  Future<void> findNext(String siteId, {required bool forward}) async =>
-      findSteps.add((siteId: siteId, forward: forward));
+  Future<void> findNext(String pageId, {required bool forward}) async =>
+      findSteps.add((pageId: pageId, forward: forward));
 
   @override
-  Future<void> clearFind(String siteId) async => clearedFind.add(siteId);
+  Future<void> clearFind(String pageId) async => clearedFind.add(pageId);
 
   @override
   Future<void> keep(String siteId) async => kept.add(siteId);
@@ -191,16 +256,39 @@ class FakeContainerEngine implements ContainerEngine {
   void emitDownloadResult(DownloadResult result) => _downloadResultController.add(result);
   void emitTunnelDropped(TunnelDroppedEvent event) => _tunnelDroppedController.add(event);
 
-  /// Test helper: what a native view does on every page change — the event,
-  /// and the per-session snapshot `navigationState` returns.
+  /// Test helper: what a native page does on every change — the event, and
+  /// the per-page snapshot `navigationState` returns.
   void emitNavigation(NavigationState state) {
-    _navigation[state.siteId] = state;
+    _navigation[state.pageId] = state;
     _navigationController.add(state);
   }
 
   /// Test helper: the snapshot only — a change reported before anyone
   /// listened.
-  void seedNavigation(NavigationState state) => _navigation[state.siteId] = state;
+  void seedNavigation(NavigationState state) => _navigation[state.pageId] = state;
+
+  /// Test helper: what a native page does when a link the user tapped asks
+  /// for a new window (tabs spec §5.2) — a new page in [siteId]'s container,
+  /// reported as [PageOpened] and then in the sessions list. Returns its id.
+  String openPageFromLink(String siteId, {required String openerPageId}) {
+    final session = _sessions[siteId];
+    if (session == null) throw StateError('no session for $siteId');
+    final pageId = _newPageId(siteId);
+    _sessions[siteId] = session.copyWith(pages: [
+      ...session.pages,
+      OpenPage(pageId: pageId, openerPageId: openerPageId),
+    ]);
+    _pageOpenedController.add(
+        PageOpened(siteId: siteId, pageId: pageId, openerPageId: openerPageId));
+    _emit();
+    return pageId;
+  }
+
+  /// [siteId]'s open pages, in opening order; empty with no session.
+  List<OpenPage> pagesOf(String siteId) => _sessions[siteId]?.pages ?? const [];
+
+  /// The id of [siteId]'s first open page.
+  String firstPageOf(String siteId) => pagesOf(siteId).first.pageId;
 
   void emitFindResult(FindResult result) => _findController.add(result);
 
@@ -219,7 +307,7 @@ class FakeContainerEngine implements ContainerEngine {
     _emit();
   }
 
-  /// Test helper: what the native `ContainerView` does when its first load
+  /// Test helper: what a native page does when its container's first load
   /// finishes — `EngineChannel.markLive` moves an `opening` session to `live`.
   void markLive(String siteId) {
     final current = _sessions[siteId];
@@ -228,13 +316,15 @@ class FakeContainerEngine implements ContainerEngine {
     _emit();
   }
 
-  /// Test helper: put a session into the background without opening a page.
+  /// Test helper: put a session into the background without opening a page
+  /// view. It has one page, like any open container.
   void seedBackground(String siteId, {int blockedCount = 0}) {
     _sessions[siteId] = ContainerSession(
       siteId: siteId,
       phase: SessionPhase.background,
       lastActiveAt: DateTime(2026, 8, 30, 11, 58),
       blockedCount: blockedCount,
+      pages: [OpenPage(pageId: _newPageId(siteId))],
     );
     _emit();
   }
@@ -247,5 +337,6 @@ class FakeContainerEngine implements ContainerEngine {
     _tunnelDroppedController.close();
     _navigationController.close();
     _findController.close();
+    _pageOpenedController.close();
   }
 }

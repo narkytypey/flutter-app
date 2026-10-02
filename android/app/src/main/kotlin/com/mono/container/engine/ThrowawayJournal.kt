@@ -7,7 +7,7 @@ import java.io.File
  * spec §5.4), one opaque profile id per line in `filesDir/throwaway-profiles`.
  *
  * `open(throwaway = true)` lists the id before the profile is created, and it
- * leaves the list once `ContainerView.dispose` has wiped the profile or `keep`
+ * leaves the list once its container's close has wiped the profile or `keep`
  * has saved the site. Anything still listed when the engine starts belonged
  * to a page the app died with, and is wiped then. Panic's `wipeAll` destroys
  * every profile and clears the list.

@@ -9,6 +9,7 @@ import '../../domain/models/engine_extras.dart';
 import '../../domain/models/find_result.dart';
 import '../../domain/models/held_download.dart';
 import '../../domain/models/navigation_state.dart';
+import '../../domain/models/open_page.dart';
 import '../../domain/models/permissions.dart';
 import '../../domain/models/reader_article.dart';
 import '../../domain/models/route_decision.dart';
@@ -67,6 +68,14 @@ Map<BlockedCategory, int> _categoryCountsFrom(Object? raw) {
   return result;
 }
 
+List<OpenPage> _pagesFrom(Object? raw) => [
+      for (final entry in (raw as List<Object?>?) ?? const [])
+        OpenPage(
+          pageId: (entry! as Map<Object?, Object?>)['pageId']! as String,
+          openerPageId: entry['openerPageId'] as String?,
+        ),
+    ];
+
 ContainerSession _sessionFrom(Map<Object?, Object?> map) => ContainerSession(
       siteId: map['siteId']! as String,
       phase: _phase(map['phase']! as String),
@@ -76,6 +85,7 @@ ContainerSession _sessionFrom(Map<Object?, Object?> map) => ContainerSession(
       blockedCount: (map['blockedCount'] as int?) ?? 0,
       categoryCounts: _categoryCountsFrom(map['categoryCounts']),
       failure: _failure(map['failure'] as String?),
+      pages: _pagesFrom(map['pages']),
     );
 
 /// Exposed for testing — decodes a `type: "sessions"` event's payload.
@@ -88,6 +98,7 @@ List<ContainerSession> sessionsFromEvent(Map<Object?, Object?> event) =>
 PendingPermissionRequest permissionRequestFromEvent(Map<Object?, Object?> event) =>
     PendingPermissionRequest(
       siteId: event['siteId']! as String,
+      pageId: event['pageId']! as String,
       host: event['host']! as String,
       kind: _kind(event['kind']! as String),
       requestId: event['requestId']! as String,
@@ -96,6 +107,7 @@ PendingPermissionRequest permissionRequestFromEvent(Map<Object?, Object?> event)
 /// Exposed for testing — decodes a `type: "download"` event.
 HeldDownloadEvent downloadFromEvent(Map<Object?, Object?> event) => HeldDownloadEvent(
       siteId: event['siteId']! as String,
+      pageId: event['pageId']! as String,
       requestId: event['requestId']! as String,
       download: HeldDownload(
         fileName: event['fileName']! as String,
@@ -122,6 +134,7 @@ TunnelDroppedEvent tunnelDroppedFromEvent(Map<Object?, Object?> event) => Tunnel
 /// `navigationState` returns, which is the same event.
 NavigationState navigationFromEvent(Map<Object?, Object?> event) => NavigationState(
       siteId: event['siteId']! as String,
+      pageId: event['pageId']! as String,
       url: event['url']! as String,
       title: (event['title'] as String?) ?? '',
       canGoBack: (event['canGoBack'] as bool?) ?? false,
@@ -133,8 +146,16 @@ NavigationState navigationFromEvent(Map<Object?, Object?> event) => NavigationSt
 /// Exposed for testing — decodes a `type: "find_result"` event.
 FindResult findResultFromEvent(Map<Object?, Object?> event) => FindResult(
       siteId: event['siteId']! as String,
+      pageId: event['pageId']! as String,
       activeMatch: event['activeMatch']! as int,
       matchCount: event['matchCount']! as int,
+    );
+
+/// Exposed for testing — decodes a `type: "page_opened"` event.
+PageOpened pageOpenedFromEvent(Map<Object?, Object?> event) => PageOpened(
+      siteId: event['siteId']! as String,
+      pageId: event['pageId']! as String,
+      openerPageId: event['openerPageId'] as String?,
     );
 
 class ChannelContainerEngine implements ContainerEngine {
@@ -154,6 +175,8 @@ class ChannelContainerEngine implements ContainerEngine {
           _navigationController.add(navigationFromEvent(map));
         case 'find_result':
           _findController.add(findResultFromEvent(map));
+        case 'page_opened':
+          _pageOpenedController.add(pageOpenedFromEvent(map));
         default:
           _sessionsController.add(sessionsFromEvent(map));
       }
@@ -167,6 +190,7 @@ class ChannelContainerEngine implements ContainerEngine {
   final _tunnelDroppedController = StreamController<TunnelDroppedEvent>.broadcast();
   final _navigationController = StreamController<NavigationState>.broadcast();
   final _findController = StreamController<FindResult>.broadcast();
+  final _pageOpenedController = StreamController<PageOpened>.broadcast();
 
   @override
   Future<bool> isolationAvailable() async =>
@@ -218,12 +242,22 @@ class ChannelContainerEngine implements ContainerEngine {
   Future<void> wipeAll() => _method.invokeMethod('wipeAll');
 
   @override
-  Future<void> close(String siteId) =>
-      _method.invokeMethod('close', {'siteId': siteId});
+  Future<void> close(String siteId, {bool? wipe}) =>
+      _method.invokeMethod('close', {'siteId': siteId, if (wipe != null) 'wipe': wipe});
 
   @override
-  Future<void> reload(String siteId) =>
-      _method.invokeMethod('reload', {'siteId': siteId});
+  Future<void> closePage(String pageId) =>
+      _method.invokeMethod('closePage', {'pageId': pageId});
+
+  @override
+  Future<void> closeAll() => _method.invokeMethod('closeAll');
+
+  @override
+  Stream<PageOpened> pageOpened() => _pageOpenedController.stream;
+
+  @override
+  Future<void> reload(String pageId) =>
+      _method.invokeMethod('reload', {'pageId': pageId});
 
   @override
   Stream<List<ContainerSession>> sessions() => _sessionsController.stream;
@@ -260,9 +294,9 @@ class ChannelContainerEngine implements ContainerEngine {
   Stream<TunnelDroppedEvent> tunnelDropped() => _tunnelDroppedController.stream;
 
   @override
-  Future<ReaderArticle?> extractArticle(String siteId) async {
+  Future<ReaderArticle?> extractArticle(String pageId) async {
     final result = await _method
-        .invokeMapMethod<Object?, Object?>('extractArticle', {'siteId': siteId});
+        .invokeMapMethod<Object?, Object?>('extractArticle', {'pageId': pageId});
     if (result == null) return null;
     return ReaderArticle(
       host: result['host']! as String,
@@ -276,9 +310,9 @@ class ChannelContainerEngine implements ContainerEngine {
   Stream<NavigationState> navigation() => _navigationController.stream;
 
   @override
-  Future<NavigationState?> navigationState(String siteId) async {
+  Future<NavigationState?> navigationState(String pageId) async {
     final result = await _method
-        .invokeMapMethod<Object?, Object?>('navigationState', {'siteId': siteId});
+        .invokeMapMethod<Object?, Object?>('navigationState', {'pageId': pageId});
     return result == null ? null : navigationFromEvent(result);
   }
 
@@ -286,32 +320,32 @@ class ChannelContainerEngine implements ContainerEngine {
   Stream<FindResult> findResults() => _findController.stream;
 
   @override
-  Future<void> goBack(String siteId) =>
-      _method.invokeMethod('goBack', {'siteId': siteId});
+  Future<void> goBack(String pageId) =>
+      _method.invokeMethod('goBack', {'pageId': pageId});
 
   @override
-  Future<void> goForward(String siteId) =>
-      _method.invokeMethod('goForward', {'siteId': siteId});
+  Future<void> goForward(String pageId) =>
+      _method.invokeMethod('goForward', {'pageId': pageId});
 
   @override
-  Future<void> stop(String siteId) =>
-      _method.invokeMethod('stop', {'siteId': siteId});
+  Future<void> stop(String pageId) =>
+      _method.invokeMethod('stop', {'pageId': pageId});
 
   @override
-  Future<void> loadUrl(String siteId, String url) =>
-      _method.invokeMethod('loadUrl', {'siteId': siteId, 'url': url});
+  Future<void> loadUrl(String pageId, String url) =>
+      _method.invokeMethod('loadUrl', {'pageId': pageId, 'url': url});
 
   @override
-  Future<void> find(String siteId, String query) =>
-      _method.invokeMethod('find', {'siteId': siteId, 'query': query});
+  Future<void> find(String pageId, String query) =>
+      _method.invokeMethod('find', {'pageId': pageId, 'query': query});
 
   @override
-  Future<void> findNext(String siteId, {required bool forward}) =>
-      _method.invokeMethod('findNext', {'siteId': siteId, 'forward': forward});
+  Future<void> findNext(String pageId, {required bool forward}) =>
+      _method.invokeMethod('findNext', {'pageId': pageId, 'forward': forward});
 
   @override
-  Future<void> clearFind(String siteId) =>
-      _method.invokeMethod('clearFind', {'siteId': siteId});
+  Future<void> clearFind(String pageId) =>
+      _method.invokeMethod('clearFind', {'pageId': pageId});
 
   @override
   Future<void> keep(String siteId) =>

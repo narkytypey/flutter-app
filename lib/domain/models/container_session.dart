@@ -1,5 +1,6 @@
 import 'route_decision.dart' show RouteFailure;
 import 'blocked_tally.dart' show BlockedCategory;
+import 'open_page.dart';
 
 /// Runtime-only. Never persisted — Plan 1's rule: sessions do not survive the
 /// app closing.
@@ -13,6 +14,7 @@ class ContainerSession {
     this.blockedCount = 0,
     this.categoryCounts = const {},
     this.failure,
+    this.pages = const [],
   });
 
   final String siteId;
@@ -33,12 +35,16 @@ class ContainerSession {
   /// phase, and also `null` for a refusal the platform could not classify.
   final RouteFailure? failure;
 
+  /// In opening order; empty for a refused open.
+  final List<OpenPage> pages;
+
   ContainerSession copyWith({
     SessionPhase? phase,
     DateTime? lastActiveAt,
     int? blockedCount,
     Map<BlockedCategory, int>? categoryCounts,
     RouteFailure? failure,
+    List<OpenPage>? pages,
   }) =>
       ContainerSession(
         siteId: siteId,
@@ -47,5 +53,6 @@ class ContainerSession {
         blockedCount: blockedCount ?? this.blockedCount,
         categoryCounts: categoryCounts ?? this.categoryCounts,
         failure: failure ?? this.failure,
+        pages: pages ?? this.pages,
       );
 }

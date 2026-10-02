@@ -9,12 +9,16 @@ import 'route_decision.dart' show RouteFailure;
 class PendingPermissionRequest {
   const PendingPermissionRequest({
     required this.siteId,
+    required this.pageId,
     required this.host,
     required this.kind,
     required this.requestId,
   });
 
   final String siteId;
+
+  /// The page it is about (tabs spec §3.1).
+  final String pageId;
   final String host;
   final PermissionKind kind;
   final String requestId;
@@ -23,13 +27,26 @@ class PendingPermissionRequest {
 class HeldDownloadEvent {
   const HeldDownloadEvent({
     required this.siteId,
+    required this.pageId,
     required this.requestId,
     required this.download,
   });
 
   final String siteId;
+
+  /// The page it is about (tabs spec §3.1).
+  final String pageId;
   final String requestId;
   final HeldDownload download;
+}
+
+/// A link that asked for a new window opened [pageId] in [siteId]'s container
+/// (tabs spec §5.2). The registry brings it to the front.
+class PageOpened {
+  const PageOpened({required this.siteId, required this.pageId, this.openerPageId});
+  final String siteId;
+  final String pageId;
+  final String? openerPageId;
 }
 
 class TunnelDroppedEvent {

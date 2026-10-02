@@ -15,9 +15,9 @@ class _OrderedEngine extends FakeContainerEngine {
   final calls = <String>[];
 
   @override
-  Future<void> close(String siteId) async {
-    calls.add('close $siteId');
-    await super.close(siteId);
+  Future<void> close(String siteId, {bool? wipe}) async {
+    calls.add('close $siteId wipe: $wipe');
+    await super.close(siteId, wipe: wipe);
   }
 
   @override
@@ -52,10 +52,13 @@ void main() {
   tearDown(() => database.close());
 
   group('wipeSavedSite', () {
-    test('closes the session before wiping, since a profile in use cannot be deleted', () async {
+    // Tabs spec §5.8a: the close itself wipes, natively after the
+    // container's last page is gone; the separate wipe covers a site with no
+    // open session.
+    test('closes the session with its wipe, then wipes the profile', () async {
       await wipeSavedSite(engine: engine, sites: sites, site: forum);
 
-      expect(engine.calls, ['close st-forum', 'wipe profile-old']);
+      expect(engine.calls, ['close st-forum wipe: true', 'wipe profile-old']);
     });
 
     // A profile loaded this run is only cleared in place and deleted at the
@@ -108,7 +111,7 @@ void main() {
     test('closes and wipes the site before deleting its row', () async {
       await removeSavedSite(engine: engine, sites: sites, site: forum);
 
-      expect(engine.calls, ['close st-forum', 'wipe profile-old']);
+      expect(engine.calls, ['close st-forum wipe: true', 'wipe profile-old']);
       expect(await sites.byId('st-forum'), isNull);
     });
   });
