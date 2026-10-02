@@ -82,6 +82,24 @@ class SiteCredentialsTest {
         assertEquals("socks5", credentials.lookup(credential.user, credential.password)!!.config.proxyMode)
     }
 
+    /**
+     * A still-open site opened again on the same profile, whose new route is
+     * refused (say, switched to a proxy that is down): its last binding must
+     * end, or the profile went on being routed by its old settings, and its
+     * pooled tunnels stayed open, until the next close.
+     */
+    @Test fun `a reopen whose route is refused ends the site's last binding`() {
+        val credentials = SiteCredentials()
+        val last = binding("p1", mode = "direct")
+        credentials.openSession(null, "p1", last)
+
+        credentials.openSession("p1", "p1", null)
+
+        val credential = credentials.credentialFor("p1")
+        assertNull(credentials.lookup(credential.user, credential.password))
+        assertTrue(last.isRevoked)
+    }
+
     @Test fun `a credential never finds another profile's site`() {
         val credentials = SiteCredentials()
         credentials.bind("p1", binding("p1"))

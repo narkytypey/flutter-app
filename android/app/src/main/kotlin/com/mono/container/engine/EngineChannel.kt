@@ -386,38 +386,36 @@ class EngineChannel(
     private fun register(config: SiteConfig, route: Route?, initialUrl: String?): Map<String, Any?> {
         val session = Session(config, initialUrl)
         session.onTunnelDropped = { failure -> onTunnelDropped(config.siteId, failure) }
-        // A reopen normally follows a close. If one arrives on a different
-        // profile without it, the old profile's credential must stop routing.
-        sessions[config.siteId]?.config?.profileId
-            ?.takeIf { it != config.profileId }
-            ?.let(credentials::unbind)
+        val previousProfileId = sessions[config.siteId]?.config?.profileId
         sessions[config.siteId] = session
 
-        when (route) {
+        val binding = when (route) {
             null -> {
                 // Global Constraints: refuse rather than share the default profile.
                 session.phase = Session.PHASE_REFUSED
                 session.failure = null // no route was even attempted; isolation itself is unavailable
+                null
             }
             is Route.Refused -> {
                 session.phase = Session.PHASE_REFUSED
                 session.failure = route.failure.name.let(::routeFailureToDartName)
+                null
             }
             else -> {
                 // Creates the profile now so the view can attach it before its
                 // first load, and so a wipe has something to delete.
                 profiles.profileFor(config.profileId)
+                session.lastActiveAtMs = System.currentTimeMillis()
                 // From here until close, the loopback proxy routes this
                 // profile's requests on this config. Its reports arrive on the
                 // proxy's threads; the session map and the event sink are the
-                // main thread's. A bind replacing this profile's last one (a
-                // reopen with no close between) closes that one's tunnels.
-                credentials.bind(config.profileId, ProxyBinding(config) { failure ->
+                // main thread's.
+                ProxyBinding(config) { failure ->
                     mainHandler.post { onTunnelDropped(config.siteId, failure) }
-                })
-                session.lastActiveAtMs = System.currentTimeMillis()
+                }
             }
         }
+        credentials.openSession(previousProfileId, config.profileId, binding)
 
         emitSessions()
         return session.toMap()

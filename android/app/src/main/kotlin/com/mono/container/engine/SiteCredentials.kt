@@ -117,6 +117,21 @@ class SiteCredentials(private val random: SecureRandom = SecureRandom()) {
     }
 
     /**
+     * A site's session opens on [profileId], replacing the session it had on
+     * [previousProfileId], if any. [binding] is null when the new route is
+     * refused, so nothing is bound for it.
+     */
+    fun openSession(previousProfileId: String?, profileId: String, binding: ProxyBinding?) {
+        // A reopen normally follows a close. If one arrives without it, the
+        // last session's binding ends first, on the same profile too: when the
+        // new route is refused, nothing replaces it, and left alone it would
+        // go on routing the profile, and holding its tunnels, on the old
+        // settings until the next close.
+        previousProfileId?.let(::unbind)
+        if (binding != null) bind(profileId, binding)
+    }
+
+    /**
      * The open session [user] and [password] belong to, or null. Every open
      * session is compared, in constant time, and the loop never stops early, so
      * how long a lookup takes says nothing about which bytes matched.

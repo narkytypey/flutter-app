@@ -106,6 +106,19 @@ Not yet seen on the emulator.**
   removing its guard.
 - Verified: Kotlin JVM 174/174 (JUnit XML), `flutter analyze` clean,
   `flutter test` 543/543, `flutter build apk --debug` with zero `e:` lines.
+- **✅ One gap closed 2026-10-02 (branch `fix-refused-reopen-unbind`).** A
+  still-open site opened again on the same profile, whose new route was
+  refused (switched to a proxy that is down, say), bound nothing and unbound
+  nothing, so its old binding went on routing the profile, and holding its
+  tunnels, on the old settings until the next close. `register` now goes
+  through `SiteCredentials.openSession`, which ends the last session's binding
+  on every reopen. Ported from `0c7ad4e` (branch `p2-task7`, a parallel fix
+  for this problem whose socket tracking `4feb541` already covered); that
+  branch is deleted. Test: `SiteCredentialsTest`'s "a reopen whose route is
+  refused ends the site's last binding", which fails on the old code.
+  Verified: Kotlin JVM 201/201 (JUnit XML), `flutter analyze` clean,
+  `flutter test` 603/603, `flutter build apk --debug` with zero `e:` lines.
+  **Not seen on a device.**
 
 ## 2. The 15 failing Kotlin tests: local only, not on `origin`
 
