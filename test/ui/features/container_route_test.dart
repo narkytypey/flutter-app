@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:container/data/repositories/filter_list_repository_sqlite.dart';
 import 'package:container/data/repositories/script_repository_sqlite.dart';
+import 'package:container/data/repositories/settings_repository_sqlite.dart';
 import 'package:container/data/repositories/site_repository_sqlite.dart';
 import 'package:container/data/repositories/workspace_repository_sqlite.dart';
 import 'package:container/data/services/app_database.dart';
@@ -9,6 +10,7 @@ import 'package:container/data/services/bundled_filter_lists.dart';
 import 'package:container/data/services/fake_container_engine.dart';
 import 'package:container/domain/models/container_session.dart';
 import 'package:container/domain/models/engine_events.dart';
+import 'package:container/domain/models/blocked_tally.dart';
 import 'package:container/domain/models/engine_extras.dart';
 import 'package:container/domain/models/filter_list.dart';
 import 'package:container/domain/models/find_result.dart';
@@ -19,6 +21,7 @@ import 'package:container/domain/models/permissions.dart';
 import 'package:container/domain/models/reader_article.dart';
 import 'package:container/domain/models/route_decision.dart';
 import 'package:container/domain/models/search_engine.dart';
+import 'package:container/domain/models/security_level.dart';
 import 'package:container/domain/models/site.dart';
 import 'package:container/domain/models/user_script.dart';
 import 'package:container/domain/models/workspace.dart';
@@ -46,7 +49,7 @@ import 'package:container/ui/features/report/views/today_route.dart';
 import 'package:container/ui/features/scripts/views/scripts_route.dart';
 import 'package:container/ui/features/search/view_models/providers.dart' show allSitesProvider;
 import 'package:container/ui/features/settings/view_models/providers.dart'
-    show searchEngineProvider;
+    show searchEngineProvider, settingsControllerProvider;
 import 'package:container/ui/features/settings/views/settings_route.dart';
 import 'package:container/ui/features/shell/view_models/session_controller.dart'
     show Session, SessionController, SessionUnconfigured, biometricServiceProvider, sessionProvider;
@@ -382,8 +385,11 @@ void main() {
     expect(find.text('Wipe on exit'), findsOneWidget);
   });
 
-  // Both switches in one sheet: the second save must carry the first change,
-  // not overwrite it with the site as it was when the route was pushed.
+  // Two switches, one after the other: the second save must carry the first
+  // change, not overwrite it with the site as it was before. Each switch
+  // closes the sheet and reopens the container in place (privacy-controls
+  // spec §2.4), so the sheet is opened again for the second, and again to
+  // read them back.
   testWidgets('site sheet toggles persist and accumulate', (tester) async {
     final engine = FakeContainerEngine();
     final sites = _RecordingSiteRepository();
@@ -394,12 +400,16 @@ void main() {
     await tester.pumpAndSettle();
     await _tapSheetToggle(tester, 'Force dark mode'); // on by default
     await tester.pumpAndSettle();
+    await tester.tap(_icon('Site details'));
+    await tester.pumpAndSettle();
     await _tapSheetToggle(tester, 'Desktop view');
     await tester.pumpAndSettle();
 
     expect(sites.upserts, hasLength(2));
     expect(sites.upserts.last.forceDark, isFalse);
     expect(sites.upserts.last.userAgentMode, UserAgentMode.desktop);
+    await tester.tap(_icon('Site details'));
+    await tester.pumpAndSettle();
     expect(tester.widget<AppToggle>(_sheetToggle('Force dark mode')).value, isFalse);
     expect(tester.widget<AppToggle>(_sheetToggle('Desktop view')).value, isTrue);
   });
@@ -1081,6 +1091,10 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(sites.upserts, isEmpty);
+    // The switch closed the sheet and reopened the throwaway in place
+    // (privacy-controls spec §2.4); open again, it shows the change.
+    await tester.tap(_icon('Site details'));
+    await tester.pumpAndSettle();
     expect(tester.widget<AppToggle>(_sheetToggle('Force dark mode')).value, isFalse);
   });
 
@@ -1914,6 +1928,229 @@ void main() {
 
       expect(find.byType(ContainerRoute), findsNothing);
       expect(find.text(_homeMarker), findsOneWidget);
+    });
+  });
+
+  // Privacy-controls spec §2.3–§2.4, §3: a level or a `6c` switch is written
+  // (a throwaway only in the registry), then the container reopens in place,
+  // never wiped, at the page it shows.
+  group('privacy controls', () {
+    /// The address the viewed page shows when a change is made.
+    String shownOf(Site site) => '${site.url}/t/9';
+
+    /// [site] open and live on a real vault (its settings hold the vault
+    /// default, [vaultDefault] if given) with real extras, so the level an
+    /// open is sent is the one the vault resolves; its page at [shownOf].
+    Future<_RecordingSiteRepository> pumpOpen(
+      WidgetTester tester,
+      FakeContainerEngine engine,
+      Site site, {
+      bool throwaway = false,
+      SecurityLevel? vaultDefault,
+    }) async {
+      sqfliteFfiInit();
+      final database = (await tester.runAsync(
+          () => AppDatabase.open(path: inMemoryDatabasePath, factory: databaseFactoryFfi)))!;
+      addTearDown(() => tester.runAsync(database.close));
+      if (vaultDefault != null) {
+        await tester.runAsync(() => SqliteSettingsRepository(database)
+            .setString(securityLevelSettingKey, vaultDefault.name));
+      }
+      _standInForPlatformViews(tester);
+      final sites = _RecordingSiteRepository();
+      await _pump(tester, engine, site,
+          sites: sites,
+          throwaway: throwaway,
+          realExtras: true,
+          overrides: [
+            databaseProvider.overrideWithValue(database),
+            bundledFilterRulesProvider.overrideWithValue(
+                BundledFilterRules(FakeBundle(const {}), lists: const [])),
+          ]);
+      await _settle(tester);
+      await tester.pumpAndSettle();
+      final pageId = _tabs(tester).viewed!.viewedPageId!;
+      engine.emitNavigation(
+          NavigationState(siteId: site.id, pageId: pageId, url: shownOf(site)));
+      await tester.pumpAndSettle();
+      return sites;
+    }
+
+    /// Lets the reopen's real database reads finish.
+    Future<void> settleReopen(WidgetTester tester) async {
+      await _settle(tester);
+      await tester.pumpAndSettle();
+    }
+
+    Finder checkIn(String title) => find.descendant(
+          of: find.ancestor(of: find.text(title), matching: find.byType(Row)).first,
+          matching: find.byIcon(Icons.check),
+        );
+
+    Future<void> openMenuPicker(WidgetTester tester) async {
+      await tester.tap(_icon('Menu'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Security level'));
+      await settleReopen(tester);
+    }
+
+    Future<void> openSiteSheet(WidgetTester tester) async {
+      await tester.tap(_icon('Site details'));
+      await settleReopen(tester);
+    }
+
+    testWidgets("☰'s Security level picks Safest: written, reopened unwiped at the page shown",
+        (tester) async {
+      final engine = FakeContainerEngine();
+      final site = _site().copyWith(cookiePolicy: CookiePolicy.wipeOnExit);
+      final sites = await pumpOpen(tester, engine, site);
+
+      await tester.tap(_icon('Menu'));
+      await tester.pumpAndSettle();
+      expect(find.text('STANDARD'), findsOneWidget);
+      await tester.tap(find.text('Security level'));
+      await settleReopen(tester);
+      expect(find.text('Standard · set in Settings'), findsOneWidget);
+      expect(checkIn('Default'), findsOneWidget);
+      expect(find.byIcon(Icons.check), findsOneWidget);
+
+      await tester.tap(find.text('Safest'));
+      await settleReopen(tester);
+
+      expect(sites.upserts.last.securityLevel, SecurityLevel.safest);
+      expect(engine.closedWith['s1'], isFalse, reason: 'a reopen never wipes');
+      expect(engine.openedExtras['s1']!.securityLevel, SecurityLevel.safest);
+      expect(engine.openedInitialUrls['s1'], endsWith('/t/9'));
+      expect(engine.wiped, isEmpty);
+
+      await tester.tap(_icon('Menu'));
+      await tester.pumpAndSettle();
+      expect(find.text('SAFEST'), findsOneWidget);
+    });
+
+    testWidgets('Default clears the site\'s own level, and the open gets the vault default',
+        (tester) async {
+      final engine = FakeContainerEngine();
+      final site = _site().withSecurityLevel(SecurityLevel.safer);
+      final sites =
+          await pumpOpen(tester, engine, site, vaultDefault: SecurityLevel.safest);
+      expect(engine.openedExtras['s1']!.securityLevel, SecurityLevel.safer);
+
+      await openMenuPicker(tester);
+      expect(checkIn('Safer'), findsOneWidget);
+      await tester.tap(find.text('Default'));
+      await settleReopen(tester);
+
+      expect(sites.upserts.last.securityLevel, isNull);
+      expect(engine.openedExtras['s1']!.securityLevel, SecurityLevel.safest);
+      expect(engine.closedWith['s1'], isFalse);
+    });
+
+    testWidgets("6c shows the level, and its Security level row opens the same picker",
+        (tester) async {
+      final engine = FakeContainerEngine();
+      await pumpOpen(tester, engine, _site());
+
+      await openSiteSheet(tester);
+      expect(find.text('Standard · default'), findsOneWidget);
+      await tester.tap(find.text('Security level'));
+      await settleReopen(tester);
+      expect(find.text('Standard · set in Settings'), findsOneWidget);
+      await tester.tap(find.text('Safest'));
+      await settleReopen(tester);
+      expect(engine.closedWith['s1'], isFalse);
+
+      await openSiteSheet(tester);
+      expect(find.text('Safest'), findsOneWidget);
+      expect(find.text('Standard · default'), findsNothing);
+    });
+
+    for (final (title, applied) in <(String, bool Function(Site))>[
+      ('Block WebRTC', (s) => !s.blockWebRtc),
+      ('Block trackers and ads', (s) => !s.blockTrackers),
+      ('Anti-fingerprinting', (s) => !s.antiFingerprinting),
+      ('Force dark mode', (s) => !s.forceDark),
+      ('Desktop view', (s) => s.userAgentMode == UserAgentMode.desktop),
+    ]) {
+      testWidgets("6c's $title is written and reopens the container unwiped at the page shown",
+          (tester) async {
+        final engine = FakeContainerEngine();
+        final site = _site().copyWith(cookiePolicy: CookiePolicy.wipeOnExit);
+        final sites = await pumpOpen(tester, engine, site);
+
+        await openSiteSheet(tester);
+        await _tapSheetToggle(tester, title);
+        await settleReopen(tester);
+
+        expect(applied(sites.upserts.single), isTrue);
+        expect(engine.closedWith['s1'], isFalse);
+        expect(engine.wiped, isEmpty);
+        expect(applied(engine.openedSites['s1']!), isTrue);
+        expect(engine.openedInitialUrls['s1'], 'https://forum.example.com/t/9');
+        expect(_tabs(tester).viewedSiteId, 's1');
+      });
+    }
+
+    testWidgets("a throwaway's switch writes no row and reopens it as a throwaway, unwiped",
+        (tester) async {
+      final engine = FakeContainerEngine();
+      final sites = await pumpOpen(tester, engine, _throwaway(), throwaway: true);
+
+      await openSiteSheet(tester);
+      await _tapSheetToggle(tester, 'Block WebRTC');
+      await settleReopen(tester);
+
+      expect(sites.upserts, isEmpty);
+      expect(engine.closedWith['t1'], isFalse);
+      expect(engine.wiped, isEmpty);
+      expect(engine.openedAsThrowaway, contains('t1'));
+      expect(engine.openedSites['t1']!.blockWebRtc, isFalse);
+      expect(engine.openedInitialUrls['t1'], 'https://news.example.org/t/9');
+      expect(_tabs(tester).byId('t1')!.throwaway, isTrue);
+    });
+
+    testWidgets("6c shows the live session's counts and grants, and Revoke ends one",
+        (tester) async {
+      final engine = FakeContainerEngine();
+      await pumpOpen(tester, engine, _site().copyWith(allowCamera: true));
+
+      await openSiteSheet(tester);
+      expect(find.text('Camera'), findsOneWidget);
+      expect(find.text('Allowed'), findsOneWidget);
+      expect(find.text('Microphone'), findsNothing);
+
+      engine.addBlocked('s1', BlockedCategory.trackers, 4);
+      engine.grantWhileOpen('s1', PermissionKind.microphone);
+      await tester.pumpAndSettle();
+      expect(find.text('Trackers'), findsOneWidget);
+      expect(find.text('4'), findsOneWidget);
+      expect(find.text('Microphone'), findsOneWidget);
+      expect(find.text('Revoke'), findsOneWidget);
+
+      await tester.ensureVisible(find.text('Revoke'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Revoke'));
+      await tester.pumpAndSettle();
+
+      expect(engine.revokedGrants, [(siteId: 's1', kind: PermissionKind.microphone)]);
+      expect(find.text('Microphone'), findsNothing);
+      expect(find.text('Revoke'), findsNothing);
+      expect(find.text('Camera'), findsOneWidget);
+      expect(engine.closed, isEmpty, reason: 'Revoke reloads; it does not reopen');
+    });
+
+    testWidgets('a vault default stored while the site is open does not reopen it',
+        (tester) async {
+      final engine = FakeContainerEngine();
+      await pumpOpen(tester, engine, _site());
+      final container = ProviderScope.containerOf(tester.element(find.byType(MaterialApp)));
+
+      await tester.runAsync(() =>
+          container.read(settingsControllerProvider).setSecurityLevel(SecurityLevel.safest));
+      await settleReopen(tester);
+
+      expect(engine.closed, isEmpty);
+      expect(engine.openedExtras['s1']!.securityLevel, SecurityLevel.standard);
     });
   });
 }

@@ -4,6 +4,7 @@ import 'dart:typed_data';
 import 'package:container/data/services/app_database.dart';
 import 'package:container/data/services/fake_container_engine.dart';
 import 'package:container/domain/models/attempt_gate.dart';
+import 'package:container/domain/models/blocked_tally.dart';
 import 'package:container/domain/models/container_session.dart';
 import 'package:container/domain/models/engine_events.dart';
 import 'package:container/domain/models/engine_extras.dart';
@@ -12,6 +13,7 @@ import 'package:container/domain/models/navigation_state.dart';
 import 'package:container/domain/models/open_container.dart';
 import 'package:container/domain/models/permissions.dart';
 import 'package:container/domain/models/route_decision.dart' show RouteFailure;
+import 'package:container/domain/models/security_level.dart';
 import 'package:container/domain/models/site.dart';
 import 'package:container/domain/models/vault.dart';
 import 'package:container/domain/repositories/repositories.dart';
@@ -619,5 +621,90 @@ void main() {
     expect(h.engine.closed, ['s1', 's1']);
     expect(h.engine.pagesOf('s1'), isEmpty);
     expect(h.state.byId('s1'), isNull);
+  });
+  // Ids are two characters or more: `_site`'s monogram takes the first two.
+  group('reopen in place (privacy-controls spec §2.4)', () {
+    test('a saved site reopens at the page it shows, with wipe false, and its row is not written here',
+        () async {
+      final h = await _harness();
+      final site = _site('s1', cookiePolicy: CookiePolicy.wipeOnExit);
+      await h.registry.view(site);
+      await _settle();
+      final pageId = h.state.byId('s1')!.viewedPageId!;
+      h.engine.emitNavigation(_nav('s1', pageId));
+      await _settle();
+
+      await h.registry.reopenInPlace(site.withSecurityLevel(SecurityLevel.safest));
+      await _settle();
+
+      expect(h.engine.closedWith['s1'], isFalse, reason: 'never wiped, whatever the policy');
+      expect(h.engine.wiped, isEmpty);
+      expect(h.engine.openedInitialUrls['s1'], 'https://s1.example.org/$pageId');
+      expect(h.engine.openedSites['s1']!.securityLevel, SecurityLevel.safest);
+      expect(h.state.byId('s1')!.site.securityLevel, SecurityLevel.safest);
+      expect(h.sites.upserts, isEmpty, reason: 'the caller writes the row');
+      expect(h.state.viewedSiteId, 's1');
+    });
+
+    test('a throwaway is reopened as one, unwiped', () async {
+      final h = await _harness();
+      final throwaway = _site('t1', cookiePolicy: CookiePolicy.wipeOnExit);
+      await h.registry.view(throwaway, throwaway: true);
+      await _settle();
+
+      await h.registry.reopenInPlace(throwaway.copyWith(blockWebRtc: false));
+      await _settle();
+
+      expect(h.engine.closedWith['t1'], isFalse);
+      expect(h.engine.wiped, isEmpty);
+      expect(h.engine.openedAsThrowaway, contains('t1'));
+      expect(h.state.byId('t1')!.throwaway, isTrue);
+      expect(h.state.byId('t1')!.site.blockWebRtc, isFalse);
+    });
+
+    test('before any navigation it reopens at the address it was opened with', () async {
+      final h = await _harness();
+      final site = _site('s1');
+      await h.registry.view(site, initialUrl: 'https://s1.example.org/typed');
+      await _settle();
+
+      await h.registry.reopenInPlace(site);
+      await _settle();
+
+      expect(h.engine.openedInitialUrls['s1'], 'https://s1.example.org/typed');
+    });
+
+    test('it keeps only one page', () async {
+      final h = await _harness();
+      final site = _site('s1');
+      await h.registry.view(site);
+      await _settle();
+      final first = h.state.byId('s1')!.viewedPageId!;
+      h.engine.openPageFromLink('s1', openerPageId: first);
+      await _settle();
+      expect(h.state.byId('s1')!.pages, hasLength(2));
+
+      await h.registry.reopenInPlace(site);
+      await _settle();
+      expect(h.state.byId('s1')!.pages, hasLength(1));
+    });
+
+    test('an unknown container is a no-op', () async {
+      final h = await _harness();
+      await h.registry.reopenInPlace(_site('nope'));
+      expect(h.engine.closed, isEmpty);
+    });
+  });
+
+  test("a session's category counts and grants reach its container", () async {
+    final h = await _harness();
+    await h.registry.view(_site('s1'));
+    await _settle();
+    h.engine.addBlocked('s1', BlockedCategory.trackers, 4);
+    h.engine.grantWhileOpen('s1', PermissionKind.microphone);
+    await _settle();
+    final container = h.state.byId('s1')!;
+    expect(container.categoryCounts[BlockedCategory.trackers], 4);
+    expect(container.grants, {PermissionKind.microphone});
   });
 }
