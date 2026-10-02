@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:container/ui/core/icons.dart';
 import 'package:container/ui/features/setup/views/setup_decoy_screen.dart';
 import 'package:container/ui/features/setup/views/setup_defaults_screen.dart';
 import 'package:container/ui/features/setup/views/setup_pin_screen.dart';
+
+import '../../support/glyph_finders.dart';
 
 void main() {
   testWidgets('step 1 states that there is no recovery', (tester) async {
@@ -48,6 +51,7 @@ void main() {
       findsOneWidget,
     );
     expect(find.text('Skip for now'), findsOneWidget);
+    expect(findGlyph(AppGlyph.forward), findsOneWidget);
   });
 
   testWidgets('step 3 states the four defaults verbatim', (tester) async {
@@ -60,5 +64,6 @@ void main() {
     expect(find.text('Trackers, ads and WebRTC blocked'), findsOneWidget);
     expect(find.text('Nothing is sent anywhere'), findsOneWidget);
     expect(find.text('Add your first site'), findsOneWidget);
+    expect(findGlyph(AppGlyph.check), findsNWidgets(4));
   });
 }

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../core/icons.dart';
 import '../../../core/tokens.dart';
 import '../../../core/typography.dart';
 import '../../../core/widgets/app_toggle.dart';
@@ -89,7 +90,7 @@ class SetupDecoyScreen extends StatelessWidget {
                                               size: 11.5, color: C.textFaint)),
                                     ],
                                   ),
-                                  Text('›', style: ui(size: 14, color: C.textFaint)),
+                                  const AppIcon(AppGlyph.forward, size: 16, color: C.textFaint),
                                 ],
                               ),
                             ),

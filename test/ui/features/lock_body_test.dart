@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:container/domain/models/lock_state.dart';
+import 'package:container/ui/core/icons.dart';
 import 'package:container/ui/core/tokens.dart';
 import 'package:container/ui/features/lock/views/lock_body.dart';
+
+import '../../support/glyph_finders.dart';
 
 Future<void> _pump(WidgetTester tester, LockBody body) {
   // The default 800x600 flutter_test surface is landscape-shaped and too
@@ -129,5 +132,23 @@ void main() {
     );
     expect(find.text('Locked after 15 minutes in the background'), findsOneWidget);
     expect(find.text('Locked after 1 minute in the background'), findsNothing);
+  });
+
+  testWidgets('the vault mark is a drawn diamond, jade, and danger after a wrong PIN', (tester) async {
+    await _pump(tester, _body(LockMood.normal));
+    expect(tester.widget<AppIcon>(findGlyph(AppGlyph.vault)).color, C.jade);
+    expect(tester.getSize(findGlyph(AppGlyph.vault)), const Size(20, 20));
+
+    await _pump(tester, _body(LockMood.wrong, triesLeft: 3));
+    expect(tester.widget<AppIcon>(findGlyph(AppGlyph.vault)).color, C.danger);
+  });
+
+  testWidgets('the fingerprint is a drawn jade mark above its words', (tester) async {
+    await _pump(tester, _body(LockMood.welcomeBack, biometricAvailable: true));
+
+    expect(tester.widget<AppIcon>(findGlyph(AppGlyph.fingerprint)).color, C.jade);
+    expect(find.text('Use fingerprint'), findsOneWidget);
+    expect(tester.getCenter(findGlyph(AppGlyph.fingerprint)).dy,
+        lessThan(tester.getCenter(find.text('Use fingerprint')).dy));
   });
 }

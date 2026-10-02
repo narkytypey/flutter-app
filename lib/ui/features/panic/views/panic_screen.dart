@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../../domain/services/panic_service.dart';
+import '../../../core/icons.dart';
 import '../../../core/tokens.dart';
 import '../../../core/typography.dart';
 import '../../../core/widgets/pill_button.dart';
@@ -35,7 +36,7 @@ class PanicScreen extends StatelessWidget {
                   shape: BoxShape.circle,
                   border: Border.all(color: C.danger.withValues(alpha: 0.35)),
                 ),
-                child: Text('◉', style: ui(size: 16, color: C.danger)),
+                child: const AppIcon(AppGlyph.panic, size: 20, color: C.danger),
               ),
               const SizedBox(height: 30),
               Text('Everything closed', style: ui(size: 18, weight: 600)),

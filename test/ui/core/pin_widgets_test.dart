@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:container/ui/core/icons.dart';
 import 'package:container/ui/core/tokens.dart';
 import 'package:container/ui/core/widgets/pin_dots.dart';
 import 'package:container/ui/core/widgets/pin_keypad.dart';
+
+import '../../support/glyph_finders.dart';
 
 void main() {
   testWidgets('the dots fill left to right', (tester) async {
@@ -32,9 +35,18 @@ void main() {
 
     await tester.tap(find.text('7'));
     await tester.tap(find.text('0'));
-    await tester.tap(find.text('⌫'));
+    await tester.tap(findGlyph(AppGlyph.backspace));
 
     expect(pressed, ['7', '0', '⌫']);
+  });
+
+  testWidgets('backspace is a drawn icon named Delete', (tester) async {
+    final semantics = tester.ensureSemantics();
+    await tester.pumpWidget(MaterialApp(home: Scaffold(body: PinKeypad(onKey: (_) {}))));
+
+    expect(find.bySemanticsLabel('Delete'), findsOneWidget);
+    expect(tester.getSize(findGlyph(AppGlyph.backspace)), const Size(24, 24));
+    semantics.dispose();
   });
 
   testWidgets('the keypad has a blank cell where the spec shows one',

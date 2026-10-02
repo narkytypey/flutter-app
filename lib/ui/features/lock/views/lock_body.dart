@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../../domain/models/lock_state.dart';
 
+import '../../../core/icons.dart';
 import '../../../core/tokens.dart';
 import '../../../core/typography.dart';
 import '../../../core/widgets/pin_dots.dart';
@@ -89,8 +90,7 @@ class LockBody extends StatelessWidget {
             color: _wrong ? C.danger.withValues(alpha: 0.3) : C.line12,
           ),
         ),
-        child: Text('◇',
-            style: ui(size: 17, color: _wrong ? C.danger : C.jade)),
+        child: AppIcon(AppGlyph.vault, size: 20, color: _wrong ? C.danger : C.jade),
       );
 
   List<Widget> _headline() => switch (mood) {
@@ -157,7 +157,7 @@ class LockBody extends StatelessWidget {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text('☉', style: ui(size: 24, color: C.jade)),
+              const AppIcon(AppGlyph.fingerprint, size: 28, color: C.jade),
               const SizedBox(height: 8),
               Text('Use fingerprint', style: ui(size: 12, color: C.textFaint)),
             ],

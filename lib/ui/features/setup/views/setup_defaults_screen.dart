@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../core/icons.dart';
 import '../../../core/tokens.dart';
 import '../../../core/typography.dart';
 import '../../../core/widgets/pill_button.dart';
@@ -55,7 +56,7 @@ class SetupDefaultsScreen extends StatelessWidget {
                             child: Row(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text('✓', style: ui(size: 13, color: C.jade)),
+                                const AppIcon(AppGlyph.check, size: 16, color: C.jade),
                                 const SizedBox(width: 12),
                                 Expanded(
                                   child: Column(

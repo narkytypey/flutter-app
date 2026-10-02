@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../icons.dart';
 import '../tokens.dart';
 import '../typography.dart';
 
@@ -9,6 +10,10 @@ class PinKeypad extends StatelessWidget {
   const PinKeypad({super.key, required this.onKey});
 
   final void Function(String key) onKey;
+
+  /// The backspace key's value. `LockController`, `SetupFlow` and
+  /// `ChangePinRoute` compare against it; only its drawing is an icon.
+  static const _backspace = '⌫';
 
   static const _keys = [
     '1', '2', '3',
@@ -38,7 +43,13 @@ class PinKeypad extends StatelessWidget {
                   customBorder: const CircleBorder(),
                   onTap: key.isEmpty ? null : () => onKey(key),
                   child: Center(
-                    child: Text(key, style: ui(size: 22, color: C.textSecondary)),
+                    child: key == _backspace
+                        ? Semantics(
+                            label: 'Delete',
+                            button: true,
+                            child: const AppIcon(AppGlyph.backspace, size: 24, color: C.textSecondary),
+                          )
+                        : Text(key, style: ui(size: 22, color: C.textSecondary)),
                   ),
                 ),
               ),

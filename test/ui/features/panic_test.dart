@@ -1,7 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:container/domain/services/panic_service.dart';
+import 'package:container/ui/core/icons.dart';
+import 'package:container/ui/core/tokens.dart';
 import 'package:container/ui/features/panic/views/panic_screen.dart';
+
+import '../../support/glyph_finders.dart';
 
 void main() {
   testWidgets('panic reports what happened, in past tense', (tester) async {
@@ -23,6 +27,8 @@ void main() {
     expect(find.text('WIPED'), findsOneWidget);
     expect(find.text('MEMORY'), findsOneWidget);
     expect(find.text('CLEARED'), findsOneWidget);
+    expect(tester.widget<AppIcon>(findGlyph(AppGlyph.panic)).color, C.danger);
+    expect(tester.getSize(findGlyph(AppGlyph.panic)), const Size(20, 20));
   });
 
   testWidgets('there is no confirmation step anywhere on the screen',
