@@ -7,11 +7,17 @@ import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:container/data/repositories/settings_repository_sqlite.dart';
 import 'package:container/data/repositories/workspace_repository_sqlite.dart';
 import 'package:container/data/services/app_database.dart';
+import 'package:container/data/services/fake_container_engine.dart';
 import 'package:container/data/services/vault_store.dart';
 import 'package:container/domain/models/attempt_gate.dart';
+import 'package:container/domain/models/engine_extras.dart';
 import 'package:container/domain/models/lock_state.dart';
+import 'package:container/domain/models/site.dart';
 import 'package:container/domain/models/vault.dart';
 import 'package:container/domain/services/biometric_service.dart';
+import 'package:container/ui/features/container/view_models/open_containers.dart';
+import 'package:container/ui/features/container/view_models/providers.dart'
+    show containerEngineProvider, engineExtrasBuilderProvider;
 import 'package:container/ui/features/dashboard/view_models/providers.dart'
     show openSiteIdsProvider;
 import 'package:container/ui/features/lock/views/lock_body.dart' show LockMood;
@@ -72,10 +78,12 @@ void main() {
   late Directory dir;
   late VaultStore vaultStore;
   late FakeCrypto crypto;
+  late FakeContainerEngine engine;
 
   setUp(() async {
     dir = await Directory.systemTemp.createTemp('session-test');
     crypto = FakeCrypto();
+    engine = FakeContainerEngine();
     vaultStore = VaultStore(crypto, File('${dir.path}/meta.bin'));
   });
 
@@ -88,6 +96,8 @@ void main() {
       documentsDirectoryProvider.overrideWithValue(dir),
       initialSessionProvider.overrideWithValue(initial),
       biometricServiceProvider.overrideWithValue(FakeBiometricService()),
+      containerEngineProvider.overrideWithValue(engine),
+      engineExtrasBuilderProvider.overrideWithValue((site) async => EngineExtras.none),
       vaultOpenerProvider.overrideWithValue(
         ({required String path, required Uint8List dataKey}) => AppDatabase.open(
             path: inMemoryDatabasePath, factory: databaseFactoryFfi),
@@ -145,6 +155,8 @@ void main() {
         biometricWrappedKey: Uint8List.fromList([4, 5, 6]),
       )),
       biometricServiceProvider.overrideWithValue(FakeBiometricService()),
+      containerEngineProvider.overrideWithValue(engine),
+      engineExtrasBuilderProvider.overrideWithValue((site) async => EngineExtras.none),
       vaultOpenerProvider.overrideWithValue(
           ({required String path, required Uint8List dataKey}) async => db),
     ]);
@@ -169,6 +181,18 @@ void main() {
     expect(session.gate.triesLeft, 4);
   });
 
+  // A saved site and a throwaway, opened through the registry as the host
+  // route does, so the lock sees containers that really are open.
+  Future<void> openTwo(ProviderContainer container) async {
+    final registry = container.read(openContainersProvider.notifier);
+    await registry.view(_site('s1'));
+    await registry.view(_site('t1'), throwaway: true, openerSiteId: 's1');
+    for (var i = 0; i < 10; i++) {
+      await Future<void>.delayed(Duration.zero);
+    }
+    expect(container.read(openSiteIdsProvider), {'s1', 't1'});
+  }
+
   test(
       'returning within the grace period locks to welcomeBack, not silently '
       'to the board', () async {
@@ -176,7 +200,7 @@ void main() {
         path: inMemoryDatabasePath, factory: databaseFactoryFfi);
     final container = buildContainer(
         SessionOpen(vault: VaultId.a, database: db, dataKey: Uint8List(32)));
-    container.read(openSiteIdsProvider.notifier).state = {'s1', 's2'};
+    await openTwo(container);
 
     container
         .read(sessionProvider.notifier)
@@ -184,17 +208,49 @@ void main() {
 
     final session = container.read(sessionProvider) as SessionLocked;
     expect(session.mood, LockMood.welcomeBack);
+    // Tabs spec §5.4: the vault-wide count, the throwaway included.
     expect(session.openSessionCount, 2);
     expect(session.lockDeadline, isNotNull);
   });
 
-  test('returning past the grace period locks to afterTimeout and wipes sessions',
-      () async {
+  // Tabs spec §5.8: pages outlive the widget tree, so every lock closes every
+  // container natively. The registry's reset sends `closeAll` too, but the
+  // lock may not depend on it: here the registry was never built, so the one
+  // call is the controller's own.
+  for (final destination in ReturnDestination.values) {
+    test('a ${destination.name} return calls closeAll itself', () async {
+      final db = await AppDatabase.open(
+          path: inMemoryDatabasePath, factory: databaseFactoryFfi);
+      final container = buildContainer(
+          SessionOpen(vault: VaultId.a, database: db, dataKey: Uint8List(32)));
+
+      container.read(sessionProvider.notifier).debugHandleReturn(destination);
+
+      expect(engine.closedAll, 1);
+    });
+
+    test('a ${destination.name} return closes every open container and empties the registry',
+        () async {
+      final db = await AppDatabase.open(
+          path: inMemoryDatabasePath, factory: databaseFactoryFfi);
+      final container = buildContainer(
+          SessionOpen(vault: VaultId.a, database: db, dataKey: Uint8List(32)));
+      await openTwo(container);
+
+      container.read(sessionProvider.notifier).debugHandleReturn(destination);
+
+      expect(engine.closedAll, greaterThanOrEqualTo(1));
+      expect(engine.closed, unorderedEquals(['s1', 't1']));
+      await Future<void>.delayed(Duration.zero);
+      expect(container.read(openSiteIdsProvider), isEmpty);
+    });
+  }
+
+  test('returning past the grace period locks to afterTimeout', () async {
     final db = await AppDatabase.open(
         path: inMemoryDatabasePath, factory: databaseFactoryFfi);
     final container = buildContainer(
         SessionOpen(vault: VaultId.a, database: db, dataKey: Uint8List(32)));
-    container.read(openSiteIdsProvider.notifier).state = {'s1'};
 
     container
         .read(sessionProvider.notifier)
@@ -202,23 +258,22 @@ void main() {
 
     final session = container.read(sessionProvider) as SessionLocked;
     expect(session.mood, LockMood.afterTimeout);
-    expect(container.read(openSiteIdsProvider), isEmpty);
+    expect(session.openSessionCount, 0);
   });
 
-  test('graceExpired past the deadline wipes sessions the same way', () async {
+  test('graceExpired past the deadline locks to afterTimeout', () async {
     final container = buildContainer(SessionLocked(
       mood: LockMood.welcomeBack,
       gate: const AttemptGate(),
       openSessionCount: 3,
       lockDeadline: DateTime.now(),
     ));
-    container.read(openSiteIdsProvider.notifier).state = {'s1', 's2', 's3'};
 
     container.read(sessionProvider.notifier).graceExpired();
 
     final session = container.read(sessionProvider) as SessionLocked;
     expect(session.mood, LockMood.afterTimeout);
-    expect(container.read(openSiteIdsProvider), isEmpty);
+    expect(session.openSessionCount, 0);
   });
 
   test('graceExpired is a no-op once the user already unlocked', () async {
@@ -488,6 +543,7 @@ void main() {
         initialSessionProvider.overrideWithValue(
             SessionLocked(mood: LockMood.normal, gate: await vaultStore.gate())),
         biometricServiceProvider.overrideWithValue(FakeBiometricService()),
+        containerEngineProvider.overrideWithValue(FakeContainerEngine()),
         vaultOpenerProvider.overrideWithValue(
             ({required String path, required Uint8List dataKey}) => vaultWithFiveMinutes()),
       ]);
@@ -534,3 +590,12 @@ void main() {
     expect(locked.lockedAfter, AutoLockPolicy.fiveMinutes);
   });
 }
+
+Site _site(String id) => Site(
+      id: id,
+      workspaceId: 'w1',
+      name: '$id.example.org',
+      monogram: id.substring(0, 2),
+      url: 'https://$id.example.org',
+      profileId: 'p-$id',
+    );

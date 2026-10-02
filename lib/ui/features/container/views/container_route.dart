@@ -24,11 +24,7 @@ import '../../../../domain/tabs.dart';
 import '../../add_site/views/add_site_screen.dart';
 import '../../dashboard/view_models/blocked_tally_controller.dart' show blockedTallyProvider;
 import '../../dashboard/view_models/providers.dart'
-    show
-        closeSite,
-        openSite,
-        siteRepositoryProvider,
-        workspacesProvider;
+    show openSite, siteRepositoryProvider, workspacesProvider;
 import '../../in_page/views/held_download_sheet.dart';
 import '../../in_page/views/permission_request_sheet.dart';
 import '../../in_page/views/proxy_unreachable_screen.dart';
@@ -138,9 +134,6 @@ class _ContainerRouteState extends ConsumerState<ContainerRoute> {
       if (!mounted || result.pageId != _state.viewed?.viewedPageId) return;
       setState(() => _findResult = result);
     });
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) _leaveOpenNowIfRefused(null, _state);
-    });
   }
 
   @override
@@ -173,23 +166,6 @@ class _ContainerRouteState extends ConsumerState<ContainerRoute> {
     // A find count belongs to the page it was found in.
     if (previous?.viewed?.viewedPageId != next.viewed?.viewedPageId && _findResult != null) {
       setState(() => _findResult = null);
-    }
-
-    _leaveOpenNowIfRefused(previous, next);
-  }
-
-  /// A refused saved site's dead session is closed by the registry; it also
-  /// leaves OPEN NOW, which is still `openSiteIdsProvider` until the tabs
-  /// plan's Task 8 derives it from the registry. A refusal can be decided
-  /// before this route's first build, so [initState] checks once as well.
-  void _leaveOpenNowIfRefused(OpenContainersState? previous, OpenContainersState next) {
-    final before = previous?.viewed;
-    final now = next.viewed;
-    if (now != null &&
-        !now.throwaway &&
-        now.refusal != null &&
-        (before == null || before.siteId != now.siteId || before.refusal == null)) {
-      closeSite(ref, now.siteId);
     }
   }
 
@@ -387,8 +363,6 @@ class _ContainerRouteState extends ConsumerState<ContainerRoute> {
             sitesChangedIn(_providers);
           }
           if (formContext.mounted) Navigator.pop(formContext);
-          // As the dashboard opens a site: the refusal took it off OPEN NOW.
-          if (!throwaway && mounted) openSite(ref, siteId);
           await registry.reopen(siteId, updated);
         },
       ),
@@ -478,7 +452,6 @@ class _ContainerRouteState extends ConsumerState<ContainerRoute> {
   /// journaled from before it exists, is closed with its wipe. The container
   /// goes, so the registry's change removes this route.
   Future<void> _closeAndWipe(String siteId) async {
-    closeSite(ref, siteId);
     await _registry.closeAndWipe(siteId);
     sitesChangedIn(_providers);
   }
@@ -599,8 +572,8 @@ class _ContainerRouteState extends ConsumerState<ContainerRoute> {
         final pageId = viewed.viewedPageId;
         if (pageId != null) await _engine.loadUrl(pageId, url.toString());
       case SavedSiteContainer(:final site, :final url):
-        // As the dashboard and search open a site: marked open, the visit
-        // recorded. Its stored address is not touched.
+        // As the dashboard and search open a site: the visit recorded. Its
+        // stored address is not touched.
         openSite(ref, site.id);
         showContainer(context, ref, site, initialUrl: url.toString());
       case final Throwaway target:
@@ -615,13 +588,12 @@ class _ContainerRouteState extends ConsumerState<ContainerRoute> {
 
   /// `8b`'s three ways out: the site opened again in place, as a fresh open.
   void _reopen(OpenContainer viewed, Site site, {bool withoutTunnel = false}) {
-    // As the dashboard opens a site: the refusal took it off OPEN NOW.
-    if (!viewed.throwaway) openSite(ref, viewed.siteId);
     unawaited(_registry.reopen(viewed.siteId, site, withoutTunnel: withoutTunnel));
   }
 
   /// A refused open: spec `8b`, shown in place of the container. A saved
-  /// site's dead session is closed by the registry and taken off OPEN NOW. A
+  /// site's dead session is closed by the registry, and a refused saved
+  /// container is not listed, so it leaves OPEN NOW (tabs spec §5.6). A
   /// throwaway's stays until it is closed, since `8b` can still save it as a
   /// site.
   Widget _refusalScreen(OpenContainer viewed, Refusal refusal) {
@@ -645,7 +617,6 @@ class _ContainerRouteState extends ConsumerState<ContainerRoute> {
   /// The checklist's Cancel: the container is closed (a throwaway wiped),
   /// and the registry's change removes this route.
   void _cancelOpening(OpenContainer viewed) {
-    if (!viewed.throwaway) closeSite(ref, viewed.siteId);
     unawaited(_registry.close(viewed.siteId));
   }
 
@@ -753,14 +724,8 @@ class _ContainerRouteState extends ConsumerState<ContainerRoute> {
         onClosePage: (container, page) => unawaited(_registry.closePage(container, page)),
         // Closing the viewed container lands on the dashboard: the
         // registry's change removes this route.
-        onCloseSession: (container) {
-          closeSite(ref, container);
-          unawaited(_registry.close(container));
-        },
+        onCloseSession: (container) => unawaited(_registry.close(container)),
         onCloseAllAndWipe: () async {
-          for (final container in state.listed) {
-            closeSite(ref, container.siteId);
-          }
           await _registry.closeAllAndWipe();
           sitesChangedIn(_providers);
         },

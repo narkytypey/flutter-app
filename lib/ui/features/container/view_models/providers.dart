@@ -6,7 +6,6 @@ import '../../../../data/services/container_engine.dart';
 import '../../../../data/services/container_engine_channel.dart';
 import '../../../../data/services/container_panic_service.dart';
 import '../../../../data/services/engine_extras_builder.dart';
-import '../../../../domain/models/container_session.dart';
 import '../../../../domain/models/engine_extras.dart';
 import '../../../../domain/models/site.dart';
 import '../../../../domain/models/vault.dart';
@@ -21,7 +20,6 @@ import '../../shell/view_models/session_controller.dart'
         documentsDirectoryProvider,
         vaultDatabasePath,
         SessionOpen;
-import 'subscribe_then_snapshot.dart';
 
 final containerEngineProvider =
     Provider<ContainerEngine>((ref) => ChannelContainerEngine());
@@ -39,33 +37,6 @@ final engineExtrasBuilderProvider = Provider<Future<EngineExtras> Function(Site)
         scripts: ref.read(scriptRepositoryProvider),
         rules: ref.read(bundledFilterRulesProvider),
       );
-});
-
-ContainerSession? _findSite(List<ContainerSession> sessions, String siteId) {
-  for (final session in sessions) {
-    if (session.siteId == siteId) return session;
-  }
-  return null;
-}
-
-/// The live session for one site, or `null` when that site has none. Feeds
-/// [ContainerRoute]'s `opening -> live -> refused` state machine. Filters
-/// [ContainerEngine.sessions] rather than adding a per-site-keyed stream to
-/// the engine itself, since the engine already emits its full list on every
-/// change and every existing caller ([sessions]) wants that shape. Any
-/// sessions event supersedes the snapshot — see [subscribeThenSnapshot].
-///
-/// Auto-disposed with the route that watches it: a throwaway's id is never
-/// seen again once its route is gone, and a family kept for the life of the app would hold one
-/// engine subscription per throwaway ever opened.
-final sessionForSiteProvider =
-    StreamProvider.autoDispose.family<ContainerSession?, String>((ref, siteId) {
-  final engine = ref.watch(containerEngineProvider);
-  return subscribeThenSnapshot<ContainerSession?>(
-    ref,
-    events: engine.sessions().map((sessions) => _findSite(sessions, siteId)),
-    snapshot: () => engine.liveSessions().then((sessions) => _findSite(sessions, siteId)),
-  );
 });
 
 /// Fills the seam Plan 2 Task 7 left open.

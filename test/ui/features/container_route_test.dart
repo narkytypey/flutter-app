@@ -514,21 +514,21 @@ void main() {
   });
 
   // The dashboard's OPEN NOW rows and session count, search's live rail and
-  // `9c`'s closed-session count all read openSiteIdsProvider. A session
-  // closed here but left in it went on reading as open. Seen on the emulator.
+  // `9b`'s session count all read openSiteIdsProvider. A session closed here
+  // but left in it went on reading as open. Seen on the emulator. It is the
+  // registry's now (tabs spec §5.4), so a closed container leaves it.
   Future<Set<String>> openIdsAfterClosing(
       WidgetTester tester, Future<void> Function() close) async {
     final engine = FakeContainerEngine();
     // A wipe writes the site's fresh profile back to the vault.
-    await _pump(tester, engine, _site(), sites: _RecordingSiteRepository(), overrides: [
-      openSiteIdsProvider.overrideWith((ref) => {'s1', 'other'}),
-    ]);
+    await _pump(tester, engine, _site(), sites: _RecordingSiteRepository());
     await tester.pumpAndSettle();
+    final providers = ProviderScope.containerOf(tester.element(find.byType(MaterialApp)));
+    expect(providers.read(openSiteIdsProvider), {'s1'});
     await close();
     await tester.pumpAndSettle();
     expect(engine.closed, contains('s1'));
-    return ProviderScope.containerOf(tester.element(find.text(_homeMarker)))
-        .read(openSiteIdsProvider);
+    return providers.read(openSiteIdsProvider);
   }
 
   testWidgets("closing this site's session from the switcher stops it reading as open",
@@ -540,7 +540,7 @@ void main() {
         of: find.byType(SwitcherSheet), matching: find.text('×'),
       ));
     });
-    expect(open, {'other'});
+    expect(open, isEmpty);
   });
 
   testWidgets('close all and wipe from the switcher stops the site reading as open',
@@ -550,7 +550,7 @@ void main() {
       await tester.pumpAndSettle();
       await tester.tap(find.text('Close all and wipe'));
     });
-    expect(open, {'other'});
+    expect(open, isEmpty);
   });
 
   testWidgets("close and wipe from the site sheet stops the site reading as open",
@@ -560,7 +560,7 @@ void main() {
       await tester.pumpAndSettle();
       await tester.tap(find.text('Close and wipe this session'));
     });
-    expect(open, {'other'});
+    expect(open, isEmpty);
   });
 
   testWidgets('opening a site shows the checklist, then the container', (tester) async {
@@ -745,20 +745,21 @@ void main() {
 
     testWidgets('a refused site stops reading as open, and its session is closed',
         (tester) async {
-      final (engine, _) = await refuse(tester, overrides: [
-        openSiteIdsProvider.overrideWith((ref) => {'s1', 'other'}),
-      ]);
+      final (engine, _) = await refuse(tester);
 
       expect(engine.closed, contains('s1'));
+      // A refused saved container is not listed (tabs plan, Deviation 2).
       final open = ProviderScope.containerOf(tester.element(find.byType(ProxyUnreachableScreen)))
           .read(openSiteIdsProvider);
-      expect(open, {'other'});
+      expect(open, isEmpty);
     });
 
     testWidgets('trying again puts the site back under OPEN NOW', (tester) async {
-      final (engine, _) = await refuse(tester, overrides: [
-        openSiteIdsProvider.overrideWith((ref) => {'s1'}),
-      ]);
+      final (engine, _) = await refuse(tester);
+      expect(
+          ProviderScope.containerOf(tester.element(find.byType(ProxyUnreachableScreen)))
+              .read(openSiteIdsProvider),
+          isEmpty);
 
       engine.proxyReachable = true;
       await tester.tap(find.text('Try again'));
@@ -1455,8 +1456,8 @@ void main() {
     expect(engine.openedSites['m1']!.url, 'https://market.example.com');
     expect(engine.openedInitialUrls['m1'], 'https://market.example.com/deals');
     expect(engine.openedAsThrowaway, isEmpty);
-    // Marked open and visited, as the dashboard opens a site; its stored
-    // address is untouched.
+    // Open in the registry and visited, as the dashboard opens a site; its
+    // stored address is untouched.
     expect(sites.touched, ['m1']);
     expect(sites.upserts, isEmpty);
     expect(ProviderScope.containerOf(tester.element(find.byType(MaterialApp)))

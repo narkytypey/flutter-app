@@ -75,6 +75,18 @@ class OpenContainersState {
 final openContainersProvider =
     NotifierProvider<OpenContainers, OpenContainersState>(OpenContainers.new);
 
+/// The registry's [OpenContainersState.openCount], mirrored for
+/// `SessionController`'s `9b` count (tabs spec §5.4). It cannot read the
+/// registry itself: the registry watches `sessionProvider`, and Riverpod
+/// refuses a read from a provider that the read one depends on.
+final openContainerCountProvider = Provider<OpenContainerCount>((ref) => OpenContainerCount());
+
+class OpenContainerCount {
+  /// Every listed container, throwaways included; 0 before the registry is
+  /// first built and after every reset.
+  int value = 0;
+}
+
 /// Every open container of the open vault, in memory only (tabs spec §4.1):
 /// its pages, the viewed page, its lifecycle, its waiting asks and each
 /// page's navigation. Nothing here is ever written to disk.
@@ -94,13 +106,15 @@ class OpenContainers extends Notifier<OpenContainersState> {
 
   @override
   OpenContainersState build() {
-    // Rebuilt empty on every transition out of SessionOpen (tabs spec §4.1),
-    // like ThrowawaySites before it.
+    // Rebuilt empty on every transition out of SessionOpen (tabs spec §4.1).
     final database =
         ref.watch(sessionProvider.select((s) => s is SessionOpen ? s.database : null));
     final engine = ref.watch(containerEngineProvider);
     _engine = engine;
     _refusing.clear();
+    // `9b`'s count, mirrored for SessionController (see the provider).
+    final count = ref.read(openContainerCountProvider)..value = 0;
+    listenSelf((_, next) => count.value = next.openCount);
     final subscriptions = <StreamSubscription<Object?>>[
       engine.sessions().listen(_onSessions),
       engine.pageOpened().listen(_onPageOpened),
@@ -116,6 +130,9 @@ class OpenContainers extends Notifier<OpenContainersState> {
       for (final s in subscriptions) {
         s.cancel();
       }
+      // Emptied now, not at the lazy rebuild: a lock must not count what
+      // the last one closed.
+      count.value = 0;
       // Pages no longer die with the widget tree (tabs spec §5.8). Only a
       // build made while a vault was open sends it: reading the registry
       // while locked rebuilds it, and the next unlock disposes that build,

@@ -549,9 +549,10 @@ void main() {
       expect(saved.profileId, isNot(s1.profileId));
       expect(h.sites.upserts.single.profileId, saved.profileId);
       expect(h.sites.upserts.single.cookiePolicy, CookiePolicy.wipeOnExit);
-      // Closed natively before the old profile is wiped. `wipeSavedSite`
-      // passes no `wipe` override until Task 8 makes it `wipe: true`.
+      // Closed natively, with its wipe, before the old profile is wiped
+      // (tabs spec §5.8a).
       expect(h.engine.closed, ['s1']);
+      expect(h.engine.closedWith['s1'], isTrue);
       expect(h.engine.wiped, [s1.profileId]);
       expect(h.engine.opens, 2);
       expect(h.engine.openedSites['s1']!.profileId, saved.profileId);
