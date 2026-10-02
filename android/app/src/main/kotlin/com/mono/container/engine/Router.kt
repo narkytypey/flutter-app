@@ -50,16 +50,15 @@ object Router {
      * [systemProxy] is read on every call, so a Wi-Fi change applies to the
      * next connection. A proxied route never uses it.
      *
-     * SOCKS is delegated to the platform, which still supports it. HTTP proxies
-     * go through [HttpConnectTunnel] because Android removed `Proxy.Type.HTTP`
-     * from [java.net.Socket]; passing it here throws `IllegalArgumentException`.
+     * SOCKS goes through [Socks5Tunnel], HTTP proxies through
+     * [HttpConnectTunnel] (Android removed `Proxy.Type.HTTP` from
+     * [java.net.Socket]). Both send [Route.Proxy.login] when there is one.
      *
-     * The SOCKS target is deliberately unresolved: the platform then sends the
-     * proxy the hostname (address type 3) and the proxy does the lookup. A
+     * Both name the target by hostname, so the proxy does the lookup. A
      * resolved address would make the device look the name up itself first,
      * telling its DNS resolver every host a proxied site visits. The cost is
-     * that a SOCKS4-only proxy cannot be used — SOCKS4 carries no hostnames —
-     * which the user accepted: the mode is SOCKS5.
+     * that a SOCKS4-only proxy cannot be used, which the user accepted: the
+     * mode is SOCKS5.
      */
     fun connect(
         route: Route,
@@ -72,16 +71,8 @@ object Router {
                 ?.let { HttpConnectTunnel.open(it.host, it.port, targetHost, targetPort) }
                 ?: java.net.Socket(targetHost, targetPort)
             is Route.Proxy ->
-                if (route.socks) {
-                    java.net.Socket(
-                        java.net.Proxy(
-                            java.net.Proxy.Type.SOCKS,
-                            java.net.InetSocketAddress(route.host, route.port),
-                        )
-                    ).apply { connect(java.net.InetSocketAddress.createUnresolved(targetHost, targetPort), 15_000) }
-                } else {
-                    HttpConnectTunnel.open(route.host, route.port, targetHost, targetPort)
-                }
+                if (route.socks) Socks5Tunnel.open(route.host, route.port, targetHost, targetPort, route.login)
+                else HttpConnectTunnel.open(route.host, route.port, targetHost, targetPort)
             is Route.Refused -> error("connect() called for a refused route")
         }
 }
