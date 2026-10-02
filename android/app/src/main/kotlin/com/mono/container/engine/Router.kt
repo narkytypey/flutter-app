@@ -4,11 +4,14 @@ enum class RouteFailure {
     PROXY_UNREACHABLE, PROXY_REFUSED, UPSTREAM_TIMEOUT, TLS_FAILURE, MISCONFIGURED,
     /** This WebView cannot override its proxy, so a proxied site cannot be routed (P2 spec §3.3). */
     UNSUPPORTED,
+    /** The site's proxy turned its login down, or wanted one it does not have (proxy-auth spec §3). */
+    PROXY_LOGIN_REJECTED,
 }
 
 sealed class Route {
     object Direct : Route()
-    data class Proxy(val host: String, val port: Int, val socks: Boolean) : Route()
+    /** [login] is what the tunnel offers the proxy, or null for none (proxy-auth spec §2.1). */
+    data class Proxy(val host: String, val port: Int, val socks: Boolean, val login: ProxyLogin? = null) : Route()
     data class Refused(val failure: RouteFailure) : Route()
 }
 
@@ -35,7 +38,7 @@ object Router {
         }
         if (!proxyReachable) return Route.Refused(RouteFailure.PROXY_UNREACHABLE)
 
-        return Route.Proxy(host, port, socks = config.proxyMode == "socks5")
+        return Route.Proxy(host, port, socks = config.proxyMode == "socks5", login = loginFor(config))
     }
 
     /**

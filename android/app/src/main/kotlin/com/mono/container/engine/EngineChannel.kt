@@ -553,6 +553,8 @@ class EngineChannel(
         wipeOnExit = call.argument<Boolean>("wipeOnExit") ?: false,
         filterRules = call.argument<Map<String, List<String>>>("filterRules") ?: emptyMap(),
         userScripts = injectedScriptsFrom(call.argument<List<Map<String, Any?>>>("userScripts")),
+        proxyLogin = proxyLoginFrom(call.argument<String>("proxyUser"), call.argument<String>("proxyPassword")),
+        proxyLoginPerSite = call.argument<Boolean>("proxyLoginPerSite") ?: false,
     )
 
     fun nextRequestId(): String = "req-${++requestCounter}"
@@ -588,6 +590,7 @@ fun routeFailureToDartName(kotlinName: String): String = when (kotlinName) {
     "UPSTREAM_TIMEOUT" -> "upstreamTimeout"
     "TLS_FAILURE" -> "tlsFailure"
     "UNSUPPORTED" -> "unsupported"
+    "PROXY_LOGIN_REJECTED" -> "proxyLoginRejected"
     else -> "misconfigured"
 }
 
