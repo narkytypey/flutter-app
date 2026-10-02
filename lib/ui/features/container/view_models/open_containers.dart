@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../data/services/app_database.dart' show newProfileId;
 import '../../../../data/services/container_engine.dart';
 import '../../../../data/services/site_wipe.dart';
 import '../../../../domain/models/container_session.dart';
@@ -360,6 +361,40 @@ class OpenContainers extends Notifier<OpenContainersState> {
     );
     await _engine.close(after.id, wipe: false);
     await reopen(after.id, after, at: at);
+  }
+
+  /// New identity (privacy-controls spec §4): the container's data destroyed
+  /// and its profile rotated, so a fresh loopback credential and, with
+  /// "Separate login per site", a fresh proxy login (a new Tor circuit); then
+  /// it reopens in place at its first page: a saved site's stored address, a
+  /// throwaway's first address. Never the page being shown, which could carry
+  /// an identifying token. Its settings, level and typed login stay.
+  ///
+  /// Its own method because [closeAndWipe] drops the container, after which
+  /// [reopen] does nothing. Built like [siteSaved]'s viewed-container path.
+  Future<void> newIdentity(String siteId) async {
+    final container = state.byId(siteId);
+    if (container == null || !container.listed) return;
+    // As [siteSaved]: not reconciled into a drop while it closes.
+    _update(
+      siteId,
+      (c) => c.copyWith(openReturned: false, pages: const [], viewOrder: const []),
+    );
+    final Site fresh;
+    if (container.throwaway) {
+      // Wiped and off the journal; the fresh profile is journaled by its open.
+      // It has no row: the fresh id is kept in the registry only.
+      await _engine.close(siteId, wipe: true);
+      fresh = container.site.copyWith(profileId: newProfileId());
+    } else {
+      // Closed with its wipe, the fresh profile written, "Last worked" cleared.
+      fresh = await wipeSavedSite(
+        engine: _engine,
+        sites: ref.read(siteRepositoryProvider),
+        site: container.site,
+      );
+    }
+    await reopen(siteId, fresh, atStoredAddress: true);
   }
 
   /// A throwaway saved as a site (browser-chrome spec §5.3, tabs spec §5.7),

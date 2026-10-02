@@ -696,6 +696,107 @@ void main() {
     });
   });
 
+  // Ids are two characters or more: `_site`'s monogram takes the first two.
+  group('New identity (privacy-controls spec §4)', () {
+    test('a saved site: closed with its wipe, a fresh profile written, reopened at its stored address',
+        () async {
+      final h = await _harness();
+      final site = _site('s1', proxyMode: ProxyMode.socks5, proxyHost: '127.0.0.1', proxyPort: 9050)
+          .withSecurityLevel(SecurityLevel.safer)
+          .copyWith(proxyUser: 'alice', proxyPassword: 'pw');
+      h.sites.rows['s1'] = site;
+      await h.registry.view(site, initialUrl: 'https://s1.example.org/typed');
+      await _settle();
+      final pageId = h.state.byId('s1')!.viewedPageId!;
+      h.engine.emitNavigation(_nav('s1', pageId));
+      await _settle();
+
+      await h.registry.newIdentity('s1');
+      await _settle();
+
+      expect(h.engine.closedWith['s1'], isTrue);
+      expect(h.engine.wiped, contains('p-s1'));
+      final saved = h.sites.rows['s1']!;
+      expect(saved.profileId, isNot('p-s1'));
+      // Recorded by the first open, cleared with the rest of the site's data,
+      // then recorded again when the new identity's open goes live.
+      expect(h.sites.setLastWorkedCalls, [
+        (id: 's1', at: h.clock.now),
+        (id: 's1', at: null),
+        (id: 's1', at: h.clock.now),
+      ]);
+      final reopened = h.engine.openedSites['s1']!;
+      expect(reopened.profileId, saved.profileId, reason: 'the row is written first');
+      expect(h.engine.openedInitialUrls['s1'], isNull,
+          reason: 'its first page, never /typed or the page shown');
+      expect(reopened.securityLevel, SecurityLevel.safer);
+      expect(reopened.proxyUser, 'alice');
+      expect(h.state.viewedSiteId, 's1');
+      expect(h.state.byId('s1')!.listed, isTrue);
+      expect(h.state.byId('s1')!.site.profileId, saved.profileId);
+    });
+
+    test('a throwaway: wiped, a fresh profile in the registry only, reopened as a throwaway', () async {
+      final h = await _harness();
+      final throwaway = _site('t1', cookiePolicy: CookiePolicy.wipeOnExit);
+      await h.registry.view(throwaway, throwaway: true);
+      await _settle();
+
+      await h.registry.newIdentity('t1');
+      await _settle();
+
+      expect(h.engine.closedWith['t1'], isTrue);
+      expect(h.sites.upserts, isEmpty);
+      expect(h.sites.setLastWorkedCalls.where((c) => c.id == 't1' && c.at == null), isEmpty);
+      final fresh = h.state.byId('t1')!.site;
+      expect(fresh.profileId, isNot('p-t1'));
+      expect(h.engine.openedSites['t1']!.profileId, fresh.profileId);
+      expect(h.engine.openedAsThrowaway, contains('t1'));
+      expect(h.engine.openedInitialUrls['t1'], isNull);
+      expect(h.state.byId('t1')!.throwaway, isTrue);
+      expect(h.state.viewedSiteId, 't1');
+    });
+
+    test('a per-site login gets a new profile, so a new derived login', () async {
+      final h = await _harness();
+      final site = _site('s1').copyWith(proxyLoginPerSite: true);
+      h.sites.rows['s1'] = site;
+      await h.registry.view(site);
+      await _settle();
+      await h.registry.newIdentity('s1');
+      await _settle();
+      expect(h.engine.openedSites['s1']!.profileId, isNot(site.profileId));
+      expect(h.engine.openedSites['s1']!.proxyLoginPerSite, isTrue);
+    });
+
+    test('no other container is touched', () async {
+      final h = await _harness();
+      final other = _site('o1');
+      final site = _site('s1');
+      h.sites.rows['s1'] = site;
+      await h.registry.view(other);
+      await _settle();
+      await h.registry.view(site);
+      await _settle();
+      final opensBefore = h.engine.opens;
+
+      await h.registry.newIdentity('s1');
+      await _settle();
+
+      expect(h.engine.closed, ['s1']);
+      expect(h.engine.opens, opensBefore + 1);
+      expect(h.state.byId('o1')!.listed, isTrue);
+      expect(h.state.openCount, 2);
+    });
+
+    test('an unknown container is a no-op', () async {
+      final h = await _harness();
+      await h.registry.newIdentity('nope');
+      expect(h.engine.closed, isEmpty);
+      expect(h.sites.upserts, isEmpty);
+    });
+  });
+
   test("a session's category counts and grants reach its container", () async {
     final h = await _harness();
     await h.registry.view(_site('s1'));

@@ -45,6 +45,7 @@ import '../view_models/open_containers.dart';
 import '../view_models/providers.dart';
 import 'container_screen.dart';
 import 'container_web_view.dart';
+import 'new_identity_sheet.dart';
 import 'opening_screen.dart';
 
 /// The host route on the open vault's navigator, while it is up.
@@ -516,6 +517,17 @@ class _ContainerRouteState extends ConsumerState<ContainerRoute> {
     sitesChangedIn(_providers);
   }
 
+  /// ☰'s New identity (privacy-controls spec §4), after its confirm sheet.
+  /// It runs after the menu has closed itself. Cancel does nothing.
+  Future<void> _newIdentity() async {
+    final viewed = _state.viewed;
+    if (viewed == null) return;
+    final registry = _registry;
+    if (!await confirmNewIdentity(context)) return;
+    await registry.newIdentity(viewed.siteId);
+    sitesChangedIn(_providers);
+  }
+
   Future<void> _openReader(String pageId) async {
     final article = await _engine.extractArticle(pageId);
     if (article == null || !mounted) return;
@@ -779,7 +791,7 @@ class _ContainerRouteState extends ConsumerState<ContainerRoute> {
         // Tabs spec §4.2: to the dashboard, closing nothing on the way.
         onAllSites: _toDashboard,
         onSecurityLevel: () => _pickSecurityLevel(siteId),
-        onNewIdentity: () {}, // Task 10
+        onNewIdentity: _newIdentity,
         onFind: (query) => _find(pageId, query),
         onFindNext: (forward) => _engine.findNext(pageId, forward: forward),
         onClearFind: () => _clearFind(pageId),

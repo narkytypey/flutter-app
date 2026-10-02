@@ -2139,6 +2139,48 @@ void main() {
       expect(engine.closed, isEmpty, reason: 'Revoke reloads; it does not reopen');
     });
 
+    testWidgets("☰'s New identity asks first, and Cancel changes nothing", (tester) async {
+      final engine = FakeContainerEngine();
+      final sites = await pumpOpen(tester, engine, _site());
+
+      await tester.tap(_icon('Menu'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('New identity'));
+      await tester.pumpAndSettle();
+      expect(find.text('New identity for this site?'), findsOneWidget);
+
+      await tester.tap(find.text('Cancel'));
+      await settleReopen(tester);
+
+      expect(find.text('New identity for this site?'), findsNothing);
+      expect(engine.closed, isEmpty);
+      expect(engine.wiped, isEmpty);
+      expect(sites.upserts, isEmpty);
+      expect(_tabs(tester).viewed!.site.profileId, 'a' * 32);
+    });
+
+    testWidgets("☰'s New identity, confirmed: wiped, a fresh profile written, reopened at its first page",
+        (tester) async {
+      final engine = FakeContainerEngine();
+      final sites = await pumpOpen(tester, engine, _site());
+
+      await tester.tap(_icon('Menu'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('New identity'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('New identity'));
+      await settleReopen(tester);
+
+      expect(engine.closedWith['s1'], isTrue);
+      expect(engine.wiped, contains('a' * 32));
+      final fresh = sites.upserts.last.profileId;
+      expect(fresh, isNot('a' * 32));
+      expect(engine.openedSites['s1']!.profileId, fresh);
+      expect(engine.openedInitialUrls['s1'], isNull, reason: 'never the page shown');
+      expect(_tabs(tester).viewedSiteId, 's1');
+      expect(find.text('New identity for this site?'), findsNothing);
+    });
+
     testWidgets('a vault default stored while the site is open does not reopen it',
         (tester) async {
       final engine = FakeContainerEngine();
