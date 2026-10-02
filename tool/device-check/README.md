@@ -160,3 +160,32 @@ holds a download reading `13.0 KB · from www.w3.org` (seen last run); its
 Then Task 7 Steps 3–5: fill in the plan's Verification, Device checks and
 Known gaps, add the Plan 13 row and the other `CLAUDE.md` edits Step 4 lists,
 and commit.
+
+## Run sheet: proxy authentication (Plan 14)
+
+Plan `docs/superpowers/plans/2026-10-02-proxy-authentication.md`. Run
+`proxy.py` from this folder; each check names what to look for in its log and
+in the UI dump.
+
+1. `python proxy.py --user alice --password s3cret`. A SOCKS5 site at
+   `https://example.com` via `10.0.2.2:1080`, with USERNAME `alice` and
+   PASSWORD `s3cret`, loads. The log shows `login accepted for user 'alice'`,
+   then `SOCKS5 NAME example.com:443`. Every SOCKS route now uses the app's own
+   SOCKS5 client, so this is also the regression check for every existing
+   SOCKS5 site: run it once with no `--user` and no login typed too.
+2. The same site with PASSWORD `wrong`: `8b` reads "The proxy rejected the
+   login", and the log shows `login rejected`, with no `SOCKS5 NAME` line after
+   it.
+3. The same site with no login typed: `8b` reads "The proxy rejected the
+   login", and the log shows `rejected: no login offered`.
+4. Repeat 1–3 for an HTTP site via `10.0.2.2:8888`. The log lines are
+   `CONNECT … login accepted`, `login rejected` and `login missing`.
+5. `python proxy.py --any-login`. Turn "Separate login per site" on for two
+   SOCKS5 sites and open both. Each logs `login accepted for user '<32 hex
+   digits>'`, and the two users differ. Use "Wipe this site's data" on one and
+   reopen it: its user changes, and the other's does not. Repeat with one HTTP
+   site, whose user is logged the same way.
+6. A throwaway typed from a logged-in site loads through the same login: its
+   log line shows `alice`.
+7. With the login set and the site live, restart `proxy.py` with a different
+   `--password`, then reload: `8c` (tunnel dropped) appears, not `8b`.
