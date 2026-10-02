@@ -1,9 +1,11 @@
 import 'package:container/data/services/container_engine_channel.dart';
 import 'package:container/domain/models/blocked_tally.dart';
 import 'package:container/domain/models/engine_events.dart';
+import 'package:container/domain/models/engine_extras.dart';
 import 'package:container/domain/models/open_page.dart';
 import 'package:container/domain/models/permissions.dart';
 import 'package:container/domain/models/route_decision.dart';
+import 'package:container/domain/models/security_level.dart';
 import 'package:container/domain/models/site.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -395,6 +397,29 @@ void main() {
       expect(args.first['proxyUser'], 'alice');
       expect(args.first['proxyPassword'], 's3cret');
       expect(args.map((a) => a['proxyLoginPerSite']), [false, true]);
+    });
+
+    test('open sends the effective security level', () async {
+      messenger.setMockStreamHandler(events, MockStreamHandler.inline(onListen: (_, __) {}));
+      final calls = <MethodCall>[];
+      messenger.setMockMethodCallHandler(methods, (call) async {
+        calls.add(call);
+        return <String, Object?>{
+          'siteId': 's1', 'phase': 'opening', 'lastActiveAt': null,
+          'blockedCount': 0, 'categoryCounts': <String, Object?>{}, 'failure': null,
+        };
+      });
+      const site = Site(
+        id: 's1', workspaceId: 'w', name: 'Forum', monogram: 'Fr',
+        url: 'https://forum.example.com', profileId: 'p',
+      );
+
+      await ChannelContainerEngine().open(site,
+          extras: const EngineExtras(securityLevel: SecurityLevel.safer));
+      await ChannelContainerEngine().open(site);
+
+      final args = [for (final c in calls) c.arguments as Map<Object?, Object?>];
+      expect(args.map((a) => a['securityLevel']), ['safer', 'standard']);
     });
   });
 }

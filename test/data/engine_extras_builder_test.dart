@@ -1,5 +1,6 @@
 import 'package:container/data/repositories/filter_list_repository_sqlite.dart';
 import 'package:container/data/repositories/script_repository_sqlite.dart';
+import 'package:container/data/repositories/settings_repository_sqlite.dart';
 import 'package:container/data/repositories/site_repository_sqlite.dart';
 import 'package:container/data/repositories/workspace_repository_sqlite.dart';
 import 'package:container/data/services/app_database.dart';
@@ -7,6 +8,7 @@ import 'package:container/data/services/bundled_filter_lists.dart';
 import 'package:container/data/services/engine_extras_builder.dart';
 import 'package:container/domain/models/engine_extras.dart';
 import 'package:container/domain/models/filter_list.dart';
+import 'package:container/domain/models/security_level.dart';
 import 'package:container/domain/models/site.dart';
 import 'package:container/domain/models/user_script.dart';
 import 'package:container/domain/models/workspace.dart';
@@ -19,6 +21,7 @@ void main() {
   setUpAll(sqfliteFfiInit);
 
   late AppDatabase database;
+  late SqliteSettingsRepository settings;
 
   final lists = [
     BundledFilterList(
@@ -61,15 +64,17 @@ void main() {
       url: 'https://news.example.com', profileId: 'p2',
     ));
     await syncBundledFilterLists(database, rules);
+    settings = SqliteSettingsRepository(database);
   });
 
   tearDown(() => database.close());
 
-  Future<EngineExtras> build() => engineExtrasFor(
-        site,
+  Future<EngineExtras> build([Site opened = site]) => engineExtrasFor(
+        opened,
         filterLists: SqliteFilterListRepository(database),
         scripts: SqliteScriptRepository(database),
         rules: rules,
+        settings: settings,
       );
 
   test('enabled lists are merged by category', () async {
@@ -110,6 +115,31 @@ void main() {
     final sent = (await build()).userScripts;
     expect(sent.map((s) => s.code), ['/* first */', '/* second */']);
     expect(sent.first.toMap(), {'kind': 'css', 'code': '/* first */', 'atDocumentStart': true});
+  });
+
+  group('security level (privacy-controls spec §2.2)', () {
+    test('a site with its own level opens at it, whatever the default', () async {
+      await settings.setString('security_level', 'standard');
+      final extras = await build(site.withSecurityLevel(SecurityLevel.safest));
+      expect(extras.securityLevel, SecurityLevel.safest);
+    });
+
+    test('a site that follows the default opens at the stored default', () async {
+      await settings.setString('security_level', 'safer');
+      expect((await build(site)).securityLevel, SecurityLevel.safer);
+    });
+
+    test('nothing stored is Standard; an unknown default is Safest', () async {
+      expect((await build(site)).securityLevel, SecurityLevel.standard);
+      await settings.setString('security_level', '??');
+      expect((await build(site)).securityLevel, SecurityLevel.safest);
+    });
+
+    test('the default is read at each build, not remembered', () async {
+      expect((await build(site)).securityLevel, SecurityLevel.standard);
+      await settings.setString('security_level', 'safest');
+      expect((await build(site)).securityLevel, SecurityLevel.safest);
+    });
   });
 
   test('selectUserScripts matches on enabled and site', () {

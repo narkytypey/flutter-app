@@ -229,6 +229,7 @@ class ChannelContainerEngine implements ContainerEngine {
       'wipeOnExit': site.cookiePolicy == CookiePolicy.wipeOnExit,
       'filterRules': extras.filterRules,
       'userScripts': [for (final script in extras.userScripts) script.toMap()],
+      'securityLevel': extras.securityLevel.name,
       'throwaway': throwaway,
     });
     return _sessionFrom(result!);
