@@ -2663,7 +2663,8 @@ phone.** Each item is "seen" or says why not.
    up (same pid). `app_flutter` held neither `meta.bin` nor `store-1.db`, and
    the loaded profile was journaled in `pending-profile-deletions`, which the
    next start swept. The vault was set up again and the run continued.
-   Flutter logged one unhandled exception at the panic (see Known gaps).
+   Flutter logged an unhandled exception at the panic, as it did at every
+   lock in the run (see Known gaps; since fixed).
 9. **Seen.**
    - A direct `https://example.com` site connected straight to the site.
    - A throwaway from it ("Not saved · wiped when you close it") went direct,
@@ -2759,10 +2760,23 @@ changes documentation only.
   binding and its tunnels until close. Nothing was seen crossing them. The
   unmerged `0c7ad4e` (branch `p2-task7`) closes this. Whether to take it is
   the user's call.
-- **Panic logs an unhandled exception.** `Bad state: databaseProvider read
-  while no vault is open`, from `leakCountProvider`
-  (`dashboard/view_models/providers.dart:49`), as the vault closes. Panic
-  completed and the app stayed up. Not investigated.
+- **Every lock and every panic logged an unhandled exception** (first
+  recorded here as panic-only; the device log had it at all six closes).
+  `Bad state: databaseProvider read while no vault is open`. Nothing broke,
+  and the app stayed up.
+  - **Cause:** something still listens to the blocked tally as the vault
+    closes, and the tally's site lookup (`siteLookupProvider`) read the
+    repository through `databaseProvider`, which throws outside
+    `SessionOpen`. At the time the listener was `leakCountProvider`, which
+    `eb6f6de` has since removed; a container's blocked-today count still
+    listens.
+  - **✅ Fixed 2026-10-02:** `siteLookupProvider` finds nothing while no vault
+    is open, and no longer reads the repository then.
+  - Test: `blocked_tally_controller_test.dart` "the tally survives the vault
+    closing", for a lock and for a panic. Both failed with this exception
+    before the fix.
+  - `flutter analyze` clean, `flutter test` 611/611. **Not verified on a
+    device.**
 - **Older than this plan, found along the way:**
   - The pill matches typed text against `allSitesProvider`
     (`container_route.dart:526`). That is a non-autoDispose provider that

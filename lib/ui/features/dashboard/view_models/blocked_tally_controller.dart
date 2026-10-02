@@ -5,14 +5,20 @@ import '../../../../domain/models/container_session.dart';
 import '../../../../domain/models/site.dart';
 import '../../../../domain/services/blocked_tally_recorder.dart';
 import '../../container/view_models/providers.dart' show containerEngineProvider;
+import '../../shell/view_models/session_controller.dart' show sessionProvider, SessionOpen;
 import 'providers.dart' show siteRepositoryProvider;
 
 /// Looks a site up in whichever vault is open. Watches the repository, so a
 /// change of vault rebuilds [BlockedTallyController] and starts its count
 /// again. Overridden in tests to fake lookup without a real database.
+///
+/// With no vault open it finds nothing. A container still listens to the
+/// tally while a lock or panic closes the vault, so this is rebuilt then, and
+/// the repository's `databaseProvider` throws outside `SessionOpen`.
 final siteLookupProvider = Provider<Future<Site?> Function(String)>((ref) {
-  final sites = ref.watch(siteRepositoryProvider);
-  return sites.byId;
+  final open = ref.watch(sessionProvider.select((session) => session is SessionOpen));
+  if (!open) return (_) async => null;
+  return ref.watch(siteRepositoryProvider).byId;
 });
 
 /// Spec `5c`'s Today log, fed from the engine's live sessions. Each session

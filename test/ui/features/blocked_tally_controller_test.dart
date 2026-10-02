@@ -1,10 +1,20 @@
+import 'dart:async';
+
+import 'package:container/data/services/app_database.dart';
 import 'package:container/data/services/fake_container_engine.dart';
+import 'package:container/domain/models/attempt_gate.dart';
 import 'package:container/domain/models/blocked_tally.dart';
 import 'package:container/domain/models/site.dart';
+import 'package:container/domain/models/vault.dart';
+import 'package:container/domain/services/panic_service.dart';
 import 'package:container/ui/features/container/view_models/providers.dart';
 import 'package:container/ui/features/dashboard/view_models/blocked_tally_controller.dart';
+import 'package:container/ui/features/lock/views/lock_body.dart' show LockMood;
+import 'package:container/ui/features/shell/view_models/session_controller.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
 Site _site(String id) => Site(
       id: id, workspaceId: 'w', name: 'Forum', monogram: 'Fr',
@@ -22,6 +32,17 @@ ProviderContainer _container(
   addTearDown(container.dispose);
   container.listen(blockedTallyProvider, (_, __) {});
   return container;
+}
+
+/// A session this test moves by hand: open, then closed.
+class _Session extends SessionController {
+  _Session(this.initial);
+  final Session initial;
+
+  @override
+  Session build() => initial;
+
+  void become(Session next) => state = next;
 }
 
 int _count(BlockedTally tally, BlockedCategory category) =>
@@ -130,5 +151,39 @@ void main() {
     await _settle();
 
     expect(container.read(blockedTallyProvider).total, 0);
+  });
+
+  // A container keeps the tally listened, so it is rebuilt as the vault
+  // closes. Its site lookup read `databaseProvider`, which throws once no
+  // vault is open: an unhandled exception on every lock and every panic.
+  group('the tally survives the vault closing', () {
+    for (final (name, closed) in [
+      ('a lock', const SessionLocked(mood: LockMood.afterTimeout, gate: AttemptGate())),
+      ('a panic', const SessionPanicked(PanicReport(sessionsDestroyed: 1))),
+    ]) {
+      test(name, () async {
+        sqfliteFfiInit();
+        final database =
+            await AppDatabase.open(path: inMemoryDatabasePath, factory: databaseFactoryFfi);
+        addTearDown(database.close);
+        final container = ProviderContainer(overrides: [
+          containerEngineProvider.overrideWithValue(FakeContainerEngine()),
+          sessionProvider.overrideWith(() => _Session(SessionOpen(
+                vault: VaultId.a, database: database, dataKey: Uint8List(32)))),
+        ]);
+        addTearDown(container.dispose);
+        container.listen(blockedTallyProvider, (_, __) {});
+        expect(container.read(blockedTallyProvider).total, 0);
+
+        final errors = <Object>[];
+        await runZonedGuarded(() async {
+          (container.read(sessionProvider.notifier) as _Session).become(closed);
+          await _settle();
+        }, (error, _) => errors.add(error));
+
+        expect(errors, isEmpty);
+        expect(container.read(blockedTallyProvider).total, 0);
+      });
+    }
   });
 }
