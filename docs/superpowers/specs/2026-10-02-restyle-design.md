@@ -216,7 +216,11 @@ in the set.
   text.
 - **The icon paths are drawn by eye.** The canvas has no paths to copy.
 - **The `9a` Recents card is not built**, so its `◇` isn't drawn.
-- **Plans 15/16 don't exist yet.** Their screens aren't covered here.
+- ~~**Plans 15/16 don't exist yet.** Their screens aren't covered here.~~
+  **Update 2026-10-02:** Plan 15 (Tabs) was executed and is merged into
+  `plan-17-restyle`; its rewritten `2c` (container rows with page rows) is
+  restyled by the §3 `2c` rows, the page row's `×` drawn like the container
+  row's. Plan 16 has a spec only and draws nothing yet.
 
 ## 9. Handoff to later projects
 
@@ -224,5 +228,5 @@ in the set.
   `AppIcon` and every tappable one with `IconTap` plus a label. The §6 guard
   test fails on a new glyph or `Icons.*`. A new glyph goes into `AppGlyph`
   under §2's rules. A new label is copy, so it is a design question first.
-- `2c`'s switcher is restyled here; Tabs replaces it and keeps its `panic` and
-  `close` icons.
+- `2c`'s switcher is Plan 15's, restyled here (see §8's update); its `panic`
+  and `close` icons and labels stay.
