@@ -2,12 +2,22 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../domain/models/site.dart';
 import '../../dashboard/view_models/providers.dart'
-    show siteRepositoryProvider, workspacesProvider, openSiteIdsProvider;
+    show dashboardProvider, siteRepositoryProvider, workspacesProvider, openSiteIdsProvider;
 import 'search_view.dart';
 
+/// Every site in the open vault: what search and the address bar match
+/// against. A copy, read once and kept, so [sitesChanged] must follow every
+/// write to a site row.
 final allSitesProvider = FutureProvider<List<Site>>(
   (ref) => ref.watch(siteRepositoryProvider).all(),
 );
+
+/// Called after any site row is added, changed, wiped or removed: the
+/// dashboard and [allSitesProvider] read the vault again.
+void sitesChanged(WidgetRef ref) {
+  ref.invalidate(allSitesProvider);
+  ref.invalidate(dashboardProvider);
+}
 
 final searchQueryProvider = StateProvider<String>((ref) => '');
 

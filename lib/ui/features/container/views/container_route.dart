@@ -24,7 +24,6 @@ import '../../add_site/views/add_site_screen.dart';
 import '../../dashboard/view_models/providers.dart'
     show
         closeSite,
-        dashboardProvider,
         leakCountProvider,
         openSite,
         siteRepositoryProvider,
@@ -37,7 +36,7 @@ import '../../in_page/views/site_sheet.dart';
 import '../../in_page/views/tunnel_dropped_screen.dart';
 import '../../report/views/today_route.dart';
 import '../../scripts/views/scripts_route.dart';
-import '../../search/view_models/providers.dart' show allSitesProvider;
+import '../../search/view_models/providers.dart' show allSitesProvider, sitesChanged;
 import '../../settings/view_models/providers.dart' show searchEngineProvider;
 import '../../settings/views/settings_route.dart';
 import '../../workspaces/views/workspaces_route.dart';
@@ -278,6 +277,7 @@ class _ContainerRouteState extends ConsumerState<ContainerRoute> {
             setSheetState(() {});
             if (_isThrowaway) return;
             await ref.read(siteRepositoryProvider).upsert(updated);
+            if (mounted) sitesChanged(ref);
           }
 
           final host = _site.host;
@@ -331,6 +331,7 @@ class _ContainerRouteState extends ConsumerState<ContainerRoute> {
         onSave: (updated) async {
           await ref.read(siteRepositoryProvider).upsert(updated);
           if (!mounted) return;
+          sitesChanged(ref);
           setState(() => _site = updated);
           Navigator.pop(context);
         },
@@ -370,8 +371,7 @@ class _ContainerRouteState extends ConsumerState<ContainerRoute> {
           if (!mounted) return;
           _closeOnDispose = false;
           ref.read(throwawaySitesProvider.notifier).remove(site.id);
-          ref.invalidate(allSitesProvider);
-          ref.invalidate(dashboardProvider);
+          sitesChanged(ref);
           setState(() => _site = site);
           Navigator.pop(context);
         },
@@ -394,6 +394,7 @@ class _ContainerRouteState extends ConsumerState<ContainerRoute> {
     }
     final sites = ref.read(siteRepositoryProvider);
     _site = await wipeSavedSite(engine: _engine, sites: sites, site: _site);
+    if (mounted) sitesChanged(ref);
   }
 
   Future<void> _openReader() async {
@@ -455,7 +456,15 @@ class _ContainerRouteState extends ConsumerState<ContainerRoute> {
   /// navigator, so system back comes back here with this page still live.
   /// A saved site whose container is already lower in the stack is returned
   /// to instead, and loads the address there (user's ruling, 2026-10-02).
-  Future<void> _openDestination(Destination destination) async {
+  ///
+  /// [suggested] was decided from the address bar's copy of the vault's
+  /// sites, which can be out of date. So it is decided again here against the
+  /// vault as it is now, and a saved site opens with its current route and
+  /// profile: never one removed since, nor the profile a wipe rotated away.
+  Future<void> _openDestination(Destination suggested) async {
+    final saved = await ref.read(siteRepositoryProvider).all();
+    if (!mounted) return;
+    final destination = destinationFor(suggested.url, current: widget.site, saved: saved);
     switch (destination) {
       case ThisContainer(:final url):
         await _engine.loadUrl(widget.site.id, url.toString());

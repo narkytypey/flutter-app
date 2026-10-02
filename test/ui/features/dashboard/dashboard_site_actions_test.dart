@@ -6,6 +6,7 @@ import 'package:container/ui/features/container/view_models/providers.dart' show
 import 'package:container/ui/features/dashboard/view_models/dashboard_view.dart';
 import 'package:container/ui/features/dashboard/view_models/providers.dart';
 import 'package:container/ui/features/dashboard/views/dashboard_screen.dart';
+import 'package:container/ui/features/search/view_models/providers.dart' show allSitesProvider;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -57,7 +58,8 @@ class _Sites implements SiteRepository {
   Future<void> touch(String id, DateTime at) async {}
 }
 
-Future<ProviderContainer> _pump(WidgetTester tester, _Engine engine, _Sites sites) async {
+Future<ProviderContainer> _pump(WidgetTester tester, _Engine engine, _Sites sites,
+    {void Function()? onSavedRead}) async {
   addTearDown(tester.view.reset);
   tester.view.physicalSize = const Size(800, 1600);
   tester.view.devicePixelRatio = 1;
@@ -75,6 +77,10 @@ Future<ProviderContainer> _pump(WidgetTester tester, _Engine engine, _Sites site
             now: _now,
           )),
       workspaceOptionsProvider.overrideWith((ref) async => const []),
+      allSitesProvider.overrideWith((ref) async {
+        onSavedRead?.call();
+        return const [_forum];
+      }),
     ],
     child: const MaterialApp(home: DashboardScreen()),
   ));
@@ -129,5 +135,34 @@ void main() {
 
     expect(events, isEmpty);
     expect(container.read(openSiteIdsProvider), {'st-forum'});
+  });
+
+  // The address bar's copy of the vault's sites went on offering a removed
+  // site, and a wiped one under the profile its wipe had rotated away from.
+  group("the address bar's sites are read again after", () {
+    Future<int> readsAfter(WidgetTester tester, Future<void> Function() act) async {
+      var reads = 0;
+      final events = <String>[];
+      final container = await _pump(tester, _Engine(events), _Sites(events),
+          onSavedRead: () => reads++);
+      await container.read(allSitesProvider.future);
+      final before = reads;
+      await act();
+      await container.read(allSitesProvider.future);
+      return reads - before;
+    }
+
+    testWidgets('Remove site', (tester) async {
+      expect(await readsAfter(tester, () => _menuAction(tester, 'Remove site')), greaterThan(0));
+    });
+
+    testWidgets("Wipe this site's data", (tester) async {
+      final reads = await readsAfter(tester, () async {
+        await _menuAction(tester, "Wipe this site's data");
+        await tester.tap(find.text('Wipe'));
+        await tester.pumpAndSettle();
+      });
+      expect(reads, greaterThan(0));
+    });
   });
 }

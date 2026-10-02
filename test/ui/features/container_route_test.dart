@@ -106,8 +106,12 @@ class _RecordingSiteRepository implements SiteRepository {
     upserts.add(site);
     events?.add('upsert ${site.id}');
   }
+  /// What the vault holds now. [_pump] fills it with its `saved` sites unless a
+  /// test set it, so a test can make it differ from the address bar's copy.
+  List<Site>? stored;
+
   @override
-  Future<List<Site>> all() => throw UnimplementedError();
+  Future<List<Site>> all() async => stored ?? (throw UnimplementedError());
   @override
   Future<List<Site>> inWorkspace(String workspaceId) => throw UnimplementedError();
   @override
@@ -218,6 +222,7 @@ Future<void> _pump(
   Size size = const Size(800, 1600),
   List<Site> saved = const [],
   SearchEngine searchEngine = SearchEngine.duckDuckGo,
+  void Function()? onSavedRead,
 }) async {
   // A modal bottom sheet is capped at 9/16 of the surface height, so the
   // default 800x600 canvas leaves HeldDownloadSheet ~294px where its fixed
@@ -228,17 +233,24 @@ Future<void> _pump(
   tester.view.devicePixelRatio = 1;
   final navigator = GlobalKey<NavigatorState>();
   Widget route() => ContainerRoute(site: site, initialUrl: initialUrl, throwaway: throwaway);
+  // The vault holds what the address bar suggests from, unless a test says
+  // otherwise.
+  final repository = sites ?? _RecordingSiteRepository();
+  if (repository is _RecordingSiteRepository) repository.stored ??= saved;
   await tester.pumpWidget(ProviderScope(
     overrides: [
       containerEngineProvider.overrideWithValue(engine),
-      if (sites != null) siteRepositoryProvider.overrideWithValue(sites),
+      siteRepositoryProvider.overrideWithValue(repository),
       workspacesProvider.overrideWith((ref) async => const [_workspace]),
       throwawaySitesProvider.overrideWith(() => _Throwaways(throwaways)),
       // Today's tally, which the ☰ menu shows, looks each session's site up
       // in the vault. These tests have no vault.
       siteLookupProvider.overrideWithValue((_) async => null),
       // What the address bar suggests from: this vault's sites and engine.
-      allSitesProvider.overrideWith((ref) async => saved),
+      allSitesProvider.overrideWith((ref) async {
+        onSavedRead?.call();
+        return saved;
+      }),
       searchEngineProvider.overrideWith((ref) async => searchEngine),
       if (!realExtras)
         engineExtrasBuilderProvider.overrideWithValue((site) async => EngineExtras.none),
@@ -349,6 +361,56 @@ void main() {
     final toggles = tester.widgetList<AppToggle>(find.byType(AppToggle)).toList();
     expect(toggles[0].value, isFalse);
     expect(toggles[1].value, isTrue);
+  });
+
+  // Every write to a site refreshes the address bar's copy of the vault's
+  // sites, so a suggestion's tag says where it really opens.
+  group("the address bar's sites are read again after", () {
+    Future<int> readsAfter(WidgetTester tester, Future<void> Function() act) async {
+      var reads = 0;
+      await _pump(tester, FakeContainerEngine(), _site(),
+          sites: _RecordingSiteRepository(), saved: [_site(), _market], overHome: true,
+          onSavedRead: () => reads++);
+      await tester.pumpAndSettle();
+      final container = ProviderScope.containerOf(tester.element(find.byType(MaterialApp)));
+      await container.read(allSitesProvider.future);
+      final before = reads;
+      await act();
+      await container.read(allSitesProvider.future);
+      return reads - before;
+    }
+
+    testWidgets("a switch in this site's sheet (6c)", (tester) async {
+      final reads = await readsAfter(tester, () async {
+        await tester.tap(_icon('Site details'));
+        await tester.pumpAndSettle();
+        await tester.tap(find.byType(AppToggle).at(0));
+        await tester.pumpAndSettle();
+      });
+      expect(reads, greaterThan(0));
+    });
+
+    testWidgets("this site's Edit, saved", (tester) async {
+      final reads = await readsAfter(tester, () async {
+        await tester.tap(_icon('Site details'));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Edit'));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Save'));
+        await tester.pumpAndSettle();
+      });
+      expect(reads, greaterThan(0));
+    });
+
+    testWidgets('close and wipe, which gives this site a fresh profile', (tester) async {
+      final reads = await readsAfter(tester, () async {
+        await tester.tap(_icon('Site details'));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Close and wipe this session'));
+        await tester.pumpAndSettle();
+      });
+      expect(reads, greaterThan(0));
+    });
   });
 
   testWidgets("the site sheet's Edit opens the add-site form on this site", (tester) async {
@@ -1167,6 +1229,48 @@ void main() {
 
     await _systemBack(tester);
     expect(find.text(_homeMarker), findsOneWidget);
+  });
+
+  // The address bar's list of saved sites is a copy that can be out of date:
+  // a removed site went on being suggested, and opening it brought it back.
+  testWidgets("a saved site removed since the address bar read the vault opens a throwaway, not its container",
+      (tester) async {
+    final engine = FakeContainerEngine();
+    final sites = _RecordingSiteRepository()..stored = [_site()];
+    await _pump(tester, engine, _site(), sites: sites, saved: [_site(), _market], overHome: true);
+    await tester.pumpAndSettle();
+
+    await _typeAddress(tester, 'market.example.com/deals');
+    await tester.testTextInput.receiveAction(TextInputAction.go);
+    await tester.pumpAndSettle();
+
+    expect(engine.openedSites.containsKey('m1'), isFalse);
+    expect(sites.touched, isEmpty);
+    final id = engine.openedAsThrowaway.single;
+    expect(engine.openedSites[id]!.url, 'https://market.example.com/deals');
+  });
+
+  // Opening it from the stale copy used its old route, and the profile a
+  // wipe had already rotated away from.
+  testWidgets("a saved site opens as the vault holds it now, not as the address bar's copy had it",
+      (tester) async {
+    final engine = FakeContainerEngine();
+    final now = _market.copyWith(
+      proxyMode: ProxyMode.socks5, proxyHost: '127.0.0.1', proxyPort: 9050,
+      profileId: 'cccccccccccccccccccccccccccccccc',
+    );
+    final sites = _RecordingSiteRepository()..stored = [_site(), now];
+    await _pump(tester, engine, _site(), sites: sites, saved: [_site(), _market], overHome: true);
+    await tester.pumpAndSettle();
+
+    await _typeAddress(tester, 'market.example.com/deals');
+    await tester.testTextInput.receiveAction(TextInputAction.go);
+    await tester.pumpAndSettle();
+
+    final opened = engine.openedSites['m1']!;
+    expect((opened.proxyMode, opened.proxyHost, opened.proxyPort),
+        (ProxyMode.socks5, '127.0.0.1', 9050));
+    expect(opened.profileId, 'cccccccccccccccccccccccccccccccc');
   });
 
   testWidgets("anything else opens a throwaway on this container's route; leaving it closes and forgets it", (tester) async {

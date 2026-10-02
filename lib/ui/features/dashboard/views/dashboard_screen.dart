@@ -8,7 +8,7 @@ import '../../container/view_models/providers.dart' show containerEngineProvider
 import '../../container/views/container_route.dart';
 import '../../report/views/today_route.dart';
 import '../../search/view_models/providers.dart'
-    show allSitesProvider, searchQueryProvider, searchResultsProvider;
+    show allSitesProvider, searchQueryProvider, searchResultsProvider, sitesChanged;
 import '../../search/view_models/search_view.dart' show SearchResultEntry;
 import '../../search/views/search_screen.dart';
 import '../../settings/views/settings_route.dart';
@@ -51,7 +51,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                   workspaces: workspaces,
                   onSave: (site) async {
                     await ref.read(siteRepositoryProvider).upsert(site);
-                    ref.invalidate(dashboardProvider);
+                    sitesChanged(ref);
                     if (!context.mounted) return;
                     Navigator.pop(context);
                   },
@@ -96,7 +96,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                           workspaces: workspaces,
                           onSave: (updated) async {
                             await ref.read(siteRepositoryProvider).upsert(updated);
-                            ref.invalidate(dashboardProvider);
+                            sitesChanged(ref);
                             if (!context.mounted) return;
                             Navigator.pop(context);
                           },
@@ -111,7 +111,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                         sites: ref.read(siteRepositoryProvider),
                         site: site,
                       );
-                      ref.invalidate(dashboardProvider);
+                      sitesChanged(ref);
                     } else if (action == SiteRowAction.wipeData) {
                       // Asked first (user's ruling, 2026-09-30); the site
                       // stays, under a fresh profile (wipeSavedSite).
@@ -122,7 +122,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                         sites: ref.read(siteRepositoryProvider),
                         site: site,
                       );
-                      ref.invalidate(dashboardProvider);
+                      sitesChanged(ref);
                     }
                     // openEphemeral, duplicate, requirePin: Known Gap, see
                     // Plan 6's Known gaps — none has a target workspace or

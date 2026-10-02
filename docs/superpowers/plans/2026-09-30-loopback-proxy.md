@@ -2772,6 +2772,20 @@ changes documentation only.
     container when its host was searched from another container. By the same
     code (not seen), a site's route edited later is ignored there: a site
     moved from direct to a proxy would open from the pill on direct.
+    **✅ Fixed 2026-10-02.**
+    - `_openDestination` decides the destination again against
+      `siteRepository.all()` before opening. A saved site then opens as the
+      vault holds it now: never one removed since, never with an old route,
+      and never under the profile a wipe rotated away from.
+    - Every site write calls the new `sitesChanged(ref)` (search
+      `view_models/providers.dart`), which refreshes `allSitesProvider` and
+      the dashboard, so a suggestion's tag matches where it opens. Those
+      writes are the dashboard's add, edit, remove and wipe, and the
+      container's `6c` switches, Edit, close-and-wipe and "Save as a site".
+    - Tests: `container_route_test.dart` +5, `dashboard_site_actions_test.dart`
+      +2. Each failed before the fix.
+    - `flutter analyze` clean, `flutter test` 610/610. **Not verified on a
+      device.**
   - The add-site form saved `ttps://duckduckgo.com`, after the harness
     dropped a typed character. WebView then showed `ERR_UNKNOWN_URL_SCHEME`.
     The form does not refuse a scheme other than http/https, which the
