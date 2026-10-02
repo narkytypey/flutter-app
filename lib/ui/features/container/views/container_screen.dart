@@ -4,6 +4,7 @@ import '../../../../domain/models/address_suggestion.dart';
 import '../../../../domain/models/destination.dart';
 import '../../../../domain/models/find_result.dart';
 import '../../../../domain/models/navigation_state.dart';
+import '../../../../domain/models/switcher_entry.dart';
 import '../../../core/tokens.dart';
 import 'address_edit_bar.dart';
 import 'address_suggestions.dart';

@@ -1,3 +1,4 @@
+import 'package:container/domain/models/switcher_entry.dart';
 import 'package:container/ui/features/container/views/switcher_sheet.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';

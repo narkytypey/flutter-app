@@ -1,35 +1,10 @@
 import 'package:flutter/material.dart';
 
+import '../../../../domain/models/switcher_entry.dart';
 import '../../../core/tokens.dart';
 import '../../../core/typography.dart';
 import '../../../core/widgets/hairline.dart';
 import '../../../core/widgets/monogram.dart';
-
-/// One row of the quick switcher, already reduced to strings. The widget
-/// layer does no formatting of its own — see `SessionEntry` in the dashboard
-/// for the same pattern.
-///
-/// [meta] is `'viewing now · $mode'` for the live session and
-/// `'background · ${age}'` for the rest. Spec `2c`'s copy for the background
-/// case ("background · 2 min", "background · 14 min") spells the unit out —
-/// it does not match Plan 1's `relativeAge` output ("2m", "14m"), which is a
-/// different screen's convention. The caller formats [meta]; this widget
-/// never calls `relativeAge` itself.
-class SwitcherEntry {
-  const SwitcherEntry({
-    required this.siteId,
-    required this.name,
-    required this.monogram,
-    required this.meta,
-    required this.live,
-  });
-
-  final String siteId;
-  final String name;
-  final String monogram;
-  final String meta;
-  final bool live;
-}
 
 /// Spec `2c` — the quick switcher drawer. Both destructive actions (wipe,
 /// panic) live on this sheet by design and neither gets a confirmation

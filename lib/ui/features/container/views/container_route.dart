@@ -19,6 +19,7 @@ import '../../../../domain/models/route_failure_copy.dart';
 import '../../../../domain/models/route_decision.dart' show refusalMessage;
 import '../../../../domain/models/search_engine.dart';
 import '../../../../domain/models/site.dart';
+import '../../../../domain/models/switcher_entry.dart';
 import '../../../../domain/models/throwaway.dart';
 import '../../../../domain/models/workspace.dart';
 import '../../add_site/views/add_site_screen.dart';
@@ -46,7 +47,6 @@ import '../view_models/throwaway_sites.dart';
 import 'container_screen.dart';
 import 'container_web_view.dart';
 import 'opening_screen.dart';
-import 'switcher_sheet.dart';
 
 /// One push per site tap — and, since browser-chrome spec §5.2, one per
 /// saved site or throwaway opened from the address bar, pushed over the

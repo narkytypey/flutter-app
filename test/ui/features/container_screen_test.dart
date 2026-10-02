@@ -4,6 +4,7 @@ import 'package:container/domain/models/find_result.dart';
 import 'package:container/domain/models/navigation_state.dart';
 import 'package:container/domain/models/search_engine.dart';
 import 'package:container/domain/models/site.dart';
+import 'package:container/domain/models/switcher_entry.dart';
 import 'package:container/domain/models/workspace.dart';
 import 'package:container/ui/core/widgets/icon_tap.dart';
 import 'package:container/ui/features/container/views/address_edit_bar.dart';
@@ -13,7 +14,6 @@ import 'package:container/ui/features/container/views/container_bottom_bar.dart'
 import 'package:container/ui/features/container/views/container_screen.dart';
 import 'package:container/ui/features/container/views/container_top_bar.dart';
 import 'package:container/ui/features/container/views/find_bar.dart';
-import 'package:container/ui/features/container/views/switcher_sheet.dart';
 import 'package:container/ui/features/container/views/throwaway_save_bar.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
