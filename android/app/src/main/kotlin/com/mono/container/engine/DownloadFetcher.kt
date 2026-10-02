@@ -88,6 +88,12 @@ fun writeDownload(response: ProxyHttpClient.FetchedResponse, target: java.io.Fil
 }
 
 /**
+ * Where a proxied "save to device" holds the body before MediaStore takes it.
+ * `File.createTempFile` refuses a prefix under three characters.
+ */
+fun deviceSaveTempFile(dir: java.io.File): java.io.File = java.io.File.createTempFile("download", null, dir)
+
+/**
  * The failure a download's outcome line names. Mirrors the mapping the
  * interceptor used for proxied page loads before P2 (Plan 13), so a download
  * names the same cause a page load did.
@@ -157,7 +163,7 @@ class DownloadFetcher(
     }
 
     private fun saveViaMediaStore(route: Route, pending: PendingDownload, request: DownloadRequest, fileName: String): DownloadOutcome {
-        val temp = java.io.File.createTempFile("dl", null, context.cacheDir)
+        val temp = deviceSaveTempFile(context.cacheDir)
         return try {
             fetchTo(route, request, temp)
             val values = android.content.ContentValues().apply {
