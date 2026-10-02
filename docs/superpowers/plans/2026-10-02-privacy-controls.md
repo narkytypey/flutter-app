@@ -20,10 +20,9 @@
 
 **Spec:** `docs/superpowers/specs/2026-10-02-privacy-controls-design.md`. Read it before any task. Its "Decisions the user made", §5's copy and its "Rulings" are binding.
 
-**Depends on Plan 15 (Tabs), which must be on `main` before Task 1.** This plan was written on 2026-10-02 against the **Tabs spec** (`docs/superpowers/specs/2026-10-02-tabs-design.md`, branch `claude/project-2-tabs-v4gbp5`). At that point Plan 15 had neither a plan file nor code: the user ruled that branch is Plan 15, and asked for Plan 16 against it.
-- Tasks 1–8 and 11 touch nothing Plan 15 changes, except where a step says so.
-- Tasks 5, 6, 9 and 10 build on Plan 15's code. The names they use (`Page`, `Session.pages`, `close(siteId, {wipe})`, `OpenContainers`, `ContainerHostRoute`, the per-container controller, `navigationState(pageId)`) are the Tabs spec's.
-- "Before Task 1" checks those names against the real tree and records any difference. **Use the real names**, and use this plan's code for its logic, not its spelling.
+**Built on Plan 15 (Tabs), merged to `main` at `9bf5a39`.**
+- This plan was first written on 2026-10-02 against the Tabs spec alone, then revised the same day against Plan 15's merged code (`docs/superpowers/plans/2026-10-02-tabs.md`, and its Handoff).
+- The names it uses are the tree's: `Page`, `Session.pages`, `Page.reload()`, `close(siteId, {bool? wipe})`, the `OpenContainers` registry (`openContainersProvider`, which holds `reopen` and `siteSaved`; there is no separate controller), `OpenContainer`, `ContainerRoute` (still the host's name), and `FakeContainerEngine.closedWith`.
 
 ## Global Constraints
 
@@ -57,7 +56,7 @@
 
 ## Review Focus
 
-1. **A reopen of a throwaway or a wipe-on-exit site keeps its cookies.** It must call `close(siteId, wipe: false)`, never a bare `close`. A bare close wipes by the session's own flag, which would log the user out on every switch. Pinned in Task 9.
+1. **A reopen of a throwaway or a wipe-on-exit site keeps its cookies.** It must call `_engine.close(siteId, wipe: false)`, never the registry's `close` (which forces a throwaway's wipe) and never a bare engine `close` (which wipes by the session's own flag). Either would log the user out on every switch. Pinned in Task 9.
 2. **A level that is unknown, missing or misspelt** is Safest natively (`SecurityLevel.fromChannel`), and a stored unknown name reads `safest` in Dart. Pinned in Tasks 1 and 5.
 3. **A Safest page runs no document-start script at all, and has JavaScript off.** That includes a page opened later by a link in the same container, which goes through the same `Page` construction. Pinned in Task 5.
 4. **Revoke drops only the kind named, reloads every page of the container, and emits a new session list.** A stored (`2a`) grant is never touched. Pinned in Task 6.
@@ -68,25 +67,23 @@
 
 ## Before Task 1: baseline
 
-- [ ] **Step 1: Plan 15 is on `main`.** Run `git log --oneline main | head` and confirm Plan 15's merge. If it is not there, stop and tell the user: this plan is written against it.
+- [ ] **Step 1: Start from `main` at or after `9bf5a39`** (Plan 15's merge). If `main` has moved since, re-read the files Tasks 5–10 change before starting. If any of them changed, adapt this plan's code to them, and record the change.
 - [ ] **Step 2: Branch.** `git checkout -b plan-16-privacy-controls main`.
 - [ ] **Step 3: Gates on the untouched tree.** Run `flutter analyze`, `flutter test`, `cd android && ./gradlew :app:testDebugUnitTest`, and `flutter build apk --debug`. Record each count, the Kotlin count read from the JUnit XML, in the Execution record at the end of this file. Every later count is compared with these.
-- [ ] **Step 4: Plan 15's names.** For each name in the table, find the real one (`grep -rn`) and fill in the right-hand column of the copy in the Execution record:
+- [ ] **Step 4: Plan 15's names, as checked when this plan was revised (2026-10-02, `9bf5a39`).** Re-check them only if `main` has moved:
 
-| Tabs spec name | Used in this plan's tasks | Real name |
+| Tabs spec name | In the tree | Used in |
 |---|---|---|
-| Kotlin `Page` (owns one WebView; replaced `ContainerView`) | 5 | |
-| `Session.pages: LinkedHashMap<String, Page>` | 6 | |
-| `Page.reload()` | 6 | |
-| Dart `ContainerEngine.close(String siteId, {bool? wipe})` | 9, 10 | |
-| Dart `ContainerEngine.navigationState(String pageId)` | 9 | |
-| `OpenContainers` registry and its entry type (site, throwaway flag, last viewed page id) | 9, 10 | |
-| The per-container controller that holds `8b`'s reopen | 9, 10 | |
-| `ContainerHostRoute` (where `_showSiteSheet` now lives) | 9, 10 | |
-| `FakeContainerEngine`'s record of `close` calls with their `wipe` argument | 9, 10 | |
-| `wipeSavedSite` (now `close(siteId, wipe: true)` then the rotation, Tabs §5.8a) | 10 | |
-
-  If anything is missing (for example, the fake records `close` but not its `wipe`), add the smallest piece the task needs, in that task's commit, with a test.
+| `Page` | `Page.kt`. Its `WebView(context).apply { … }` holds the settings, and its `init` calls `Shields.apply`. Every page, a link's included, is built by `EngineChannel.newPage(session, …)` from `session.config`. | 5 |
+| `Session.pages` | `val pages = LinkedHashMap<String, Page>()` | 6 |
+| `Page.reload()` | `Page.reload()` | 6 |
+| `close(siteId, {bool? wipe})` | as named; the registry's own `close` forces `wipe: true` for a throwaway | 9, 10 |
+| Navigation by page | `OpenContainersState.navigation[pageId]?.url` | 9 |
+| Registry, entry | `OpenContainers` / `openContainersProvider`; `OpenContainer` (`site`, `opened`, `throwaway`, `initialUrl`, `viewedPageId`, `listed`) | 9, 10 |
+| Per-container controller | **none**: the registry holds `reopen(siteId, site, {withoutTunnel, atStoredAddress})`, `siteSaved` and `closeAndWipe` | 9, 10 |
+| `ContainerHostRoute` | `ContainerRoute`, with `_showSiteSheet` and the `ContainerScreen(...)` call | 7–10 |
+| The fake's close record | `FakeContainerEngine.closed` and `closedWith[siteId]` (the `wipe` argument) | 9, 10 |
+| `wipeSavedSite` | `close(siteId, wipe: true)`, `wipe(profileId)`, then the rotation and "Last worked" cleared | 10 |
 
 ---
 
@@ -109,7 +106,8 @@
 | `lib/ui/features/in_page/views/site_sheet.dart` | `6c` as the shield panel. |
 | `lib/ui/features/container/views/browser_menu_sheet.dart`, `container_screen.dart` | The two ☰ rows. |
 | `lib/ui/features/container/views/new_identity_sheet.dart` | **Create.** The confirm sheet. |
-| Plan 15's host route and per-container controller | Reopen in place, the pickers, the switches, Revoke, New identity. |
+| `lib/domain/models/open_container.dart`, `lib/ui/features/container/view_models/open_containers.dart` | `categoryCounts` and `grants`; `reopen(at:)`, `reopenInPlace`, `newIdentity`. |
+| `lib/ui/features/container/views/container_route.dart` | `6c`, the site picker, the ☰ rows, New identity. |
 | `android/.../engine/SecurityPolicy.kt` | **Create.** `SecurityLevel`, `SecurityPolicy`, `securityPolicyFor`. |
 | `android/app/src/main/assets/shields/safer.js` | **Create.** |
 | `android/.../engine/SiteConfig.kt`, `EngineChannel.kt`, `Shields.kt`, Plan 15's `Page.kt` | The level read, applied; grants in the session map; `revokeGrant`. |
@@ -1118,7 +1116,7 @@ fun securityPolicyFor(level: SecurityLevel): SecurityPolicy = when (level) {
 ```
 
     Update the one caller, which passes the fingerprint lambda by position today, to name it: `onFingerprintNoiseApplied = { ... }`.
-  - **Plan 15's `Page`,** where it builds its WebView's settings (today `ContainerView`'s `WebView(context).apply { … }`):
+  - **`Page.kt`,** in its `val webView: WebView = WebView(context).apply { … }`:
 
 ```kotlin
         val policy = securityPolicyFor(config.securityLevel)
@@ -1126,7 +1124,8 @@ fun securityPolicyFor(level: SecurityLevel): SecurityPolicy = when (level) {
         settings.blockNetworkImage = policy.blockNetworkImage
 ```
 
-    Then pass `policy` to `Shields.apply`. Every page of a container, including one a link opens (`onCreateWindow`), is built by this one constructor from the session's `SiteConfig`. Confirm that by reading Plan 15's `Page` and its new-window path. If a second construction path exists, apply the policy there too, and add a JVM test if that path is pure.
+    Then pass `policy` to `Shields.apply` in `Page`'s `init`. Every page of a container, including one a link opens (`onCreateWindow`), comes from `EngineChannel.newPage`, which builds a `Page` from `session.config`, so the policy holds for all of them.
+  - **The capture view** that reads a capped link's URL refuses every request, and is not a `Page`. Leave it as it is.
 
 - [ ] **Step 7: Run the Kotlin tests** (`./gradlew :app:testDebugUnitTest`) and read the counts from the XML. Run `flutter build apk --debug` and check for zero `e:` lines.
 
@@ -1260,7 +1259,7 @@ object SessionGrants {
     }
 ```
 
-    `session.pages` and `page.reload()` are Plan 15's; use the real names from Before Task 1 Step 4.
+    `resolvePermission` (around `EngineChannel.kt:610`) adds grants in two places, one per `PendingPermission` kind. Emit after each.
 
 - [ ] **Step 5: Run the Kotlin tests and the APK build.** Both are green.
 
@@ -1554,7 +1553,7 @@ String _permissionLabel(PermissionKind kind) => switch (kind) {
     };
 ```
 
-  - **Callers:** update every caller in `lib` to pass the new arguments. Plan 15's host route owns `_showSiteSheet` by then. For now, pass the values and no-op callbacks; Task 9 wires them. Set `isScrollControlled: true` on that `showModalBottomSheet` so a tall sheet can use the screen.
+  - **Callers:** the only one is `ContainerRoute._showSiteSheet`. For now, pass the values it has, and no-op callbacks: `securityLevelValue: 'Standard · default'`, `const {}`, the site's three booleans, `const []`. Task 9 wires them. Set `isScrollControlled: true` on that `showModalBottomSheet`.
 
 - [ ] **Step 4: Run `flutter test test/ui/features/in_page/site_sheet_test.dart`, then `flutter test` and `flutter analyze`.** All pass.
 
@@ -1676,7 +1675,7 @@ void main() {
   - **`ContainerScreen`:**
     - Add the same three as widget parameters: `securityLevelMeta` (a `String`), `onSecurityLevel` and `onNewIdentity`.
     - In `_openMenu`, pass `securityLevelMeta: widget.securityLevelMeta`, `onSecurityLevel: closing(widget.onSecurityLevel)` and `onNewIdentity: closing(widget.onNewIdentity)`.
-    - Its callers pass `'STANDARD'` and no-op callbacks until Task 9 (update `chrome_bars_test.dart` and the other callers that build it).
+    - Its caller, `ContainerRoute`'s `ContainerScreen(...)`, passes `'STANDARD'` and no-op callbacks until Task 9. Update the tests that build `ContainerScreen` (`container_screen_test.dart`, `chrome_bars_test.dart`) likewise.
 
 - [ ] **Step 5: Run `flutter test` and `flutter analyze`.** Both pass.
 
@@ -1684,194 +1683,413 @@ void main() {
 
 ---
 
-### Task 9: Wire it on Plan 15's host — reopen in place, pickers, switches, Revoke
+### Task 9: Reopen in place — the registry, `6c`'s switches, the pickers, Revoke
 
 **Files:**
-- Modify: Plan 15's per-container controller and `ContainerHostRoute` (this plan calls them *the controller* and *the host*). Use the real names from Before Task 1 Step 4.
-- Test: Plan 15's host-route widget test file (extend), using `FakeContainerEngine`.
+- Modify: `lib/domain/models/open_container.dart`, `lib/ui/features/container/view_models/open_containers.dart`, `lib/ui/features/container/views/container_route.dart`
+- Test: `test/ui/features/container/open_containers_test.dart` (extend), `test/ui/features/container_route_test.dart` (extend)
 
-This task's logic is fixed; where it lives depends on Plan 15's code.
+Plan 15's registry (`OpenContainers`) owns every open, close and reopen. It already has `siteSaved`, which closes with `wipe: false` and reopens at the stored address, but only for a route or cookie-policy change; and `reopen(siteId, site, {withoutTunnel, atStoredAddress})`. Its Handoff says a level change should go "through `OpenContainers.siteSaved` once `routeOrCookiePolicyChanged` is widened". It is **not** widened here, because that path reopens at the *stored* address, and spec §2.4 reopens at the page being shown. A sibling method, `reopenInPlace`, is added instead. `routeOrCookiePolicyChanged` and `siteSaved` are unchanged.
 
-- [ ] **Step 1: Write the failing widget tests.** They use Plan 15's harness for pumping the host with a saved site and with a throwaway, open and live, with a navigation event at `https://forum.example.com/t/9` on the viewed page. Add:
-  1. **The ☰ level picker.**
-     - Open ☰, and see `Security level` with the meta `STANDARD`.
-     - Tap it: the site picker shows, with `Default` checked.
-     - Tap `Safest`. Expect:
-       - the repository row's `securityLevel` is `safest`;
-       - the fake recorded `close(siteId, wipe: false)` for the site;
-       - `openedExtras[siteId]!.securityLevel == SecurityLevel.safest`;
-       - `openedInitialUrls[siteId] == 'https://forum.example.com/t/9'`;
-       - the profile was not wiped (`wiped` is empty).
-  2. **`Default` clears it.** With the site at `safer`, pick `Default`: the row's `securityLevel` is null, and the reopen's extras carry the vault default.
-  3. **`6c`'s value.**
-     - It reads `Standard · default`, then `Safest` after the pick.
-     - Reopen `6c` and tap `Security level`: the same site picker.
-  4. **Every `6c` switch saves, then reopens in place,** each with `wipe: false` at the viewed page's address. The switches are:
+- [ ] **Step 1: Write the failing registry tests**, in `open_containers_test.dart`, with its `_harness()`, `_site`, `_nav` and `_settle`:
+
+```dart
+  group('reopen in place (privacy-controls spec §2.4)', () {
+    test('a saved site reopens at the page it shows, with wipe false, and its row is not written here',
+        () async {
+      final h = await _harness();
+      final site = _site('a', cookiePolicy: CookiePolicy.wipeOnExit);
+      await h.registry.view(site);
+      await _settle();
+      final pageId = h.state.byId('a')!.viewedPageId!;
+      h.engine.emitNavigation(_nav('a', pageId));
+      await _settle();
+
+      await h.registry.reopenInPlace(site.withSecurityLevel(SecurityLevel.safest));
+      await _settle();
+
+      expect(h.engine.closedWith['a'], isFalse, reason: 'never wiped, whatever the policy');
+      expect(h.engine.wiped, isEmpty);
+      expect(h.engine.openedInitialUrls['a'], 'https://a.example.org/$pageId');
+      expect(h.engine.openedSites['a']!.securityLevel, SecurityLevel.safest);
+      expect(h.state.byId('a')!.site.securityLevel, SecurityLevel.safest);
+      expect(h.sites.upserts, isEmpty, reason: 'the caller writes the row');
+      expect(h.state.viewedSiteId, 'a');
+    });
+
+    test('a throwaway is reopened as one, unwiped', () async {
+      final h = await _harness();
+      final throwaway = _site('t', cookiePolicy: CookiePolicy.wipeOnExit);
+      await h.registry.view(throwaway, throwaway: true);
+      await _settle();
+
+      await h.registry.reopenInPlace(throwaway.copyWith(blockWebRtc: false));
+      await _settle();
+
+      expect(h.engine.closedWith['t'], isFalse);
+      expect(h.engine.wiped, isEmpty);
+      expect(h.engine.openedAsThrowaway, contains('t'));
+      expect(h.state.byId('t')!.throwaway, isTrue);
+      expect(h.state.byId('t')!.site.blockWebRtc, isFalse);
+    });
+
+    test('before any navigation it reopens at the address it was opened with', () async {
+      final h = await _harness();
+      final site = _site('a');
+      await h.registry.view(site, initialUrl: 'https://a.example.org/typed');
+      await _settle();
+
+      await h.registry.reopenInPlace(site);
+      await _settle();
+
+      expect(h.engine.openedInitialUrls['a'], 'https://a.example.org/typed');
+    });
+
+    test('it keeps only one page', () async {
+      final h = await _harness();
+      final site = _site('a');
+      await h.registry.view(site);
+      await _settle();
+      final first = h.state.byId('a')!.viewedPageId!;
+      h.engine.openPageFromLink('a', openerPageId: first);
+      await _settle();
+      expect(h.state.byId('a')!.pages, hasLength(2));
+
+      await h.registry.reopenInPlace(site);
+      await _settle();
+      expect(h.state.byId('a')!.pages, hasLength(1));
+    });
+
+    test('an unknown container is a no-op', () async {
+      final h = await _harness();
+      await h.registry.reopenInPlace(_site('nope'));
+      expect(h.engine.closed, isEmpty);
+    });
+  });
+
+  test("a session's category counts and grants reach its container", () async {
+    final h = await _harness();
+    await h.registry.view(_site('a'));
+    await _settle();
+    h.engine.addBlocked('a', BlockedCategory.trackers, 4);
+    h.engine.grantWhileOpen('a', PermissionKind.microphone);
+    await _settle();
+    final container = h.state.byId('a')!;
+    expect(container.categoryCounts[BlockedCategory.trackers], 4);
+    expect(container.grants, {PermissionKind.microphone});
+  });
+```
+
+  - The `view(...)` calls must use Plan 15's real signature (`view(site, {throwaway, initialUrl, …})`). Copy it from the neighbouring tests.
+  - Import `security_level.dart`, `blocked_tally.dart` and `permissions.dart`.
+
+- [ ] **Step 2: Run them and see them fail.** `flutter test test/ui/features/container/open_containers_test.dart`.
+
+- [ ] **Step 3: `OpenContainer` carries the session's counts and grants** (`lib/domain/models/open_container.dart`)
+  - Add `this.categoryCounts = const {}` and `this.grants = const {}` to the constructor.
+  - Add the fields `final Map<BlockedCategory, int> categoryCounts;` (doc: "`6c`'s per-category rows (privacy-controls spec §3)") and `final Set<PermissionKind> grants;` (doc: "this session's 'allow while open' grants, for `6c`").
+  - Add both to `copyWith` as plain nullable parameters.
+  - In `OpenContainers._applySession`, beside `blockedCount: session.blockedCount,`, add `categoryCounts: session.categoryCounts,` and `grants: session.grants,`.
+
+- [ ] **Step 4: `reopen` takes an address, and `reopenInPlace` exists** (`open_containers.dart`)
+  - In `reopen`, add a parameter `String? at,`, and change the `initialUrl:` line to:
+
+```dart
+        initialUrl: atStoredAddress ? null : (at ?? _keep),
+```
+
+  - Document it: "[at] is the address to load first, this session only: `reopenInPlace`'s page being shown."
+  - After `siteSaved`, add:
+
+```dart
+  /// A site's level or a `6c` switch changed (privacy-controls spec §2.4):
+  /// the container reopens in place, with only the page being shown, at the
+  /// address it shows (or the one it was opened with, before any navigation).
+  /// Never wiped, whatever the cookie policy (spec ruling 1): a throwaway or
+  /// a wipe-on-exit site keeps its login. A throwaway reopens as one, and its
+  /// journal entry stays.
+  ///
+  /// The caller has already written a saved site's row. Unlike [siteSaved],
+  /// this reopens at the page shown, not the stored address, and for any
+  /// change, not only the route's.
+  Future<void> reopenInPlace(Site after) async {
+    final container = state.byId(after.id);
+    if (container == null || !container.listed) return;
+    final pageId = container.viewedPageId;
+    final at = (pageId == null ? null : state.navigation[pageId]?.url) ?? container.initialUrl;
+    // As [siteSaved]: not reconciled into a drop while it closes.
+    _update(
+      after.id,
+      (c) => c.copyWith(site: after, openReturned: false, pages: const [], viewOrder: const []),
+    );
+    await _engine.close(after.id, wipe: false);
+    await reopen(after.id, after, at: at);
+  }
+```
+
+  - The registry's `close` forces `wipe: true` for a throwaway, which is why this calls `_engine.close` directly.
+  - The navigation entry's field is `url` in `NavigationState`. If Plan 15 keyed `state.navigation` differently, follow `_throwawayAsSite`'s read in `container_route.dart`, which does the same lookup.
+
+- [ ] **Step 5: Run the registry tests and see them pass.**
+
+- [ ] **Step 6: Write the failing host tests**, in `container_route_test.dart`, with its `_pump`. Pump a saved site (`_site`, wipe on exit) and a throwaway, each open, live, with a navigation event at `https://…/t/9` on its viewed page.
+  1. **☰ → `Security level` (meta `STANDARD`) → the site picker** shows `Default` checked. Tap `Safest`, then expect:
+     - the repository's row has `securityLevel == safest`;
+     - `engine.closedWith[id] == false`;
+     - `engine.openedExtras[id]!.securityLevel == SecurityLevel.safest`;
+     - `engine.openedInitialUrls[id]` ends with `/t/9`;
+     - `engine.wiped` is empty;
+     - ☰'s meta now reads `SAFEST`.
+  2. **With the site at `safer`, pick `Default`:** the row's `securityLevel` is null, and the extras carry the vault default (store `safest` with `SqliteSettingsRepository` first to tell them apart).
+  3. **`6c`** reads `Standard · default`, and `Safest` after the pick. Its `Security level` row opens the same picker.
+  4. **Each `6c` switch** writes its field and reopens with `wipe: false` at `/t/9`:
      - `Block WebRTC` → `blockWebRtc: false`;
-     - `Block trackers and ads`;
-     - `Anti-fingerprinting`;
-     - `Force dark mode`;
+     - `Block trackers and ads` → `blockTrackers: false`;
+     - `Anti-fingerprinting` → `antiFingerprinting: false`;
+     - `Force dark mode` → `forceDark: false`;
      - `Desktop view` → `userAgentMode: desktop`.
-  5. **A throwaway's switch writes no row.**
-     - The repository is untouched, and the registry entry's site carries the change.
-     - It is reopened with `throwaway: true` and `wipe: false`.
-     - `wiped` is empty, so its cookies survive.
-  6. **Categories and permissions reach `6c`.**
-     - `fake.addBlocked(siteId, BlockedCategory.trackers, 4)` shows `Trackers` and `4`.
-     - `fake.grantWhileOpen(siteId, PermissionKind.microphone)` shows `Microphone` and `Revoke`.
-     - Tapping `Revoke` records `revokedGrants` and the row goes.
-     - A site with `allowCamera: true` shows `Camera` and `Allowed`.
-  7. **The vault default reaches the next open, not the open one.**
-     - Store `safer` through `SettingsController`; the open container is not reopened.
-     - Close it and open it again: its extras carry `safer`.
+  5. **A throwaway's switch** writes no row, reopens with `throwaway`, and wipes nothing.
+  6. **`6c` shows the live session:**
+     - `engine.addBlocked(id, BlockedCategory.trackers, 4)` → `Trackers` and `4`;
+     - `engine.grantWhileOpen(id, PermissionKind.microphone)` → `Microphone` and `Revoke`;
+     - tapping `Revoke` → `engine.revokedGrants` has it, and the row goes;
+     - a site with `allowCamera: true` → `Camera` and `Allowed`.
+  7. **A vault default stored while the site is open** does not reopen it (`engine.closed` unchanged).
 
-- [ ] **Step 2: Run them and see them fail.**
+- [ ] **Step 7: Run them and see them fail.**
 
-- [ ] **Step 3: Reopen in place, on the controller**
+- [ ] **Step 8: Wire the host** (`container_route.dart`)
+  - **`_showSiteSheet`**'s `save` becomes save-then-reopen for every switch, and closes `6c` first, since its session is about to be replaced:
 
 ```dart
-  /// Privacy-controls spec §2.4: [site] reopened in place, at [url] (the
-  /// address the viewed page is showing), with every page but that one
-  /// closed (user's ruling, 2026-10-02). Never wipes, whatever the cookie
-  /// policy, so a throwaway or a wipe-on-exit site keeps its login (spec
-  /// ruling 1). A throwaway is reopened as one, and its journal entry stays.
-  Future<void> reopenInPlace(Site site, {required String url}) async {
-    await engine.close(site.id, wipe: false);
-    // Plan 15's reopen (8b's), with this open's address. It updates the
-    // registry entry's site, re-reads the extras (so the level and the vault
-    // default are current), and keeps the throwaway flag.
-    await reopen(site, initialUrl: url);
-  }
+          // Every switch applies at once (privacy-controls spec §2.4): the
+          // row is written, a throwaway only in the registry, then the
+          // container reopens in place. This replaces tabs spec §5.7's "the
+          // 6c switches never close anything".
+          Future<void> save(Site updated) async {
+            Navigator.pop(sheetContext);
+            if (!throwaway) {
+              await sites.upsert(updated);
+              sitesChangedIn(_providers);
+            }
+            await registry.reopenInPlace(updated);
+          }
 ```
 
-  If Plan 15's reopen takes no `initialUrl`, add one, passed to `engine.open(..., initialUrl:)`. Its other callers keep reopening at the stored address (Tabs §5.7), so their tests stay as they are.
-
-  **The viewed page's address:** read `navigationState` / `navigationForPageProvider` for the container's viewed page. Fall back to the address the container was opened with, and then to `site.url` (spec ruling 5).
-
-- [ ] **Step 4: One save-then-reopen path for every change**
+    `site` is no longer needed as a running record, because the sheet closes on every change. Drop it, and read the site from the registry each time the sheet builds (below).
+  - **The sheet body** is wrapped in a `Consumer` watching `openContainersProvider`, so its counts and grants are live. Read `final now = ref.watch(openContainersProvider).byId(siteId)`; if it is null (the container went), return `const SizedBox.shrink()`. Read `final vaultDefault = ref.watch(vaultSecurityLevelProvider).valueOrNull ?? SecurityLevel.standard;`. Then pass:
 
 ```dart
-  /// A `6c` switch or a level pick (spec §2.4): the site is saved (a
-  /// throwaway only in memory), then reopened in place.
-  Future<void> applySiteChange(Site updated) async {
-    if (entry.throwaway) {
-      openContainers.updateSite(updated);     // Plan 15's registry
-    } else {
-      await siteRepository.upsert(updated);
-      sitesChanged(ref);
-    }
-    await reopenInPlace(updated, url: viewedPageUrl());
-  }
+            securityLevelValue: securityLevelValue(now.site, vaultDefault),
+            onSecurityLevel: () {
+              Navigator.pop(sheetContext);
+              _pickSecurityLevel(siteId);
+            },
+            categoryCounts: now.categoryCounts,
+            blockedCount: now.blockedCount,
+            blockWebRtc: now.site.blockWebRtc,
+            blockTrackers: now.site.blockTrackers,
+            antiFingerprinting: now.site.antiFingerprinting,
+            onBlockWebRtcChanged: (v) => save(now.site.copyWith(blockWebRtc: v)),
+            onBlockTrackersChanged: (v) => save(now.site.copyWith(blockTrackers: v)),
+            onAntiFingerprintingChanged: (v) => save(now.site.copyWith(antiFingerprinting: v)),
+            permissions: permissionsInUse(now.site, now.grants),
+            onRevoke: (kind) => _engine.revokeGrant(siteId, kind),
 ```
 
-  - **`6c`'s callbacks** in the host:
-    - `onForceDarkChanged: (v) => applySiteChange(site.copyWith(forceDark: v))`;
-    - `onDesktopViewChanged` as today's mapping, through `applySiteChange`;
-    - `onBlockWebRtcChanged`, `onBlockTrackersChanged` and `onAntiFingerprintingChanged` likewise.
-
-    This replaces Plan 15's "the `6c` switches never close anything" (Tabs §5.7), as privacy-controls spec §8 records. **Close `6c` before reopening**, since the sheet shows a session that is about to be replaced.
-  - **`onSecurityLevel`,** from `6c` and from the ☰ menu, closes the sheet and shows:
+    Also keep `forceDark`, `desktopView` and their callbacks on `now.site`, as today, through `save`. Show the sheet with `isScrollControlled: true`. Update `_showSiteSheet`'s doc comment.
+  - **The site picker,** used by `6c` and ☰:
 
 ```dart
+  /// The site picker (privacy-controls spec §2.3): `Default` follows the
+  /// vault default. A new choice is written (a throwaway only in the
+  /// registry) and the container reopens in place (§2.4).
+  Future<void> _pickSecurityLevel(String siteId) async {
+    final container = _state.byId(siteId);
+    if (container == null) return;
     final vaultDefault = await ref.read(vaultSecurityLevelProvider.future);
+    if (!mounted) return;
+    final registry = _registry;
+    final sites = ref.read(siteRepositoryProvider);
     showModalBottomSheet<void>(
       context: context,
       backgroundColor: Colors.transparent,
       builder: (sheetContext) => SecurityLevelPicker.site(
-        current: site.securityLevel,
+        current: container.site.securityLevel,
         vaultDefault: vaultDefault,
-        onPick: (level) {
+        onPick: (level) async {
           Navigator.pop(sheetContext);
-          if (level == site.securityLevel) return;
-          applySiteChange(site.withSecurityLevel(level));
+          if (level == container.site.securityLevel) return;
+          final updated = container.site.withSecurityLevel(level);
+          if (!container.throwaway) {
+            await sites.upsert(updated);
+            sitesChangedIn(_providers);
+          }
+          await registry.reopenInPlace(updated);
         },
       ),
     );
+  }
 ```
 
-  - **`6c`'s other arguments:**
-    - `securityLevelValue: securityLevelValue(site, vaultDefault)`;
-    - `categoryCounts: session.categoryCounts`;
-    - the three shield booleans from `site`;
-    - `permissions: permissionsInUse(site, session.grants)`;
-    - `onRevoke: (kind) => engine.revokeGrant(site.id, kind)`.
+  - **`ContainerScreen`'s new arguments:**
 
-    Here `session` is the container's `ContainerSession`, from Plan 15's per-site session provider. Keep `6c` live across a Revoke with the `StatefulBuilder` and session listener the host already uses, or rebuild the sheet from a provider.
-  - **☰:** `securityLevelMeta: effectiveLevel(site, vaultDefault).meta` (spec ruling 10), with `vaultDefault` from `vaultSecurityLevelProvider` (`valueOrNull ?? SecurityLevel.standard`, for display only). `onSecurityLevel` as above; `onNewIdentity` is wired in Task 10 (a no-op until then).
+```dart
+        securityLevelMeta: effectiveLevel(
+          viewed.site,
+          ref.watch(vaultSecurityLevelProvider).valueOrNull ?? SecurityLevel.standard,
+        ).meta,
+        onSecurityLevel: () => _pickSecurityLevel(siteId),
+        onNewIdentity: () {},   // Task 10
+```
 
-- [ ] **Step 5: Run the host tests, then `flutter test` and `flutter analyze`.** All pass. Then check the reopens by reading the code: `grep -n "engine.close(" lib` must show no bare `close(siteId)` on the reopen path.
+    `ref.watch` here is display only. The level the engine gets is resolved at open (Task 4), not from this provider.
+  - Imports: `security_level.dart`, `permissions_in_use.dart`, `security_level_picker.dart`, and `vaultSecurityLevelProvider` from the settings providers.
 
-- [ ] **Step 6: Commit.** `git commit -m "feat: a site's level and 6c's switches apply at once, by reopening in place"`.
+- [ ] **Step 9: Run `flutter test` and `flutter analyze`.** Both pass.
+  - Then check with `grep -n "_engine.close(" lib/ui/features/container/view_models/open_containers.dart`: `reopenInPlace`'s call passes `wipe: false`.
+  - Update Plan 15's tests that pinned the old behaviour, "the `6c` switches never close anything" / `updateSite` with no reopen: assert the new behaviour instead, naming privacy-controls spec §2.4 in the test's reason.
+
+- [ ] **Step 10: Commit.** `git commit -m "feat: a site's level and 6c's switches apply at once, by reopening in place"`.
 
 ---
 
 ### Task 10: New identity
 
 **Files:**
-- Modify: the controller and the host (as in Task 9)
-- Test: Plan 15's host-route test file (extend); `test/data/site_wipe_test.dart` if Step 3 adds a helper there
+- Modify: `lib/ui/features/container/view_models/open_containers.dart`, `lib/ui/features/container/views/container_route.dart`
+- Test: `open_containers_test.dart`, `container_route_test.dart` (extend)
 
-- [ ] **Step 1: Write the failing widget tests**
-  1. **A saved site, at `https://forum.example.com/t/9`.**
-     - ☰ → `New identity` shows the confirm sheet; Cancel changes nothing (no close, no wipe, and the row's `profileId` is unchanged).
-     - ☰ → `New identity` → `New identity`. Expect, in this order:
-       1. the fake recorded `close(siteId, wipe: true)`;
-       2. the row's `profileId` is new, and "Last worked" is cleared;
-       3. the site was opened again with that new `profileId`, with `openedInitialUrls[siteId] == null`, so it loads `site.url` (`https://forum.example.com`), **not** `/t/9`.
-     - The site's own level and switches are unchanged.
-  2. **A throwaway.**
-     - New identity closes it with `wipe: true` and reopens it with `throwaway: true`.
-     - The new `profileId` differs, and the registry entry holds it.
-     - It is opened with `initialUrl == null`, at its first address.
-     - No repository write happens.
-  3. **Typed login and per-site login.**
-     - A saved SOCKS5 site with `proxyUser: 'alice'` reopens with `proxyUser: 'alice'`.
-     - One with `proxyLoginPerSite: true` reopens with a different `profileId`, so Kotlin derives a different login (Plan 14 §2.3; no Dart change).
+`closeAndWipe` drops the container from the registry, after which `reopen` does nothing. So New identity gets its own registry method, built like `siteSaved`'s viewed-container path.
+
+- [ ] **Step 1: Write the failing registry tests**
+
+```dart
+  group('New identity (privacy-controls spec §4)', () {
+    test('a saved site: closed with its wipe, a fresh profile written, reopened at its stored address',
+        () async {
+      final h = await _harness();
+      final site = _site('a', proxyMode: ProxyMode.socks5, proxyHost: '127.0.0.1', proxyPort: 9050)
+          .withSecurityLevel(SecurityLevel.safer)
+          .copyWith(proxyUser: 'alice', proxyPassword: 'pw');
+      h.sites.rows['a'] = site;
+      await h.registry.view(site, initialUrl: 'https://a.example.org/typed');
+      await _settle();
+      final pageId = h.state.byId('a')!.viewedPageId!;
+      h.engine.emitNavigation(_nav('a', pageId));
+      await _settle();
+
+      await h.registry.newIdentity('a');
+      await _settle();
+
+      expect(h.engine.closedWith['a'], isTrue);
+      final saved = h.sites.rows['a']!;
+      expect(saved.profileId, isNot('p-a'));
+      expect(h.sites.setLastWorkedCalls.last, (id: 'a', at: null));
+      final reopened = h.engine.openedSites['a']!;
+      expect(reopened.profileId, saved.profileId, reason: 'the row is written first');
+      expect(h.engine.openedInitialUrls['a'], isNull, reason: 'its first page, never /typed or the page shown');
+      expect(reopened.securityLevel, SecurityLevel.safer);
+      expect(reopened.proxyUser, 'alice');
+      expect(h.state.viewedSiteId, 'a');
+    });
+
+    test('a throwaway: wiped, a fresh profile in the registry only, reopened as a throwaway', () async {
+      final h = await _harness();
+      final throwaway = _site('t', cookiePolicy: CookiePolicy.wipeOnExit);
+      await h.registry.view(throwaway, throwaway: true);
+      await _settle();
+
+      await h.registry.newIdentity('t');
+      await _settle();
+
+      expect(h.engine.closedWith['t'], isTrue);
+      expect(h.sites.upserts, isEmpty);
+      final fresh = h.state.byId('t')!.site;
+      expect(fresh.profileId, isNot('p-t'));
+      expect(h.engine.openedSites['t']!.profileId, fresh.profileId);
+      expect(h.engine.openedAsThrowaway, contains('t'));
+      expect(h.engine.openedInitialUrls['t'], isNull);
+      expect(h.state.byId('t')!.throwaway, isTrue);
+    });
+
+    test('a per-site login gets a new profile, so a new derived login', () async {
+      final h = await _harness();
+      final site = _site('a').copyWith(proxyLoginPerSite: true);
+      h.sites.rows['a'] = site;
+      await h.registry.view(site);
+      await _settle();
+      await h.registry.newIdentity('a');
+      await _settle();
+      expect(h.engine.openedSites['a']!.profileId, isNot(site.profileId));
+      expect(h.engine.openedSites['a']!.proxyLoginPerSite, isTrue);
+    });
+  });
+```
+
+  The harness's `_Sites.rows` is what `wipeSavedSite` reads and writes through `siteRepositoryProvider`. If the registry reads the row through another provider, seed that instead.
 
 - [ ] **Step 2: Run them and see them fail.**
 
-- [ ] **Step 3: Implement it on the controller**
+- [ ] **Step 3: `OpenContainers.newIdentity`**
 
 ```dart
-  /// Privacy-controls spec §4: this site's data destroyed and its profile
-  /// rotated, so a fresh loopback credential and, with "Separate login per
-  /// site", a fresh proxy login (a new Tor circuit). Then it reopens at its
-  /// first page: a saved site's stored address, a throwaway's first address.
-  /// Never the page being shown, which could carry an identifying token.
-  /// Its settings, level and typed login stay.
-  Future<void> newIdentity() async {
-    final site = entry.site;
+  /// New identity (privacy-controls spec §4): the container's data destroyed
+  /// and its profile rotated, so a fresh loopback credential and, with
+  /// "Separate login per site", a fresh proxy login (a new Tor circuit); then
+  /// it reopens in place at its first page: a saved site's stored address, a
+  /// throwaway's first address. Never the page being shown, which could carry
+  /// an identifying token. Its settings, level and typed login stay.
+  Future<void> newIdentity(String siteId) async {
+    final container = state.byId(siteId);
+    if (container == null || !container.listed) return;
+    // As [siteSaved]: not reconciled into a drop while it closes.
+    _update(
+      siteId,
+      (c) => c.copyWith(openReturned: false, pages: const [], viewOrder: const []),
+    );
     final Site fresh;
-    if (entry.throwaway) {
-      await engine.close(site.id, wipe: true);  // journal: wiped and forgotten
-      fresh = site.copyWith(profileId: newProfileId());
-      openContainers.updateSite(fresh);
+    if (container.throwaway) {
+      // Wiped and off the journal; the fresh profile is journaled by its open.
+      await _engine.close(siteId, wipe: true);
+      fresh = container.site.copyWith(profileId: newProfileId());
     } else {
-      // Plan 15's wipeSavedSite: close(siteId, wipe: true), the rotation,
-      // "Last worked" cleared.
-      fresh = await wipeSavedSite(engine: engine, sites: siteRepository, site: site);
-      sitesChanged(ref);
+      // Closed with its wipe, the fresh profile written, "Last worked" cleared.
+      fresh = await wipeSavedSite(
+        engine: _engine,
+        sites: ref.read(siteRepositoryProvider),
+        site: container.site,
+      );
     }
-    await reopen(fresh, initialUrl: null);  // throwaway: still opened as one
+    await reopen(siteId, fresh, atStoredAddress: true);
   }
 ```
 
-  `wipeSavedSite` has already closed the session, so this reopen is not `reopenInPlace`. It must not call `close` a second time. If Plan 15's `reopen` always closes first, call its open half directly.
+  `reopen` updates both `site` and `opened` to `fresh`. Import `newProfileId` from `app_database.dart` if the file does not already.
 
-  In the host, the ☰ `onNewIdentity` handler is:
+- [ ] **Step 4: The host.** Pass `onNewIdentity: _newIdentity` to `ContainerScreen`, with:
 
 ```dart
-  onNewIdentity: () async {
+  /// ☰'s New identity (privacy-controls spec §4), after its confirm sheet.
+  Future<void> _newIdentity() async {
+    final viewed = _state.viewed;
+    if (viewed == null) return;
+    final registry = _registry;
     if (!await confirmNewIdentity(context)) return;
-    await controller.newIdentity();
-  },
+    await registry.newIdentity(viewed.siteId);
+    sitesChangedIn(_providers);
+  }
 ```
 
-  It runs after the menu has closed (`closing(...)`, Task 8).
+  It runs after the menu has closed itself (`closing(...)`, Task 8).
 
-- [ ] **Step 4: Run the tests, then `flutter test` and `flutter analyze`.** All pass.
+- [ ] **Step 5: Host tests** (`container_route_test.dart`):
+  - ☰ → `New identity` shows the confirm sheet, and `Cancel` changes nothing (`engine.closed` unchanged, the row's `profileId` unchanged).
+  - ☰ → `New identity` → `New identity` closes with `wipe: true`, writes a new `profileId`, and reopens with no `initialUrl`.
 
-- [ ] **Step 5: Commit.** `git commit -m "feat: New identity for one site"`.
+- [ ] **Step 6: Run `flutter test` and `flutter analyze`.** Both pass.
+
+- [ ] **Step 7: Commit.** `git commit -m "feat: New identity for one site"`.
 
 ---
 
@@ -1976,7 +2194,7 @@ From spec §1.4 and §9, and this plan:
 - **A vault default change reaches open sites only at their next open.**
 - **New identity does not change a typed proxy login.** On Tor, only "Separate login per site" gets a new circuit.
 - **The old profile's loopback auth-cache entry stays in Chromium's memory** until the process ends, as with every wipe (P2 spec §2). It names a profile no site uses.
-- **Written against the Tabs spec, not Plan 15's code** (see the header). Before Task 1 Step 4's table records the real names. Any logic that had to change to fit them is listed here when executed.
+- **Plan 15's gap "cosmetic setting changes wait until an open container is closed and reopened" is closed for `6c`'s switches**, which now reopen in place. A change made in the full form (Edit) still waits, unless it changes the route or cookie policy (tabs spec §5.7).
 - **The level is not shown in the address pill** (user's ruling).
 
 ## Handoff
