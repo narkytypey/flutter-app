@@ -700,6 +700,8 @@ class _ContainerRouteState extends ConsumerState<ContainerRoute> {
         siteName: viewed.site.name,
         siteSubtitle: _menuSubtitle(viewed, workspaces),
         blockedToday: blockedToday,
+        // Plan 16 Task 9 shows the effective level and wires both rows.
+        securityLevelMeta: 'STANDARD',
         findResult: _findResult,
         showSaveBar: viewed.throwaway && viewed.loadedOnce && !viewed.saveBarDismissed,
         address: navigation?.url ?? openedUrl,
@@ -728,6 +730,8 @@ class _ContainerRouteState extends ConsumerState<ContainerRoute> {
         onSettings: () => _push(const SettingsRoute()),
         // Tabs spec §4.2: to the dashboard, closing nothing on the way.
         onAllSites: _toDashboard,
+        onSecurityLevel: () {},
+        onNewIdentity: () {},
         onFind: (query) => _find(pageId, query),
         onFindNext: (forward) => _engine.findNext(pageId, forward: forward),
         onClearFind: () => _clearFind(pageId),

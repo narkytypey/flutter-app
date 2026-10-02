@@ -45,6 +45,7 @@ class ContainerScreen extends StatefulWidget {
     required this.siteName,
     required this.siteSubtitle,
     required this.blockedToday,
+    required this.securityLevelMeta,
     required this.findResult,
     required this.showSaveBar,
     required this.address,
@@ -64,6 +65,8 @@ class ContainerScreen extends StatefulWidget {
     required this.onWorkspaces,
     required this.onSettings,
     required this.onAllSites,
+    required this.onSecurityLevel,
+    required this.onNewIdentity,
     required this.onFind,
     required this.onFindNext,
     required this.onClearFind,
@@ -101,6 +104,10 @@ class ContainerScreen extends StatefulWidget {
   /// Today's blocked total, for the menu's `Today` row.
   final int blockedToday;
 
+  /// The menu's `Security level` meta: `STANDARD`, `SAFER` or `SAFEST`
+  /// (privacy-controls spec §4.1).
+  final String securityLevelMeta;
+
   /// The page's count for what the find bar holds; null until it reports.
   final FindResult? findResult;
 
@@ -136,6 +143,11 @@ class ContainerScreen extends StatefulWidget {
   final VoidCallback onWorkspaces;
   final VoidCallback onSettings;
   final VoidCallback onAllSites;
+
+  /// The menu's `Security level` and `New identity` rows (privacy-controls
+  /// spec §4.1).
+  final VoidCallback onSecurityLevel;
+  final VoidCallback onNewIdentity;
 
   /// The find bar's text on every change — empty once it is cleared.
   final ValueChanged<String> onFind;
@@ -295,6 +307,9 @@ class _ContainerScreenState extends State<ContainerScreen> {
           name: widget.siteName,
           subtitle: widget.siteSubtitle,
           blockedToday: widget.blockedToday,
+          securityLevelMeta: widget.securityLevelMeta,
+          onSecurityLevel: closing(widget.onSecurityLevel),
+          onNewIdentity: closing(widget.onNewIdentity),
           onReload: closing(widget.onReload),
           onFind: closing(_startFind),
           onReader: closing(widget.onReader),
