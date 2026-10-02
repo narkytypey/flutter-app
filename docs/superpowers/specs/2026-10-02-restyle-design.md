@@ -34,7 +34,7 @@ those projects how to stay in line.
 |---|---|
 | Plans 15/16 are missing | Restyle `main` now, including `2c`'s switcher and the ☰ menu. |
 | Lock screen's `◇` and `☉` | Draw both: new `vault` and `fingerprint` glyphs. |
-| `+`/`×` inside copy | Draw only the marks the canvas styles as a **separate span**: `10a`/`10d`'s jade `+` and `10e`'s chip `×`. `+ Add site` stays text (in the canvas the `+` is part of the label). |
+| `+`/`×` inside copy | Draw `10a`/`10d`'s jade `+` (a separate span in the canvas) and `10e`'s chip `×` (the canvas sets `Forum ×` as one span, but the `×` is the chip's remove affordance; the question put to the user wrongly called it a separate span, corrected here 2026-10-02 and the choice kept). `+ Add site` stays text (in the canvas the `+` is part of the label). |
 | `8a`/`8b`/`8c` top bars | Swap the glyphs and keep the canvas layout. `8b`/`8c`'s `‹` and `⟳` stay inert (Known gap). |
 | Screen-reader labels | Reuse §7's approved labels. New, approved word for word: `Close`, `Search`, `Settings`, `Delete`, `Remove`, `Reader theme`. Decorative marks get no label. |
 | `2d`'s `‹` | Drawn **and** made to pop, like every other screen's `‹`. A deliberate behaviour change. |
