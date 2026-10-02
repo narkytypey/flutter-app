@@ -15,6 +15,7 @@ path conversion (`MSYS_NO_PATHCONV`) does not apply.
 | `dns_log.py` | Every name the device looks up, when the emulator runs with `-dns-server` pointed at it. |
 | `app_sockets.py watch` | Every socket of the app's uid, when it opens, changes state and closes. Anything whose remote end is not loopback is marked `** OUTSIDE LOOPBACK **`. |
 | `app_sockets.py port` / `probe` | The loopback proxy's port, and check 5's three strangers' probes against it. |
+| `pages.py` | Local test pages on `:8099` for Plan 16's security levels (`/csp.html`, `/probes.html`, `/image.html`, `/mic.html`, `/article.html`), and each request's path and `User-Agent`. The emulator reaches it at `10.0.2.2:8099`. |
 
 ## Setup
 
@@ -195,3 +196,88 @@ in the UI dump.
 The run sheet is the "Device checks" section at the end of
 `docs/superpowers/plans/2026-10-02-tabs.md`. It uses the tools above
 unchanged. None of Plan 15 has run on a device yet.
+
+## Run sheet: privacy controls (Plan 16)
+
+Plan `docs/superpowers/plans/2026-10-02-privacy-controls.md`, spec
+`docs/superpowers/specs/2026-10-02-privacy-controls-design.md` (§7 and §1.4).
+**None of these checks has run on a device yet.** Record each as "seen" or
+"not seen, because …", in the plan's Device checks.
+
+**Setup.** Alongside the setup above, in two more terminals:
+
+```
+python pages.py                  # test pages on :8099
+python proxy.py --any-login      # instead of plain proxy.py, for check 6
+```
+
+With `--any-login`, every proxied site needs a login: give a SOCKS5 site
+"Separate login per site" or a typed one, or it is refused (`8b`).
+
+Read every result from `adb shell uiautomator dump`: WebView's text is in the
+tree, and the screen is `FLAG_SECURE`. `pages.py` sends `no-store`, so a page
+or image seen at one level is fetched again at the next, and a missing
+`pages.py` line means no request was made.
+
+`pages.py` serves:
+
+- `/csp.html`: reads `NO SCRIPT RAN`, then `INLINE RAN` (inline script),
+  ` EXTERNAL RAN` (`/ext.js`); its `tap` button adds ` ONCLICK RAN`, and its
+  `jsurl` link sets the title to `JSURL RAN`.
+- `/probes.html`: `WASM <typeof WebAssembly> WEBGL <true|false>`. Over `http:`
+  it runs only at Standard (Safer stops scripts on `http:` pages), which is
+  why check 2 uses an `https` site.
+- `/image.html`: one 40×40 `/dot.png`, whose fetch is logged.
+- `/mic.html`: `mic` asks for the microphone; `MIC ON` while the track is
+  live, `MIC ENDED` when it ends. `getUserMedia` needs a secure context, which
+  `http://10.0.2.2` is not (the page then reads `NO MEDIADEVICES`), so open it
+  as `http://localhost:8099/mic.html` on a SOCKS5 site: `proxy.py` connects to
+  `localhost` on the host.
+- `/article.html`: an article-shaped page for Reader.
+
+**Checks.** In this order. Not yet run on a device, any of them.
+
+1. **First, Safer's `http:` CSP (spec §1.4).** Not yet run.
+   - A direct site at `http://10.0.2.2:8099/csp.html`: at Standard it reads
+     `INLINE RAN EXTERNAL RAN`, and tapping `tap` adds `ONCLICK RAN`.
+   - At Safer it reads `NO SCRIPT RAN`, tapping adds nothing, and `pages.py`
+     still logs `/ext.js` being fetched (CSP blocks execution, not the fetch).
+   - **If Safer still runs scripts, stop: record the failure and take the
+     fallback** (per-navigation `javaScriptEnabled`) to the user.
+2. **Safer on https.** Not yet run.
+   - Give a site at `https://example.com` this custom JS:
+     `document.addEventListener('DOMContentLoaded',()=>document.body.prepend('WASM '+typeof WebAssembly+' WEBGL '+!!document.createElement('canvas').getContext('webgl')))`.
+   - At Standard: `WASM object WEBGL true` (or `false` where the emulator has
+     no GL).
+   - At Safer: `WASM undefined WEBGL false`, and example.com's own text still
+     renders, so JS is on.
+3. **Safest.** Not yet run.
+   - `http://10.0.2.2:8099/csp.html` reads `NO SCRIPT RAN`, and so does an
+     https page with the custom JS above (no prefix text).
+   - `/image.html` logs no `/dot.png` request.
+   - Reader on an article page (`http://10.0.2.2:8099/article.html`): record
+     whether it opens (spec §1.4).
+4. **Default and override.** Not yet run.
+   - Settings → Security level → Safer: an open site is unchanged until it is
+     closed and reopened, then Safer applies.
+   - ☰ → Security level → Default returns a site with its own level to the
+     default.
+5. **Reopen keeps a throwaway's cookie.** Not yet run.
+   - A throwaway on `https://postman-echo.com/cookies/set?p16=1`, then any
+     `6c` switch.
+   - The reopened page at `/cookies` still shows `p16`.
+6. **New identity.** Not yet run.
+   - A SOCKS5 site with "Separate login per site", against
+     `proxy.py --any-login`.
+   - Note its user, then ☰ → New identity → New identity. `proxy.py` logs a
+     different 32-hex user, the old `profileId` is in
+     `files/pending-profile-deletions`, and the page is the site's stored
+     address.
+   - Cancel changes nothing.
+7. **Revoke.** Not yet run.
+   - `/mic.html` (as `http://localhost:8099/mic.html` on a SOCKS5 site, see
+     above), then "Allow while this site is open", then `MIC ON`.
+   - In `6c`, Microphone shows `Revoke`. Tapping it reloads the page
+     (`MIC ENDED`, or a fresh page), and the next tap asks with `6a` again.
+8. **Two vaults.** Not yet run. Settings' Security level row looks the same in
+   the decoy, and setting it there leaves the real vault's default unchanged.
