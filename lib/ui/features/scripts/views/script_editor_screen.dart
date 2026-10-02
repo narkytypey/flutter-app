@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 
 import '../../../../domain/models/user_script.dart';
+import '../../../core/icons.dart';
 import '../../../core/tokens.dart';
 import '../../../core/typography.dart';
 import '../../../core/widgets/app_toggle.dart';
+import '../../../core/widgets/icon_tap.dart';
 
 class ScriptSiteChip {
   const ScriptSiteChip({required this.id, required this.name});
@@ -91,10 +93,12 @@ class _ScriptEditorScreenState extends State<ScriptEditorScreen> {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  GestureDetector(
+                  IconTap(
+                    glyph: AppGlyph.back,
+                    label: 'Back',
                     onTap: widget.onClose,
-                    child: const Text('‹',
-                        style: TextStyle(fontSize: 16, color: C.icon)),
+                    size: 20,
+                    iconSize: 18,
                   ),
                   Text(widget.title, style: ui(size: 15, weight: 600)),
                   GestureDetector(
@@ -140,8 +144,20 @@ class _ScriptEditorScreenState extends State<ScriptEditorScreen> {
                               color: C.button,
                               borderRadius: BorderRadius.circular(20),
                             ),
-                            child: Text('${site.name} ×',
-                                style: ui(size: 12.5, color: C.textSecondary)),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(site.name,
+                                    style: ui(size: 12.5, color: C.textSecondary)),
+                                const SizedBox(width: 6),
+                                Semantics(
+                                  label: 'Remove',
+                                  button: true,
+                                  child: const AppIcon(AppGlyph.close,
+                                      size: 12, color: C.textSecondary),
+                                ),
+                              ],
+                            ),
                           ),
                         ),
                       GestureDetector(

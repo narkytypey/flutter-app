@@ -2,9 +2,11 @@ import 'package:flutter/material.dart';
 
 import '../../../../domain/models/filter_list.dart';
 import '../../../../domain/models/user_script.dart';
+import '../../../core/icons.dart';
 import '../../../core/tokens.dart';
 import '../../../core/typography.dart';
 import '../../../core/widgets/app_toggle.dart';
+import '../../../core/widgets/icon_tap.dart';
 import 'filter_list_section.dart';
 
 /// The `MY SCRIPTS` row subtitle. Only `ScriptKind.js` rows in spec `10d`
@@ -59,10 +61,12 @@ class ScriptsAndFiltersScreen extends StatelessWidget {
               ),
               child: Row(
                 children: [
-                  GestureDetector(
+                  IconTap(
+                    glyph: AppGlyph.back,
+                    label: 'Back',
                     onTap: onBack,
-                    child: const Text('‹',
-                        style: TextStyle(fontSize: 16, color: C.icon)),
+                    size: 20,
+                    iconSize: 18,
                   ),
                   const SizedBox(width: 10),
                   Text('Scripts and filters', style: T.screenTitle),
@@ -144,8 +148,7 @@ class ScriptsAndFiltersScreen extends StatelessWidget {
                       onTap: onNewScript,
                       child: Row(
                         children: [
-                          Text('+',
-                              style: ui(size: 17, weight: 300, color: C.jade)),
+                          const AppIcon(AppGlyph.plus, size: 18, color: C.jade),
                           const SizedBox(width: 11),
                           Text('New script',
                               style:

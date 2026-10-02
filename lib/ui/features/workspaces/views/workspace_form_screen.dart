@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 
 import '../../../../domain/models/workspace.dart';
+import '../../../core/icons.dart';
 import '../../../core/tokens.dart';
 import '../../../core/typography.dart';
 import '../../../core/widgets/app_toggle.dart';
+import '../../../core/widgets/icon_tap.dart';
 
 class WorkspaceFormResult {
   const WorkspaceFormResult({
@@ -85,10 +87,12 @@ class _WorkspaceFormScreenState extends State<WorkspaceFormScreen> {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  GestureDetector(
+                  IconTap(
+                    glyph: AppGlyph.close,
+                    label: 'Close',
                     onTap: widget.onClose,
-                    child: const Text('×',
-                        style: TextStyle(fontSize: 20, color: C.icon)),
+                    size: 24,
+                    iconSize: 20,
                   ),
                   Text(widget.title, style: ui(size: 15, weight: 600)),
                   GestureDetector(

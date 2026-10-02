@@ -2,7 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:container/domain/models/filter_list.dart';
 import 'package:container/domain/models/user_script.dart';
+import 'package:container/ui/core/icons.dart';
+import 'package:container/ui/core/tokens.dart';
 import 'package:container/ui/features/scripts/views/scripts_and_filters_screen.dart';
+
+import '../../support/glyph_finders.dart';
 
 void main() {
   final now = DateTime.utc(2026, 8, 30, 9);
@@ -52,6 +56,8 @@ void main() {
     expect(find.text('Auto-expand comments'), findsOneWidget);
     expect(find.text('Applied to 1 site · runs at load'), findsOneWidget);
     expect(find.text('New script'), findsOneWidget);
+    expect(tester.widget<AppIcon>(findGlyph(AppGlyph.plus)).color, C.jade);
+    expect(findIconTap('Back'), findsOneWidget);
   });
 
   testWidgets('tapping a script row opens it, New script is separate', (tester) async {

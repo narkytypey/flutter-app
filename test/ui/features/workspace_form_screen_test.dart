@@ -3,6 +3,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:container/domain/models/workspace.dart';
 import 'package:container/ui/features/workspaces/views/workspace_form_screen.dart';
 
+import '../../support/glyph_finders.dart';
+
 void main() {
   Widget host({
     ValueChanged<WorkspaceFormResult>? onSave,
@@ -32,7 +34,7 @@ void main() {
 
     expect(find.text('New workspace'), findsOneWidget);
     expect(find.text('Save'), findsOneWidget);
-    expect(find.text('×'), findsOneWidget);
+    expect(findIconTap('Close'), findsOneWidget);
     expect(find.text('NAME'), findsOneWidget);
     expect(find.text('MARKER'), findsOneWidget);
     expect(find.text('STORAGE'), findsOneWidget);
@@ -97,7 +99,7 @@ void main() {
     var closes = 0;
     await tester.pumpWidget(host(onSave: (_) => saves++, onClose: () => closes++));
 
-    await tester.tap(find.text('×'));
+    await tester.tap(findIconTap('Close'));
 
     expect(closes, 1);
     expect(saves, 0);

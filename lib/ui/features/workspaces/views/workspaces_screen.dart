@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 
+import '../../../core/icons.dart';
 import '../../../core/tokens.dart';
 import '../../../core/typography.dart';
+import '../../../core/widgets/icon_tap.dart';
 
 class WorkspaceListItem {
   const WorkspaceListItem({
@@ -51,10 +53,12 @@ class WorkspacesScreen extends StatelessWidget {
               ),
               child: Row(
                 children: [
-                  GestureDetector(
+                  IconTap(
+                    glyph: AppGlyph.back,
+                    label: 'Back',
                     onTap: onBack,
-                    child: const Text('‹',
-                        style: TextStyle(fontSize: 16, color: C.icon)),
+                    size: 20,
+                    iconSize: 18,
                   ),
                   const SizedBox(width: 10),
                   Text('Workspaces', style: T.screenTitle),
@@ -80,8 +84,7 @@ class WorkspacesScreen extends StatelessWidget {
                       onTap: onNewWorkspace,
                       child: Row(
                         children: [
-                          Text('+',
-                              style: ui(size: 17, weight: 300, color: C.jade)),
+                          const AppIcon(AppGlyph.plus, size: 18, color: C.jade),
                           const SizedBox(width: 11),
                           Text('New workspace',
                               style:
@@ -148,7 +151,7 @@ class _WorkspaceRow extends StatelessWidget {
                 ],
               ),
             ),
-            Text('›', style: ui(size: 14, color: C.textFaint)),
+            const AppIcon(AppGlyph.forward, size: 16, color: C.textFaint),
           ],
         ),
       ),

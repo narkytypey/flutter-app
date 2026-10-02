@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:container/ui/core/icons.dart';
+import 'package:container/ui/core/tokens.dart';
 import 'package:container/ui/features/workspaces/views/workspaces_screen.dart';
+
+import '../../support/glyph_finders.dart';
 
 void main() {
   const items = [
@@ -47,6 +51,17 @@ void main() {
       ),
       findsOneWidget,
     );
+    expect(tester.widget<AppIcon>(findGlyph(AppGlyph.plus)).color, C.jade);
+    expect(tester.getSize(findGlyph(AppGlyph.plus)), const Size(18, 18));
+    expect(findGlyph(AppGlyph.forward), findsNWidgets(3));
+    expect(findIconTap('Back'), findsOneWidget);
+  });
+
+  testWidgets('back reports a tap', (tester) async {
+    var backs = 0;
+    await tester.pumpWidget(host(onBack: () => backs++));
+    await tester.tap(findIconTap('Back'));
+    expect(backs, 1);
   });
 
   testWidgets('tapping a row reports its id, and New workspace is separate', (tester) async {

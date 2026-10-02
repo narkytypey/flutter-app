@@ -17,7 +17,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
+import '../../../support/glyph_finders.dart';
+
 void main() {
+  Finder chip(String name) => find.descendant(
+      of: find.byType(ScriptEditorScreen), matching: find.text(name));
+
   setUpAll(sqfliteFfiInit);
 
   late AppDatabase database;
@@ -91,9 +96,9 @@ void main() {
     expect(editor.title, 'Hide sticky headers');
     expect(editor.appliedSites.map((s) => s.name), ['Forum', 'News']);
 
-    await tester.tap(find.text('News ×'));
+    await tester.tap(chip('News'));
     await tester.pumpAndSettle();
-    expect(find.text('News ×'), findsNothing);
+    expect(chip('News'), findsNothing);
     await tester.tap(find.text('JavaScript'));
     await tester.tap(find.text('Save'));
     await settle(tester);
@@ -148,7 +153,7 @@ void main() {
     await tester.tap(find.text('mail.example.com'));
     await tester.pumpAndSettle();
     expect(find.byType(ScriptSitePicker), findsNothing);
-    expect(find.text('Mail ×'), findsOneWidget);
+    expect(chip('Mail'), findsOneWidget);
     // Like removing a chip, adding one is not saved until Save.
     expect((await script(tester, 'sc1'))!.appliedSiteIds, ['forum', 'news']);
 
@@ -176,7 +181,7 @@ void main() {
     await tester.tap(find.text('Hide sticky headers'));
     await settle(tester);
 
-    await tester.tap(find.text('News ×'));
+    await tester.tap(chip('News'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('+ Add site'));
     await tester.pumpAndSettle();
@@ -221,7 +226,7 @@ void main() {
     await tester.tap(find.text('open scripts'));
     await settle(tester);
     expect(find.text('Hide sticky headers'), findsOneWidget);
-    await tester.tap(find.text('‹'));
+    await tester.tap(findIconTap('Back'));
     await settle(tester);
 
     await tester.runAsync(() => SqliteSiteRepository(database).upsert(const Site(
