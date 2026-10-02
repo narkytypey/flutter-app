@@ -777,7 +777,13 @@ class EngineChannel(
         val session = sessions.values.firstOrNull { it.pages.containsKey(pageId) } ?: return
         if (session.pages.size <= 1) return close(session.config.siteId)
         answerPendingOf(session, pageId)
-        session.pages.remove(pageId)?.close(clearCache = false) {}
+        val page = session.pages.remove(pageId) ?: return
+        // Counted with the profile's other closes, so a wipe that arrives
+        // while this page is still tearing down waits for it too (§5.8a).
+        val profileId = session.config.profileId
+        val draining = tearingDown.getOrPut(profileId) { Draining() }
+        draining.closes++
+        page.close(clearCache = false) { closeDrained(profileId, draining) }
         emitSessions()
     }
 
