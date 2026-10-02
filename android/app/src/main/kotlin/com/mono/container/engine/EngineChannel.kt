@@ -838,6 +838,7 @@ class EngineChannel(
         userScripts = injectedScriptsFrom(call.argument<List<Map<String, Any?>>>("userScripts")),
         proxyLogin = proxyLoginFrom(call.argument<String>("proxyUser"), call.argument<String>("proxyPassword")),
         proxyLoginPerSite = call.argument<Boolean>("proxyLoginPerSite") ?: false,
+        securityLevel = SecurityLevel.fromChannel(call.argument<String>("securityLevel")),
     )
 
     fun nextRequestId(): String = "req-${++requestCounter}"
