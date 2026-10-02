@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:container/ui/core/icons.dart';
 import 'package:container/ui/core/tokens.dart';
 import 'package:container/domain/models/workspace.dart';
 import 'package:container/ui/features/dashboard/views/workspace_menu.dart';
+
+import '../../support/glyph_finders.dart';
 
 void main() {
   test('a keeping workspace is summarised by its site and open counts', () {
@@ -46,7 +49,7 @@ void main() {
     expect(find.text('Personal'), findsOneWidget);
     expect(find.text('WIPES ON EXIT'), findsOneWidget);
 
-    final tick = tester.widget<Icon>(find.byIcon(Icons.check));
+    final tick = tester.widget<AppIcon>(findGlyph(AppGlyph.check));
     expect(tick.color, C.jade);
 
     await tester.tap(find.text('Work'));

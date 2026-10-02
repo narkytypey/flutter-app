@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../core/icons.dart';
 import '../../../core/tokens.dart';
 import '../../../core/widgets/hairline.dart';
 import '../../../core/widgets/pill_button.dart';
@@ -42,16 +43,22 @@ class DashboardFooter extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(width: 10),
-                SizedBox(
-                  width: 46,
-                  height: 46,
-                  child: Material(
-                    color: C.button,
-                    borderRadius: BorderRadius.circular(14),
-                    child: InkWell(
-                      onTap: onSearch,
+                Semantics(
+                  label: 'Search',
+                  button: true,
+                  excludeSemantics: true,
+                  onTap: onSearch,
+                  child: SizedBox(
+                    width: 46,
+                    height: 46,
+                    child: Material(
+                      color: C.button,
                       borderRadius: BorderRadius.circular(14),
-                      child: const Icon(Icons.search, size: 20, color: C.icon),
+                      child: InkWell(
+                        onTap: onSearch,
+                        borderRadius: BorderRadius.circular(14),
+                        child: const Center(child: AppIcon(AppGlyph.search, size: 20)),
+                      ),
                     ),
                   ),
                 ),

@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 
+import '../../../core/icons.dart';
 import '../../../core/tokens.dart';
 import '../../../core/typography.dart';
 import '../../../core/widgets/hairline.dart';
+import '../../../core/widgets/icon_tap.dart';
 
 /// The top bar: workspace name with a dropdown caret on the left, and either
 /// the session counts or the workspace's storage rule on the right.
@@ -38,8 +40,7 @@ class WorkspaceBar extends StatelessWidget {
                   children: [
                     Text(name, style: T.appBarTitle),
                     const SizedBox(width: 7),
-                    const Icon(Icons.keyboard_arrow_down,
-                        size: 14, color: C.chevron),
+                    const AppIcon(AppGlyph.chevronDown, size: 14, color: C.chevron),
                   ],
                 ),
               ),
@@ -51,13 +52,13 @@ class WorkspaceBar extends StatelessWidget {
                     style: trailingIsBadge ? T.barBadge : T.barSummary,
                   ),
                   const SizedBox(width: 10),
-                  InkWell(
+                  IconTap(
+                    glyph: AppGlyph.more,
+                    label: 'Settings',
                     onTap: onOverflow,
-                    borderRadius: BorderRadius.circular(8),
-                    child: const Padding(
-                      padding: EdgeInsets.all(4),
-                      child: Text('⋯', style: TextStyle(fontSize: 15, color: C.chevron)),
-                    ),
+                    size: 24,
+                    iconSize: 18,
+                    color: C.chevron,
                   ),
                 ],
               ),

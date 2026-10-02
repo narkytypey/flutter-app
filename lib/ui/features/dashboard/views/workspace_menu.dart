@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../core/icons.dart';
 import '../../../core/tokens.dart';
 import '../../../core/typography.dart';
 import '../../../../domain/models/workspace.dart';
@@ -90,7 +91,7 @@ class WorkspaceMenu extends StatelessWidget {
                         ),
                       ),
                       if (option.selected)
-                        const Icon(Icons.check, size: 15, color: C.jade),
+                        const AppIcon(AppGlyph.check, size: 15, color: C.jade),
                     ],
                   ),
                 ),
