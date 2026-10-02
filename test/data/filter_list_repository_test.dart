@@ -56,6 +56,22 @@ void main() {
               sort_index    INTEGER NOT NULL DEFAULT 0
             )
           ''');
+          // Sites as version 2 left them; versions 3 to 6 do not touch them.
+          await db.execute('''
+            CREATE TABLE sites (
+              id TEXT PRIMARY KEY, workspace_id TEXT NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE,
+              name TEXT NOT NULL, monogram TEXT NOT NULL, url TEXT NOT NULL,
+              cookie_policy TEXT NOT NULL, proxy_mode TEXT NOT NULL, proxy_host TEXT, proxy_port INTEGER,
+              require_pin INTEGER NOT NULL DEFAULT 0, show_in_decoy INTEGER NOT NULL DEFAULT 0,
+              last_visited_at INTEGER, sort_index INTEGER NOT NULL DEFAULT 0,
+              profile_id TEXT NOT NULL, block_webrtc INTEGER NOT NULL DEFAULT 1,
+              block_trackers INTEGER NOT NULL DEFAULT 1, anti_fingerprinting INTEGER NOT NULL DEFAULT 1,
+              allow_camera INTEGER NOT NULL DEFAULT 0, allow_microphone INTEGER NOT NULL DEFAULT 0,
+              allow_location INTEGER NOT NULL DEFAULT 0, allow_clipboard INTEGER NOT NULL DEFAULT 0,
+              user_agent_mode TEXT NOT NULL DEFAULT 'android', force_dark INTEGER NOT NULL DEFAULT 1,
+              open_in_reader INTEGER NOT NULL DEFAULT 0, page_zoom INTEGER NOT NULL DEFAULT 100,
+              custom_css TEXT NOT NULL DEFAULT '', custom_js TEXT NOT NULL DEFAULT '')
+          ''');
           await db.insert('workspaces', {
             'id': 'ws-personal',
             'name': 'Personal',
