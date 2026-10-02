@@ -6,6 +6,7 @@ import '../../../../data/repositories/decoy_provisioner.dart' show resyncDecoy;
 import '../../../../data/repositories/settings_repository_sqlite.dart';
 import '../../../../domain/models/lock_state.dart';
 import '../../../../domain/models/search_engine.dart';
+import '../../../../domain/models/security_level.dart';
 import '../../../../domain/models/vault.dart';
 import '../../../../domain/repositories/repositories.dart' show SettingsRepository;
 import '../../../../domain/services/vault_unlocker.dart';
@@ -60,6 +61,14 @@ final decoySiteCountProvider = FutureProvider<int>((ref) async {
 final searchEngineProvider = FutureProvider<SearchEngine>((ref) async {
   final stored = await ref.watch(settingsRepositoryProvider).getString('search_engine');
   return SearchEngine.fromStored(stored);
+});
+
+/// Privacy-controls spec §2.1: the open vault's default level, stored as the
+/// enum name under `security_level`. Per vault, like the search engine, and
+/// never read before an unlock. Standard until chosen; unknown is Safest.
+final vaultSecurityLevelProvider = FutureProvider<SecurityLevel>((ref) async {
+  final stored = await ref.watch(settingsRepositoryProvider).getString(securityLevelSettingKey);
+  return SecurityLevel.vaultDefaultFrom(stored);
 });
 
 /// The Auto-lock choice (user's ruling, 2026-09-30), one for both vaults
@@ -177,6 +186,13 @@ class SettingsController {
   Future<void> setSearchEngine(SearchEngine engine) async {
     await _ref.read(settingsRepositoryProvider).setString('search_engine', engine.name);
     _ref.invalidate(searchEngineProvider);
+  }
+
+  /// The vault default (spec §2.3). Open sites keep the level they opened
+  /// with until their next open (user's ruling, 2026-10-02).
+  Future<void> setSecurityLevel(SecurityLevel level) async {
+    await _ref.read(settingsRepositoryProvider).setString(securityLevelSettingKey, level.name);
+    _ref.invalidate(vaultSecurityLevelProvider);
   }
 
   /// Change main PIN, step 1: whether [pin] opens the vault open now. Checked
