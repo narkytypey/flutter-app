@@ -182,7 +182,9 @@ Kotlin never sees "follow the default". `SiteConfig` gains `securityLevel`.
   throwaway, or a wipe-on-exit site, keeps its login across a switch. (Ruling
   1.)
 - **Lost by a reopen:** back/forward history, "allow while this site is open"
-  grants, find state.
+  grants, find state, and, with tabs, **every page but the viewed one**. The
+  container reopens with one page, at the address the viewed page was
+  showing (user's ruling, 2026-10-02, after reading the Tabs spec).
 - **A vault default change** applies to each site at its next open. Open
   sites keep the level they opened with.
 - A reopen onto a refused route shows `8b`, as any open does.
@@ -199,8 +201,8 @@ order, ★ marking what is new:
    ★ Under it, one indented, muted row per category whose count this session
    is above 0. Rows appear in `5c`'s order and use `5c`'s labels, `Trackers`,
    `Ads`, `Fingerprinting` and `Permission asks`, with the count in mono and
-   no dividers. The counts already exist natively (`EngineChannel`'s session
-   map); the Dart session snapshot gains them.
+   no dividers. The counts already reach Dart
+   (`ContainerSession.categoryCounts`, from `EngineChannel`'s session map).
 4. ★ **`Block WebRTC`**, **`Block trackers and ads`**, **`Anti-fingerprinting`**:
    switches, with `2a`'s canvas titles and no subtitles.
 5. `Force dark mode`, `Desktop view`: unchanged switches.
@@ -219,7 +221,9 @@ order, ★ marking what is new:
 Plan 6's known gap that `6c`'s switches applied only at the next open.
 
 **Revoke** calls a new native `revokeGrant(siteId, kind)`. It removes that one
-kind from the session's grants and reloads the page. The reload ends a live
+kind from the session's grants and reloads **every page of the container**
+(user's ruling, 2026-10-02: grants are per container, so no page, viewed or
+paused, may keep a stream). The reload ends a live
 camera or microphone stream, and the next ask shows `6a` again. History and
 the other grants stay. The session snapshot gains its grant kinds (`camera`,
 `microphone`, `location`) so Dart can draw the rows.
@@ -353,8 +357,19 @@ Every string below is new. The user approved all of it word for word.
 ## 8. Coordination
 
 - **Plan 15 (Tabs)** takes over the pushed-route stack, `N OPEN` and `2c`
-  (browser-chrome spec §11). Plan 16 is written against its result. Points of
-  contact:
+  (browser-chrome spec §11). Plan 16 is written against its spec,
+  `2026-10-02-tabs-design.md` on branch `claude/project-2-tabs-v4gbp5` (user's
+  ruling, 2026-10-02: that branch is Plan 15). Answered since:
+  - a reopen keeps **only the viewed page** (§2.4);
+  - Revoke reloads **every page** of the container (§3);
+  - the reopen is Tabs §5.7's path with `close(siteId, wipe: false)`, which
+    is what makes Ruling 1 hold;
+  - New identity is `close(siteId, wipe: true)`, the rotation, then a reopen
+    at the saved address (Tabs §9);
+  - **Tabs §5.7's "the `6c` switches never close anything" is superseded
+    here:** every `6c` switch reopens the container in place.
+
+  Points of contact as first written:
   - **Reopen in place** (§2.4) and **New identity** (§4) replace a site's
     session. With several pages per container, they must act on every page
     (reopening each at its own page, or as Plan 15's model dictates), and the
