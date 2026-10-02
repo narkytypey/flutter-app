@@ -16,9 +16,19 @@ Today a container is exactly one page. Natively, `EngineChannel` holds one
 one WebView. In Dart, each open container is a `ContainerRoute` pushed on the
 open vault's navigator: the dashboard, search and the address bar each push
 one. The WebView lives and dies with its Flutter platform view, so **backing
-out to the dashboard destroys the page**: the session record stays (the site
-reads as OPEN NOW), but going back in runs `open` again and loads the stored
-address fresh.
+out to the dashboard destroys the page**:
+
+- disposing the platform view lands in `ContainerView.dispose`, which loads
+  `about:blank` and destroys the WebView;
+- the `Session` record stays behind (`EngineChannel.kt`), so the site reads
+  as OPEN NOW;
+- `ContainerRoute.initState` calls `_open()` on every push, so going back in
+  loads the stored address fresh.
+
+`CLAUDE.md`'s line "Backing out of a container still leaves it open, which
+is correct, since its session keeps running in the background" reads as if
+the page stays alive. It does not. Only the session record does. Plan 15's
+`CLAUDE.md` update corrects that line.
 
 The canvas has no tab design. `2c` ("Quick switcher drawer") is a switcher
 across *containers*: "3 OPEN SESSIONS", "PERSONAL", rows "Forum · viewing now ·
@@ -53,7 +63,7 @@ socks5", "Notes · background · 2 min", "Webmail · background · 14 min",
 | "Close all and wipe" | **Every open container** is closed and wiped. You land on the dashboard. |
 | Closing the viewed container from `2c`'s × | **The dashboard**, as today. Closing a *page* row shows that container's most recently viewed remaining page. |
 | Background pages | **Paused** (`WebView.onPause`). A camera, microphone or location ask, or a held download, from a background page **waits and is shown when that page is next viewed.** |
-| Cap on live pages | **None.** Recorded as a known gap. |
+| Cap on live pages | **6 pages per container.** At the cap, a link asking for a new window opens in the page it was tapped in, as every link does today. No new copy. The number of containers is not capped. (The first answer was "no cap"; the user changed it in the spec review, 2026-10-02.) |
 | A site's settings saved while its container is open | A change to its **route or cookie policy closes the container**, under the new cookie policy. The **viewed** container then **reopens in place** under the new settings, fresh at its stored address (as `8b`'s "Change proxy settings" already does). A background container just closes. Every other change waits until the container is next opened after closing. |
 | Dashboard `N SESSIONS` | **Stays per workspace**, and now also counts throwaways whose workspace (their opener's) is the one shown. `9b`'s count, `2c` and `N OPEN` are vault-wide, throwaways included. |
 | Typing the address of a saved site whose container is open | **Switch to that container and load the address in its last viewed page.** This carries Plan 12's 2026-10-02 ruling over to pages. |
@@ -87,7 +97,7 @@ socks5", "Notes · background · 2 min", "Webmail · background · 14 min",
 - Live page previews (`1c`).
 - Security level and New identity (project 3), and restyling other screens
   (project 4).
-- A cap on live pages.
+- A cap on the number of open containers.
 
 ## 2. What stays true
 
@@ -117,6 +127,20 @@ These carry over unchanged, and every task's requirements include them:
   runs on the main thread.
 - **Two-vault model.** The open-containers registry is in memory, emptied on
   every transition out of `SessionOpen`, and never asks which vault is open.
+- **Nothing about pages is written to disk.** No page list, page id, title
+  or address goes into the vault, the throwaway journal, the pending-deletion
+  journal, settings, logs or any other file. A restorable tab list would be a
+  record that a coerced unlock shows. The throwaway journal still holds
+  profile ids only. Page ids are random, runtime-only values that never
+  leave the process.
+- **Page ids are never reused, and nothing binds by site id any more.**
+  `PageHost` binds to the exact page id in its creation params.
+  `ContainerViewFactory`'s "whatever session the site has now" lookup is
+  gone. A view is built only for a page id that its container's own `open`
+  returned or that `page_opened` reported, which keeps Plan 12's
+  `_openReturned` rule. Native per-page events are emitted only while their
+  page is still registered, and Dart drops an event for a page it does not
+  hold.
 
 ## 3. Engine: pages that outlive their view
 
@@ -154,6 +178,12 @@ These carry over unchanged, and every task's requirements include them:
   `dispose()` only detaches the WebView and calls `onPause`. It never
   destroys the WebView. A `pageId` that `open` or `page_opened` never
   produced is an error, as an unopened site id is today.
+- **Each page has its own closing flag and its own `Teardown`.** The
+  interceptor is shared by a session's pages, so the flag is passed per page
+  (`clientFor(…, closing = { page.closing })`), as it is per view today.
+  From the moment a page starts closing, every request from it is refused,
+  so its pagehide and unload requests cannot leak. Closing one page never
+  sets another page's flag.
 - **Closing.**
   - `closePage(pageId)` runs that page's `Teardown`: the page refuses
     everything, loads `about:blank`, and is destroyed.
@@ -313,6 +343,25 @@ same container and brings it to the front: the container's viewed page
 becomes the new one. Its opener page is recorded. Without a user gesture,
 nothing opens and nothing is shown, as today with multiple windows off.
 
+**Cap: 6 pages per container** (`MAX_PAGES_PER_CONTAINER`, Kotlin, with its
+Dart mirror for tests).
+
+- **The cap is decided natively in `onCreateWindow`.** When the container
+  already has 6 pages, it answers `false` and loads the requested URL in the
+  page the link was tapped in, the way every link behaved before tabs. It
+  goes through the same `isLoadableUrl` guard. No page is created, no
+  `page_opened` is sent, and nothing is shown.
+- **How it reads the URL.** `onCreateWindow` does not give the URL. So the
+  transport is handed a short-lived capture WebView on the same profile,
+  with every request refused. Its `shouldOverrideUrlLoading` records the
+  first URL and cancels it before any request is made. The capture view is
+  then destroyed.
+- **A `window.open` with no URL is the exception.** It cannot be loaded in
+  place, so it is dropped.
+- **The cap counts live pages.** A page whose `Teardown` is still running
+  has already left the session's page map, so closing one frees its slot at
+  once.
+
 ### 5.3 System back
 
 In order:
@@ -364,6 +413,13 @@ dimmed when `canGoBack` is false.
   are shown one at a time, oldest first, through the existing `6a` and `7c`
   sheets. Plan 6's "a backgrounded site's events are dropped" gap is closed
   for pages.
+- **An ask whose page closes first is answered, never left hanging.** On
+  `closePage` or `close`, natively:
+  - every pending permission ask for that page is denied, as "keep blocked";
+  - every held download for it is discarded.
+
+  Dart drops the queued entries for that page. A lock or panic does the same
+  through `closeAll`.
 - **`8c` waits.** A tunnel drop on a background container sets its flag, and
   `8c` shows when that container is next viewed.
 - **`8b` waits.** A refusal on a background container is shown when it is
@@ -400,6 +456,40 @@ true since Plan 6: today a lock leaves every saved site's native session and
 loopback binding registered.
 
 Panic is unchanged. `wipeAll` closes everything first.
+
+### 5.8a Every teardown reaches every page
+
+A profile cannot be deleted while any WebView on it is alive. Chromium's
+`kInUse` means it is at best cleared in place and journaled
+(`PendingDeletions`). So no path may wipe a container while one of its pages
+is still alive. Every path goes through `close(siteId, …)` or `closeAll()`,
+and both tear down **every** page of the container before any wipe runs:
+
+| Path | Call |
+|---|---|
+| Panic | `wipeAll` → `closeAll`, then every profile deleted |
+| `9b` / `9c` lock | the registry's reset → `closeAll` (§5.8) |
+| `2c` × on a container | `close(siteId)` |
+| `2c` × on the last page of a container | `close(siteId)`, the same as the container's × |
+| `Close all and wipe` | `close(siteId, wipe: true)` for each container, then `wipeSavedSite`'s row rotation |
+| `6c` "Close and wipe this session", `8c` "Close and wipe" | `close(siteId, wipe: true)`, then the rotation |
+| Row menu "Wipe this site's data" (`7b`) | `close(siteId, wipe: true)`, then the rotation |
+| Remove site | `close(siteId, wipe: true)`, then the row deleted |
+| Deleting a workspace | `close(siteId, wipe: true)` for each of its open sites |
+| Wipe on exit | the session's own flag on every `close` |
+| A route or cookie-policy save (§5.7) | `close(siteId, wipe: <new policy>)` |
+| A page's `window.close()` (`onCloseWindow`) | `closePage`. If it was the container's last page, `close(siteId)` |
+
+- **`wipeSavedSite` and `removeSavedSite`** today call `engine.close` and
+  then `engine.wipe(profileId)` separately. They switch to
+  `close(siteId, wipe: true)`, so the wipe runs natively after the last
+  page's `Teardown` has destroyed its WebView. That includes the cache clear
+  through a WebView, which needs one still alive. `engine.wipe(profileId)`
+  stays for a profile with no open session.
+- **A `Teardown` that times out still counts as destroyed:**
+  `Teardown.TIMEOUT_MS`, as today.
+- **A container's wipe waits for all of its pages,** each on its own
+  `Teardown`.
 
 ### 5.9 Everything else acts on the viewed page
 
@@ -445,6 +535,9 @@ finished a load, and it is dismissed per throwaway, as today.
   - a throwaway's back to its opener container, to the most recently viewed
     container, or wiped;
   - `2c`'s rows and × actions;
+  - every path in §5.8a's table calling `close(siteId, …)` or `closeAll`,
+    never `closePage` alone or `wipe` alone, for an open container;
+  - no page id, title or address reaching any repository or file;
   - "Close all and wipe" closing every container;
   - `N OPEN`;
   - the dashboard's count with a throwaway;
@@ -454,6 +547,13 @@ finished a load, and it is dismissed per throwaway, as today.
   - the page registry (open's first page, a link's page, `closePage`,
     `close` wiping once after the last page, `closeAll`);
   - `onCreateWindow` refusing a call without a user gesture;
+  - the cap: a 7th new-window request in a container loading in place (http
+    and https only), and one with no URL dropped;
+  - each page's closing flag set only by its own close, and a closing page
+    refusing every request while its siblings keep loading;
+  - a container's wipe running only after its last page's `Teardown`, with
+    three pages, including one that times out;
+  - every pending ask and held download of a closing page answered;
   - `PageHost` detaching without destroying;
   - the per-page event maps.
 - **Gates:** `flutter analyze` clean, `flutter test` all passing, Kotlin JVM
@@ -465,9 +565,11 @@ finished a load, and it is dismissed per throwaway, as today.
 
 ## 8. Known gaps (deliberate)
 
-- **No cap on live pages.** Each is a WebView. Android may kill the process
-  under memory pressure, and the throwaway journal survives that, but every
-  page is lost.
+- **Containers are not capped, only pages per container (6).** Many open
+  containers is many WebViews. Android may kill the process under memory
+  pressure, and the throwaway journal survives that, but every page is lost.
+- **At the cap, a new-window link silently loads in place.** Nothing tells
+  you why no new page opened, since that would need copy.
 - **Pages do not survive a lock or a restart.** Every lock closes
   everything, `9b` included (browser-chrome §1's accepted cost).
 - **No way to open a new page except a link that asks for one.**
