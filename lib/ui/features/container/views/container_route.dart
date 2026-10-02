@@ -283,6 +283,8 @@ class _ContainerRouteState extends ConsumerState<ContainerRoute> {
     showModalBottomSheet<void>(
       context: context,
       backgroundColor: Colors.transparent,
+      // `6c` scrolls, and may be taller than the default 9/16 of the screen.
+      isScrollControlled: true,
       builder: (sheetContext) => StatefulBuilder(
         builder: (sheetContext, setSheetState) {
           Future<void> save(Site updated) async {
@@ -331,6 +333,19 @@ class _ContainerRouteState extends ConsumerState<ContainerRoute> {
               Navigator.pop(sheetContext);
               unawaited(_closeAndWipe(siteId));
             },
+            // Plan 16 Task 9 wires the level, the counts, the shield switches
+            // and the permissions; until then they show what is known here.
+            securityLevelValue: 'Standard · default',
+            onSecurityLevel: () {},
+            categoryCounts: const {},
+            blockWebRtc: site.blockWebRtc,
+            blockTrackers: site.blockTrackers,
+            antiFingerprinting: site.antiFingerprinting,
+            onBlockWebRtcChanged: (_) {},
+            onBlockTrackersChanged: (_) {},
+            onAntiFingerprintingChanged: (_) {},
+            permissions: const [],
+            onRevoke: (_) {},
           );
         },
       ),

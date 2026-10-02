@@ -173,6 +173,20 @@ String? _shownPage(WidgetTester tester) {
 Finder _icon(String label) =>
     find.byWidgetPredicate((w) => w is IconTap && w.label == label);
 
+/// The switch on `6c`'s row titled [title]. Found by its row, not by its
+/// index: the sheet's switches grew in front of these (privacy controls).
+Finder _sheetToggle(String title) => find.descendant(
+      of: find.ancestor(of: find.text(title), matching: find.byType(Row)).first,
+      matching: find.byType(AppToggle),
+    );
+
+/// Taps [title]'s switch in `6c`, which scrolls, so it is brought into view.
+Future<void> _tapSheetToggle(WidgetTester tester, String title) async {
+  await tester.ensureVisible(_sheetToggle(title));
+  await tester.pumpAndSettle();
+  await tester.tap(_sheetToggle(title));
+}
+
 /// What the platform sends for a system back gesture.
 Future<void> _systemBack(WidgetTester tester) async {
   await tester.binding.defaultBinaryMessenger.handlePlatformMessage(
@@ -378,17 +392,16 @@ void main() {
 
     await tester.tap(_icon('Site details'));
     await tester.pumpAndSettle();
-    await tester.tap(find.byType(AppToggle).at(0)); // Force dark mode, on by default
+    await _tapSheetToggle(tester, 'Force dark mode'); // on by default
     await tester.pumpAndSettle();
-    await tester.tap(find.byType(AppToggle).at(1)); // Desktop view
+    await _tapSheetToggle(tester, 'Desktop view');
     await tester.pumpAndSettle();
 
     expect(sites.upserts, hasLength(2));
     expect(sites.upserts.last.forceDark, isFalse);
     expect(sites.upserts.last.userAgentMode, UserAgentMode.desktop);
-    final toggles = tester.widgetList<AppToggle>(find.byType(AppToggle)).toList();
-    expect(toggles[0].value, isFalse);
-    expect(toggles[1].value, isTrue);
+    expect(tester.widget<AppToggle>(_sheetToggle('Force dark mode')).value, isFalse);
+    expect(tester.widget<AppToggle>(_sheetToggle('Desktop view')).value, isTrue);
   });
 
   // Every write to a site refreshes the address bar's copy of the vault's
@@ -412,7 +425,7 @@ void main() {
       final reads = await readsAfter(tester, () async {
         await tester.tap(_icon('Site details'));
         await tester.pumpAndSettle();
-        await tester.tap(find.byType(AppToggle).at(0));
+        await _tapSheetToggle(tester, 'Force dark mode');
         await tester.pumpAndSettle();
       });
       expect(reads, greaterThan(0));
@@ -1064,11 +1077,11 @@ void main() {
     await tester.pumpAndSettle();
     // No workspace until it is saved.
     expect(find.text('news.example.org · Personal'), findsNothing);
-    await tester.tap(find.byType(AppToggle).at(0)); // Force dark mode
+    await _tapSheetToggle(tester, 'Force dark mode');
     await tester.pumpAndSettle();
 
     expect(sites.upserts, isEmpty);
-    expect(tester.widget<AppToggle>(find.byType(AppToggle).at(0)).value, isFalse);
+    expect(tester.widget<AppToggle>(_sheetToggle('Force dark mode')).value, isFalse);
   });
 
   testWidgets('Edit on a throwaway saves it: the row first, then its profile kept', (tester) async {
