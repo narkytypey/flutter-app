@@ -63,14 +63,14 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
               ref.invalidate(allSitesProvider);
               Navigator.push(context, MaterialPageRoute(builder: (_) => const _SearchRoute()));
             },
+            // Tabs spec §4.2: an open container is shown as it is, with no
+            // second open; otherwise it opens. Either way through the one
+            // host route.
             onOpenSite: (siteId) async {
               openSite(ref, siteId);
               final site = await ref.read(siteRepositoryProvider).byId(siteId);
               if (site == null || !context.mounted) return;
-              await Navigator.push(context, MaterialPageRoute(
-                builder: (_) => ContainerRoute(site: site),
-              ));
-              ref.invalidate(dashboardProvider);
+              showContainer(context, ref, site);
             },
             onSiteMenu: (siteId) async {
               final site = await ref.read(siteRepositoryProvider).byId(siteId);
@@ -209,9 +209,8 @@ class _SearchRouteState extends ConsumerState<_SearchRoute> {
         openSite(ref, siteId);
         final site = await ref.read(siteRepositoryProvider).byId(siteId);
         if (site == null || !context.mounted) return;
-        Navigator.pushReplacement(context, MaterialPageRoute(
-          builder: (_) => ContainerRoute(site: site),
-        ));
+        // Pops this search route itself, down to the dashboard.
+        showContainer(context, ref, site);
       },
       onBack: () => Navigator.pop(context),
     );

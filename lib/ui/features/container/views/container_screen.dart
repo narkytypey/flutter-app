@@ -26,10 +26,10 @@ enum _Chrome { page, editing, find }
 /// Owns only which chrome shows. What the page does, and every screen the
 /// chrome opens, belongs to the route, through the callbacks.
 ///
-/// **[body] never moves in the tree.** Rebuilding the page view disposes the
-/// native WebView, which wipes a throwaway and reloads anything else. So the
-/// bar above the page is swapped within one slot, and everything that comes
-/// and goes around the page is laid out after it.
+/// **[body] never moves in the tree.** Rebuilding the page view detaches and
+/// reattaches the page; nothing is lost, but it flickers. So the bar above the
+/// page is swapped within one slot, and everything that comes and goes around
+/// the page is laid out after it.
 class ContainerScreen extends StatefulWidget {
   const ContainerScreen({
     super.key,
@@ -51,6 +51,7 @@ class ContainerScreen extends StatefulWidget {
     required this.suggest,
     required this.onOpen,
     required this.onBack,
+    required this.onLeave,
     required this.onForward,
     required this.onStop,
     required this.onReload,
@@ -118,6 +119,9 @@ class ContainerScreen extends StatefulWidget {
   /// Back in the page: the bottom bar's back, and system back while the page
   /// can go back.
   final VoidCallback onBack;
+
+  /// System back with no history in the page (tabs spec §5.3).
+  final VoidCallback onLeave;
   final VoidCallback onForward;
   final VoidCallback onStop;
   final VoidCallback onReload;
@@ -215,9 +219,10 @@ class _ContainerScreenState extends State<ContainerScreen> {
     setState(() => _chrome = _Chrome.page);
   }
 
-  /// System back that [PopScope] kept from popping the route: out of editing
-  /// or find first, then back in the page (spec §3.3, §6.2). The route pops
-  /// only once none of these applies.
+  /// Every system back, which [PopScope] keeps from popping the route: out of
+  /// editing or find first, then back in the page (spec §3.3, §6.2), then
+  /// [ContainerScreen.onLeave], which decides where back goes (tabs spec
+  /// §5.3). The route never pops by itself.
   void _handleBack() {
     switch (_chrome) {
       case _Chrome.editing:
@@ -225,7 +230,11 @@ class _ContainerScreenState extends State<ContainerScreen> {
       case _Chrome.find:
         _closeFind();
       case _Chrome.page:
-        if (widget.navigation?.canGoBack ?? false) widget.onBack();
+        if (widget.navigation?.canGoBack ?? false) {
+          widget.onBack();
+        } else {
+          widget.onLeave();
+        }
     }
   }
 
@@ -308,7 +317,7 @@ class _ContainerScreenState extends State<ContainerScreen> {
     final loading = navigation?.loading ?? false;
 
     return PopScope(
-      canPop: _chrome == _Chrome.page && !canGoBack,
+      canPop: false,
       onPopInvokedWithResult: (didPop, _) {
         if (!didPop) _handleBack();
       },

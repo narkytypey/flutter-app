@@ -116,6 +116,7 @@ ContainerScreen _screen({
       suggest: _suggest,
       onOpen: _opened.add,
       onBack: () => _calls.add('back'),
+      onLeave: () => _calls.add('leave'),
       onForward: () => _calls.add('forward'),
       onStop: () => _calls.add('stop'),
       onReload: () => _calls.add('reload'),
@@ -350,7 +351,9 @@ void main() {
     expect(find.byType(ContainerTopBar), findsOneWidget);
   });
 
-  testWidgets('system back goes back in the page while it can, then leaves', (tester) async {
+  // Tabs spec §5.3: where back goes with no history is the route's to decide,
+  // so the screen never pops by itself.
+  testWidgets('system back goes back in the page while it can, then reports leaving', (tester) async {
     final navigation = ValueNotifier<NavigationState?>(_nav(canGoBack: true));
     addTearDown(navigation.dispose);
     final navigator = GlobalKey<NavigatorState>();
@@ -371,9 +374,9 @@ void main() {
     await tester.pumpAndSettle();
     await _systemBack(tester);
 
-    expect(_calls, ['back']);
-    expect(find.byType(ContainerScreen), findsNothing);
-    expect(find.text('home'), findsOneWidget);
+    expect(_calls, ['back', 'leave']);
+    expect(find.byType(ContainerScreen), findsOneWidget);
+    expect(find.text('home'), findsNothing);
   });
 
   // Review Focus 2.

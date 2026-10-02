@@ -19,6 +19,14 @@ void sitesChanged(WidgetRef ref) {
   ref.invalidate(dashboardProvider);
 }
 
+/// [sitesChanged] for a caller that can outlive its widget: the container
+/// host, which a close removes while the wipe is still writing the row. Keep
+/// the two in step.
+void sitesChangedIn(ProviderContainer container) {
+  container.invalidate(allSitesProvider);
+  container.invalidate(dashboardProvider);
+}
+
 final searchQueryProvider = StateProvider<String>((ref) => '');
 
 final searchResultsProvider = Provider<AsyncValue<List<SearchResultEntry>>>((ref) {
