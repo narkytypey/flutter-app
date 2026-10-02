@@ -13,6 +13,7 @@ import '../../../../domain/models/destination.dart';
 import '../../../../domain/models/engine_events.dart';
 import '../../../../domain/models/find_result.dart';
 import '../../../../domain/models/monogram_suggestion.dart';
+import '../../../../domain/models/navigation_state.dart';
 import '../../../../domain/models/open_step.dart';
 import '../../../../domain/models/relative_age.dart';
 import '../../../../domain/models/route_failure_copy.dart';
@@ -79,18 +80,36 @@ class ContainerRoute extends ConsumerStatefulWidget {
   ConsumerState<ContainerRoute> createState() => _ContainerRouteState();
 }
 
-/// Each mounted container's own route, by site id: at most one container per
-/// site (user's ruling, 2026-10-02). The engine keys sessions by site id, so a
+/// Each mounted container, by site id: at most one container per site
+/// (user's ruling, 2026-10-02). The engine keys sessions by site id, so a
 /// second container for a site would take its session over and leave the
 /// first acting on nothing. Torn down with the open vault's navigator, since
 /// each container removes itself as it is disposed.
-final _containerRoutesProvider = Provider<Map<String, Route<Object?>>>((ref) => {});
+final _containerRoutesProvider = Provider<Map<String, _ContainerRouteState>>((ref) => {});
 
 class _ContainerRouteState extends ConsumerState<ContainerRoute> {
   /// Captured in [initState]: [dispose] may not read providers.
   late final ContainerEngine _engine;
-  late final Map<String, Route<Object?>> _containerRoutes;
+  late final Map<String, _ContainerRouteState> _containerRoutes;
   Route<Object?>? _ownRoute;
+
+  /// The page this route shows: the first page its own latest `open`
+  /// returned (tabs spec §3.2), and null until then. Every in-page call is
+  /// skipped while it is null.
+  String? _pageId;
+
+  /// The latest navigation state of each of this site's pages, by page id,
+  /// from a subscription started before the open, so nothing is missed. Page
+  /// ids are never reused, so a previous visit's page never matches
+  /// [_pageId].
+  final _navigations = <String, NavigationState>{};
+  StreamSubscription<NavigationState>? _navigationSub;
+
+  /// What the page this route shows is doing, or null before it reports.
+  NavigationState? get _navigation {
+    final pageId = _pageId;
+    return pageId == null ? null : _navigations[pageId];
+  }
 
   /// Whether leaving this route closes its native session: a throwaway's,
   /// until it is saved as a site. Kept here rather than read from
@@ -191,7 +210,20 @@ class _ContainerRouteState extends ConsumerState<ContainerRoute> {
         .findResults()
         .where((r) => r.siteId == widget.site.id)
         .listen((result) => setState(() => _findResult = result));
+    _navigationSub = engine
+        .navigation()
+        .where((state) => state.siteId == widget.site.id)
+        .listen((state) => setState(() {
+              _navigations[state.pageId] = state;
+              _noteLoaded();
+            }));
     _open();
+  }
+
+  /// Spec §5.3: a throwaway offers the save bar once its page has finished a
+  /// load. Called inside `setState`.
+  void _noteLoaded() {
+    if (!_loadedOnce && _navigation?.loading == false) _loadedOnce = true;
   }
 
   /// Opens [_opened]: once from [initState], and again for each of `8b`'s
@@ -204,13 +236,20 @@ class _ContainerRouteState extends ConsumerState<ContainerRoute> {
     // load, so the site's script scope and prompts never move to it.
     final extras = await ref.read(engineExtrasBuilderProvider)(site);
     if (!mounted) return;
-    final ContainerSession session;
+    ContainerSession? session;
     try {
       // [_closeOnDispose]: still a throwaway, not saved as a site since.
       session = await _engine.open(site,
           extras: extras, throwaway: _closeOnDispose, initialUrl: widget.initialUrl);
     } finally {
-      if (mounted) setState(() => _openReturned = true);
+      if (mounted) {
+        setState(() {
+          _openReturned = true;
+          final pages = session?.pages ?? const [];
+          _pageId = pages.isEmpty ? null : pages.first.pageId;
+          _noteLoaded();
+        });
+      }
     }
     // A session can be live before its open returns, and the listener in
     // [build] only counts one seen after.
@@ -227,6 +266,7 @@ class _ContainerRouteState extends ConsumerState<ContainerRoute> {
       _refusal = null;
       _refusalSeen = false;
       _openReturned = false;
+      _pageId = null;
       _workedRecorded = false;
       _tunnelDropped = false;
     });
@@ -254,13 +294,13 @@ class _ContainerRouteState extends ConsumerState<ContainerRoute> {
     final route = ModalRoute.of(context);
     if (route != null && route != _ownRoute) {
       _ownRoute = route;
-      _containerRoutes[widget.site.id] = route;
+      _containerRoutes[widget.site.id] = this;
     }
   }
 
   @override
   void dispose() {
-    if (_ownRoute != null && _containerRoutes[widget.site.id] == _ownRoute) {
+    if (_containerRoutes[widget.site.id] == this) {
       _containerRoutes.remove(widget.site.id);
     }
     _permissionSub?.cancel();
@@ -268,6 +308,7 @@ class _ContainerRouteState extends ConsumerState<ContainerRoute> {
     _downloadResultSub?.cancel();
     _tunnelSub?.cancel();
     _findSub?.cancel();
+    _navigationSub?.cancel();
     // A throwaway never reopens. Closing its session disposes its page view
     // if Flutter has not already, and ContainerView.dispose wipes a
     // wipe-on-exit profile — popped, or torn down by a lock or panic.
@@ -456,8 +497,7 @@ class _ContainerRouteState extends ConsumerState<ContainerRoute> {
   /// What the form for saving this throwaway opens on: the page it is
   /// showing, cookies kept.
   Site _throwawayAsSite() {
-    final navigation = ref.read(navigationForSiteProvider(widget.site.id)).valueOrNull;
-    final url = navigation?.url ?? _openedUrl;
+    final url = _navigation?.url ?? _openedUrl;
     // A throwaway that has moved to another site is saved as that site, not
     // under the name of the address it started at.
     final host = Uri.tryParse(url)?.host ?? '';
@@ -500,7 +540,9 @@ class _ContainerRouteState extends ConsumerState<ContainerRoute> {
   }
 
   Future<void> _openReader() async {
-    final article = await _engine.extractArticle(widget.site.id);
+    final pageId = _pageId;
+    if (pageId == null) return;
+    final article = await _engine.extractArticle(pageId);
     if (article == null || !mounted) return;
     Navigator.push(context, MaterialPageRoute(
       builder: (_) => ReaderRoute(
@@ -514,23 +556,32 @@ class _ContainerRouteState extends ConsumerState<ContainerRoute> {
   /// reports the new text's, so it is never the old text's.
   void _find(String query) {
     setState(() => _findResult = null);
+    final pageId = _pageId;
+    if (pageId == null) return;
     if (query.isEmpty) {
-      _engine.clearFind(widget.site.id);
+      _engine.clearFind(pageId);
     } else {
-      _engine.find(widget.site.id, query);
+      _engine.find(pageId, query);
     }
   }
 
   void _clearFind() {
     setState(() => _findResult = null);
-    _engine.clearFind(widget.site.id);
+    final pageId = _pageId;
+    if (pageId != null) _engine.clearFind(pageId);
+  }
+
+  /// Runs [action] on the page this route shows; nothing before its open
+  /// returns.
+  void _onPage(Future<void> Function(String pageId) action) {
+    final pageId = _pageId;
+    if (pageId != null) action(pageId);
   }
 
   /// Spec §3.3: the page's own address, through Flutter's clipboard. The
   /// site's `allowClipboard` governs page scripts, not this user action.
   Future<void> _copyLink() async {
-    final url =
-        ref.read(navigationForSiteProvider(widget.site.id)).valueOrNull?.url ?? _openedUrl;
+    final url = _navigation?.url ?? _openedUrl;
     await Clipboard.setData(ClipboardData(text: url));
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Link copied')));
@@ -569,7 +620,8 @@ class _ContainerRouteState extends ConsumerState<ContainerRoute> {
     final destination = destinationFor(suggested.url, current: _routeSite, saved: saved);
     switch (destination) {
       case ThisContainer(:final url):
-        await _engine.loadUrl(widget.site.id, url.toString());
+        final pageId = _pageId;
+        if (pageId != null) await _engine.loadUrl(pageId, url.toString());
       case SavedSiteContainer(:final site, :final url):
         // As the dashboard and search open a site: marked open, the visit
         // recorded. Its stored address is not touched.
@@ -580,8 +632,9 @@ class _ContainerRouteState extends ConsumerState<ContainerRoute> {
           // among them is wiped as when it is left, a saved site's session
           // stays open. [_engine] outlives this state.
           final engine = _engine;
-          Navigator.popUntil(context, (route) => route == existing);
-          await engine.loadUrl(site.id, url.toString());
+          final pageId = existing._pageId;
+          Navigator.popUntil(context, (route) => route == existing._ownRoute);
+          if (pageId != null) await engine.loadUrl(pageId, url.toString());
           return;
         }
         await Navigator.push(context, MaterialPageRoute<void>(
@@ -647,7 +700,7 @@ class _ContainerRouteState extends ConsumerState<ContainerRoute> {
   Widget build(BuildContext context) {
     final sessionAsync = ref.watch(sessionForSiteProvider(widget.site.id));
     _isThrowaway = ref.watch(throwawaySitesProvider).any((site) => site.id == widget.site.id);
-    final navigation = ref.watch(navigationForSiteProvider(widget.site.id)).valueOrNull;
+    final navigation = _navigation;
     final workspaces = ref.watch(workspacesProvider).valueOrNull ?? const <Workspace>[];
     final blockedToday = ref.watch(blockedTallyProvider.select((tally) => tally.total));
     // What typed text is matched against (spec §4.4): this vault's sites and
@@ -655,17 +708,10 @@ class _ContainerRouteState extends ConsumerState<ContainerRoute> {
     final saved = ref.watch(allSitesProvider).valueOrNull ?? const <Site>[];
     final searchEngine =
         ref.watch(searchEngineProvider).valueOrNull ?? SearchEngine.duckDuckGo;
-    // Spec §5.3: a throwaway offers the save bar once its first load has
-    // finished.
     // Live once this route's own open has returned: never a previous visit's
     // session (see [_openReturned]).
     ref.listen(sessionForSiteProvider(widget.site.id), (_, next) {
       if (_openReturned && next.valueOrNull?.phase == SessionPhase.live) _recordWorked();
-    });
-    ref.listen(navigationForSiteProvider(widget.site.id), (_, next) {
-      if (!_loadedOnce && next.valueOrNull?.loading == false) {
-        setState(() => _loadedOnce = true);
-      }
     });
     final refusal = _refusal;
     if (refusal != null) return _refusalScreen(refusal);
@@ -696,6 +742,15 @@ class _ContainerRouteState extends ConsumerState<ContainerRoute> {
           _handleRefusal(session);
           return const SizedBox.shrink();
         }
+        // A routable open always returns its first page; this only guards
+        // the page view against an open that returned none.
+        final pageId = _pageId;
+        if (pageId == null) {
+          return OpeningBody(
+            host: _host, steps: openStepsFor(_opened), progress: 0.6,
+            onCancel: () => Navigator.pop(context),
+          );
+        }
 
         final pageHost = navigation?.host ?? '';
         return Stack(children: [
@@ -710,7 +765,7 @@ class _ContainerRouteState extends ConsumerState<ContainerRoute> {
             live: session.phase == SessionPhase.live,
             navigation: navigation,
             openCount: 1,
-            body: ContainerWebView(siteId: widget.site.id),
+            body: ContainerWebView(pageId: pageId),
             entries: [
               SwitcherEntry(
                 siteId: widget.site.id, name: _opened.name,
@@ -737,10 +792,10 @@ class _ContainerRouteState extends ConsumerState<ContainerRoute> {
               engine: searchEngine,
             ),
             onOpen: _openDestination,
-            onBack: () => _engine.goBack(widget.site.id),
-            onForward: () => _engine.goForward(widget.site.id),
-            onStop: () => _engine.stop(widget.site.id),
-            onReload: () => _engine.reload(widget.site.id),
+            onBack: () => _onPage(_engine.goBack),
+            onForward: () => _onPage(_engine.goForward),
+            onStop: () => _onPage(_engine.stop),
+            onReload: () => _onPage(_engine.reload),
             onPanic: () => panic(ref),
             onSiteDetails: () => _showSiteSheet(session.blockedCount),
             onReader: _openReader,
@@ -753,7 +808,8 @@ class _ContainerRouteState extends ConsumerState<ContainerRoute> {
             // container pushed on the way.
             onAllSites: () => Navigator.popUntil(context, (route) => route.isFirst),
             onFind: _find,
-            onFindNext: (forward) => _engine.findNext(widget.site.id, forward: forward),
+            onFindNext: (forward) =>
+                _onPage((pageId) => _engine.findNext(pageId, forward: forward)),
             onClearFind: _clearFind,
             onSaveAsSite: _saveAsSite,
             onDismissSaveBar: () => setState(() => _saveBarDismissed = true),

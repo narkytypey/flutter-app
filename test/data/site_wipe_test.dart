@@ -15,9 +15,9 @@ class _OrderedEngine extends FakeContainerEngine {
   final calls = <String>[];
 
   @override
-  Future<void> close(String siteId) async {
+  Future<void> close(String siteId, {bool? wipe}) async {
     calls.add('close $siteId');
-    await super.close(siteId);
+    await super.close(siteId, wipe: wipe);
   }
 
   @override

@@ -71,6 +71,7 @@ NavigationState _nav({
 }) =>
     NavigationState(
       siteId: 's1',
+      pageId: 's1-p1',
       url: url,
       canGoBack: canGoBack,
       canGoForward: canGoForward,
@@ -275,7 +276,7 @@ void main() {
 
   testWidgets('Find puts the find bar in place of the top bar; typing, stepping and closing report', (tester) async {
     await tester.pumpWidget(_app(_screen(
-      findResult: const FindResult(siteId: 's1', activeMatch: 2, matchCount: 5),
+      findResult: const FindResult(siteId: 's1', pageId: 's1-p1', activeMatch: 2, matchCount: 5),
     )));
     await _openFind(tester);
 

@@ -24,9 +24,9 @@ class _Engine extends FakeContainerEngine {
   final List<String> events;
 
   @override
-  Future<void> close(String siteId) async {
+  Future<void> close(String siteId, {bool? wipe}) async {
     events.add('close $siteId');
-    await super.close(siteId);
+    await super.close(siteId, wipe: wipe);
   }
 
   @override

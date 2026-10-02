@@ -295,8 +295,8 @@ void main() {
         ],
         viewedSiteId: 'a',
         navigation: const {
-          'p1': NavigationState(siteId: 'a', url: 'https://one.example/', title: 'One'),
-          'p2': NavigationState(siteId: 'a', url: 'https://two.example/', title: 'Two'),
+          'p1': NavigationState(siteId: 'a', pageId: 'p1', url: 'https://one.example/', title: 'One'),
+          'p2': NavigationState(siteId: 'a', pageId: 'p2', url: 'https://two.example/', title: 'Two'),
         },
         now: now,
       );
@@ -311,8 +311,8 @@ void main() {
         containers: [_container('a', pages: const [p1, p2])],
         viewedSiteId: 'a',
         navigation: const {
-          'p1': NavigationState(siteId: 'a', url: 'https://one.example/', title: 'One'),
-          'p2': NavigationState(siteId: 'a', url: 'https://two.example/x', title: '   '),
+          'p1': NavigationState(siteId: 'a', pageId: 'p1', url: 'https://one.example/', title: 'One'),
+          'p2': NavigationState(siteId: 'a', pageId: 'p2', url: 'https://two.example/x', title: '   '),
         },
         now: now,
       );
@@ -328,7 +328,7 @@ void main() {
         ],
         viewedSiteId: 'a',
         navigation: const {
-          'p1': NavigationState(siteId: 'a', url: 'https://one.example/', title: 'One'),
+          'p1': NavigationState(siteId: 'a', pageId: 'p1', url: 'https://one.example/', title: 'One'),
         },
         now: now,
       );

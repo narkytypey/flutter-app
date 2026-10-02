@@ -8,7 +8,6 @@ import '../../../../data/services/container_panic_service.dart';
 import '../../../../data/services/engine_extras_builder.dart';
 import '../../../../domain/models/container_session.dart';
 import '../../../../domain/models/engine_extras.dart';
-import '../../../../domain/models/navigation_state.dart';
 import '../../../../domain/models/site.dart';
 import '../../../../domain/models/vault.dart';
 import '../../../../domain/services/panic_service.dart';
@@ -56,9 +55,8 @@ ContainerSession? _findSite(List<ContainerSession> sessions, String siteId) {
 /// change and every existing caller ([sessions]) wants that shape. Any
 /// sessions event supersedes the snapshot — see [subscribeThenSnapshot].
 ///
-/// Auto-disposed with the route that watches it, like
-/// [navigationForSiteProvider]: a throwaway's id is never seen again once its
-/// route is gone, and a family kept for the life of the app would hold one
+/// Auto-disposed with the route that watches it: a throwaway's id is never
+/// seen again once its route is gone, and a family kept for the life of the app would hold one
 /// engine subscription per throwaway ever opened.
 final sessionForSiteProvider =
     StreamProvider.autoDispose.family<ContainerSession?, String>((ref, siteId) {
@@ -67,24 +65,6 @@ final sessionForSiteProvider =
     ref,
     events: engine.sessions().map((sessions) => _findSite(sessions, siteId)),
     snapshot: () => engine.liveSessions().then((sessions) => _findSite(sessions, siteId)),
-  );
-});
-
-/// The page one site's container is showing (browser-chrome spec §3.2): its
-/// address, history and load progress, or `null` before its view has
-/// reported anything. Has `sessionForSiteProvider`'s race exactly — the first
-/// load can report before anyone listens — hence the shared helper.
-///
-/// Auto-disposed with its route, so a site opened again starts from its new
-/// page rather than showing the last visit's address and history until the
-/// first report.
-final navigationForSiteProvider =
-    StreamProvider.autoDispose.family<NavigationState?, String>((ref, siteId) {
-  final engine = ref.watch(containerEngineProvider);
-  return subscribeThenSnapshot<NavigationState?>(
-    ref,
-    events: engine.navigation().where((state) => state.siteId == siteId),
-    snapshot: () => engine.navigationState(siteId),
   );
 });
 

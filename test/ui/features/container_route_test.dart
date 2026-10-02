@@ -590,6 +590,8 @@ void main() {
     await tester.pump();
 
     expect(find.byType(ContainerWebView), findsOneWidget);
+    // Bound to the page its own open returned, never the previous visit's.
+    expect(tester.widget<ContainerWebView>(find.byType(ContainerWebView)).pageId, 's1-p2');
   });
 
   // Rebuilding the view on the handoff would dispose the native WebView —
@@ -901,7 +903,7 @@ void main() {
     await tester.pumpAndSettle();
 
     engine.emitDownload(const HeldDownloadEvent(
-      siteId: 's1', requestId: 'req-1',
+      siteId: 's1', pageId: 's1-p1', requestId: 'req-1',
       download: HeldDownload(
         fileName: 'notes.pdf', sizeBytes: 1024,
         sourceHost: 'forum.example.com', kindLabel: 'PDF',
@@ -922,7 +924,7 @@ void main() {
     await tester.pumpAndSettle();
 
     engine.emitDownload(const HeldDownloadEvent(
-      siteId: 's1', requestId: 'req-1',
+      siteId: 's1', pageId: 's1-p1', requestId: 'req-1',
       download: HeldDownload(
         fileName: 'a.pdf', sizeBytes: 100,
         sourceHost: 'forum.example.com', kindLabel: 'PDF',
@@ -1115,11 +1117,11 @@ void main() {
     // There is no DIRECT label; the route used to pass one.
     expect(find.text('DIRECT'), findsNothing);
 
-    engine.emitNavigation(const NavigationState(siteId: 's1', url: 'https://elsewhere.example.net/a'));
+    engine.emitNavigation(const NavigationState(siteId: 's1', pageId: 's1-p1', url: 'https://elsewhere.example.net/a'));
     await tester.pumpAndSettle();
     expect(find.text('elsewhere.example.net'), findsOneWidget);
 
-    engine.emitNavigation(const NavigationState(siteId: 's1', url: 'about:blank'));
+    engine.emitNavigation(const NavigationState(siteId: 's1', pageId: 's1-p1', url: 'about:blank'));
     await tester.pumpAndSettle();
     expect(find.text('forum.example.com'), findsOneWidget);
   });
@@ -1133,7 +1135,7 @@ void main() {
     expect(_icon('Stop'), findsNothing);
 
     engine.emitNavigation(const NavigationState(
-      siteId: 's1', url: 'https://forum.example.com/t/9',
+      siteId: 's1', pageId: 's1-p1', url: 'https://forum.example.com/t/9',
       canGoBack: true, canGoForward: true, loading: true, progress: 50,
     ));
     await tester.pumpAndSettle();
@@ -1141,9 +1143,9 @@ void main() {
     await tester.tap(_icon('Forward'));
     await tester.tap(_icon('Stop'));
 
-    expect(engine.wentBack, ['s1']);
-    expect(engine.wentForward, ['s1']);
-    expect(engine.stopped, ['s1']);
+    expect(engine.wentBack, ['s1-p1']);
+    expect(engine.wentForward, ['s1-p1']);
+    expect(engine.stopped, ['s1-p1']);
   });
 
   testWidgets('system back goes back in the page first, then leaves the container', (tester) async {
@@ -1151,14 +1153,14 @@ void main() {
     await _pump(tester, engine, _site(), overHome: true);
     await tester.pumpAndSettle();
     engine.emitNavigation(const NavigationState(
-        siteId: 's1', url: 'https://forum.example.com/t/9', canGoBack: true));
+        siteId: 's1', pageId: 's1-p1', url: 'https://forum.example.com/t/9', canGoBack: true));
     await tester.pumpAndSettle();
 
     await _systemBack(tester);
-    expect(engine.wentBack, ['s1']);
+    expect(engine.wentBack, ['s1-p1']);
     expect(find.byType(ContainerRoute), findsOneWidget);
 
-    engine.emitNavigation(const NavigationState(siteId: 's1', url: 'https://forum.example.com/'));
+    engine.emitNavigation(const NavigationState(siteId: 's1', pageId: 's1-p1', url: 'https://forum.example.com/'));
     await tester.pumpAndSettle();
     await _systemBack(tester);
 
@@ -1221,7 +1223,7 @@ void main() {
     final engine = FakeContainerEngine();
     await _pump(tester, engine, _site());
     await tester.pumpAndSettle();
-    engine.emitNavigation(const NavigationState(siteId: 's1', url: 'https://forum.example.com/t/9'));
+    engine.emitNavigation(const NavigationState(siteId: 's1', pageId: 's1-p1', url: 'https://forum.example.com/t/9'));
     await tester.pumpAndSettle();
 
     await tester.tap(_icon('Menu'));
@@ -1244,10 +1246,10 @@ void main() {
 
     await tester.enterText(find.byType(TextField), 'fox');
     await tester.pump();
-    expect(engine.findQueries, [(siteId: 's1', query: 'fox')]);
+    expect(engine.findQueries, [(pageId: 's1-p1', query: 'fox')]);
 
-    engine.emitFindResult(const FindResult(siteId: 's1', activeMatch: 0, matchCount: 4));
-    engine.emitFindResult(const FindResult(siteId: 'other', activeMatch: 0, matchCount: 9));
+    engine.emitFindResult(const FindResult(siteId: 's1', pageId: 's1-p1', activeMatch: 0, matchCount: 4));
+    engine.emitFindResult(const FindResult(siteId: 'other', pageId: 'other-p1', activeMatch: 0, matchCount: 9));
     await tester.pumpAndSettle();
     expect(find.text('1/4'), findsOneWidget);
 
@@ -1255,8 +1257,8 @@ void main() {
     await tester.tap(_icon('Close find'));
     await tester.pumpAndSettle();
 
-    expect(engine.findSteps, [(siteId: 's1', forward: true)]);
-    expect(engine.clearedFind, ['s1']);
+    expect(engine.findSteps, [(pageId: 's1-p1', forward: true)]);
+    expect(engine.clearedFind, ['s1-p1']);
     expect(find.byType(FindBar), findsNothing);
   });
 
@@ -1269,11 +1271,11 @@ void main() {
     await tester.pumpAndSettle();
 
     engine.emitNavigation(const NavigationState(
-        siteId: 't1', url: 'https://news.example.org/', loading: true, progress: 30));
+        siteId: 't1', pageId: 't1-p1', url: 'https://news.example.org/', loading: true, progress: 30));
     await tester.pumpAndSettle();
     expect(find.byType(ThrowawaySaveBar), findsNothing);
 
-    engine.emitNavigation(const NavigationState(siteId: 't1', url: 'https://news.example.org/today'));
+    engine.emitNavigation(const NavigationState(siteId: 't1', pageId: 't1-p1', url: 'https://news.example.org/today'));
     await tester.pumpAndSettle();
     expect(find.text('Not saved · wiped when you close it'), findsOneWidget);
 
@@ -1295,8 +1297,8 @@ void main() {
     await tester.pumpAndSettle();
 
     engine.emitNavigation(const NavigationState(
-        siteId: 't1', url: 'https://elsewhere.example.net/a', loading: true, progress: 30));
-    engine.emitNavigation(const NavigationState(siteId: 't1', url: 'https://elsewhere.example.net/a'));
+        siteId: 't1', pageId: 't1-p1', url: 'https://elsewhere.example.net/a', loading: true, progress: 30));
+    engine.emitNavigation(const NavigationState(siteId: 't1', pageId: 't1-p1', url: 'https://elsewhere.example.net/a'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Save as a site'));
     await tester.pumpAndSettle();
@@ -1312,7 +1314,7 @@ void main() {
     await _pump(tester, engine, _site());
     await tester.pumpAndSettle();
 
-    engine.emitNavigation(const NavigationState(siteId: 's1', url: 'https://forum.example.com/'));
+    engine.emitNavigation(const NavigationState(siteId: 's1', pageId: 's1-p1', url: 'https://forum.example.com/'));
     await tester.pumpAndSettle();
 
     expect(find.byType(ThrowawaySaveBar), findsNothing);
@@ -1322,12 +1324,12 @@ void main() {
     final engine = FakeContainerEngine();
     await _pump(tester, engine, _throwaway(), throwaway: true, throwaways: [_throwaway()]);
     await tester.pumpAndSettle();
-    engine.emitNavigation(const NavigationState(siteId: 't1', url: 'https://news.example.org/'));
+    engine.emitNavigation(const NavigationState(siteId: 't1', pageId: 't1-p1', url: 'https://news.example.org/'));
     await tester.pumpAndSettle();
 
     await tester.tap(find.byKey(const Key('save-bar-dismiss')));
     await tester.pumpAndSettle();
-    engine.emitNavigation(const NavigationState(siteId: 't1', url: 'https://news.example.org/next'));
+    engine.emitNavigation(const NavigationState(siteId: 't1', pageId: 't1-p1', url: 'https://news.example.org/next'));
     await tester.pumpAndSettle();
 
     expect(find.byType(ThrowawaySaveBar), findsNothing);
@@ -1346,10 +1348,10 @@ void main() {
     // checklist, shown for the first frames, is outside this plan.
     tester.view.physicalSize = const Size(360, 740);
     await tester.pump();
-    engine.emitNavigation(const NavigationState(siteId: 't1', url: '$url/'));
+    engine.emitNavigation(const NavigationState(siteId: 't1', pageId: 't1-p1', url: '$url/'));
     await tester.pumpAndSettle();
     engine.emitNavigation(const NavigationState(
-        siteId: 't1', url: '$url/today', loading: true, progress: 40));
+        siteId: 't1', pageId: 't1-p1', url: '$url/today', loading: true, progress: 40));
     await tester.pumpAndSettle();
 
     expect(find.byType(ThrowawaySaveBar), findsOneWidget);
@@ -1375,10 +1377,10 @@ void main() {
     final page = tester.state(find.byType(PlatformViewLink));
 
     engine.emitNavigation(const NavigationState(
-        siteId: 't1', url: 'https://news.example.org/', loading: true, progress: 20));
+        siteId: 't1', pageId: 't1-p1', url: 'https://news.example.org/', loading: true, progress: 20));
     await tester.pumpAndSettle();
     engine.emitNavigation(const NavigationState(
-        siteId: 't1', url: 'https://news.example.org/', canGoBack: true));
+        siteId: 't1', pageId: 't1-p1', url: 'https://news.example.org/', canGoBack: true));
     await tester.pumpAndSettle();
     expect(find.byType(ThrowawaySaveBar), findsOneWidget);
     await tester.tap(_icon('Menu'));
@@ -1404,7 +1406,7 @@ void main() {
     await tester.testTextInput.receiveAction(TextInputAction.go);
     await tester.pumpAndSettle();
 
-    expect(engine.loaded, [(siteId: 's1', url: 'https://forum.example.com/latest')]);
+    expect(engine.loaded, [(pageId: 's1-p1', url: 'https://forum.example.com/latest')]);
     expect(engine.openedSites.keys, ['s1']);
     expect(find.byType(AddressSuggestions), findsNothing);
   });
@@ -1457,7 +1459,7 @@ void main() {
     // Back on the first container, which loads the address in place.
     expect(find.byType(ContainerRoute, skipOffstage: false), findsOneWidget);
     expect(find.text('forum.example.com'), findsOneWidget);
-    expect(engine.loaded, [(siteId: 's1', url: 'https://forum.example.com/new')]);
+    expect(engine.loaded, [(pageId: 's1-p1', url: 'https://forum.example.com/new')]);
     expect(engine.openedInitialUrls['s1'], isNull);
     // The container left on the way down is a saved site: its session stays open.
     expect(engine.closed, isEmpty);
@@ -1556,7 +1558,7 @@ void main() {
     await _pump(tester, engine, _site(), overHome: true);
     await tester.pumpAndSettle();
     engine.emitNavigation(const NavigationState(
-        siteId: 's1', url: 'https://forum.example.com/t/9', canGoBack: true));
+        siteId: 's1', pageId: 's1-p1', url: 'https://forum.example.com/t/9', canGoBack: true));
     await tester.pumpAndSettle();
 
     await _typeAddress(tester, 'news');

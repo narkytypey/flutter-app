@@ -17,8 +17,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 /// once an event has arrived, the snapshot is older than it and is discarded
 /// rather than allowed to overwrite it.
 ///
-/// Shared by `sessionForSiteProvider` and `navigationForSiteProvider` rather
-/// than written twice: the race is subtle enough to get wrong again.
+/// Used by `sessionForSiteProvider`; it once served a per-site navigation
+/// provider too, which `ContainerRoute` replaced with its own subscription.
 Stream<T> subscribeThenSnapshot<T>(
   Ref ref, {
   required Stream<T> events,

@@ -3,6 +3,7 @@
 class NavigationState {
   const NavigationState({
     required this.siteId,
+    required this.pageId,
     required this.url,
     this.title = '',
     this.canGoBack = false,
@@ -12,6 +13,9 @@ class NavigationState {
   });
 
   final String siteId;
+
+  /// The page it is about (tabs spec §3.1).
+  final String pageId;
   final String url;
   final String title;
   final bool canGoBack;
