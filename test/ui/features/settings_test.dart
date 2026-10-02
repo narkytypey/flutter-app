@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:container/ui/core/icons.dart';
 import 'package:container/ui/core/widgets/app_toggle.dart';
 import 'package:container/ui/core/widgets/setting_row.dart';
 import 'package:container/ui/features/settings/views/settings_screen.dart';
+
+import '../../support/glyph_finders.dart';
 
 void main() {
   Future<void> pump(
@@ -32,6 +35,7 @@ void main() {
         searchEngineName: 'DuckDuckGo',
         onChanged: (_, __) {},
         onTap: (_) {},
+        onBack: () {},
       ),
     ));
   }
@@ -112,6 +116,7 @@ void main() {
         searchEngineName: 'DuckDuckGo',
         onChanged: (_, __) {},
         onTap: (key) => tapped = key,
+        onBack: () {},
       ),
     ));
 
@@ -140,6 +145,7 @@ void main() {
         searchEngineName: 'Startpage',
         onChanged: (_, __) {},
         onTap: (key) => tapped = key,
+        onBack: () {},
       ),
     ));
 
@@ -195,6 +201,7 @@ void main() {
         searchEngineName: 'DuckDuckGo',
         onChanged: (_, __) {},
         onTap: tapped.add,
+        onBack: () {},
       ),
     ));
     await tester.tap(find.text('On panic'));
@@ -211,6 +218,35 @@ void main() {
     expect(opacities, hasLength(2));
     expect(opacities.first, lessThan(1));
     expect(opacities.last, 1);
+  });
+  testWidgets('the back icon reports a tap, and rows that open something end in a chevron',
+      (tester) async {
+    addTearDown(tester.view.reset);
+    tester.view.physicalSize = const Size(400, 1600);
+    tester.view.devicePixelRatio = 1;
+    var backs = 0;
+    await tester.pumpWidget(MaterialApp(
+      home: SettingsScreen(
+        biometrics: true,
+        biometricsAvailable: true,
+        autoLockLabel: 'After 1 min',
+        decoyEnabled: true,
+        decoySiteCount: 4,
+        hideFromSwitcher: true,
+        panicOnFlip: false,
+        onPanicLabel: 'Wipe + lock',
+        searchEngineName: 'DuckDuckGo',
+        onChanged: (_, __) {},
+        onTap: (_) {},
+        onBack: () => backs++,
+      ),
+    ));
+
+    expect(tester.getSize(findGlyph(AppGlyph.back)), const Size(18, 18));
+    await tester.tap(findIconTap('Back'));
+    expect(backs, 1);
+    expect(findGlyph(AppGlyph.forward), findsWidgets);
+    expect(tester.getSize(findGlyph(AppGlyph.forward).first), const Size(16, 16));
   });
 }
 

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../../domain/models/lock_state.dart';
+import '../../../core/icons.dart';
 import '../../../core/tokens.dart';
 import '../../../core/typography.dart';
 import '../../../core/widgets/sheet.dart';
@@ -37,7 +38,7 @@ class AutoLockPicker extends StatelessWidget {
                   Expanded(
                     child: Text(policy.label, style: ui(size: 14.5, color: C.textPrimary)),
                   ),
-                  if (policy == current) const Icon(Icons.check, size: 15, color: C.jade),
+                  if (policy == current) const AppIcon(AppGlyph.check, size: 15, color: C.jade),
                 ],
               ),
             ),

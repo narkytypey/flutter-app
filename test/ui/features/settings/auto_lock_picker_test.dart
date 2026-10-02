@@ -1,7 +1,10 @@
 import 'package:container/domain/models/lock_state.dart';
+import 'package:container/ui/core/icons.dart';
 import 'package:container/ui/features/settings/views/auto_lock_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+
+import '../../../support/glyph_finders.dart';
 
 /// User's ruling, 2026-09-30: the Auto-lock row opens a sheet of 1, 5 and 15
 /// minutes, built like the search engine picker.
@@ -15,9 +18,9 @@ void main() {
     for (final label in ['After 1 min', 'After 5 min', 'After 15 min']) {
       expect(find.text(label), findsOneWidget);
     }
-    expect(find.byIcon(Icons.check), findsOneWidget);
+    expect(findGlyph(AppGlyph.check), findsOneWidget);
     final row = find.ancestor(of: find.text('After 5 min'), matching: find.byType(Row));
-    expect(find.descendant(of: row.first, matching: find.byIcon(Icons.check)), findsOneWidget);
+    expect(find.descendant(of: row.first, matching: findGlyph(AppGlyph.check)), findsOneWidget);
   });
 
   testWidgets('tapping a choice picks it', (tester) async {

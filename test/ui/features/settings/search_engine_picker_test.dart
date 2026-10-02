@@ -1,7 +1,10 @@
 import 'package:container/domain/models/search_engine.dart';
+import 'package:container/ui/core/icons.dart';
 import 'package:container/ui/features/settings/views/search_engine_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+
+import '../../../support/glyph_finders.dart';
 
 void main() {
   testWidgets('lists the three engines under its title, the current one checked', (tester) async {
@@ -15,9 +18,9 @@ void main() {
     for (final name in ['DuckDuckGo', 'Startpage', 'Brave Search']) {
       expect(find.text(name), findsOneWidget);
     }
-    expect(find.byIcon(Icons.check), findsOneWidget);
+    expect(findGlyph(AppGlyph.check), findsOneWidget);
     final startpageRow = find.ancestor(of: find.text('Startpage'), matching: find.byType(Row));
-    expect(find.descendant(of: startpageRow.first, matching: find.byIcon(Icons.check)),
+    expect(find.descendant(of: startpageRow.first, matching: findGlyph(AppGlyph.check)),
         findsOneWidget);
   });
 

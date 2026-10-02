@@ -50,6 +50,7 @@ class SettingsRoute extends ConsumerWidget {
       panicOnFlip: panicOnFlip,
       onPanicLabel: 'Wipe + lock',
       searchEngineName: searchEngine?.label ?? '',
+      onBack: () => Navigator.pop(context),
       onChanged: (key, value) {
         if (key == 'biometrics') {
           ref.read(settingsControllerProvider).setBiometricsEnabled(value);

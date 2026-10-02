@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../icons.dart';
 import '../tokens.dart';
 import '../typography.dart';
 
@@ -50,7 +51,7 @@ class SettingRow extends StatelessWidget {
               if (value != null)
                 Text(value!, style: ui(size: 12.5, color: C.textMuted)),
               if (trailing == null && value == null && onTap != null)
-                Text('›', style: ui(size: 14, color: C.textFaint)),
+                const AppIcon(AppGlyph.forward, size: 16, color: C.textFaint),
             ],
           ),
         ),

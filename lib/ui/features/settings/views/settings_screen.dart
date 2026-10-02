@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 
+import '../../../core/icons.dart';
 import '../../../core/tokens.dart';
 import '../../../core/typography.dart';
 import '../../../core/widgets/app_toggle.dart';
+import '../../../core/widgets/icon_tap.dart';
 import '../../../core/widgets/setting_row.dart';
 
 /// Spec `2d`.
@@ -34,6 +36,7 @@ class SettingsScreen extends StatelessWidget {
     required this.searchEngineName,
     required this.onChanged,
     required this.onTap,
+    required this.onBack,
   });
 
   final bool biometrics;
@@ -50,6 +53,10 @@ class SettingsScreen extends StatelessWidget {
   final void Function(String key, bool value) onChanged;
   final void Function(String key) onTap;
 
+  /// The header's back icon. Pops Settings, like every other screen's `‹`
+  /// (restyle spec §4).
+  final VoidCallback onBack;
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -61,7 +68,13 @@ class SettingsScreen extends StatelessWidget {
               padding: const EdgeInsets.fromLTRB(18, 14, 18, 12),
               child: Row(
                 children: [
-                  const Icon(Icons.chevron_left, size: 20, color: C.icon),
+                  IconTap(
+                    glyph: AppGlyph.back,
+                    label: 'Back',
+                    onTap: onBack,
+                    size: 20,
+                    iconSize: 18,
+                  ),
                   const SizedBox(width: 10),
                   Text('Settings', style: T.screenTitle),
                 ],

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../../domain/models/search_engine.dart';
+import '../../../core/icons.dart';
 import '../../../core/tokens.dart';
 import '../../../core/typography.dart';
 import '../../../core/widgets/sheet.dart';
@@ -37,7 +38,7 @@ class SearchEnginePicker extends StatelessWidget {
                   Expanded(
                     child: Text(engine.label, style: ui(size: 14.5, color: C.textPrimary)),
                   ),
-                  if (engine == current) const Icon(Icons.check, size: 15, color: C.jade),
+                  if (engine == current) const AppIcon(AppGlyph.check, size: 15, color: C.jade),
                 ],
               ),
             ),
