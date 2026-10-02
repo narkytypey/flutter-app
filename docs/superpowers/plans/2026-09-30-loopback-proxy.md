@@ -2804,8 +2804,21 @@ changes documentation only.
     dropped a typed character. WebView then showed `ERR_UNKNOWN_URL_SCHEME`.
     The form does not refuse a scheme other than http/https, which the
     pill's `loadUrl` does.
+    **✅ Fixed 2026-10-02.**
+    - The form now saves the address as the address bar loads one
+      (`siteAddress`, which uses `parseAddressInput`). A bare host gains
+      `https://`, and a Unicode host is saved in punycode.
+    - Anything else (another scheme, words, nothing) leaves Save dimmed to 0.4
+      and inert, as an inert toggle is, with no new copy. Before, a bare
+      `example.com` was also saved schemeless, and the engine never loads one.
+    - Tests: `add_site_test.dart` +7.
   - `10d`'s "+ New script" row and `10e`'s "+ Add site" chip respond only to
     taps on their text, not on the rest of the row.
+    **✅ Fixed 2026-10-02, for the row only.** "+ New script" now takes a tap
+    anywhere on its row (`HitTestBehavior.opaque`; test in
+    `scripts_and_filters_screen_test.dart`). The chip was never broken: its
+    bordered box is tappable throughout. uiautomator reported its parent's
+    full-width bounds, and the harness tapped outside the chip.
   - The switcher (`2c`) lists only the current container with
     `openCount: 1` (`container_route.dart:576`), while the dashboard counts
     every open session.

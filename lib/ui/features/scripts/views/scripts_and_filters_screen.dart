@@ -139,6 +139,8 @@ class ScriptsAndFiltersScreen extends StatelessWidget {
                   Padding(
                     padding: const EdgeInsets.only(top: 18),
                     child: GestureDetector(
+                      // The whole row, not only its glyphs.
+                      behavior: HitTestBehavior.opaque,
                       onTap: onNewScript,
                       child: Row(
                         children: [
