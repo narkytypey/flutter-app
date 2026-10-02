@@ -16,6 +16,9 @@ Site buildSite({
   required ProxyMode proxyMode,
   String? proxyHost,
   int? proxyPort,
+  String proxyUser = '',
+  String proxyPassword = '',
+  bool proxyLoginPerSite = false,
   required bool blockWebRtc,
   required bool blockTrackers,
   required bool antiFingerprinting,
@@ -32,6 +35,11 @@ Site buildSite({
   required String customCss,
   required String customJs,
 }) {
+  // Ruling 8: a typed login is kept only while the proxy is on, per-site login
+  // is off and a user was typed; otherwise neither half is. Nothing is trimmed.
+  final proxied = proxyMode != ProxyMode.direct;
+  final perSite = proxied && proxyLoginPerSite;
+  final typed = proxied && !perSite && proxyUser.isNotEmpty;
   return Site(
     id: initial?.id ?? newProfileId(),
     workspaceId: workspaceId,
@@ -43,6 +51,9 @@ Site buildSite({
     proxyMode: proxyMode,
     proxyHost: proxyHost,
     proxyPort: proxyPort,
+    proxyUser: typed ? proxyUser : null,
+    proxyPassword: typed ? proxyPassword : null,
+    proxyLoginPerSite: perSite,
     blockWebRtc: blockWebRtc,
     blockTrackers: blockTrackers,
     antiFingerprinting: antiFingerprinting,

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../../../../domain/models/site.dart';
 import '../../../core/tokens.dart';
@@ -16,6 +17,10 @@ class NetworkTab extends StatelessWidget {
     required this.onProxyModeChanged,
     required this.hostController,
     required this.portController,
+    required this.loginPerSite,
+    required this.onLoginPerSiteChanged,
+    required this.userController,
+    required this.passwordController,
     required this.blockWebRtc,
     required this.onBlockWebRtcChanged,
     required this.blockTrackers,
@@ -28,6 +33,10 @@ class NetworkTab extends StatelessWidget {
   final ValueChanged<ProxyMode> onProxyModeChanged;
   final TextEditingController hostController;
   final TextEditingController portController;
+  final bool loginPerSite;
+  final ValueChanged<bool> onLoginPerSiteChanged;
+  final TextEditingController userController;
+  final TextEditingController passwordController;
   final bool blockWebRtc;
   final ValueChanged<bool> onBlockWebRtcChanged;
   final bool blockTrackers;
@@ -51,6 +60,7 @@ class NetworkTab extends StatelessWidget {
           subtitle: 'This site only',
           value: proxyEnabled,
           onChanged: onProxyEnabledChanged,
+          switchKey: const Key('proxy-enabled'),
         ),
         const SizedBox(height: 18),
         Row(
@@ -88,6 +98,47 @@ class NetworkTab extends StatelessWidget {
             ),
           ],
         ),
+        // Proxy-auth spec §1: only while the proxy is on.
+        if (proxyEnabled) ...[
+          const SizedBox(height: 18),
+          _toggleRow(
+            title: 'Separate login per site',
+            subtitle: 'Tor gives this site its own circuit',
+            value: loginPerSite,
+            onChanged: onLoginPerSiteChanged,
+            switchKey: const Key('proxy-login-per-site'),
+          ),
+          if (!loginPerSite) ...[
+            const SizedBox(height: 18),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text('USERNAME', style: _label),
+                      const SizedBox(height: 7),
+                      _field(userController, key: const Key('proxy-user'), loginField: true),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text('PASSWORD', style: _label),
+                      const SizedBox(height: 7),
+                      _field(passwordController,
+                          key: const Key('proxy-password'), loginField: true, obscure: true),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ],
         const SizedBox(height: 18),
         _toggleRow(
           title: 'Block WebRTC',
@@ -106,7 +157,12 @@ class NetworkTab extends StatelessWidget {
     );
   }
 
-  Widget _field(TextEditingController controller) => Container(
+  /// [loginField]: at most 255 characters (ruling 9), no autocorrect or
+  /// suggestions. [obscure] masks it, with no reveal control (spec §1).
+  Widget _field(TextEditingController controller,
+          {Key? key, bool loginField = false, bool obscure = false}) =>
+      Container(
+        key: key,
         height: 46,
         padding: const EdgeInsets.symmetric(horizontal: 13),
         decoration: BoxDecoration(
@@ -116,6 +172,10 @@ class NetworkTab extends StatelessWidget {
         ),
         child: TextField(
           controller: controller,
+          obscureText: obscure,
+          autocorrect: !loginField,
+          enableSuggestions: !loginField,
+          inputFormatters: loginField ? [LengthLimitingTextInputFormatter(255)] : null,
           style: mono(size: 13, color: C.textSecondary),
           decoration: const InputDecoration(border: InputBorder.none, isDense: true),
         ),
@@ -144,6 +204,7 @@ class NetworkTab extends StatelessWidget {
     required String subtitle,
     required bool value,
     required ValueChanged<bool> onChanged,
+    Key? switchKey,
   }) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -158,13 +219,14 @@ class NetworkTab extends StatelessWidget {
             ],
           ),
         ),
-        _switch(value: value, onChanged: onChanged),
+        _switch(key: switchKey, value: value, onChanged: onChanged),
       ],
     );
   }
 
-  Widget _switch({required bool value, required ValueChanged<bool> onChanged}) {
+  Widget _switch({Key? key, required bool value, required ValueChanged<bool> onChanged}) {
     return GestureDetector(
+      key: key,
       onTap: () => onChanged(!value),
       child: Container(
         width: 44,
