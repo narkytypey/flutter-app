@@ -189,3 +189,9 @@ in the UI dump.
    log line shows `alice`.
 7. With the login set and the site live, restart `proxy.py` with a different
    `--password`, then reload: `8c` (tunnel dropped) appears, not `8b`.
+
+## Plan 15 (tabs)
+
+The run sheet is the "Device checks" section at the end of
+`docs/superpowers/plans/2026-10-02-tabs.md`. It uses the tools above
+unchanged. None of Plan 15 has run on a device yet.
