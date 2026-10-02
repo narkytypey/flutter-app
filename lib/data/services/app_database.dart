@@ -72,7 +72,7 @@ class AppDatabase {
 
   final Database db;
 
-  static const schemaVersion = 6;
+  static const schemaVersion = 7;
 
   static Future<AppDatabase> open({
     required String path,
@@ -116,6 +116,9 @@ class AppDatabase {
               proxy_mode      TEXT    NOT NULL,
               proxy_host      TEXT,
               proxy_port      INTEGER,
+              proxy_user      TEXT,
+              proxy_password  TEXT,
+              proxy_login_per_site INTEGER NOT NULL DEFAULT 0,
               require_pin     INTEGER NOT NULL DEFAULT 0,
               -- Provisioning only: "copy this row into the other vault when
               -- the decoy is set up". It is never read as a runtime filter,
@@ -189,6 +192,13 @@ class AppDatabase {
           }
           if (from < 6) {
             await db.execute(_createAppSettings);
+          }
+          if (from < 7) {
+            // Proxy authentication: existing sites have no login.
+            await db.execute('ALTER TABLE sites ADD COLUMN proxy_user TEXT');
+            await db.execute('ALTER TABLE sites ADD COLUMN proxy_password TEXT');
+            await db.execute(
+                'ALTER TABLE sites ADD COLUMN proxy_login_per_site INTEGER NOT NULL DEFAULT 0');
           }
         },
       ),
@@ -394,6 +404,9 @@ Map<String, Object?> siteToRow(Site s) => {
       'proxy_mode': s.proxyMode.name,
       'proxy_host': s.proxyHost,
       'proxy_port': s.proxyPort,
+      'proxy_user': s.proxyUser,
+      'proxy_password': s.proxyPassword,
+      'proxy_login_per_site': s.proxyLoginPerSite ? 1 : 0,
       'require_pin': s.requirePin ? 1 : 0,
       'show_in_decoy': s.showInDecoy ? 1 : 0,
       'last_visited_at': s.lastVisitedAt?.millisecondsSinceEpoch,
@@ -426,6 +439,9 @@ Site siteFromRow(Map<String, Object?> r) {
     proxyMode: ProxyMode.values.byName(r['proxy_mode']! as String),
     proxyHost: r['proxy_host'] as String?,
     proxyPort: r['proxy_port'] as int?,
+    proxyUser: r['proxy_user'] as String?,
+    proxyPassword: r['proxy_password'] as String?,
+    proxyLoginPerSite: (r['proxy_login_per_site'] as int? ?? 0) == 1,
     requirePin: (r['require_pin']! as int) == 1,
     showInDecoy: (r['show_in_decoy']! as int) == 1,
     lastVisitedAt:

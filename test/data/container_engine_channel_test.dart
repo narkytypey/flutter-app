@@ -43,6 +43,25 @@ void main() {
     expect(sessionsFromEvent(event).single.failure, RouteFailure.proxyUnreachable);
   });
 
+  test('a rejected login decodes on a session and on a download result', () {
+    final event = <Object?, Object?>{
+      'type': 'sessions',
+      'sessions': [
+        {
+          'siteId': 's1', 'phase': 'refused', 'lastActiveAt': null,
+          'blockedCount': 0, 'categoryCounts': <Object?, Object?>{},
+          'failure': 'proxyLoginRejected',
+        },
+      ],
+    };
+    expect(sessionsFromEvent(event).single.failure, RouteFailure.proxyLoginRejected);
+    final download = downloadResultFromEvent(<Object?, Object?>{
+      'type': 'download_result', 'requestId': 'req-9',
+      'outcome': 'failed', 'reason': 'proxyLoginRejected',
+    });
+    expect(download.reason, RouteFailure.proxyLoginRejected);
+  });
+
   test('a session refused for want of a proxy override decodes as unsupported', () {
     final event = <Object?, Object?>{
       'type': 'sessions',
@@ -244,6 +263,32 @@ void main() {
       final args = [for (final c in calls) c.arguments as Map<Object?, Object?>];
       expect(args.map((a) => a['initialUrl']), ['https://forum.example.com/t/9', null]);
       expect(args.map((a) => a['url']), ['https://forum.example.com', 'https://forum.example.com']);
+    });
+
+    test('open sends the proxy login and the per-site choice', () async {
+      messenger.setMockStreamHandler(events, MockStreamHandler.inline(onListen: (_, __) {}));
+      final calls = <MethodCall>[];
+      messenger.setMockMethodCallHandler(methods, (call) async {
+        calls.add(call);
+        return <String, Object?>{
+          'siteId': 's1', 'phase': 'opening', 'lastActiveAt': null,
+          'blockedCount': 0, 'categoryCounts': <String, Object?>{}, 'failure': null,
+        };
+      });
+      const typed = Site(
+        id: 's1', workspaceId: 'w', name: 'Forum', monogram: 'Fr',
+        url: 'https://forum.example.com', profileId: 'p',
+        proxyMode: ProxyMode.socks5, proxyHost: '127.0.0.1', proxyPort: 9050,
+        proxyUser: 'alice', proxyPassword: 's3cret',
+      );
+
+      await ChannelContainerEngine().open(typed);
+      await ChannelContainerEngine().open(typed.copyWith(proxyLoginPerSite: true));
+
+      final args = [for (final c in calls) c.arguments as Map<Object?, Object?>];
+      expect(args.first['proxyUser'], 'alice');
+      expect(args.first['proxyPassword'], 's3cret');
+      expect(args.map((a) => a['proxyLoginPerSite']), [false, true]);
     });
   });
 }
