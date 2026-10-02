@@ -11,6 +11,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
+import '../../../support/glyph_finders.dart';
 import '../shell/session_controller_test.dart' show FakeBiometricService;
 
 /// Lets the in-memory database's real IO finish, then rebuilds.
@@ -67,5 +68,40 @@ void main() {
         () => SqliteSettingsRepository(database).getString('search_engine'));
     expect(stored, 'braveSearch');
     expect(find.text('Brave Search'), findsOneWidget);
+  });
+
+  testWidgets("2d's back icon pops Settings (restyle spec §4)", (tester) async {
+    final database = (await tester.runAsync(
+        () => AppDatabase.open(path: inMemoryDatabasePath, factory: databaseFactoryFfi)))!;
+    addTearDown(() => tester.runAsync(database.close));
+    addTearDown(tester.view.reset);
+    tester.view.physicalSize = const Size(500, 1600);
+    tester.view.devicePixelRatio = 1;
+
+    await tester.pumpWidget(ProviderScope(
+      overrides: [
+        databaseProvider.overrideWithValue(database),
+        biometricServiceProvider.overrideWithValue(FakeBiometricService()),
+      ],
+      child: MaterialApp(
+        home: Builder(
+          builder: (context) => TextButton(
+            onPressed: () => Navigator.push(
+                context, MaterialPageRoute<void>(builder: (_) => const SettingsRoute())),
+            child: const Text('open settings'),
+          ),
+        ),
+      ),
+    ));
+    await tester.tap(find.text('open settings'));
+    await tester.pumpAndSettle();
+    await _settle(tester);
+    expect(find.byType(SettingsRoute), findsOneWidget);
+
+    await tester.tap(findIconTap('Back'));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(SettingsRoute), findsNothing);
+    expect(find.text('open settings'), findsOneWidget);
   });
 }
