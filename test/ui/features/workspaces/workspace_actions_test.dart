@@ -91,4 +91,45 @@ void main() {
     expect(await SqliteSiteRepository(database).inWorkspace('ws-work'), isEmpty);
     expect(await SqliteSiteRepository(database).inWorkspace('ws-personal'), hasLength(1));
   });
+
+  // Tabs spec §5.8a: each site is closed with its wipe, which runs natively
+  // after the container's last page is gone, then its profile wiped, in that
+  // order, site by site.
+  test('deleting a workspace closes each site with wipe: true, then wipes its profile',
+      () async {
+    final ordered = _OrderedEngine();
+    final orderedActions = WorkspaceActions(
+      workspaces: SqliteWorkspaceRepository(database),
+      sites: SqliteSiteRepository(database),
+      engine: ordered,
+      storage: FakeWorkspaceStorageService(const {}),
+    );
+    await ordered.open(site('mail', 'ws-work'));
+
+    await orderedActions.delete(work);
+
+    expect(ordered.closedWith, {'mail': true, 'docs': true});
+    final mail = ordered.calls.indexOf('close mail wipe: true');
+    final docs = ordered.calls.indexOf('close docs wipe: true');
+    expect(ordered.calls[mail + 1], 'wipe profile-mail');
+    expect(ordered.calls[docs + 1], 'wipe profile-docs');
+    expect(ordered.calls, hasLength(4));
+  });
+}
+
+/// Records close and wipe in one list, so a test can see their order.
+class _OrderedEngine extends FakeContainerEngine {
+  final calls = <String>[];
+
+  @override
+  Future<void> close(String siteId, {bool? wipe}) async {
+    calls.add('close $siteId wipe: $wipe');
+    await super.close(siteId, wipe: wipe);
+  }
+
+  @override
+  Future<void> wipe(String profileId) async {
+    calls.add('wipe $profileId');
+    await super.wipe(profileId);
+  }
 }

@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../data/services/site_wipe.dart';
 import '../../../core/tokens.dart';
 import '../../add_site/views/add_site_screen.dart';
+import '../../container/view_models/open_containers.dart' show openContainersProvider;
 import '../../container/view_models/providers.dart' show containerEngineProvider;
 import '../../container/views/container_route.dart';
 import '../../report/views/today_route.dart';
@@ -63,14 +64,14 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
               ref.invalidate(allSitesProvider);
               Navigator.push(context, MaterialPageRoute(builder: (_) => const _SearchRoute()));
             },
+            // Tabs spec §4.2: an open container is shown as it is, with no
+            // second open; otherwise it opens. Either way through the one
+            // host route.
             onOpenSite: (siteId) async {
               openSite(ref, siteId);
               final site = await ref.read(siteRepositoryProvider).byId(siteId);
               if (site == null || !context.mounted) return;
-              await Navigator.push(context, MaterialPageRoute(
-                builder: (_) => ContainerRoute(site: site),
-              ));
-              ref.invalidate(dashboardProvider);
+              showContainer(context, ref, site);
             },
             onSiteMenu: (siteId) async {
               final site = await ref.read(siteRepositoryProvider).byId(siteId);
@@ -94,8 +95,15 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                         builder: (_) => AddSiteScreen(
                           initial: site,
                           workspaces: workspaces,
+                          // A change of route or cookie policy closes the
+                          // site's open container (tabs spec §5.7); from
+                          // here it is in the background, so it stays closed
+                          // until it is next opened.
                           onSave: (updated) async {
                             await ref.read(siteRepositoryProvider).upsert(updated);
+                            await ref
+                                .read(openContainersProvider.notifier)
+                                .siteSaved(updated);
                             sitesChanged(ref);
                             if (!context.mounted) return;
                             Navigator.pop(context);
@@ -104,8 +112,8 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                       ));
                     } else if (action == SiteRowAction.removeSite) {
                       // Closed and wiped first: deleting the row alone left
-                      // the site's profile and downloads on disk.
-                      closeSite(ref, siteId);
+                      // the site's profile and downloads on disk. The
+                      // close reaches the registry through the sessions event.
                       await removeSavedSite(
                         engine: ref.read(containerEngineProvider),
                         sites: ref.read(siteRepositoryProvider),
@@ -116,7 +124,6 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                       // Asked first (user's ruling, 2026-09-30); the site
                       // stays, under a fresh profile (wipeSavedSite).
                       if (!await confirmWipeSite(context) || !mounted) return;
-                      closeSite(ref, siteId);
                       await wipeSavedSite(
                         engine: ref.read(containerEngineProvider),
                         sites: ref.read(siteRepositoryProvider),
@@ -209,9 +216,8 @@ class _SearchRouteState extends ConsumerState<_SearchRoute> {
         openSite(ref, siteId);
         final site = await ref.read(siteRepositoryProvider).byId(siteId);
         if (site == null || !context.mounted) return;
-        Navigator.pushReplacement(context, MaterialPageRoute(
-          builder: (_) => ContainerRoute(site: site),
-        ));
+        // Pops this search route itself, down to the dashboard.
+        showContainer(context, ref, site);
       },
       onBack: () => Navigator.pop(context),
     );

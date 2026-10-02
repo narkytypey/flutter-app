@@ -151,10 +151,10 @@ void main() {
     final controller = TextEditingController(text: 'fox');
     addTearDown(controller.dispose);
 
-    await _pump(tester, _findBar(controller, const FindResult(siteId: 's1', activeMatch: 1, matchCount: 7)));
+    await _pump(tester, _findBar(controller, const FindResult(siteId: 's1', pageId: 's1-p1', activeMatch: 1, matchCount: 7)));
     expect(find.text('2/7'), findsOneWidget);
 
-    await _pump(tester, _findBar(controller, const FindResult(siteId: 's1', activeMatch: 0, matchCount: 0)));
+    await _pump(tester, _findBar(controller, const FindResult(siteId: 's1', pageId: 's1-p1', activeMatch: 0, matchCount: 0)));
     expect(find.text('No matches'), findsOneWidget);
 
     // No count yet for what is typed: nothing, rather than a stale one.
@@ -163,7 +163,7 @@ void main() {
 
     // Nothing typed: nothing to count.
     controller.clear();
-    await _pump(tester, _findBar(controller, const FindResult(siteId: 's1', activeMatch: 0, matchCount: 0)));
+    await _pump(tester, _findBar(controller, const FindResult(siteId: 's1', pageId: 's1-p1', activeMatch: 0, matchCount: 0)));
     await tester.pump();
     expect(find.text('No matches'), findsNothing);
     expect(find.text('Find in page'), findsOneWidget);
@@ -175,7 +175,7 @@ void main() {
     addTearDown(controller.dispose);
     await _pump(
       tester,
-      _findBar(controller, const FindResult(siteId: 's1', activeMatch: 0, matchCount: 3), calls: calls),
+      _findBar(controller, const FindResult(siteId: 's1', pageId: 's1-p1', activeMatch: 0, matchCount: 3), calls: calls),
     );
 
     await tester.enterText(find.byType(TextField), 'fox');
@@ -195,7 +195,7 @@ void main() {
     addTearDown(controller.dispose);
     await _pump(
       tester,
-      _findBar(controller, const FindResult(siteId: 's1', activeMatch: 0, matchCount: 0), calls: calls),
+      _findBar(controller, const FindResult(siteId: 's1', pageId: 's1-p1', activeMatch: 0, matchCount: 0), calls: calls),
     );
 
     await tester.tap(_icon('Previous match'), warnIfMissed: false);
@@ -230,7 +230,7 @@ void main() {
       home: Scaffold(
         body: Column(
           children: [
-            _findBar(controller, const FindResult(siteId: 's1', activeMatch: 0, matchCount: 0)),
+            _findBar(controller, const FindResult(siteId: 's1', pageId: 's1-p1', activeMatch: 0, matchCount: 0)),
             const Spacer(),
             ThrowawaySaveBar(onSave: () {}, onDismiss: () {}),
             ContainerBottomBar(

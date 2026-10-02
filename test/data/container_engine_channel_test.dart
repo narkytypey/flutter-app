@@ -1,6 +1,7 @@
 import 'package:container/data/services/container_engine_channel.dart';
 import 'package:container/domain/models/blocked_tally.dart';
 import 'package:container/domain/models/engine_events.dart';
+import 'package:container/domain/models/open_page.dart';
 import 'package:container/domain/models/permissions.dart';
 import 'package:container/domain/models/route_decision.dart';
 import 'package:container/domain/models/site.dart';
@@ -76,10 +77,70 @@ void main() {
     expect(sessionsFromEvent(event).single.failure, RouteFailure.unsupported);
   });
 
+  test('a sessions map with two pages decodes both, in order, with the opener', () {
+    final event = <Object?, Object?>{
+      'type': 'sessions',
+      'sessions': [
+        {
+          'siteId': 's1', 'phase': 'live', 'lastActiveAt': null,
+          'blockedCount': 0, 'categoryCounts': <String, Object?>{}, 'failure': null,
+          'pages': [
+            {'pageId': 'pg-1', 'openerPageId': null},
+            {'pageId': 'pg-2', 'openerPageId': 'pg-1'},
+          ],
+        },
+      ],
+    };
+    expect(sessionsFromEvent(event).single.pages, const [
+      OpenPage(pageId: 'pg-1'),
+      OpenPage(pageId: 'pg-2', openerPageId: 'pg-1'),
+    ]);
+  });
+
+  test('a session map with no pages decodes none', () {
+    final event = <Object?, Object?>{
+      'type': 'sessions',
+      'sessions': [
+        {
+          'siteId': 's1', 'phase': 'refused', 'lastActiveAt': null,
+          'blockedCount': 0, 'categoryCounts': <String, Object?>{},
+          'failure': 'proxyUnreachable', 'pages': <Object?>[],
+        },
+      ],
+    };
+    expect(sessionsFromEvent(event).single.pages, isEmpty);
+  });
+
+  test('navigation, find_result, permission_request and download decode their page', () {
+    final navigation = navigationFromEvent(<Object?, Object?>{
+      'type': 'navigation', 'siteId': 's1', 'pageId': 'pg-2', 'url': 'https://a.example/',
+    });
+    final find = findResultFromEvent(<Object?, Object?>{
+      'type': 'find_result', 'siteId': 's1', 'pageId': 'pg-3', 'activeMatch': 0, 'matchCount': 1,
+    });
+    final permission = permissionRequestFromEvent(<Object?, Object?>{
+      'type': 'permission_request', 'siteId': 's1', 'pageId': 'pg-4',
+      'host': 'meet.example.com', 'kind': 'microphone', 'requestId': 'r1',
+    });
+    final download = downloadFromEvent(<Object?, Object?>{
+      'type': 'download', 'siteId': 's1', 'pageId': 'pg-5', 'fileName': 'a.pdf',
+      'sizeBytes': 1, 'sourceHost': 'a.example', 'kindLabel': 'PDF', 'requestId': 'r2',
+    });
+    expect([navigation.pageId, find.pageId, permission.pageId, download.pageId],
+        ['pg-2', 'pg-3', 'pg-4', 'pg-5']);
+  });
+
+  test('a page_opened event decodes its page and opener', () {
+    final opened = pageOpenedFromEvent(<Object?, Object?>{
+      'type': 'page_opened', 'siteId': 's1', 'pageId': 'pg-2', 'openerPageId': 'pg-1',
+    });
+    expect((opened.siteId, opened.pageId, opened.openerPageId), ('s1', 'pg-2', 'pg-1'));
+  });
+
   test('a permission_request event decodes the pending ask', () {
     final event = <Object?, Object?>{
       'type': 'permission_request',
-      'siteId': 's1', 'host': 'meet.example.com', 'kind': 'camera',
+      'siteId': 's1', 'pageId': 'pg-1', 'host': 'meet.example.com', 'kind': 'camera',
       'requestId': 'r1',
     };
     final request = permissionRequestFromEvent(event);
@@ -90,7 +151,7 @@ void main() {
   test('a download event decodes its requestId', () {
     final event = <Object?, Object?>{
       'type': 'download',
-      'siteId': 's1', 'fileName': 'report.pdf', 'sizeBytes': 1024,
+      'siteId': 's1', 'pageId': 'pg-1', 'fileName': 'report.pdf', 'sizeBytes': 1024,
       'sourceHost': 'forum.example.com', 'kindLabel': 'PDF',
       'requestId': 'r1',
     };
@@ -102,7 +163,7 @@ void main() {
   test('a download event with no size decodes it as unknown', () {
     final event = <Object?, Object?>{
       'type': 'download',
-      'siteId': 's1', 'fileName': 'report.pdf', 'sizeBytes': null,
+      'siteId': 's1', 'pageId': 'pg-1', 'fileName': 'report.pdf', 'sizeBytes': null,
       'sourceHost': 'forum.example.com', 'kindLabel': 'PDF',
       'requestId': 'r1',
     };
@@ -140,7 +201,8 @@ void main() {
 
   test('a navigation event decodes every field the chrome reads', () {
     final state = navigationFromEvent(<Object?, Object?>{
-      'type': 'navigation', 'siteId': 's1', 'url': 'https://forum.example.com/t/9',
+      'type': 'navigation', 'siteId': 's1', 'pageId': 'pg-1',
+      'url': 'https://forum.example.com/t/9',
       'title': 'Thread', 'canGoBack': true, 'canGoForward': false,
       'loading': true, 'progress': 40,
     });
@@ -156,7 +218,7 @@ void main() {
 
   test('a find_result event decodes its counts', () {
     final result = findResultFromEvent(<Object?, Object?>{
-      'type': 'find_result', 'siteId': 's1', 'activeMatch': 2, 'matchCount': 7,
+      'type': 'find_result', 'siteId': 's1', 'pageId': 'pg-1', 'activeMatch': 2, 'matchCount': 7,
     });
     expect((result.siteId, result.activeMatch, result.matchCount), ('s1', 2, 7));
   });
@@ -176,12 +238,12 @@ void main() {
     test('navigation and find events reach their own streams', () async {
       messenger.setMockStreamHandler(events, MockStreamHandler.inline(onListen: (_, sink) {
         sink.success(<String, Object?>{
-          'type': 'navigation', 'siteId': 's1', 'url': 'https://a.example/x',
+          'type': 'navigation', 'siteId': 's1', 'pageId': 'pg-1', 'url': 'https://a.example/x',
           'title': '', 'canGoBack': true, 'canGoForward': false,
           'loading': false, 'progress': 100,
         });
         sink.success(<String, Object?>{
-          'type': 'find_result', 'siteId': 's1', 'activeMatch': 0, 'matchCount': 3,
+          'type': 'find_result', 'siteId': 's1', 'pageId': 'pg-1', 'activeMatch': 0, 'matchCount': 3,
         });
       }));
       final engine = ChannelContainerEngine();
@@ -201,23 +263,67 @@ void main() {
       });
       final engine = ChannelContainerEngine();
 
-      await engine.goBack('s1');
-      await engine.goForward('s1');
-      await engine.stop('s1');
-      await engine.loadUrl('s1', 'https://a.example/x');
-      await engine.find('s1', 'fox');
-      await engine.findNext('s1', forward: false);
-      await engine.clearFind('s1');
+      await engine.goBack('pg-1');
+      await engine.goForward('pg-1');
+      await engine.stop('pg-1');
+      await engine.loadUrl('pg-1', 'https://a.example/x');
+      await engine.find('pg-1', 'fox');
+      await engine.findNext('pg-1', forward: false);
+      await engine.clearFind('pg-1');
       await engine.keep('s1');
-      expect(await engine.navigationState('s1'), isNull);
+      expect(await engine.navigationState('pg-1'), isNull);
+      await engine.reload('pg-1');
+      expect(await engine.extractArticle('pg-1'), isNull);
 
       expect(calls.map((c) => c.method), [
         'goBack', 'goForward', 'stop', 'loadUrl', 'find', 'findNext',
-        'clearFind', 'keep', 'navigationState',
+        'clearFind', 'keep', 'navigationState', 'reload', 'extractArticle',
       ]);
-      expect(calls[3].arguments, {'siteId': 's1', 'url': 'https://a.example/x'});
-      expect(calls[4].arguments, {'siteId': 's1', 'query': 'fox'});
-      expect(calls[5].arguments, {'siteId': 's1', 'forward': false});
+      expect(calls[0].arguments, {'pageId': 'pg-1'});
+      expect(calls[3].arguments, {'pageId': 'pg-1', 'url': 'https://a.example/x'});
+      expect(calls[4].arguments, {'pageId': 'pg-1', 'query': 'fox'});
+      expect(calls[5].arguments, {'pageId': 'pg-1', 'forward': false});
+      expect(calls[7].arguments, {'siteId': 's1'});
+      expect(calls[8].arguments, {'pageId': 'pg-1'});
+      expect(calls[9].arguments, {'pageId': 'pg-1'});
+      expect(calls[10].arguments, {'pageId': 'pg-1'});
+    });
+
+    test('close, closePage and closeAll send what Kotlin reads', () async {
+      messenger.setMockStreamHandler(events, MockStreamHandler.inline(onListen: (_, __) {}));
+      final calls = <MethodCall>[];
+      messenger.setMockMethodCallHandler(methods, (call) async {
+        calls.add(call);
+        return null;
+      });
+      final engine = ChannelContainerEngine();
+
+      await engine.close('s1');
+      await engine.close('s1', wipe: true);
+      await engine.close('s1', wipe: false);
+      await engine.closePage('pg-2');
+      await engine.closeAll();
+
+      expect(calls.map((c) => c.method), ['close', 'close', 'close', 'closePage', 'closeAll']);
+      // No `wipe` key leaves it to the session's own wipe-on-exit.
+      expect(calls[0].arguments, {'siteId': 's1'});
+      expect(calls[1].arguments, {'siteId': 's1', 'wipe': true});
+      expect(calls[2].arguments, {'siteId': 's1', 'wipe': false});
+      expect(calls[3].arguments, {'pageId': 'pg-2'});
+      expect(calls[4].arguments, isNull);
+    });
+
+    test('a page_opened event reaches its own stream', () async {
+      messenger.setMockStreamHandler(events, MockStreamHandler.inline(onListen: (_, sink) {
+        sink.success(<String, Object?>{
+          'type': 'page_opened', 'siteId': 's1', 'pageId': 'pg-2', 'openerPageId': 'pg-1',
+        });
+      }));
+      final engine = ChannelContainerEngine();
+
+      final opened = await engine.pageOpened().first;
+
+      expect((opened.siteId, opened.pageId, opened.openerPageId), ('s1', 'pg-2', 'pg-1'));
     });
 
     test('open says whether the site is a throwaway', () async {

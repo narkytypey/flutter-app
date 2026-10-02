@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show setEquals;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../data/services/app_database.dart';
@@ -7,6 +8,7 @@ import '../../../../domain/repositories/repositories.dart';
 import '../../../../domain/models/workspace.dart';
 import 'dashboard_view.dart';
 import '../views/workspace_menu.dart';
+import '../../container/view_models/open_containers.dart' show openContainersProvider;
 import '../../shell/view_models/session_controller.dart'
     show sessionProvider, SessionOpen;
 
@@ -39,9 +41,33 @@ final workspacesProvider = FutureProvider<List<Workspace>>(
 /// Null means "the first workspace"; set when the user picks one.
 final activeWorkspaceIdProvider = StateProvider<String?>((ref) => null);
 
-/// Which sites are live. Runtime only — sessions never survive the app
-/// closing, so this is deliberately not persisted.
-final openSiteIdsProvider = StateProvider<Set<String>>((ref) => <String>{});
+/// Every listed open container, throwaways included (tabs spec §5.4): read
+/// from the registry, which is the only thing that decides what is open.
+/// Runtime only — containers never survive the app closing or a lock.
+///
+/// Changes only when the set does, not on every registry change (each
+/// page's navigation is one), so the dashboard does not re-query the vault
+/// while a page loads behind it.
+final openSiteIdsProvider = Provider<Set<String>>(
+  (ref) => ref.watch(openContainersProvider.select((s) => _SiteIds(s.openSiteIds))).ids,
+);
+
+/// A set compared by its members, for `select`.
+class _SiteIds {
+  const _SiteIds(this.ids);
+  final Set<String> ids;
+
+  @override
+  bool operator ==(Object other) => other is _SiteIds && setEquals(other.ids, ids);
+
+  @override
+  int get hashCode => Object.hashAllUnordered(ids);
+}
+
+/// Throwaways open under [workspaceId], their opener's workspace (tabs spec
+/// §5.4).
+int _throwawaysIn(Ref ref, String workspaceId) =>
+    ref.watch(openContainersProvider.select((s) => s.throwawaysIn(workspaceId)));
 
 final dashboardProvider = FutureProvider<DashboardView>((ref) async {
   final workspaces = await ref.watch(workspacesProvider.future);
@@ -67,6 +93,7 @@ final dashboardProvider = FutureProvider<DashboardView>((ref) async {
     workspace: workspace,
     sites: sites,
     openSiteIds: ref.watch(openSiteIdsProvider),
+    throwawaysOpen: _throwawaysIn(ref, workspace.id),
     now: DateTime.now(),
   );
 });
@@ -88,7 +115,8 @@ final workspaceOptionsProvider = FutureProvider<List<WorkspaceOption>>((ref) asy
       meta: workspaceMeta(
         workspace: workspace,
         siteCount: inWorkspace.length,
-        openCount: inWorkspace.where((s) => openIds.contains(s.id)).length,
+        openCount: inWorkspace.where((s) => openIds.contains(s.id)).length +
+            _throwawaysIn(ref, workspace.id),
       ),
       selected: workspace.id == activeId,
     ));
@@ -96,22 +124,12 @@ final workspaceOptionsProvider = FutureProvider<List<WorkspaceOption>>((ref) asy
   return options;
 });
 
-/// Marks [siteId] open and records the visit. Shared by `DashboardScreen`'s
-/// own row tap and the search screen's result tap, so both always agree on
-/// what "opening a site" means — today this in-memory badge, later Plan 6's
-/// real `ContainerEngine` session, without either caller needing to change.
+/// Records a visit to [siteId]. Shared by `DashboardScreen`'s own row tap,
+/// the search screen's result tap and the address bar's saved-site
+/// destination, so all three agree on what "opening a site" records. The
+/// registry, not this, decides what is open (tabs spec §5.4): `showContainer`
+/// tells it.
 void openSite(WidgetRef ref, String siteId) {
-  ref.read(openSiteIdsProvider.notifier).update((ids) => {...ids, siteId});
   ref.read(siteRepositoryProvider).touch(siteId, DateTime.now());
-  ref.invalidate(dashboardProvider);
-}
-
-/// The other half of [openSite]: called wherever a container closes a
-/// session for good (the switcher's ×, "Close all and wipe", `6c`'s close
-/// and wipe, `8c`'s close), so the dashboard stops listing it under OPEN NOW
-/// and `9c` stops counting it. Backing out of a container does not call this
-/// — its session stays open in the background.
-void closeSite(WidgetRef ref, String siteId) {
-  ref.read(openSiteIdsProvider.notifier).update((ids) => {...ids}..remove(siteId));
   ref.invalidate(dashboardProvider);
 }

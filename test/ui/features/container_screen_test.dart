@@ -4,6 +4,7 @@ import 'package:container/domain/models/find_result.dart';
 import 'package:container/domain/models/navigation_state.dart';
 import 'package:container/domain/models/search_engine.dart';
 import 'package:container/domain/models/site.dart';
+import 'package:container/domain/models/switcher_entry.dart';
 import 'package:container/domain/models/workspace.dart';
 import 'package:container/ui/core/widgets/icon_tap.dart';
 import 'package:container/ui/features/container/views/address_edit_bar.dart';
@@ -18,6 +19,8 @@ import 'package:container/ui/features/container/views/throwaway_save_bar.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
+
+import '../../support/glyph_finders.dart';
 
 /// Every callback [ContainerScreen] made, by name, in order.
 final _calls = <String>[];
@@ -71,6 +74,7 @@ NavigationState _nav({
 }) =>
     NavigationState(
       siteId: 's1',
+      pageId: 's1-p1',
       url: url,
       canGoBack: canGoBack,
       canGoForward: canGoForward,
@@ -85,6 +89,15 @@ ContainerScreen _screen({
   FindResult? findResult,
   bool showSaveBar = false,
   String address = 'https://forum.example.com/t/9',
+  List<SwitcherEntry> entries = const [
+    SwitcherEntry(
+      siteId: 's1',
+      name: 'Forum',
+      monogram: 'Fr',
+      meta: 'viewing now · socks5',
+      live: true,
+    ),
+  ],
 }) =>
     ContainerScreen(
       host: host,
@@ -93,15 +106,7 @@ ContainerScreen _screen({
       navigation: navigation,
       openCount: 3,
       body: const _Page(),
-      entries: const [
-        SwitcherEntry(
-          siteId: 's1',
-          name: 'Forum',
-          monogram: 'Fr',
-          meta: 'viewing now · socks5',
-          live: true,
-        ),
-      ],
+      entries: entries,
       workspaceName: 'Personal',
       siteMonogram: 'Fr',
       siteName: 'Forum',
@@ -113,6 +118,7 @@ ContainerScreen _screen({
       suggest: _suggest,
       onOpen: _opened.add,
       onBack: () => _calls.add('back'),
+      onLeave: () => _calls.add('leave'),
       onForward: () => _calls.add('forward'),
       onStop: () => _calls.add('stop'),
       onReload: () => _calls.add('reload'),
@@ -130,7 +136,10 @@ ContainerScreen _screen({
       onClearFind: () => _calls.add('clear find'),
       onSaveAsSite: () => _calls.add('save as a site'),
       onDismissSaveBar: () => _calls.add('dismiss save bar'),
+      onViewContainer: (siteId) => _calls.add('view $siteId'),
+      onViewPage: (siteId, pageId) => _calls.add('view $siteId $pageId'),
       onCloseSession: (siteId) => _calls.add('close $siteId'),
+      onClosePage: (siteId, pageId) => _calls.add('close $siteId $pageId'),
       onCloseAllAndWipe: () => _calls.add('close all and wipe'),
     );
 
@@ -242,6 +251,54 @@ void main() {
     expect(find.text('viewing now · socks5'), findsOneWidget);
   });
 
+  testWidgets('the switcher closes itself before each view or close it reports', (tester) async {
+    const entries = [
+      SwitcherEntry(
+        siteId: 's1',
+        name: 'Forum',
+        monogram: 'Fr',
+        meta: 'viewing now · socks5',
+        live: true,
+        pages: [
+          SwitcherPage(
+              pageId: 'p1', title: 'Thread: rules',
+              host: 'forum.example.com', current: true),
+          SwitcherPage(
+              pageId: 'p2', title: 'Members',
+              host: 'forum.example.com', current: false),
+        ],
+      ),
+    ];
+    await tester.pumpWidget(_app(_screen(entries: entries)));
+
+    final taps = <(Finder Function(), String)>[
+      (
+        () => find.descendant(
+            of: find.byType(SwitcherSheet), matching: find.text('Forum')),
+        'view s1'
+      ),
+      (() => find.text('Members'), 'view s1 p2'),
+      (
+        () => find.descendant(
+            of: find.byType(SwitcherSheet), matching: findIconTap('Close')).at(1),
+        'close s1 p1'
+      ),
+      (
+        () => find.descendant(
+            of: find.byType(SwitcherSheet), matching: findIconTap('Close')).first,
+        'close s1'
+      ),
+    ];
+    for (final (target, call) in taps) {
+      await tester.tap(find.text('3 OPEN'));
+      await tester.pumpAndSettle();
+      await tester.tap(target());
+      await tester.pumpAndSettle();
+      expect(find.byType(SwitcherSheet), findsNothing, reason: call);
+      expect(_calls.last, call);
+    }
+  });
+
   testWidgets('the ☰ menu names this site, and closes itself before each action it reports', (tester) async {
     await tester.pumpWidget(_app(_screen()));
     await tester.tap(_icon('Menu'));
@@ -275,7 +332,7 @@ void main() {
 
   testWidgets('Find puts the find bar in place of the top bar; typing, stepping and closing report', (tester) async {
     await tester.pumpWidget(_app(_screen(
-      findResult: const FindResult(siteId: 's1', activeMatch: 2, matchCount: 5),
+      findResult: const FindResult(siteId: 's1', pageId: 's1-p1', activeMatch: 2, matchCount: 5),
     )));
     await _openFind(tester);
 
@@ -296,7 +353,9 @@ void main() {
     expect(find.byType(ContainerTopBar), findsOneWidget);
   });
 
-  testWidgets('system back goes back in the page while it can, then leaves', (tester) async {
+  // Tabs spec §5.3: where back goes with no history is the route's to decide,
+  // so the screen never pops by itself.
+  testWidgets('system back goes back in the page while it can, then reports leaving', (tester) async {
     final navigation = ValueNotifier<NavigationState?>(_nav(canGoBack: true));
     addTearDown(navigation.dispose);
     final navigator = GlobalKey<NavigatorState>();
@@ -317,9 +376,9 @@ void main() {
     await tester.pumpAndSettle();
     await _systemBack(tester);
 
-    expect(_calls, ['back']);
-    expect(find.byType(ContainerScreen), findsNothing);
-    expect(find.text('home'), findsOneWidget);
+    expect(_calls, ['back', 'leave']);
+    expect(find.byType(ContainerScreen), findsOneWidget);
+    expect(find.text('home'), findsNothing);
   });
 
   // Review Focus 2.

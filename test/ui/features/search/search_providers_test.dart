@@ -43,9 +43,10 @@ void main() {
     final container = ProviderContainer(overrides: [
       siteRepositoryProvider.overrideWithValue(FakeSiteRepository([site])),
       workspacesProvider.overrideWith((ref) async => [workspace]),
+      // The registry's set, fixed: what it holds is not this test's subject.
+      openSiteIdsProvider.overrideWith((ref) => {'s1'}),
     ]);
     addTearDown(container.dispose);
-    container.read(openSiteIdsProvider.notifier).state = {'s1'};
 
     container.listen(searchResultsProvider, (_, __) {});
     await Future<void>.delayed(Duration.zero);
@@ -67,6 +68,7 @@ void main() {
     final container = ProviderContainer(overrides: [
       siteRepositoryProvider.overrideWithValue(FakeSiteRepository([forum, bank])),
       workspacesProvider.overrideWith((ref) async => [workspace]),
+      openSiteIdsProvider.overrideWith((ref) => const <String>{}),
     ]);
     addTearDown(container.dispose);
 

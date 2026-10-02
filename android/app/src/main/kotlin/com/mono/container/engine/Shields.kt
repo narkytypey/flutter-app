@@ -55,10 +55,21 @@ object Shields {
         onAsk: (PendingPermission) -> String,
         onProgress: (Int) -> Unit = {},
         onTitle: (String?) -> Unit = {},
+        /** `onCreateWindow` (tabs spec §3.1). True when the message was handled. */
+        onNewWindow: (isUserGesture: Boolean, resultMsg: android.os.Message) -> Boolean = { _, _ -> false },
+        /** The page's own `window.close()`. */
+        onCloseWindow: () -> Unit = {},
     ) = object : android.webkit.WebChromeClient() {
         override fun onProgressChanged(view: android.webkit.WebView, newProgress: Int) = onProgress(newProgress)
 
         override fun onReceivedTitle(view: android.webkit.WebView, title: String?) = onTitle(title)
+
+        override fun onCreateWindow(
+            view: android.webkit.WebView, isDialog: Boolean, isUserGesture: Boolean, resultMsg: android.os.Message,
+        ): Boolean = onNewWindow(isUserGesture, resultMsg)
+
+        // `.invoke()`: a bare call would resolve to this override itself.
+        override fun onCloseWindow(window: android.webkit.WebView) = onCloseWindow.invoke()
 
         override fun onPermissionRequest(request: android.webkit.PermissionRequest) {
             val granted = mutableListOf<String>()

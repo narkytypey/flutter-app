@@ -15,7 +15,8 @@ abstract interface class ContainerEngine {
   /// rather than sharing a profile — see Global Constraints.
   Future<bool> isolationAvailable();
 
-  /// Creates the profile if absent and begins loading. Emits progress on
+  /// Creates the profile if absent and the container's first page, and
+  /// begins loading. Emits progress on
   /// [sessions]. Completes when the page is live or the route was refused.
   /// [extras] is the open vault's filter rules and scripts for this site.
   /// [throwaway] marks an in-memory site (browser-chrome spec §5.4): the
@@ -46,7 +47,20 @@ abstract interface class ContainerEngine {
   /// profiles exist is the only enumeration that can see both. See Task 9.
   Future<void> wipeAll();
 
-  Future<void> close(String siteId);
+  /// Closes [siteId]'s container. [wipe] overrides the session's own
+  /// wipe-on-exit for this close only (tabs spec §5.7). Every page is torn
+  /// down first; a wipe runs once, after the last.
+  Future<void> close(String siteId, {bool? wipe});
+
+  /// Closes one page (tabs spec §5.1). A container's last page closes the
+  /// container.
+  Future<void> closePage(String pageId);
+
+  /// Every container (tabs spec §5.8): every lock.
+  Future<void> closeAll();
+
+  /// A link that asked for a new window opened a page (tabs spec §5.2).
+  Stream<PageOpened> pageOpened();
 
   /// Every live session. Spec `2c`'s drawer renders exactly this.
   Stream<List<ContainerSession>> sessions();
@@ -59,7 +73,7 @@ abstract interface class ContainerEngine {
   /// counting what it is about to destroy, for one — uses this.
   Future<List<ContainerSession>> liveSessions();
 
-  Future<void> reload(String siteId);
+  Future<void> reload(String pageId);
 
   /// Hardware asks the platform is holding, waiting on the user's decision.
   /// Filtered to the foreground site by whoever listens — see Task 4.
@@ -79,36 +93,36 @@ abstract interface class ContainerEngine {
   /// live — see Plan 6's design spec §3.
   Stream<TunnelDroppedEvent> tunnelDropped();
 
-  /// Runs the reader-mode heuristic against the page currently loaded for
-  /// [siteId]. Returns `null` when extraction finds nothing article-shaped.
-  Future<ReaderArticle?> extractArticle(String siteId);
+  /// Runs the reader-mode heuristic against the page [pageId] has loaded.
+  /// Returns `null` when extraction finds nothing article-shaped.
+  Future<ReaderArticle?> extractArticle(String pageId);
 
-  /// Every page change in every open container (browser-chrome spec §3.1).
-  /// Broadcast with no replay: a change made before anyone listened is only
-  /// in [navigationState].
+  /// Every change of every page in every open container (browser-chrome
+  /// spec §3.1), each keyed by its page. Broadcast with no replay: a change
+  /// made before anyone listened is only in [navigationState].
   Stream<NavigationState> navigation();
 
-  /// The last [navigation] event for [siteId], or null before its first.
-  Future<NavigationState?> navigationState(String siteId);
+  /// The last [navigation] event for [pageId], or null before its first.
+  Future<NavigationState?> navigationState(String pageId);
 
   /// The finished count of each find in page (spec §6.5).
   Stream<FindResult> findResults();
 
-  // The in-page controls below are each a silent no-op on a closed or
-  // unknown session, like [reload].
+  // The in-page controls below each act on one page, and are each a silent
+  // no-op on a closed or unknown page, like [reload].
 
-  Future<void> goBack(String siteId);
-  Future<void> goForward(String siteId);
-  Future<void> stop(String siteId);
+  Future<void> goBack(String pageId);
+  Future<void> goForward(String pageId);
+  Future<void> stop(String pageId);
 
-  /// Loads [url] in [siteId]'s own container, on its own route. The platform
-  /// refuses every scheme but `http` and `https`.
-  Future<void> loadUrl(String siteId, String url);
+  /// Loads [url] in page [pageId], in its own container, on that container's
+  /// route. The platform refuses every scheme but `http` and `https`.
+  Future<void> loadUrl(String pageId, String url);
 
   /// Highlights [query] in the page. An empty query is [clearFind]'s job.
-  Future<void> find(String siteId, String query);
-  Future<void> findNext(String siteId, {required bool forward});
-  Future<void> clearFind(String siteId);
+  Future<void> find(String pageId, String query);
+  Future<void> findNext(String pageId, {required bool forward});
+  Future<void> clearFind(String pageId);
 
   /// A throwaway saved as a site (spec §5.3–5.4): its profile stops being
   /// wiped on exit and leaves the crash journal, so the login just saved

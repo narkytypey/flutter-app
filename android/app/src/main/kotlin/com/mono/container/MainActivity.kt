@@ -2,7 +2,7 @@ package com.mono.container
 
 import android.os.Bundle
 import android.view.WindowManager
-import com.mono.container.engine.ContainerViewFactory
+import com.mono.container.engine.PageHostFactory
 import com.mono.container.engine.EngineChannel
 import com.mono.container.engine.Loopback
 import com.mono.container.engine.PendingDeletions
@@ -60,7 +60,7 @@ class MainActivity : FlutterFragmentActivity() {
 
         flutterEngine.platformViewsController.registry.registerViewFactory(
             EngineChannel.VIEW_TYPE,
-            ContainerViewFactory(engine, profiles),
+            PageHostFactory(engine),
         )
     }
 }
