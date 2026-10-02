@@ -3,8 +3,18 @@ package com.mono.container.engine
 import android.webkit.WebView
 
 object Shields {
-    fun apply(webView: WebView, config: SiteConfig, onFingerprintNoiseApplied: () -> Unit = {}) {
+    fun apply(
+        webView: WebView,
+        config: SiteConfig,
+        policy: SecurityPolicy = securityPolicyFor(config.securityLevel),
+        onFingerprintNoiseApplied: () -> Unit = {},
+    ) {
+        // Safest: JavaScript is off, so no document-start script could run.
+        if (!policy.documentStartScripts) return
         val js = buildString {
+            if (policy.saferScript) {
+                append(webView.context.assets.open("shields/safer.js").bufferedReader().readText())
+            }
             if (config.blockWebRtc) {
                 // WebRTC never reaches the interceptor — it leaks over UDP past
                 // any proxy. Removing the constructors is the only fix.
@@ -97,7 +107,7 @@ object Shields {
         override fun onGeolocationPermissionsShowPrompt(
             origin: String, callback: android.webkit.GeolocationPermissions.Callback,
         ) {
-            if (config.allowLocation || session.sessionGrants.contains("geolocation")) {
+            if (config.allowLocation || session.sessionGrants.contains(SessionGrants.GEOLOCATION)) {
                 callback.invoke(origin, true, false)
                 return
             }

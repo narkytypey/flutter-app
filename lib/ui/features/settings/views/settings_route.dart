@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../domain/models/lock_state.dart';
 import '../../../../domain/models/search_engine.dart';
+import '../../../../domain/models/security_level.dart';
 import '../../scripts/views/scripts_route.dart';
 import '../../workspaces/views/workspaces_route.dart';
 import '../view_models/providers.dart';
@@ -10,11 +11,13 @@ import 'auto_lock_picker.dart';
 import 'change_pin_route.dart';
 import 'decoy_resync_route.dart';
 import 'search_engine_picker.dart';
+import 'security_level_picker.dart';
 import 'settings_screen.dart';
 
 /// The screen a Settings row opens, by the key `SettingsScreen.onTap`
 /// reports. Null for a row with nothing built behind it yet, and for
-/// `autoLock` and `searchEngine`, which open a sheet rather than a screen.
+/// `autoLock`, `searchEngine` and `securityLevel`, which open a sheet rather
+/// than a screen.
 Widget? settingsDestination(String key) => switch (key) {
       'resyncDecoy' => const DecoyResyncRoute(),
       'changePin' => const ChangePinRoute(),
@@ -38,6 +41,7 @@ class SettingsRoute extends ConsumerWidget {
     final decoyEnabled = ref.watch(decoyEnabledProvider);
     final decoySiteCount = ref.watch(decoySiteCountProvider);
     final searchEngine = ref.watch(searchEngineProvider).valueOrNull;
+    final securityLevel = ref.watch(vaultSecurityLevelProvider).valueOrNull;
     final autoLock = ref.watch(autoLockProvider).valueOrNull ?? AutoLockPolicy.oneMinute;
     final panicOnFlip = ref.watch(panicOnFlipProvider).valueOrNull ?? false;
     return SettingsScreen(
@@ -50,6 +54,7 @@ class SettingsRoute extends ConsumerWidget {
       panicOnFlip: panicOnFlip,
       onPanicLabel: 'Wipe + lock',
       searchEngineName: searchEngine?.label ?? '',
+      securityLevelName: securityLevel?.label ?? '',
       onChanged: (key, value) {
         if (key == 'biometrics') {
           ref.read(settingsControllerProvider).setBiometricsEnabled(value);
@@ -64,6 +69,10 @@ class SettingsRoute extends ConsumerWidget {
         }
         if (key == 'searchEngine') {
           _pickSearchEngine(context, ref, searchEngine ?? SearchEngine.duckDuckGo);
+          return;
+        }
+        if (key == 'securityLevel') {
+          _pickSecurityLevel(context, ref, securityLevel ?? SecurityLevel.standard);
           return;
         }
         final destination = settingsDestination(key);
@@ -97,6 +106,20 @@ class SettingsRoute extends ConsumerWidget {
         onPick: (engine) {
           Navigator.pop(sheetContext);
           ref.read(settingsControllerProvider).setSearchEngine(engine);
+        },
+      ),
+    );
+  }
+
+  void _pickSecurityLevel(BuildContext context, WidgetRef ref, SecurityLevel current) {
+    showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (sheetContext) => SecurityLevelPicker.vault(
+        current: current,
+        onPick: (level) {
+          Navigator.pop(sheetContext);
+          ref.read(settingsControllerProvider).setSecurityLevel(level!);
         },
       ),
     );

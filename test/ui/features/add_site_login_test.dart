@@ -1,3 +1,4 @@
+import 'package:container/domain/models/security_level.dart';
 import 'package:container/domain/models/site.dart';
 import 'package:container/domain/models/workspace.dart';
 import 'package:container/ui/features/add_site/view_models/add_site_view.dart';
@@ -24,13 +25,14 @@ TextField _textField(WidgetTester tester, String key) => tester.widget<TextField
     find.descendant(of: find.byKey(Key(key)), matching: find.byType(TextField)));
 
 Site _build({
+  Site? initial,
   ProxyMode proxyMode = ProxyMode.socks5,
   String proxyUser = 'alice',
   String proxyPassword = 's3cret',
   bool proxyLoginPerSite = false,
 }) =>
     buildSite(
-      initial: null, url: 'https://forum.example.com', name: 'Forum', monogram: 'Fr',
+      initial: initial, url: 'https://forum.example.com', name: 'Forum', monogram: 'Fr',
       workspaceId: 'ws-personal', cookiePolicy: CookiePolicy.keep,
       proxyMode: proxyMode,
       proxyHost: proxyMode == ProxyMode.direct ? null : '127.0.0.1',
@@ -71,6 +73,14 @@ void main() {
       expect(site.proxyUser, isNull);
       expect(site.proxyPassword, isNull);
     });
+  });
+
+  // Privacy-controls spec §2.1: the form has no level control, and saving it
+  // keeps whatever the site had.
+  test("saving the form keeps the site's own level, and a new site follows the default", () {
+    final own = _build().withSecurityLevel(SecurityLevel.safest);
+    expect(_build(initial: own).securityLevel, SecurityLevel.safest);
+    expect(_build().securityLevel, isNull);
   });
 
   testWidgets('the login block shows only while the proxy is on', (tester) async {

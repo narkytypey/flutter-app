@@ -3,6 +3,7 @@ import 'dart:math';
 
 import 'package:sqflite_sqlcipher/sqflite.dart';
 
+import '../../domain/models/security_level.dart';
 import '../../domain/models/site.dart';
 import '../../domain/models/vault.dart';
 import '../../domain/models/workspace.dart';
@@ -72,7 +73,7 @@ class AppDatabase {
 
   final Database db;
 
-  static const schemaVersion = 8;
+  static const schemaVersion = 9;
 
   static Future<AppDatabase> open({
     required String path,
@@ -143,7 +144,10 @@ class AppDatabase {
               open_in_reader      INTEGER NOT NULL DEFAULT 0,
               page_zoom           INTEGER NOT NULL DEFAULT 100,
               custom_css          TEXT    NOT NULL DEFAULT '',
-              custom_js           TEXT    NOT NULL DEFAULT ''
+              custom_js           TEXT    NOT NULL DEFAULT '',
+              -- This site's own security level, or NULL to follow the
+              -- vault default (`app_settings.security_level`).
+              security_level      TEXT
             )
           ''');
           await db.execute(
@@ -208,6 +212,11 @@ class AppDatabase {
             // `8b`'s "Last worked": no site has worked yet as far as this
             // vault knows.
             await db.execute('ALTER TABLE sites ADD COLUMN last_worked_at INTEGER');
+          }
+          if (from < 9) {
+            // Privacy controls: every existing site follows the vault
+            // default, which is Standard until one is chosen.
+            await db.execute('ALTER TABLE sites ADD COLUMN security_level TEXT');
           }
         },
       ),
@@ -434,6 +443,7 @@ Map<String, Object?> siteToRow(Site s) => {
       'page_zoom': s.pageZoom,
       'custom_css': s.customCss,
       'custom_js': s.customJs,
+      'security_level': s.securityLevel?.name,
     };
 
 Site siteFromRow(Map<String, Object?> r) {
@@ -470,5 +480,6 @@ Site siteFromRow(Map<String, Object?> r) {
     pageZoom: r['page_zoom']! as int,
     customCss: r['custom_css']! as String,
     customJs: r['custom_js']! as String,
+    securityLevel: SecurityLevel.fromStored(r['security_level'] as String?),
   );
 }

@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../data/services/app_database.dart' show newProfileId;
 import '../../../../data/services/container_engine.dart';
 import '../../../../data/services/site_wipe.dart';
 import '../../../../domain/models/container_session.dart';
@@ -261,13 +262,16 @@ class OpenContainers extends Notifier<OpenContainersState> {
   /// `8b`'s three ways out, and §5.7's reopen of the viewed container: [site]
   /// opened again in place, as a fresh open. [withoutTunnel] is "Open without
   /// the tunnel", this visit only, so the saved [OpenContainer.site] is left
-  /// as it is. [atStoredAddress] forgets the typed first address. Native
-  /// `register` tears the old pages down (tabs plan, Deviation 4).
+  /// as it is. [atStoredAddress] forgets the typed first address. [at] is
+  /// the address to load first, this session only: `reopenInPlace`'s page
+  /// being shown. Native `register` tears the old pages down (tabs plan,
+  /// Deviation 4).
   Future<void> reopen(
     String siteId,
     Site site, {
     bool withoutTunnel = false,
     bool atStoredAddress = false,
+    String? at,
   }) {
     if (state.byId(siteId) == null) return Future.value();
     _update(
@@ -284,7 +288,7 @@ class OpenContainers extends Notifier<OpenContainersState> {
         waiting: const [],
         tunnelDropped: false,
         workedRecorded: false,
-        initialUrl: atStoredAddress ? null : _keep,
+        initialUrl: atStoredAddress ? null : (at ?? _keep),
       ),
     );
     _dropNavigationOf(siteId);
@@ -334,6 +338,65 @@ class OpenContainers extends Notifier<OpenContainersState> {
     return site;
   }
 
+  /// A site's level or a `6c` switch changed (privacy-controls spec §2.4):
+  /// the container reopens in place, with only the page being shown, at the
+  /// address it shows (or the one it was opened with, before any navigation).
+  /// Never wiped, whatever the cookie policy (spec ruling 1): a throwaway or
+  /// a wipe-on-exit site keeps its login. A throwaway reopens as one, and its
+  /// journal entry stays.
+  ///
+  /// The caller has already written a saved site's row. Unlike [siteSaved],
+  /// this reopens at the page shown, not the stored address, and for any
+  /// change, not only the route's. It calls the engine's `close` directly:
+  /// the registry's own [close] forces a throwaway's wipe.
+  Future<void> reopenInPlace(Site after) async {
+    final container = state.byId(after.id);
+    if (container == null || !container.listed) return;
+    final pageId = container.viewedPageId;
+    final at = (pageId == null ? null : state.navigation[pageId]?.url) ?? container.initialUrl;
+    // As [siteSaved]: not reconciled into a drop while it closes.
+    _update(
+      after.id,
+      (c) => c.copyWith(site: after, openReturned: false, pages: const [], viewOrder: const []),
+    );
+    await _engine.close(after.id, wipe: false);
+    await reopen(after.id, after, at: at);
+  }
+
+  /// New identity (privacy-controls spec §4): the container's data destroyed
+  /// and its profile rotated, so a fresh loopback credential and, with
+  /// "Separate login per site", a fresh proxy login (a new Tor circuit); then
+  /// it reopens in place at its first page: a saved site's stored address, a
+  /// throwaway's first address. Never the page being shown, which could carry
+  /// an identifying token. Its settings, level and typed login stay.
+  ///
+  /// Its own method because [closeAndWipe] drops the container, after which
+  /// [reopen] does nothing. Built like [siteSaved]'s viewed-container path.
+  Future<void> newIdentity(String siteId) async {
+    final container = state.byId(siteId);
+    if (container == null || !container.listed) return;
+    // As [siteSaved]: not reconciled into a drop while it closes.
+    _update(
+      siteId,
+      (c) => c.copyWith(openReturned: false, pages: const [], viewOrder: const []),
+    );
+    final Site fresh;
+    if (container.throwaway) {
+      // Wiped and off the journal; the fresh profile is journaled by its open.
+      // It has no row: the fresh id is kept in the registry only.
+      await _engine.close(siteId, wipe: true);
+      fresh = container.site.copyWith(profileId: newProfileId());
+    } else {
+      // Closed with its wipe, the fresh profile written, "Last worked" cleared.
+      fresh = await wipeSavedSite(
+        engine: _engine,
+        sites: ref.read(siteRepositoryProvider),
+        site: container.site,
+      );
+    }
+    await reopen(siteId, fresh, atStoredAddress: true);
+  }
+
   /// A throwaway saved as a site (browser-chrome spec §5.3, tabs spec §5.7),
   /// after its row is written and `keep` has run. `keep` already aligned the
   /// native wipe flag, so only a route change reopens.
@@ -348,10 +411,6 @@ class OpenContainers extends Notifier<OpenContainersState> {
     );
     return siteSaved(site);
   }
-
-  /// A throwaway's `6c` switches (tabs spec §5.7): they change neither route
-  /// nor cookie policy, so nothing closes.
-  void updateSite(Site site) => _update(site.id, (c) => c.copyWith(site: site));
 
   /// The oldest ask waiting for [pageId] (tabs spec §5.6), removed.
   WaitingAsk? takeWaiting(String siteId, String pageId) {
@@ -464,6 +523,8 @@ class OpenContainers extends Notifier<OpenContainersState> {
         waiting: [for (final ask in c.waiting) if (ids.contains(ask.pageId)) ask],
         phase: session.phase,
         blockedCount: session.blockedCount,
+        categoryCounts: session.categoryCounts,
+        grants: session.grants,
       ),
     );
     if (state.navigation.entries.any((e) => e.value.siteId == siteId && !ids.contains(e.key))) {

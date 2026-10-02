@@ -12,6 +12,7 @@ import '../../../../domain/models/vault.dart';
 import '../../../../domain/services/panic_service.dart';
 import '../../scripts/view_models/providers.dart'
     show filterListRepositoryProvider, scriptRepositoryProvider;
+import '../../settings/view_models/providers.dart' show settingsRepositoryProvider;
 import '../../shell/view_models/session_controller.dart'
     show
         sessionProvider,
@@ -28,14 +29,16 @@ final bundledFilterRulesProvider =
     Provider<BundledFilterRules>((ref) => defaultBundledFilterRules);
 
 /// What a site opens with from the open vault — its enabled filter lists'
-/// rules and its library scripts. A function rather than a value so every
-/// open reads the vault as it is now; widget tests with no vault override it.
+/// rules, its library scripts and its effective security level. A function
+/// rather than a value so every open reads the vault as it is now, the vault
+/// default level included; widget tests with no vault override it.
 final engineExtrasBuilderProvider = Provider<Future<EngineExtras> Function(Site)>((ref) {
   return (site) => engineExtrasFor(
         site,
         filterLists: ref.read(filterListRepositoryProvider),
         scripts: ref.read(scriptRepositoryProvider),
         rules: ref.read(bundledFilterRulesProvider),
+        settings: ref.read(settingsRepositoryProvider),
       );
 });
 

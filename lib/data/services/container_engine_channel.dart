@@ -76,6 +76,12 @@ List<OpenPage> _pagesFrom(Object? raw) => [
         ),
     ];
 
+Set<PermissionKind> _grantsFrom(Object? raw) => {
+      for (final name in (raw as List<Object?>?) ?? const <Object?>[])
+        for (final kind in PermissionKind.values)
+          if (kind.name == name) kind,
+    };
+
 ContainerSession _sessionFrom(Map<Object?, Object?> map) => ContainerSession(
       siteId: map['siteId']! as String,
       phase: _phase(map['phase']! as String),
@@ -86,6 +92,7 @@ ContainerSession _sessionFrom(Map<Object?, Object?> map) => ContainerSession(
       categoryCounts: _categoryCountsFrom(map['categoryCounts']),
       failure: _failure(map['failure'] as String?),
       pages: _pagesFrom(map['pages']),
+      grants: _grantsFrom(map['grants']),
     );
 
 /// Exposed for testing — decodes a `type: "sessions"` event's payload.
@@ -229,6 +236,7 @@ class ChannelContainerEngine implements ContainerEngine {
       'wipeOnExit': site.cookiePolicy == CookiePolicy.wipeOnExit,
       'filterRules': extras.filterRules,
       'userScripts': [for (final script in extras.userScripts) script.toMap()],
+      'securityLevel': extras.securityLevel.name,
       'throwaway': throwaway,
     });
     return _sessionFrom(result!);
@@ -350,4 +358,8 @@ class ChannelContainerEngine implements ContainerEngine {
   @override
   Future<void> keep(String siteId) =>
       _method.invokeMethod('keep', {'siteId': siteId});
+
+  @override
+  Future<void> revokeGrant(String siteId, PermissionKind kind) =>
+      _method.invokeMethod('revokeGrant', {'siteId': siteId, 'kind': kind.name});
 }

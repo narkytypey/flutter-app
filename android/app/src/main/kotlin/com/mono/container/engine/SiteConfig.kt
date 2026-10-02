@@ -34,6 +34,9 @@ data class SiteConfig(
     val proxyLogin: ProxyLogin? = null,
     /** Use [perSiteLogin] instead of [proxyLogin] (spec §2.1). */
     val proxyLoginPerSite: Boolean = false,
+    /** Privacy-controls spec §1. Missing is Safest (§1.5), so a config built
+     *  without one fails closed. */
+    val securityLevel: SecurityLevel = SecurityLevel.SAFEST,
 )
 
 /** One library script as Dart sends it: `kind` is `css` or `js`. */

@@ -128,4 +128,9 @@ abstract interface class ContainerEngine {
   /// wiped on exit and leaves the crash journal, so the login just saved
   /// survives closing the page.
   Future<void> keep(String siteId);
+
+  /// `6c`'s Revoke (privacy-controls spec §3): ends one "allow while open"
+  /// grant and reloads every page of the container. A no-op when [siteId] has
+  /// no such grant.
+  Future<void> revokeGrant(String siteId, PermissionKind kind);
 }

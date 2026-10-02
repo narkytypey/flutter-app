@@ -1,6 +1,8 @@
+import 'blocked_tally.dart' show BlockedCategory;
 import 'container_session.dart' show SessionPhase;
 import 'engine_events.dart';
 import 'open_page.dart';
+import 'permissions.dart' show PermissionKind;
 import 'route_decision.dart' show RouteFailure;
 import 'site.dart';
 
@@ -46,6 +48,8 @@ class OpenContainer {
     this.openReturned = false,
     this.phase = SessionPhase.opening,
     this.blockedCount = 0,
+    this.categoryCounts = const {},
+    this.grants = const {},
     this.refusal,
     this.workedAt,
     this.workedRecorded = false,
@@ -88,6 +92,12 @@ class OpenContainer {
   final bool openReturned;
   final SessionPhase phase;
   final int blockedCount;
+
+  /// `6c`'s per-category rows (privacy-controls spec §3).
+  final Map<BlockedCategory, int> categoryCounts;
+
+  /// This session's "allow while open" grants, for `6c`.
+  final Set<PermissionKind> grants;
   final Refusal? refusal;
   final DateTime? workedAt;
   final bool workedRecorded;
@@ -133,6 +143,8 @@ class OpenContainer {
     bool? openReturned,
     SessionPhase? phase,
     int? blockedCount,
+    Map<BlockedCategory, int>? categoryCounts,
+    Set<PermissionKind>? grants,
     Object? refusal = _keep,
     Object? workedAt = _keep,
     bool? workedRecorded,
@@ -154,6 +166,8 @@ class OpenContainer {
         openReturned: openReturned ?? this.openReturned,
         phase: phase ?? this.phase,
         blockedCount: blockedCount ?? this.blockedCount,
+        categoryCounts: categoryCounts ?? this.categoryCounts,
+        grants: grants ?? this.grants,
         refusal: identical(refusal, _keep) ? this.refusal : refusal as Refusal?,
         workedAt: identical(workedAt, _keep) ? this.workedAt : workedAt as DateTime?,
         workedRecorded: workedRecorded ?? this.workedRecorded,

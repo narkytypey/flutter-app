@@ -60,6 +60,9 @@ Widget _menu(List<String> calls, {String subtitle = 'forum.example.com · Person
             name: 'Forum',
             subtitle: subtitle,
             blockedToday: 312,
+            securityLevelMeta: 'STANDARD',
+            onSecurityLevel: () => calls.add('security level'),
+            onNewIdentity: () => calls.add('new identity'),
             onReload: () => calls.add('reload'),
             onFind: () => calls.add('find'),
             onReader: () => calls.add('reader'),
@@ -230,6 +233,29 @@ void main() {
       'reload', 'find', 'reader', 'copy link',
       'today', 'scripts', 'workspaces', 'settings', 'all sites',
     ]);
+  });
+
+  testWidgets("Security level and New identity come first, with the level's meta",
+      (tester) async {
+    final taps = <String>[];
+    await tester.pumpWidget(MaterialApp(home: Scaffold(body: BrowserMenuSheet(
+      monogram: 'Fr', name: 'Forum', subtitle: 'forum.example.com · Personal',
+      blockedToday: 3, securityLevelMeta: 'SAFER',
+      onSecurityLevel: () => taps.add('level'), onNewIdentity: () => taps.add('identity'),
+      onReload: () {}, onFind: () {}, onReader: () {}, onCopyLink: () {}, onToday: () {},
+      onScripts: () {}, onWorkspaces: () {}, onSettings: () {}, onAllSites: () {},
+    ))));
+    expect(find.text('Security level'), findsOneWidget);
+    expect(find.text('SAFER'), findsOneWidget);
+    final order = ['Security level', 'New identity', 'Today', 'Scripts and filters',
+        'Workspaces', 'Settings', 'All sites'];
+    for (var i = 1; i < order.length; i++) {
+      expect(tester.getTopLeft(find.text(order[i - 1])).dy,
+          lessThan(tester.getTopLeft(find.text(order[i])).dy), reason: order[i]);
+    }
+    await tester.tap(find.text('Security level'));
+    await tester.tap(find.text('New identity'));
+    expect(taps, ['level', 'identity']);
   });
 
   // Review Focus 5.
