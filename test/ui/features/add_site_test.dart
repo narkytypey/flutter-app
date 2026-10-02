@@ -4,6 +4,8 @@ import 'package:container/domain/models/site.dart';
 import 'package:container/domain/models/workspace.dart';
 import 'package:container/ui/features/add_site/views/add_site_screen.dart';
 
+import '../../support/glyph_finders.dart';
+
 const _workspaces = [
   Workspace(id: 'ws-personal', name: 'Personal', markerIndex: 0, storageRule: StorageRule.keep),
   Workspace(id: 'ws-work', name: 'Work', markerIndex: 1, storageRule: StorageRule.keep),
@@ -29,6 +31,7 @@ void main() {
     for (final tab in ['Basics', 'Network', 'Privacy', 'Appearance']) {
       expect(find.text(tab), findsOneWidget);
     }
+    expect(tester.getSize(findIconTap('Close')), const Size(24, 24));
   });
 
   testWidgets('Basics shows address, name, workspace chips and cookie choice',
@@ -228,7 +231,7 @@ void main() {
     await tester.pumpAndSettle();
     await tester.enterText(find.byKey(const Key('add-site-name')), 'Forum');
 
-    await tester.tap(find.text('×'));
+    await tester.tap(findIconTap('Close'));
     await tester.pumpAndSettle();
 
     expect(find.text('Add site'), findsNothing);

@@ -112,7 +112,9 @@ void main() {
     final decoration = bar.decoration! as BoxDecoration;
     expect(decoration.color, C.footer);
     expect((decoration.border! as Border).top.color, C.line07);
-    expect(find.text('▲'), findsOneWidget);
+    expect(_glyph(tester, AppGlyph.chevronUp).color, C.jade);
+    expect(tester.getSize(find.byWidgetPredicate(
+        (w) => w is AppIcon && w.glyph == AppGlyph.chevronUp)), const Size(12, 12));
     expect(find.bySemanticsLabel('Open sessions'), findsOneWidget);
     semantics.dispose();
   });

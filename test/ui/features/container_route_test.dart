@@ -55,6 +55,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
 import '../../data/bundled_filter_lists_test.dart' show FakeBundle;
+import '../../support/glyph_finders.dart';
 import 'shell/session_controller_test.dart' show FakeBiometricService;
 
 Site _site() => Site(
@@ -476,7 +477,7 @@ void main() {
     await tester.tap(find.text('1 OPEN'));
     await tester.pumpAndSettle();
     await tester.tap(find.descendant(
-      of: find.byType(SwitcherSheet), matching: find.text('×'),
+      of: find.byType(SwitcherSheet), matching: findIconTap('Close'),
     ));
     await tester.pumpAndSettle();
 
@@ -510,7 +511,7 @@ void main() {
       await tester.tap(find.text('1 OPEN'));
       await tester.pumpAndSettle();
       await tester.tap(find.descendant(
-        of: find.byType(SwitcherSheet), matching: find.text('×'),
+        of: find.byType(SwitcherSheet), matching: findIconTap('Close'),
       ));
     });
     expect(open, {'other'});
@@ -545,6 +546,9 @@ void main() {
     // needs one microtask hop to resolve, so the very first frame is
     // guaranteed to be the opening checklist.
     expect(find.text('Starting a clean container'), findsOneWidget);
+    expect(findIconTap('Back'), findsOneWidget);
+    expect(findIconTap('Close'), findsOneWidget);
+    expect(tester.getSize(findIconTap('Back')), const Size(32, 32));
 
     await tester.pump();
     await tester.pump();
@@ -681,7 +685,7 @@ void main() {
 
       await tester.tap(find.text('Change proxy settings'));
       await tester.pumpAndSettle();
-      await tester.tap(find.text('×'));
+      await tester.tap(findIconTap('Close'));
       await tester.pumpAndSettle();
 
       expect(find.byType(ProxyUnreachableScreen), findsOneWidget);

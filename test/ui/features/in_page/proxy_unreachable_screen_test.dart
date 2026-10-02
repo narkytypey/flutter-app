@@ -1,7 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:container/domain/models/route_decision.dart';
+import 'package:container/ui/core/icons.dart';
+import 'package:container/ui/core/tokens.dart';
 import 'package:container/ui/features/in_page/views/proxy_unreachable_screen.dart';
+
+import '../../../support/glyph_finders.dart';
 
 void main() {
   Widget host({
@@ -44,6 +48,13 @@ void main() {
     expect(find.text('Change proxy settings'), findsOneWidget);
     expect(find.text('Open without the tunnel'), findsOneWidget);
     expect(find.text('This site will see your real IP'), findsOneWidget);
+    // The top bar's marks stay decoration, as the canvas draws them: undimmed
+    // and unlabelled (restyle spec §8).
+    expect(tester.widget<AppIcon>(findGlyph(AppGlyph.back)).color, C.icon);
+    expect(tester.widget<AppIcon>(findGlyph(AppGlyph.reload)).color, C.icon);
+    expect(findIconTap('Back'), findsNothing);
+    expect(tester.widget<AppIcon>(findGlyph(AppGlyph.refused)).color, C.danger);
+    expect(tester.getSize(findGlyph(AppGlyph.refused)), const Size(20, 20));
   });
 
   testWidgets('a different failure headlines with its own refusal message', (tester) async {

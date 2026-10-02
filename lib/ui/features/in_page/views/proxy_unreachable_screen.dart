@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../../domain/models/route_failure_copy.dart';
+import '../../../core/icons.dart';
 import '../../../core/tokens.dart';
 import '../../../core/typography.dart';
 import '../../../core/widgets/pill_button.dart';
@@ -61,7 +62,7 @@ class ProxyUnreachableScreen extends StatelessWidget {
                         borderRadius: BorderRadius.circular(13),
                         border: Border.all(color: C.danger.withValues(alpha: 0.3)),
                       ),
-                      child: const Text('⛌', style: TextStyle(fontSize: 16, color: C.danger)),
+                      child: const AppIcon(AppGlyph.refused, size: 20, color: C.danger),
                     ),
                     const SizedBox(height: 18),
                     Text(
@@ -132,7 +133,7 @@ class _TunnelHeader extends StatelessWidget {
           const SizedBox(
             width: 32,
             height: 32,
-            child: Center(child: Text('‹', style: TextStyle(fontSize: 16, color: C.icon))),
+            child: Center(child: AppIcon(AppGlyph.back, size: 18)),
           ),
           Expanded(
             child: Container(
@@ -159,7 +160,7 @@ class _TunnelHeader extends StatelessWidget {
           const SizedBox(
             width: 32,
             height: 32,
-            child: Center(child: Text('⟳', style: TextStyle(fontSize: 14, color: C.icon))),
+            child: Center(child: AppIcon(AppGlyph.reload, size: 16)),
           ),
         ],
       ),

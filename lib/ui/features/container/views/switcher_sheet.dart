@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 
+import '../../../core/icons.dart';
 import '../../../core/tokens.dart';
 import '../../../core/typography.dart';
 import '../../../core/widgets/hairline.dart';
+import '../../../core/widgets/icon_tap.dart';
 import '../../../core/widgets/monogram.dart';
 
 /// One row of the quick switcher, already reduced to strings. The widget
@@ -120,18 +122,24 @@ class SwitcherSheet extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(width: 10),
-                  GestureDetector(
+                  Semantics(
+                    label: 'Panic',
+                    button: true,
+                    excludeSemantics: true,
                     onTap: onPanic,
-                    child: Container(
-                      width: 46,
-                      height: 46,
-                      alignment: Alignment.center,
-                      decoration: BoxDecoration(
-                        color: C.danger.withValues(alpha: 0.14),
-                        borderRadius: BorderRadius.circular(14),
-                        border: Border.all(color: C.danger.withValues(alpha: 0.3)),
+                    child: GestureDetector(
+                      onTap: onPanic,
+                      child: Container(
+                        width: 46,
+                        height: 46,
+                        alignment: Alignment.center,
+                        decoration: BoxDecoration(
+                          color: C.danger.withValues(alpha: 0.14),
+                          borderRadius: BorderRadius.circular(14),
+                          border: Border.all(color: C.danger.withValues(alpha: 0.3)),
+                        ),
+                        child: const AppIcon(AppGlyph.panic, size: 18, color: C.danger),
                       ),
-                      child: Text('◉', style: ui(size: 15, color: C.danger)),
                     ),
                   ),
                 ],
@@ -207,9 +215,13 @@ class _SwitcherRow extends StatelessWidget {
                   ],
                 ),
               ),
-              GestureDetector(
+              IconTap(
+                glyph: AppGlyph.close,
+                label: 'Close',
                 onTap: onClose,
-                child: Text('×', style: ui(size: 16, color: C.textFaint)),
+                size: 24,
+                iconSize: 16,
+                color: C.textFaint,
               ),
             ],
           ),

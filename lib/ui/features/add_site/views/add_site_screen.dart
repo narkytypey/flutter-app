@@ -3,8 +3,10 @@ import 'package:flutter/material.dart';
 import '../../../../domain/models/monogram_suggestion.dart';
 import '../../../../domain/models/site.dart';
 import '../../../../domain/models/workspace.dart';
+import '../../../core/icons.dart';
 import '../../../core/tokens.dart';
 import '../../../core/typography.dart';
+import '../../../core/widgets/icon_tap.dart';
 import '../view_models/add_site_view.dart';
 import 'appearance_tab.dart';
 import 'basics_tab.dart';
@@ -146,9 +148,12 @@ class _AddSiteScreenState extends State<AddSiteScreen> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   // Leaves without saving, like `10b`'s × (and system back).
-                  GestureDetector(
+                  IconTap(
+                    glyph: AppGlyph.close,
+                    label: 'Close',
                     onTap: () => Navigator.pop(context),
-                    child: const Text('×', style: TextStyle(fontSize: 20, color: C.icon)),
+                    size: 24,
+                    iconSize: 20,
                   ),
                   Text('Add site', style: ui(size: 15, weight: 600, color: C.textPrimary)),
                   // Dimmed and inert, like an inert toggle, while the address

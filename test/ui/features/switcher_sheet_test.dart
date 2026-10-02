@@ -1,6 +1,9 @@
+import 'package:container/ui/core/icons.dart';
 import 'package:container/ui/features/container/views/switcher_sheet.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+
+import '../../support/glyph_finders.dart';
 
 const _entries = [
   SwitcherEntry(
@@ -61,7 +64,7 @@ void main() {
     final closed = <String>[];
     await _pump(tester, onCloseSession: closed.add);
 
-    await tester.tap(find.text('×').first);
+    await tester.tap(findIconTap('Close').first);
     expect(closed, ['st-forum']);
   });
 
@@ -78,7 +81,17 @@ void main() {
     var tapped = false;
     await _pump(tester, onPanic: () => tapped = true);
 
-    await tester.tap(find.text('◉'));
+    await tester.tap(findGlyph(AppGlyph.panic));
     expect(tapped, isTrue);
+  });
+
+  testWidgets("panic and each row's close are named for screen readers", (tester) async {
+    final semantics = tester.ensureSemantics();
+    await _pump(tester);
+
+    expect(find.bySemanticsLabel('Panic'), findsOneWidget);
+    expect(findIconTap('Close'), findsWidgets);
+    expect(tester.getSize(findGlyph(AppGlyph.panic)), const Size(18, 18));
+    semantics.dispose();
   });
 }

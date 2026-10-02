@@ -63,7 +63,7 @@ class ContainerBottomBar extends StatelessWidget {
                     Text('$openCount OPEN',
                         style: ui(size: 11, weight: 500, color: C.textSecondary)),
                     const SizedBox(width: 7),
-                    Text('▲', style: ui(size: 9, color: C.jade)),
+                    const AppIcon(AppGlyph.chevronUp, size: 12, color: C.jade),
                   ],
                 ),
               ),

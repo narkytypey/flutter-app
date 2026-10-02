@@ -3,8 +3,10 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 
 import '../../../../domain/models/open_step.dart';
+import '../../../core/icons.dart';
 import '../../../core/tokens.dart';
 import '../../../core/typography.dart';
+import '../../../core/widgets/icon_tap.dart';
 
 /// Spec `8a` — shown while a container is coming up: the checklist of what is
 /// being applied before the page appears, and nothing else loads meanwhile.
@@ -36,7 +38,13 @@ class OpeningBody extends StatelessWidget {
               ),
               child: Row(
                 children: [
-                  _IconButton(glyph: '‹', onTap: onCancel),
+                  IconTap(
+                    glyph: AppGlyph.back,
+                    label: 'Back',
+                    onTap: onCancel,
+                    size: 32,
+                    iconSize: 18,
+                  ),
                   Expanded(
                     child: Container(
                       height: 34,
@@ -63,7 +71,13 @@ class OpeningBody extends StatelessWidget {
                       ),
                     ),
                   ),
-                  _IconButton(glyph: '×', onTap: onCancel),
+                  IconTap(
+                    glyph: AppGlyph.close,
+                    label: 'Close',
+                    onTap: onCancel,
+                    size: 32,
+                    iconSize: 16,
+                  ),
                 ],
               ),
             ),
@@ -117,25 +131,6 @@ class OpeningBody extends StatelessWidget {
   }
 }
 
-class _IconButton extends StatelessWidget {
-  const _IconButton({required this.glyph, required this.onTap});
-
-  final String glyph;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: SizedBox(
-        width: 32,
-        height: 32,
-        child: Center(child: Text(glyph, style: ui(size: 16, color: C.icon))),
-      ),
-    );
-  }
-}
-
 class _StepRow extends StatelessWidget {
   const _StepRow(this.step);
 
@@ -168,8 +163,7 @@ class _StepMarker extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return switch (state) {
-      OpenStepState.done =>
-        Text('✓', style: ui(size: 12, color: C.jade)),
+      OpenStepState.done => const AppIcon(AppGlyph.check, size: 14, color: C.jade),
       OpenStepState.running => const SizedBox(
           width: 11,
           height: 11,

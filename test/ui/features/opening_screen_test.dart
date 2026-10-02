@@ -1,7 +1,10 @@
 import 'package:container/domain/models/open_step.dart';
+import 'package:container/ui/core/icons.dart';
 import 'package:container/ui/features/container/views/opening_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+
+import '../../support/glyph_finders.dart';
 
 void main() {
   testWidgets('shows the checklist and the tunnel promise', (tester) async {
@@ -23,5 +26,6 @@ void main() {
     expect(find.text('Nothing loads until the tunnel is up.'), findsOneWidget);
     expect(find.text('forum.example.com'), findsOneWidget);
     expect(find.text('Connecting through 127.0.0.1:9050'), findsOneWidget);
+    expect(findGlyph(AppGlyph.check), findsNWidgets(3));
   });
 }

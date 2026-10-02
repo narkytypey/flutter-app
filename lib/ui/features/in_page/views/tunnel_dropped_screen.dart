@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../core/icons.dart';
 import '../../../core/tokens.dart';
 import '../../../core/typography.dart';
 import '../../../core/widgets/page_skeleton.dart';
@@ -34,7 +35,7 @@ class TunnelDroppedScreen extends StatelessWidget {
                   const SizedBox(
                     width: 32,
                     height: 32,
-                    child: Center(child: Text('‹', style: TextStyle(fontSize: 16, color: C.icon))),
+                    child: Center(child: AppIcon(AppGlyph.back, size: 18)),
                   ),
                   Expanded(
                     child: Container(
@@ -61,7 +62,7 @@ class TunnelDroppedScreen extends StatelessWidget {
                   const SizedBox(
                     width: 32,
                     height: 32,
-                    child: Center(child: Text('⟳', style: TextStyle(fontSize: 14, color: C.icon))),
+                    child: Center(child: AppIcon(AppGlyph.reload, size: 16)),
                   ),
                 ],
               ),
@@ -81,7 +82,7 @@ class TunnelDroppedScreen extends StatelessWidget {
                     Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text('⛌', style: TextStyle(fontSize: 13, color: C.danger)),
+                        const AppIcon(AppGlyph.refused, size: 16, color: C.danger),
                         const SizedBox(width: 11),
                         Expanded(
                           child: Column(

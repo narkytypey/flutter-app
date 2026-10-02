@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:container/ui/core/icons.dart';
+import 'package:container/ui/core/tokens.dart';
 import 'package:container/ui/features/in_page/views/tunnel_dropped_screen.dart';
+
+import '../../../support/glyph_finders.dart';
 
 void main() {
   Widget host({VoidCallback? onReconnect, VoidCallback? onCloseAndWipe}) {
@@ -28,6 +32,13 @@ void main() {
     );
     expect(find.text('Reconnect'), findsOneWidget);
     expect(find.text('Close and wipe'), findsOneWidget);
+    // The top bar's marks stay decoration, as the canvas draws them: undimmed
+    // and unlabelled (restyle spec §8).
+    expect(tester.widget<AppIcon>(findGlyph(AppGlyph.back)).color, C.icon);
+    expect(tester.widget<AppIcon>(findGlyph(AppGlyph.reload)).color, C.icon);
+    expect(findIconTap('Back'), findsNothing);
+    expect(tester.widget<AppIcon>(findGlyph(AppGlyph.refused)).color, C.danger);
+    expect(tester.getSize(findGlyph(AppGlyph.refused)), const Size(16, 16));
   });
 
   testWidgets('each button reports its own callback', (tester) async {
