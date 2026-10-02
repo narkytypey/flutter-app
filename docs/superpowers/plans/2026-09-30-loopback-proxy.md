@@ -2399,18 +2399,21 @@ git commit -m "feat: Chromium fetches every page through the loopback proxy; the
 
 ### Task 7: Verify on the emulator, and record it
 
+**Done 2026-10-02.** Results are in "Verification" and "Device checks" at the
+end of this plan.
+
 **Files:**
 - Modify: `docs/superpowers/plans/2026-09-30-loopback-proxy.md` (this file: Verification, Device checks, Known gaps, Handoff)
 - Modify: `CLAUDE.md`. If the executing session's harness does not let it edit `CLAUDE.md`, the coordinating session makes this edit instead.
 
-- [ ] **Step 1: Set up the harness**, as in the proxy leak fixes plan ("How the leaks were found"):
+- [x] **Step 1: Set up the harness**, as in the proxy leak fixes plan ("How the leaks were found"):
   - the emulator started with `-dns-server` pointed at a logging DNS forwarder on the host;
   - a local Python proxy on the host, serving SOCKS5 on `:1080` and HTTP CONNECT on `:8888`, that logs every target;
   - `adb shell ss -tnpe` sampled every 0.2 s for the app's uid;
   - `MSYS_NO_PATHCONV=1` for `adb` from Git Bash;
   - the UI read through `uiautomator dump`, since the app sets `FLAG_SECURE` and screenshots come out black.
 
-- [ ] **Step 2: Run each spec §7 device check.** For each, record what was seen, or that it was not seen:
+- [x] **Step 2: Run each spec §7 device check.** For each, record what was seen, or that it was not seen:
   1. A SOCKS5 site on `https://duckduckgo.com`: the page, its preconnect (`links.duckduckgo.com`), a service-worker site (`https://squoosh.app`) and a pagehide beacon probe. The app's uid makes **zero sockets to anything but `127.0.0.1:<loopback port>`**, and the SOCKS5 proxy's log shows each host by name. This closes a1.
   2. The SOCKS5 proxy receives hostnames, never addresses.
   3. **Login survives a reopen** on SOCKS5:
@@ -2430,18 +2433,18 @@ git commit -m "feat: Chromium fetches every page through the loopback proxy; the
   10. The DNS log over the whole run: the only names the device looked up for proxied sites are the pages' own `dns-prefetch` hints (the accepted gap a2).
   11. An http-mode site through `:8888` loads, and the proxy logs `CONNECT host:443`.
 
-- [ ] **Step 3: Record the results in this file.**
+- [x] **Step 3: Record the results in this file.**
   - Fill in "Verification" with the gate outputs at the final commit: analyze, test count, JVM count read from the XML, and the `e:` count.
   - Fill in "Device checks" with Step 2's results, one line each, marking each "seen" or "not seen, because …".
   - Keep "Known gaps" as below, adding anything the device run found.
 
-- [ ] **Step 4: Update `CLAUDE.md`.**
+- [x] **Step 4: Update `CLAUDE.md`.**
   - Add a Plan 13 row to the plans table: file `2026-09-30-loopback-proxy.md`, status **Done** with the date, and what it covers. Mark it device-verified or not exactly as Step 2 found.
   - Under "Unassigned work", strike through the P2 bullet and point it to Plan 13.
   - Under "Device verification", in the Plan 12 leak list, mark the preconnect (a1) bullet **✅ closed by Plan 13**, and note that dns-prefetch (a2) remains the accepted gap. Mark "A proxied site keeps no HTTP cookies" **✅ fixed by Plan 13** if Step 2's item 3 was seen.
   - Record plan deviation 2 (`127.0.0.1` refused) where a future reader will look for it.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add docs/superpowers/plans/2026-09-30-loopback-proxy.md CLAUDE.md
@@ -2562,11 +2565,159 @@ section 5.
 
 ## Verification
 
-*(Filled in by Task 7.)*
+Gates at `6760d78` (`main`, which holds Tasks 1–6, open problem 1's fix
+`4feb541`, the logger `d5bb9dd`, the system-proxy and wait-for-override rulings
+`6219617`, `e946299`, and the later unrelated work), on a clean tree, run
+2026-10-02 by the session that ran Task 7:
+
+- `flutter analyze`: no issues.
+- `flutter test`: 603/603.
+- Kotlin JVM: 200 tests, 0 failures, 0 errors, read from the 29 JUnit XML files
+  of a `testDebugUnitTest` that ran (not up to date).
+- `flutter build apk --debug`: built, zero `e:` lines.
 
 ## Device checks
 
-*(Filled in by Task 7.)*
+Task 7 Step 2, run 2026-10-02 on the `Pixel_9` emulator (API 36, WebView as
+shipped on that image), with `tool/device-check/`: `proxy.py` on the host,
+`dns_log.py` as the emulator's `-dns-server`, `app_sockets.py watch` for the
+app's uid, and a debug build with the local-only `log = { Log.d("P2", it) }`
+patch to `Loopback.install`, reverted before committing. **Not a physical
+phone.** Each item is "seen" or says why not.
+
+**First, or stop** (the run sheet's section A):
+
+- **A.1 The proxy started.** Seen: a SOCKS5 site at `https://example.com`
+  loaded.
+- **A.2 First `CONNECT` gets `407`, the retry tunnels.** Seen, on every
+  profile's first request (`407`, then `200 tunnel` 0.1–0.5 s later).
+- **A.3 No re-challenge loop.** Seen, on a scratch build that unbound the
+  credential 10 s after `register`: a direct `https://example.com` opened,
+  and a reload 23 s later got exactly **one `403`, no `407`, and nothing more
+  in the following 40 s.** The page showed `8c` "Tunnel dropped", not
+  WebView's error page: WebView reported that `403` on the main frame as
+  `ERROR_FAILED_SSL_HANDSHAKE`, which `mainFrameFailure` maps to
+  `TLS_FAILURE`. Only the scratch build can unbind a live view's credential,
+  so the shipped app does not reach this.
+- **A.4 Nothing before the override.** Seen: during a SOCKS5 site's first
+  load the only socket outside loopback was the loopback proxy's own, to the
+  SOCKS5 proxy.
+
+**Open problem 1** (the run sheet's section B): seen.
+
+- A direct `https://example.com` site opened a socket to `104.20.23.154:443`.
+- Closing it from the switcher's × closed that socket and both loopback ends
+  within the same second.
+- The site was edited to SOCKS5 `10.0.2.2:1080` and reopened. The reopen
+  itself was served from the cache, with no `CONNECT` and no direct socket.
+- `https://example.com/?b=k7q2x9` then made a fresh
+  `CONNECT example.com:443 -> 200 tunnel` (no `407`: Chromium's cached
+  credential was accepted). `proxy.py` logged `SOCKS5 NAME example.com:443`,
+  and no new socket left loopback except to the proxy.
+
+**The plan's checks:**
+
+1. **Seen.** A SOCKS5 `https://duckduckgo.com`, then a search page. Every
+   host went through the proxy by name: `duckduckgo.com`,
+   `improving.duckduckgo.com`, `external-content.duckduckgo.com`, and the
+   preconnect to **`links.duckduckgo.com`**, so **a1 is closed**. The only
+   sockets outside loopback were to `10.0.2.2:1080`, and the device looked
+   none of those hosts up.
+   - **Service worker:** a SOCKS5 `https://squoosh.app` loaded, and its
+     profile directory gained a `Service Worker` registration. One `CONNECT`
+     by name, no other socket.
+   - **Pagehide:** a JS script attached to that site through `10e` sent a
+     `sendBeacon` and a `keepalive` fetch to `postman-echo.com` on
+     `pagehide`. As a positive control, navigating within the container sent
+     them through SOCKS5 by name. Closing the container from the switcher's ×
+     then sent **nothing**: no `CONNECT`, no `proxy.py` line, no socket, no
+     lookup. The postman-echo tunnel the control had opened closed at the
+     close.
+2. **Seen.** Over the whole run `proxy.py` logged 50 `NAME` targets and no
+   `IPv4` or `IPv6` one.
+3. **Seen.** On a SOCKS5 site at `https://postman-echo.com/cookies`,
+   `/cookies/set?p2=1` was loaded, the site was closed from the switcher's ×,
+   and it was reopened. The reopen made a **fresh `CONNECT`** (`proxy.py`:
+   `SOCKS5 NAME postman-echo.com:443`), and the page showed `"p2":"1"`.
+   **Plan 12's "a proxied site keeps no HTTP cookies" is fixed.**
+4. **Seen.** The redirect from `/cookies/set?p2=1` to `/cookies` worked. A
+   form POST to `https://httpbin.org/forms/post`, typed from that site and so
+   opened as a SOCKS5 throwaway, came back with `"custname": "p2test"`.
+5. **Seen.** `app_sockets.py probe` printed three `ok` lines: `407` with
+   `realm="container"`, `403`, and `403` for the Autofill host. `proxy.py`
+   logged nothing, and no socket went to example.com.
+6. **Seen.** The loopback proxy answered every
+   `content-autofill.googleapis.com` `CONNECT` with `403`, 5 per form page,
+   in a decaying retry, with no loop. Over the whole run nothing looked that
+   host up, and no socket went to `2001:4860:…`.
+7. **Seen.** After 75 s in the background `9c` showed ("Locked after 1 minute
+   in the background"). After the PIN, the SOCKS5 postman-echo site reopened
+   with no prompt: `CONNECT postman-echo.com:443 -> 200 tunnel` with no
+   `407`, and the page still showed `"p2":"1"`. That the old credential gets
+   `403` while the site is closed was **not** seen. It is pinned by the JVM
+   test "a closed session's credential gets 403".
+8. **Seen, by accident and early.** A harness script meant for the
+   dashboard ran on a container, and its "Save" tap at `(991,211)` hit the
+   top bar's Panic square. This is open problem 3's hazard, caused by the
+   harness, not the app. `3c` showed "Everything closed", and the app stayed
+   up (same pid). `app_flutter` held neither `meta.bin` nor `store-1.db`, and
+   the loaded profile was journaled in `pending-profile-deletions`, which the
+   next start swept. The vault was set up again and the run continued.
+   Flutter logged one unhandled exception at the panic (see Known gaps).
+9. **Seen.**
+   - A direct `https://example.com` site connected straight to the site.
+   - A throwaway from it ("Not saved · wiped when you close it") went direct,
+     under its own profile (`407`, then tunnel).
+   - The throwaway was an address (`https://www.iana.org/…`), not a search.
+     The search opened the saved DuckDuckGo site's own SOCKS5 container, as
+     Plan 12 intends for a saved site's host. After that site was removed,
+     the search still opened it (see Known gaps).
+10. **Seen.** Every app host the device looked up was on a direct route,
+    each when a direct page loaded: example.com, example.org and
+    www.iana.org. No proxied site's host was looked up, and none of these
+    pages triggered a dns-prefetch lookup. The rest of the log is Android's
+    and Play services' own names.
+11. **Seen.** An HTTP-mode site through `10.0.2.2:8888` loaded. `proxy.py`
+    logged `CONNECT postman-echo.com:443`, and the only outside socket was to
+    `:8888`.
+
+**The design rulings of 2026-09-30** (section D): seen.
+
+- **System proxy.** The emulator's Wi-Fi was set to a manual proxy
+  `10.0.2.2:8888` bypassing `example.org`, through the Settings UI.
+  (`settings put global global_http_proxy_*` was tried first and never
+  applied: `dumpsys connectivity` showed no proxy. The run sheet's Wi-Fi
+  route is the one that works.)
+  - With it on: a direct `https://example.com/?sysproxy=2` went through it
+    (`proxy.py`: `CONNECT example.com:443`, socket to `10.0.2.2:8888`).
+  - A direct `https://example.org` connected straight, with no `proxy.py`
+    line.
+  - A SOCKS5 site stayed on SOCKS5 (`NAME postman-echo.com:443`), with no
+    `CONNECT` on `:8888`.
+  - The Wi-Fi proxy was cleared afterwards.
+- **Waiting for the override.** No site sat on "Connecting…" during the run.
+
+**Task 6 Step 10's download.** A SOCKS5 site at
+`https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf`
+held a download reading "13.0 KB · from www.w3.org". **Keep inside this
+container** fetched it through SOCKS5 by name and wrote all 13,264 bytes to
+`files/downloads/<profile>/dummy.pdf`, which the system PDF viewer opened. So
+keep-in-container over HTTPS worked on this emulator this time, unlike the
+`BAD_RECORD_MAC` recorded in `CLAUDE.md`.
+
+**Beyond the run sheet: a refused reopen leaves the old binding live.** A
+direct site was opened and loaded `?e1=7`, which opened a loopback tunnel to
+`172.66.147.243:443`. The site was backed out of with its session still
+open, edited to SOCKS5 on a dead port `10.0.2.2:1999`, and reopened. `8b`
+showed "Proxy did not answer … no request left your device". The old direct
+tunnel was **still `ESTAB`** after the refusal, and stayed so for at least
+47 s. It closed 7 s after the app went to the background, before the
+1-minute lock; why was not established. Nothing was seen crossing it, and with
+no view left, nothing in the app could use it. The cause is in `main`'s
+`EngineChannel.register`: a refused route neither unbinds nor rebinds a
+profile that already has a binding. The unmerged commit `0c7ad4e` (branch
+`p2-task7`) unbinds there unconditionally, though it adds no test for it. The
+user has not decided on it.
 
 ## Known gaps
 
@@ -2584,7 +2735,8 @@ These come from spec §6 and this plan's deviations. They are recorded, not fixe
 - **A site at `127.0.0.1` cannot be opened** (deviation 2). `localhost` can.
 - **Absolute-form `http://` requests** carry only `Content-Length` bodies (deviation 3). The shipped app refuses cleartext before they are made anyway.
 - **Not verified:**
-  - WebView versions other than 154, and a physical phone;
+  - WebView versions other than 154 (the Task 7 emulator ran
+    154.0.8037.57 on API 36), and a physical phone;
   - a WebView without `PROXY_OVERRIDE`, which is the `UNSUPPORTED` path;
   - HTTP/2 or QUIC to the loopback proxy;
   - non-Basic schemes;
@@ -2597,6 +2749,38 @@ These come from spec §6 and this plan's deviations. They are recorded, not fixe
   - a PAC setup works only through the local proxy Android runs for it; until that reports a port, direct sites connect straight.
 - **A direct site's `http://` request behind a system proxy** is tunnelled with `CONNECT host:80`, which some proxies refuse. The shipped app refuses cleartext before such requests are made (deviation 3).
 - **An override that never applies leaves every site on its opening checklist** (user's ruling, 2026-09-30: wait, no timeout, no copy).
+
+Found by Task 7's device run (2026-10-02). None is fixed here: Task 7
+changes documentation only.
+
+- **A refused reopen leaves the old binding live.** Seen on the device
+  (Device checks, "Beyond the run sheet"). A site reopened while its last
+  session is still open, onto a route that is refused, keeps the previous
+  binding and its tunnels until close. Nothing was seen crossing them. The
+  unmerged `0c7ad4e` (branch `p2-task7`) closes this. Whether to take it is
+  the user's call.
+- **Panic logs an unhandled exception.** `Bad state: databaseProvider read
+  while no vault is open`, from `leakCountProvider`
+  (`dashboard/view_models/providers.dart:49`), as the vault closes. Panic
+  completed and the app stayed up. Not investigated.
+- **Older than this plan, found along the way:**
+  - The pill matches typed text against `allSitesProvider`
+    (`container_route.dart:526`). That is a non-autoDispose provider that
+    only Search's open and "Save as a site" invalidate, so in a container it
+    holds the vault's sites as they were at the process's first container.
+    Seen: a removed saved site (DuckDuckGo) was reopened in its own SOCKS5
+    container when its host was searched from another container. By the same
+    code (not seen), a site's route edited later is ignored there: a site
+    moved from direct to a proxy would open from the pill on direct.
+  - The add-site form saved `ttps://duckduckgo.com`, after the harness
+    dropped a typed character. WebView then showed `ERR_UNKNOWN_URL_SCHEME`.
+    The form does not refuse a scheme other than http/https, which the
+    pill's `loadUrl` does.
+  - `10d`'s "+ New script" row and `10e`'s "+ Add site" chip respond only to
+    taps on their text, not on the rest of the row.
+  - The switcher (`2c`) lists only the current container with
+    `openCount: 1` (`container_route.dart:576`), while the dashboard counts
+    every open session.
 
 ## Handoff
 

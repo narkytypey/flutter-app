@@ -55,7 +55,12 @@ black. Use `adb shell uiautomator dump /sdcard/ui.xml && adb pull /sdcard/ui.xml
 Tap controls at the centre of their `bounds` in that dump, never at a fixed
 coordinate. The address bar's Clear is about 11 dp left of Panic, and panic
 wipes the vault with one tap (open problem 3). `adb shell getevent -lt` in a
-spare terminal records every tap actually delivered.
+spare terminal records touches from the emulator window, but **not**
+`adb shell input tap`, which is injected above `/dev/input`. Before a scripted
+tap, check that the screen is the one you expect: a "Save" tap at `(991,211)`
+meant for the add-site form is Panic on a container (it wiped the vault in
+the 2026-10-02 run). `uiautomator dump` can fail and leave the previous
+`ui.xml` in place, so delete it before each dump.
 
 **Test hosts.** On the user's PC, AWS- and Azure-hosted sites (httpbin.org,
 duckduckgo.com, squoosh.app) take 14–15 s to connect, and Chromium drops some
@@ -137,7 +142,12 @@ Step 10's early check):
   `https://example.com` site loads and `proxy.py` logs
   `CONNECT example.com:443`; a direct `https://example.org` site loads with no
   `proxy.py` line. A SOCKS5 site still logs `SOCKS5 NAME …`, with no
-  `CONNECT` line for it. Clear the Wi-Fi proxy afterwards.
+  `CONNECT` line for it. Clear the Wi-Fi proxy afterwards. Set it through
+  Settings › Network › AndroidWifi › Modify › Advanced options: `adb shell
+  settings put global global_http_proxy_*` is not applied while the device
+  runs (`dumpsys connectivity` shows no `HttpProxy`). Move between the
+  dialog's fields with `input keyevent 61` (Tab), because the keyboard
+  shifts them.
 - **Waiting for the override.** Covered by A.4. It never keeps a site on the
   checklist in practice; if a site ever sits on "Connecting…" with nothing in
   the P2 log, the override's listener never ran.

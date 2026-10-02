@@ -218,6 +218,10 @@ was found.**
 
 ## 4. Plan 13 Task 7 is half done (needs the emulator)
 
+**✅ Done 2026-10-02.** Task 7 was run again from the start on `main` at
+`6760d78`. Every check was seen, open problem 1's fix included. Results are
+in the plan's "Verification" and "Device checks".
+
 What flutter-app-77 saw before its usage limit hit (Task 7 Step 2's numbering):
 
 | Check | Result |
