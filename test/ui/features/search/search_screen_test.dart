@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:container/ui/core/icons.dart';
 import 'package:container/ui/core/tokens.dart';
 import 'package:container/ui/core/widgets/status_rail.dart';
 import 'package:container/ui/features/search/view_models/search_view.dart';
 import 'package:container/ui/features/search/views/search_screen.dart';
+import '../../../support/glyph_finders.dart';
 
 void main() {
   const forum = SearchResultEntry(
@@ -42,6 +44,7 @@ void main() {
     expect(find.text('Bank'), findsOneWidget);
     expect(find.text('bank.example.com'), findsOneWidget);
     expect(find.text('Work'), findsOneWidget);
+    expect(findGlyph(AppGlyph.search), findsOneWidget);
 
     // A zero-height StatusRail would render but be invisible — assert every
     // rail actually occupies vertical space.
@@ -81,7 +84,7 @@ void main() {
     var backTaps = 0;
     await tester.pumpWidget(host(onBack: () => backTaps++));
 
-    await tester.tap(find.text('‹'));
+    await tester.tap(findIconTap('Back'));
 
     expect(backTaps, 1);
   });

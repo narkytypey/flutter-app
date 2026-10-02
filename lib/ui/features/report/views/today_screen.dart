@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 
 import '../../../../domain/models/blocked_tally.dart';
+import '../../../core/icons.dart';
 import '../../../core/tokens.dart';
 import '../../../core/typography.dart';
+import '../../../core/widgets/icon_tap.dart';
 import '../../../core/widgets/monogram.dart';
 
 /// Spec `5c` — a quiet log, not a dashboard of scary numbers. Reachable
@@ -27,9 +29,12 @@ class TodayScreen extends StatelessWidget {
               ),
               child: Row(
                 children: [
-                  GestureDetector(
+                  IconTap(
+                    glyph: AppGlyph.back,
+                    label: 'Back',
                     onTap: onBack,
-                    child: const Text('‹', style: TextStyle(fontSize: 16, color: C.icon)),
+                    size: 20,
+                    iconSize: 18,
                   ),
                   const SizedBox(width: 10),
                   Text('Today', style: T.screenTitle),

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:container/domain/models/blocked_tally.dart';
 import 'package:container/ui/features/report/views/today_screen.dart';
+import '../../../support/glyph_finders.dart';
 
 void main() {
   const tally = BlockedTally(
@@ -59,7 +60,7 @@ void main() {
       findsOneWidget,
     );
 
-    await tester.tap(find.text('‹'));
+    await tester.tap(findIconTap('Back'));
     expect(backs, 1);
   });
 }

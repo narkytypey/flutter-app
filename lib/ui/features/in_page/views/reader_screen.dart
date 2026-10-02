@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 
 import '../../../../domain/models/reader_article.dart';
 import '../../../../domain/models/reader_style.dart';
+import '../../../core/icons.dart';
 import '../../../core/tokens.dart';
 import '../../../core/typography.dart';
+import '../../../core/widgets/icon_tap.dart';
 
 /// Spec `6b` — text only, controls out of the way. The header is the only
 /// chrome; everything below it is the article, full width, no card. [style]
@@ -39,9 +41,13 @@ class ReaderScreen extends StatelessWidget {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  GestureDetector(
+                  IconTap(
+                    glyph: AppGlyph.back,
+                    label: 'Back',
                     onTap: onClose,
-                    child: const Text('‹', style: TextStyle(fontSize: 16, color: C.readerMuted)),
+                    size: 20,
+                    iconSize: 18,
+                    color: C.readerMuted,
                   ),
                   Text(
                     article.readingLabel,
@@ -54,9 +60,13 @@ class ReaderScreen extends StatelessWidget {
                         child: Text('Aa', style: ui(size: 13, color: C.readerMuted)),
                       ),
                       const SizedBox(width: 14),
-                      GestureDetector(
+                      IconTap(
+                        glyph: AppGlyph.contrast,
+                        label: 'Reader theme',
                         onTap: onTheme,
-                        child: Text('◑', style: ui(size: 14, color: C.readerMuted)),
+                        size: 20,
+                        iconSize: 16,
+                        color: C.readerMuted,
                       ),
                     ],
                   ),

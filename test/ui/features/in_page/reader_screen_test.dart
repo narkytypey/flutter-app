@@ -3,7 +3,9 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:container/domain/models/reader_article.dart';
 import 'package:container/domain/models/reader_style.dart';
 import 'package:container/ui/core/tokens.dart';
+import 'package:container/ui/core/widgets/icon_tap.dart';
 import 'package:container/ui/features/in_page/views/reader_screen.dart';
+import '../../../support/glyph_finders.dart';
 
 void main() {
   const article = ReaderArticle(
@@ -63,9 +65,12 @@ void main() {
       onTheme: () => themed++,
     ));
 
-    await tester.tap(find.text('‹'));
+    expect(tester.widget<IconTap>(findIconTap('Back')).color, C.readerMuted);
+    expect(tester.widget<IconTap>(findIconTap('Reader theme')).color, C.readerMuted);
+
+    await tester.tap(findIconTap('Back'));
     await tester.tap(find.text('Aa'));
-    await tester.tap(find.text('◑'));
+    await tester.tap(findIconTap('Reader theme'));
 
     expect(closed, 1);
     expect(textSized, 1);

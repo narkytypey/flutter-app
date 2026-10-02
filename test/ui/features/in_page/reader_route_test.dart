@@ -7,6 +7,7 @@ import 'package:container/ui/features/settings/view_models/providers.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import '../../../support/glyph_finders.dart';
 
 class _MemorySettings implements SettingsRepository {
   final values = <String, String>{};
@@ -62,7 +63,7 @@ void main() {
 
     await tester.tap(find.text('Aa'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('◑'));
+    await tester.tap(findIconTap('Reader theme'));
     await tester.pumpAndSettle();
 
     expect(styleShown(tester).size, ReaderTextSize.larger);

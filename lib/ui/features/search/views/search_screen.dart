@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 
+import '../../../core/icons.dart';
 import '../../../core/tokens.dart';
 import '../../../core/typography.dart';
+import '../../../core/widgets/icon_tap.dart';
 import '../../../core/widgets/monogram.dart';
 import '../../../core/widgets/status_rail.dart';
 import '../view_models/search_view.dart';
@@ -51,9 +53,12 @@ class _SearchScreenState extends State<SearchScreen> {
               ),
               child: Row(
                 children: [
-                  GestureDetector(
+                  IconTap(
+                    glyph: AppGlyph.back,
+                    label: 'Back',
                     onTap: widget.onBack,
-                    child: const Text('‹', style: TextStyle(fontSize: 16, color: C.icon)),
+                    size: 20,
+                    iconSize: 18,
                   ),
                   const SizedBox(width: 10),
                   Expanded(
@@ -73,7 +78,7 @@ class _SearchScreenState extends State<SearchScreen> {
                         ),
                         child: Row(
                           children: [
-                            const Icon(Icons.search, size: 18, color: C.icon),
+                            const AppIcon(AppGlyph.search, size: 18),
                             const SizedBox(width: 8),
                             Expanded(
                               child: TextField(
