@@ -446,7 +446,7 @@ void main() {
     addTearDown(real.close);
     addTearDown(decoy.close);
     await _workspace(real, showInDecoy: true);
-    await SqliteSiteRepository(real).upsert(_site.withSecurityLevel(SecurityLevel.safest));
+    await SqliteSiteRepository(real).upsert(_site.copyWith(showInDecoy: true).withSecurityLevel(SecurityLevel.safest));
 
     await resyncDecoy(from: real, into: decoy);
 
