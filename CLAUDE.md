@@ -1138,11 +1138,26 @@ Not seen: Reader's ◑ colours, the 40% dimming, Force dark mode's effect,
 deleting a workspace that has sites.
 
 Found, open (none fixed here):
-- **Design question: `http://` sites cannot load.** The manifest has no
+- ~~**Design question: `http://` sites cannot load.** The manifest has no
   `usesCleartextTraffic` (targetSdk 36), so WebView refuses cleartext, yet
   the address bar and the site form accept `http://`. A local build with the
   flag set loaded the same site. Either allow cleartext or refuse `http://`
-  up front; that is the user's call.
+  up front; that is the user's call.~~ **✅ User's ruling 2026-10-02: allow
+  them** (branch `allow-cleartext`): the main manifest's `<application>` sets
+  `android:usesCleartextTraffic="true"`. Seen on the emulator: a direct
+  `http://10.0.2.2:8099/` site and a SOCKS5 `http://localhost:8099/` site
+  (`SOCKS5 NAME localhost:8099` at the proxy) both rendered and finished
+  loading. Gates: `flutter analyze` clean, `flutter test` 662/662, APK built.
+  **Emulator caveat, not an app bug:** `http://example.com/` loads only
+  some of the time there, failing with `ERR_INCOMPLETE_CHUNKED_ENCODING`.
+  The emulator's network drops the **last byte** of a connection that the
+  server closes right after its final segment: a raw request from `adb
+  shell` with `toybox nc` (no app involved) got 755 of 756 bytes in 2 of 10
+  tries, ending `0\r\n\r` with no final `\n`, and a debug build showed the
+  loopback proxy receiving 411 of 412 body bytes from the origin. That loss
+  likely also explains the "Keep-in-container over HTTPS fails mid-body on
+  the emulator" note above. Don't "fix" `LoopbackProxy`'s close for it; test
+  `http://` against an origin that doesn't close that way, or on a phone.
 - **"+ New workspace"** (`10a`) opens only from a tap on its text, not the
   row's centre: the bug `bf32358` fixed for "+ New script".
 - **"Trigger by flipping face down"**: a tap on the row's text does nothing;
