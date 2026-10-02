@@ -136,6 +136,47 @@ void main() {
     expect(saved!.profileId, isNotEmpty);
   });
 
+  // Found on a device: a dropped keystroke saved `ttps://duckduckgo.com`, which
+  // the engine will never load. The form now saves an address the way the
+  // address bar loads one, and a site that is not one cannot be saved.
+  group('the address is saved as the address bar would load it', () {
+    Future<Site?> saveWith(WidgetTester tester, String address) async {
+      Site? saved;
+      await _pump(tester, onSave: (s) => saved = s);
+      await tester.enterText(find.byKey(const Key('add-site-address')), address);
+      await tester.enterText(find.byKey(const Key('add-site-name')), 'Forum');
+      await tester.pump();
+      await tester.tap(find.text('Save'));
+      await tester.pump();
+      return saved;
+    }
+
+    testWidgets('a bare host gains https', (tester) async {
+      expect((await saveWith(tester, 'forum.example.com/latest'))!.url,
+          'https://forum.example.com/latest');
+    });
+
+    testWidgets('surrounding spaces are dropped', (tester) async {
+      expect((await saveWith(tester, '  https://forum.example.com  '))!.url,
+          'https://forum.example.com');
+    });
+
+    for (final address in [
+      'ttps://duckduckgo.com',
+      'javascript:alert(1)',
+      'file:///sdcard/a.html',
+      'forum example',
+      '',
+    ]) {
+      testWidgets('"$address" is not saved, and Save is dimmed', (tester) async {
+        expect(await saveWith(tester, address), isNull);
+        final save = tester.widget<Opacity>(
+            find.ancestor(of: find.text('Save'), matching: find.byType(Opacity)).first);
+        expect(save.opacity, lessThan(1));
+      });
+    }
+  });
+
   testWidgets('editing an existing site preserves its id and profile id',
       (tester) async {
     const existing = Site(

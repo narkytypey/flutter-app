@@ -85,10 +85,15 @@ class _AddSiteScreenState extends State<AddSiteScreen> {
     if (suggestion != _monogram) setState(() => _monogram = suggestion);
   }
 
+  /// The address Save writes, or null while the field holds no web address.
+  String? get _address => siteAddress(_urlController.text);
+
   void _save() {
+    final address = _address;
+    if (address == null) return;
     widget.onSave(buildSite(
       initial: widget.initial,
-      url: _urlController.text,
+      url: address,
       name: _nameController.text,
       monogram: _monogram,
       workspaceId: _workspaceId,
@@ -132,9 +137,17 @@ class _AddSiteScreenState extends State<AddSiteScreen> {
                     child: const Text('×', style: TextStyle(fontSize: 20, color: C.icon)),
                   ),
                   Text('Add site', style: ui(size: 15, weight: 600, color: C.textPrimary)),
-                  GestureDetector(
-                    onTap: _save,
-                    child: Text('Save', style: ui(size: 14, weight: 500, color: C.jade)),
+                  // Dimmed and inert, like an inert toggle, while the address
+                  // is not one the engine would load.
+                  ListenableBuilder(
+                    listenable: _urlController,
+                    builder: (context, _) => GestureDetector(
+                      onTap: _address == null ? null : _save,
+                      child: Opacity(
+                        opacity: _address == null ? 0.4 : 1,
+                        child: Text('Save', style: ui(size: 14, weight: 500, color: C.jade)),
+                      ),
+                    ),
                   ),
                 ],
               ),

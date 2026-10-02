@@ -1,5 +1,15 @@
 import '../../../../data/services/app_database.dart' show newProfileId;
+import '../../../../domain/models/address_input.dart';
 import '../../../../domain/models/site.dart';
+
+/// [typed] as a site's address, read as the address bar reads it
+/// ([parseAddressInput]): an `http` or `https` address, a bare host given
+/// `https://`, a Unicode host in punycode. Null for anything else (another
+/// scheme, words, nothing), which the engine would never load.
+String? siteAddress(String typed) => switch (parseAddressInput(typed)) {
+      AddressUrl(:final url) => url.toString(),
+      _ => null,
+    };
 
 /// Assembles the final [Site] the form describes. A new site gets a fresh
 /// id and profile id (both from [newProfileId] — Task 1 defines no separate
