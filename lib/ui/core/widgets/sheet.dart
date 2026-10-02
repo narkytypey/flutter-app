@@ -58,7 +58,7 @@ class BottomSheetSurface extends StatelessWidget {
                   width: 36,
                   height: 4,
                   decoration: BoxDecoration(
-                    color: const Color(0xFF2C3134),
+                    color: C.handle,
                     borderRadius: BorderRadius.circular(2),
                   ),
                 ),

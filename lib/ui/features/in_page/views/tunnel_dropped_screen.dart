@@ -71,7 +71,7 @@ class TunnelDroppedScreen extends StatelessWidget {
               child: Container(
                 padding: const EdgeInsets.all(14),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF1A1517),
+                  color: C.dangerPanel,
                   borderRadius: BorderRadius.circular(16),
                   border: Border.all(color: C.danger.withValues(alpha: 0.28)),
                 ),

@@ -29,24 +29,18 @@ class BasicsTab extends StatelessWidget {
   final CookiePolicy cookiePolicy;
   final ValueChanged<CookiePolicy> onCookiePolicyChanged;
 
-  static const _label = TextStyle(
-    fontFamily: 'Figtree',
-    fontSize: 10,
-    fontWeight: FontWeight.w500,
-    letterSpacing: 1.0,
-    color: C.textFaint,
-  );
+  static final _label = T.sectionLabel;
 
   @override
   Widget build(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text('ADDRESS', style: _label),
+        Text('ADDRESS', style: _label),
         const SizedBox(height: 7),
         _field(key: const Key('add-site-address'), controller: urlController),
         const SizedBox(height: 18),
-        const Text('NAME', style: _label),
+        Text('NAME', style: _label),
         const SizedBox(height: 7),
         Container(
           height: 46,
@@ -81,7 +75,7 @@ class BasicsTab extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 18),
-        const Text('WORKSPACE', style: _label),
+        Text('WORKSPACE', style: _label),
         const SizedBox(height: 7),
         Row(
           children: [
@@ -92,7 +86,7 @@ class BasicsTab extends StatelessWidget {
           ],
         ),
         const SizedBox(height: 18),
-        const Text('COOKIES', style: _label),
+        Text('COOKIES', style: _label),
         const SizedBox(height: 7),
         Container(
           decoration: BoxDecoration(

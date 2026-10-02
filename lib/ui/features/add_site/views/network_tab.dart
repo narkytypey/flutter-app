@@ -42,13 +42,7 @@ class NetworkTab extends StatelessWidget {
   final bool blockTrackers;
   final ValueChanged<bool> onBlockTrackersChanged;
 
-  static const _label = TextStyle(
-    fontFamily: 'Figtree',
-    fontSize: 10,
-    fontWeight: FontWeight.w500,
-    letterSpacing: 1.0,
-    color: C.textFaint,
-  );
+  static final _label = T.sectionLabel;
 
   @override
   Widget build(BuildContext context) {
@@ -79,7 +73,7 @@ class NetworkTab extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text('HOST', style: _label),
+                  Text('HOST', style: _label),
                   const SizedBox(height: 7),
                   _field(hostController),
                 ],
@@ -90,7 +84,7 @@ class NetworkTab extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text('PORT', style: _label),
+                  Text('PORT', style: _label),
                   const SizedBox(height: 7),
                   _field(portController),
                 ],
@@ -117,7 +111,7 @@ class NetworkTab extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text('USERNAME', style: _label),
+                      Text('USERNAME', style: _label),
                       const SizedBox(height: 7),
                       _field(userController, key: const Key('proxy-user'), loginField: true),
                     ],
@@ -128,7 +122,7 @@ class NetworkTab extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text('PASSWORD', style: _label),
+                      Text('PASSWORD', style: _label),
                       const SizedBox(height: 7),
                       _field(passwordController,
                           key: const Key('proxy-password'), loginField: true, obscure: true),

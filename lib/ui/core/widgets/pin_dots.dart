@@ -17,8 +17,6 @@ class PinDots extends StatelessWidget {
   final int length;
   final bool error;
 
-  static const _errorBorder = Color(0xFF4A3634);
-
   @override
   Widget build(BuildContext context) {
     return Row(
@@ -34,7 +32,7 @@ class PinDots extends StatelessWidget {
               color: !error && i < filled ? C.textPrimary : null,
               border: Border.all(
                 color: error
-                    ? _errorBorder
+                    ? C.pinError
                     : (i < filled ? C.textPrimary : C.pinEmpty),
                 width: 1.5,
               ),

@@ -41,29 +41,23 @@ class PrivacyTab extends StatelessWidget {
   final bool showInDecoy;
   final ValueChanged<bool> onShowInDecoyChanged;
 
-  static const _label = TextStyle(
-    fontFamily: 'Figtree',
-    fontSize: 10,
-    fontWeight: FontWeight.w500,
-    letterSpacing: 1.0,
-    color: C.textFaint,
-  );
+  static final _label = T.sectionLabel;
 
   @override
   Widget build(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Padding(
-          padding: EdgeInsets.only(bottom: 12),
+        Padding(
+          padding: const EdgeInsets.only(bottom: 12),
           child: Text('HARDWARE · ALL OFF BY DEFAULT', style: _label),
         ),
         _bareRow('Camera', allowCamera, onAllowCameraChanged),
         _bareRow('Microphone', allowMicrophone, onAllowMicrophoneChanged),
         _bareRow('Location', allowLocation, onAllowLocationChanged),
         _bareRow('Clipboard', allowClipboard, onAllowClipboardChanged),
-        const Padding(
-          padding: EdgeInsets.fromLTRB(0, 22, 0, 12),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(0, 22, 0, 12),
           child: Text('SHIELDS', style: _label),
         ),
         _detailedRow(

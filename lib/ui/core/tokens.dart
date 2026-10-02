@@ -22,6 +22,7 @@ abstract final class C {
   static const knobOff = Color(0xFF4A5150);
   static const skeleton = Color(0xFF1B1F22);
   static const barTrack = Color(0xFF1A1E21);
+  static const handle = Color(0xFF2C3134);
 
   // Hairlines — white at the alphas the spec uses. The number is the
   // percentage: line06 is rgba(255,255,255,.06).
@@ -48,6 +49,9 @@ abstract final class C {
   static const chevron = Color(0xFF7E8583);
   static const tabInactive = Color(0xFF767D7B);
 
+  /// The host in an address pill (`2b`, `8a`).
+  static const pillText = Color(0xFFA9B0AE);
+
   // Reader mode — its own warm palette, spec `6b` only.
   static const readerMuted = Color(0xFF8A857C);
   static const readerTitle = Color(0xFFEDE7DC);
@@ -63,6 +67,12 @@ abstract final class C {
   static const dangerSurface = Color(0xFF241C1D);
   static const dangerMuted = Color(0xFF8A6A62);
   static const warning = Color(0xFFD6A45B);
+
+  /// `8c`'s banner fill.
+  static const dangerPanel = Color(0xFF1A1517);
+
+  /// `4c`'s dot borders after a wrong PIN.
+  static const pinError = Color(0xFF4A3634);
 
   /// Workspace markers, in the order the picker shows them (spec `10b`).
   static const markers = <Color>[

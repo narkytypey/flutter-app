@@ -68,7 +68,7 @@ class SwitcherSheet extends StatelessWidget {
               height: 4,
               margin: const EdgeInsets.only(bottom: 12),
               decoration: BoxDecoration(
-                color: const Color(0xFF2C3134),
+                color: C.handle,
                 borderRadius: BorderRadius.circular(2),
               ),
             ),

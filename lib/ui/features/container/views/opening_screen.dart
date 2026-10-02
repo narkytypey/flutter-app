@@ -58,7 +58,7 @@ class OpeningBody extends StatelessWidget {
                           ),
                           const SizedBox(width: 7),
                           Text(host,
-                              style: ui(size: 11.5, color: const Color(0xFFA9B0AE))),
+                              style: ui(size: 11.5, color: C.pillText)),
                         ],
                       ),
                     ),

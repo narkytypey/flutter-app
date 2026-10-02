@@ -84,7 +84,7 @@ class ContainerTopBar extends StatelessWidget {
                         host,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: ui(size: 11.5, color: const Color(0xFFA9B0AE)),
+                        style: ui(size: 11.5, color: C.pillText),
                       ),
                     ),
                     if (routeLabel.isNotEmpty) ...[

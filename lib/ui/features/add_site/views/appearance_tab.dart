@@ -33,13 +33,7 @@ class AppearanceTab extends StatelessWidget {
   final TextEditingController cssController;
   final TextEditingController jsController;
 
-  static const _label = TextStyle(
-    fontFamily: 'Figtree',
-    fontSize: 10,
-    fontWeight: FontWeight.w500,
-    letterSpacing: 1.0,
-    color: C.textFaint,
-  );
+  static final _label = T.sectionLabel;
 
   static const _uaLabels = {
     UserAgentMode.android: 'Android',
@@ -52,7 +46,7 @@ class AppearanceTab extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text('USER AGENT', style: _label),
+        Text('USER AGENT', style: _label),
         const SizedBox(height: 7),
         Row(
           children: [
@@ -102,11 +96,11 @@ class AppearanceTab extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 18),
-        const Text('CUSTOM CSS', style: _label),
+        Text('CUSTOM CSS', style: _label),
         const SizedBox(height: 7),
         _codeBox(cssController, color: C.jadeCode, useMono: true),
         const SizedBox(height: 18),
-        const Text('CUSTOM JS', style: _label),
+        Text('CUSTOM JS', style: _label),
         const SizedBox(height: 7),
         _codeBox(jsController, color: C.textFaint, useMono: false, hint: 'Runs at document start'),
       ],
