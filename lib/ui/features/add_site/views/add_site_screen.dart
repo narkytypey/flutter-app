@@ -19,11 +19,16 @@ class AddSiteScreen extends StatefulWidget {
     this.initial,
     required this.workspaces,
     required this.onSave,
+    this.initialTab = 0,
   });
 
   final Site? initial;
   final List<Workspace> workspaces;
   final ValueChanged<Site> onSave;
+
+  /// The tab the form opens on: 0 Basics, 1 Network, 2 Privacy, 3 Appearance.
+  /// `8b`'s "Change proxy settings" opens on Network.
+  final int initialTab;
 
   @override
   State<AddSiteScreen> createState() => _AddSiteScreenState();
@@ -44,7 +49,7 @@ class _AddSiteScreenState extends State<AddSiteScreen> {
   late final _cssController = TextEditingController(text: widget.initial?.customCss ?? '');
   late final _jsController = TextEditingController(text: widget.initial?.customJs ?? '');
 
-  int _tabIndex = 0;
+  late int _tabIndex = widget.initialTab;
   late String _monogram = widget.initial?.monogram ?? '';
   late String _workspaceId = widget.initial?.workspaceId ?? widget.workspaces.first.id;
   late CookiePolicy _cookiePolicy = widget.initial?.cookiePolicy ?? CookiePolicy.keep;

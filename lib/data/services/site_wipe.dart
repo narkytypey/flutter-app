@@ -37,6 +37,8 @@ Future<Site> wipeSavedSite({
   await engine.wipe(site.profileId);
   final fresh = site.copyWith(profileId: newProfileId());
   await sites.upsert(fresh);
+  // `8b`'s "Last worked" goes with the rest of the site's data.
+  await sites.setLastWorked(site.id, null);
   return fresh;
 }
 

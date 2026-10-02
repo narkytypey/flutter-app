@@ -123,6 +123,14 @@ class _RecordingSiteRepository implements SiteRepository {
 
   @override
   Future<void> touch(String id, DateTime at) async => touched.add(id);
+
+  /// `8b`'s "Last worked", by site id.
+  final worked = <String, DateTime?>{};
+
+  @override
+  Future<DateTime?> lastWorked(String id) async => worked[id];
+  @override
+  Future<void> setLastWorked(String id, DateTime? at) async => worked[id] = at;
 }
 
 /// Logs `keep` into the same list the repository logs its upserts to.
@@ -609,6 +617,233 @@ void main() {
     ));
     await tester.pumpAndSettle();
     expect(find.byType(ProxyUnreachableScreen), findsOneWidget);
+  });
+
+  // Spec 8b. Its three buttons once each popped the container's own context,
+  // gone by then because 8b replaced the route: tapping them did nothing.
+  // Seen on the emulator, 2026-10-02.
+  group('8b, a refused open', () {
+    Future<(FakeContainerEngine, _RecordingSiteRepository)> refuse(WidgetTester tester,
+        {List<Override> overrides = const []}) async {
+      final engine = FakeContainerEngine(proxyReachable: false);
+      final sites = _RecordingSiteRepository();
+      await _pump(tester, engine, _socksSite(),
+          sites: sites, overHome: true, overrides: overrides);
+      await tester.pumpAndSettle();
+      expect(find.byType(ProxyUnreachableScreen), findsOneWidget);
+      return (engine, sites);
+    }
+
+    testWidgets('Try again opens the site again', (tester) async {
+      final (engine, _) = await refuse(tester);
+
+      engine.proxyReachable = true;
+      await tester.tap(find.text('Try again'));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(ProxyUnreachableScreen), findsNothing);
+      expect(find.byType(ContainerWebView), findsOneWidget);
+      expect(engine.openedSites['s1']!.proxyMode, ProxyMode.socks5);
+    });
+
+    testWidgets('Try again that is refused again shows 8b again', (tester) async {
+      await refuse(tester);
+
+      await tester.tap(find.text('Try again'));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(ProxyUnreachableScreen), findsOneWidget);
+    });
+
+    testWidgets("Change proxy settings opens the site's form on its Network tab; "
+        'saving writes the site and opens it with the new settings', (tester) async {
+      final (engine, sites) = await refuse(tester);
+
+      await tester.tap(find.text('Change proxy settings'));
+      await tester.pumpAndSettle();
+      expect(find.byType(AddSiteScreen), findsOneWidget);
+      expect(find.byKey(const Key('proxy-enabled')), findsOneWidget);
+
+      await tester.tap(find.byKey(const Key('proxy-enabled'))); // proxy off: direct
+      await tester.pump();
+      await tester.tap(find.text('Save'));
+      await tester.pumpAndSettle();
+
+      expect(sites.upserts.single.proxyMode, ProxyMode.direct);
+      expect(engine.openedSites['s1']!.proxyMode, ProxyMode.direct);
+      expect(find.byType(AddSiteScreen), findsNothing);
+      expect(find.byType(ProxyUnreachableScreen), findsNothing);
+      expect(find.byType(ContainerWebView), findsOneWidget);
+    });
+
+    testWidgets('leaving the form without saving returns to 8b', (tester) async {
+      final (_, sites) = await refuse(tester);
+
+      await tester.tap(find.text('Change proxy settings'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('×'));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(ProxyUnreachableScreen), findsOneWidget);
+      expect(sites.upserts, isEmpty);
+    });
+
+    testWidgets('Open without the tunnel opens this visit direct and saves nothing',
+        (tester) async {
+      final (engine, sites) = await refuse(tester);
+
+      await tester.tap(find.text('Open without the tunnel'));
+      await tester.pumpAndSettle();
+
+      final opened = engine.openedSites['s1']!;
+      expect(opened.proxyMode, ProxyMode.direct);
+      expect(opened.proxyHost, isNull);
+      expect(opened.proxyPort, isNull);
+      expect(opened.profileId, _socksSite().profileId, reason: 'the site\'s own container');
+      expect(sites.upserts, isEmpty);
+      expect(find.byType(ProxyUnreachableScreen), findsNothing);
+      expect(find.text('SOCKS5'), findsNothing, reason: 'no route label on a direct visit');
+    });
+
+    testWidgets('a direct visit does not count as the tunnel working', (tester) async {
+      final (_, sites) = await refuse(tester);
+
+      await tester.tap(find.text('Open without the tunnel'));
+      await tester.pumpAndSettle();
+
+      expect(sites.worked['s1'], isNull);
+    });
+
+    testWidgets('a refused site stops reading as open, and its session is closed',
+        (tester) async {
+      final (engine, _) = await refuse(tester, overrides: [
+        openSiteIdsProvider.overrideWith((ref) => {'s1', 'other'}),
+      ]);
+
+      expect(engine.closed, contains('s1'));
+      final open = ProviderScope.containerOf(tester.element(find.byType(ProxyUnreachableScreen)))
+          .read(openSiteIdsProvider);
+      expect(open, {'other'});
+    });
+
+    testWidgets('trying again puts the site back under OPEN NOW', (tester) async {
+      final (engine, _) = await refuse(tester, overrides: [
+        openSiteIdsProvider.overrideWith((ref) => {'s1'}),
+      ]);
+
+      engine.proxyReachable = true;
+      await tester.tap(find.text('Try again'));
+      await tester.pumpAndSettle();
+
+      final open = ProviderScope.containerOf(tester.element(find.byType(ContainerRoute)))
+          .read(openSiteIdsProvider);
+      expect(open, {'s1'});
+    });
+
+    testWidgets('Last worked reads never on this device for a site that never worked',
+        (tester) async {
+      await refuse(tester);
+
+      expect(find.text('never on this device'), findsOneWidget);
+    });
+
+    testWidgets('Last worked reads how long ago the site last went live', (tester) async {
+      final engine = FakeContainerEngine(proxyReachable: false);
+      final sites = _RecordingSiteRepository()
+        ..worked['s1'] = DateTime.now().subtract(const Duration(hours: 2, minutes: 5));
+      await _pump(tester, engine, _socksSite(), sites: sites);
+      await tester.pumpAndSettle();
+
+      expect(find.text('2 hours ago'), findsOneWidget);
+    });
+
+    testWidgets('a throwaway refused and tried again is still a throwaway', (tester) async {
+      final engine = FakeContainerEngine(proxyReachable: false);
+      final throwaway = _throwaway().copyWith(
+          proxyMode: ProxyMode.socks5, proxyHost: '127.0.0.1', proxyPort: 9050);
+      await _pump(tester, engine, throwaway, throwaway: true, throwaways: [throwaway]);
+      await tester.pumpAndSettle();
+      expect(find.byType(ProxyUnreachableScreen), findsOneWidget);
+      expect(engine.closed, isEmpty, reason: 'a throwaway closes when it is left');
+
+      engine.proxyReachable = true;
+      engine.openedAsThrowaway.clear();
+      await tester.tap(find.text('Try again'));
+      await tester.pumpAndSettle();
+
+      expect(engine.openedAsThrowaway, {'t1'});
+      expect(_registry(tester).map((s) => s.id), ['t1']);
+    });
+
+    // As Edit on a throwaway does: its form saves it.
+    testWidgets("a throwaway's Change proxy settings saves it as a site, then opens it",
+        (tester) async {
+      final engine = FakeContainerEngine(proxyReachable: false);
+      final sites = _RecordingSiteRepository();
+      final throwaway = _throwaway().copyWith(
+          proxyMode: ProxyMode.socks5, proxyHost: '127.0.0.1', proxyPort: 9050);
+      await _pump(tester, engine, throwaway,
+          sites: sites, throwaway: true, throwaways: [throwaway]);
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Change proxy settings'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key('proxy-enabled')));
+      await tester.pump();
+      engine.openedAsThrowaway.clear();
+      await tester.tap(find.text('Save'));
+      await tester.pumpAndSettle();
+
+      expect(sites.upserts.single.id, 't1');
+      expect(sites.upserts.single.cookiePolicy, CookiePolicy.keep,
+          reason: 'as "Save as a site" starts it');
+      expect(engine.kept, ['t1']);
+      expect(_registry(tester), isEmpty);
+      expect(engine.openedAsThrowaway, isEmpty, reason: 'reopened as the saved site');
+      expect(engine.openedSites['t1']!.proxyMode, ProxyMode.direct);
+      expect(find.byType(ContainerWebView), findsOneWidget);
+    });
+
+    testWidgets("a throwaway typed during a direct visit keeps the site's own route",
+        (tester) async {
+      await refuse(tester);
+      await tester.tap(find.text('Open without the tunnel'));
+      await tester.pumpAndSettle();
+
+      await _typeAddress(tester, 'news.example.org');
+
+      expect(find.textContaining('THROWAWAY · SOCKS5'), findsWidgets);
+    });
+  });
+
+  testWidgets('a site that goes live records when it last worked', (tester) async {
+    final engine = FakeContainerEngine(opensLive: false);
+    final sites = _RecordingSiteRepository();
+    await _pump(tester, engine, _site(), sites: sites);
+    await tester.pumpAndSettle();
+    expect(sites.worked['s1'], isNull, reason: 'not before the first load');
+
+    engine.markLive('s1');
+    await tester.pumpAndSettle();
+
+    expect(sites.worked['s1'], isNotNull);
+  });
+
+  testWidgets('a site already live when its open returns records it too', (tester) async {
+    final sites = _RecordingSiteRepository();
+    await _pump(tester, FakeContainerEngine(), _site(), sites: sites);
+    await tester.pumpAndSettle();
+
+    expect(sites.worked['s1'], isNotNull);
+  });
+
+  testWidgets('a throwaway records nothing in the vault', (tester) async {
+    final sites = _RecordingSiteRepository();
+    await _pump(tester, FakeContainerEngine(), _throwaway(),
+        sites: sites, throwaway: true, throwaways: [_throwaway()]);
+    await tester.pumpAndSettle();
+
+    expect(sites.worked, isEmpty);
   });
 
   testWidgets('a tunnel_dropped event overlays TunnelDroppedScreen on the still-live page', (tester) async {

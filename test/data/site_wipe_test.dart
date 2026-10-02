@@ -85,6 +85,15 @@ void main() {
       expect((await scripts.byId('sc-1'))!.appliedSiteIds, ['st-forum']);
     });
 
+    // `8b`'s "Last worked" belongs to the data the wipe destroys.
+    test('forgets when the site last worked', () async {
+      await sites.setLastWorked('st-forum', DateTime.utc(2026, 10, 2, 12));
+
+      await wipeSavedSite(engine: engine, sites: sites, site: forum);
+
+      expect(await sites.lastWorked('st-forum'), isNull);
+    });
+
     test('writes the latest row it is given, not a stale one', () async {
       final edited = forum.copyWith(name: 'Forum (edited)');
       await sites.upsert(edited);

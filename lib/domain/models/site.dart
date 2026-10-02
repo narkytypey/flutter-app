@@ -156,6 +156,36 @@ class Site {
     );
   }
 
+  /// This site on the direct route, with no proxy and no login, for one
+  /// visit: `8b`'s "Open without the tunnel". It keeps its id and profile, so
+  /// the visit is in the site's own container. It is never saved.
+  Site withoutProxy() => Site(
+        id: id,
+        workspaceId: workspaceId,
+        name: name,
+        monogram: monogram,
+        url: url,
+        profileId: profileId,
+        blockWebRtc: blockWebRtc,
+        blockTrackers: blockTrackers,
+        antiFingerprinting: antiFingerprinting,
+        allowCamera: allowCamera,
+        allowMicrophone: allowMicrophone,
+        allowLocation: allowLocation,
+        allowClipboard: allowClipboard,
+        userAgentMode: userAgentMode,
+        forceDark: forceDark,
+        openInReader: openInReader,
+        pageZoom: pageZoom,
+        customCss: customCss,
+        customJs: customJs,
+        cookiePolicy: cookiePolicy,
+        requirePin: requirePin,
+        showInDecoy: showInDecoy,
+        lastVisitedAt: lastVisitedAt,
+        sortIndex: sortIndex,
+      );
+
   /// Identity-only equality: two [Site]s are equal iff their ids are equal.
   /// This is deliberate — [Site] is an entity with a stable id. As a
   /// consequence, after [touch] updates [lastVisitedAt], the new [Site]

@@ -17,6 +17,13 @@ abstract interface class SiteRepository {
 
   /// Records that a site was just opened, which drives its dashboard age.
   Future<void> touch(String id, DateTime at);
+
+  /// When [id] last went live on its own route, for `8b`'s "Last worked";
+  /// null if never, or since its data was last wiped.
+  Future<DateTime?> lastWorked(String id);
+
+  /// Records [at] as [id]'s last-worked time; null clears it.
+  Future<void> setLastWorked(String id, DateTime? at);
 }
 
 abstract interface class SettingsRepository {

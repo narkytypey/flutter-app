@@ -31,4 +31,27 @@ void main() {
   test('a clock that has gone backwards does not produce a negative age', () {
     expect(relativeAge(now, now.add(const Duration(hours: 3))), 'now');
   });
+
+  group('lastWorkedLabel (spec 8b: "2 hours ago")', () {
+    String worked(Duration d) => lastWorkedLabel(now, now.subtract(d));
+
+    test('a site that never worked says so', () {
+      expect(lastWorkedLabel(now, null), 'never on this device');
+    });
+
+    test('under a minute, and a clock gone backwards, read as just now', () {
+      expect(worked(const Duration(seconds: 59)), 'just now');
+      expect(lastWorkedLabel(now, now.add(const Duration(hours: 3))), 'just now');
+    });
+
+    test('minutes, hours and days are spelled out, singular for one', () {
+      expect(worked(const Duration(minutes: 1)), '1 minute ago');
+      expect(worked(const Duration(minutes: 14)), '14 minutes ago');
+      expect(worked(const Duration(hours: 1)), '1 hour ago');
+      expect(worked(const Duration(hours: 2)), '2 hours ago');
+      expect(worked(const Duration(hours: 23, minutes: 59)), '23 hours ago');
+      expect(worked(const Duration(days: 1)), '1 day ago');
+      expect(worked(const Duration(days: 40)), '40 days ago');
+    });
+  });
 }

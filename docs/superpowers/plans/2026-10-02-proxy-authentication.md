@@ -1918,6 +1918,21 @@ Found along the way, none from this plan:
 - **A refused site stays under OPEN NOW** and in `N SESSIONS`, and `2c`'s "Close all and wipe" leaves it there. Reopening it opens a fresh session normally.
 - **`8b` always reads "Last worked · never on this device"**: `_handleRefusal` passes the literal, even for a site that loaded minutes before.
 
+**✅ All three fixed 2026-10-02 (branch `fix-8b`), by the user's rulings of that day:**
+
+- `8b` is shown inside `ContainerRoute` instead of replacing it, so the route and its context outlive the refusal, and a throwaway stays one (its pusher forgets it once its route is gone). The buttons reopen the site in place (`_reopen`):
+  - **Try again** opens the site again as saved.
+  - **Change proxy settings** opens the site's form on its Network tab (`AddSiteScreen.initialTab`). Saving writes the site and opens it again as saved. For a throwaway, saving saves it as a site, from the same starting point as "Save as a site". × returns to `8b`.
+  - **Open without the tunnel** opens this visit only on the direct route, in the site's own profile (`Site.withoutProxy`). The saved site keeps its proxy. The pill has no route label, and a throwaway typed during the visit still inherits the site's saved route.
+- A refused saved site is taken off OPEN NOW (`closeSite`), and its dead native session is closed. A refused throwaway's session stays until its route goes.
+- **Last worked** is a `sites.last_worked_at` column (schema 8). It is not a `Site` field, so an edit never overwrites it and a decoy sync never copies it. It is set when an open goes live on the site's own route (a direct visit does not count), cleared by `wipeSavedSite`, and shown as "2 hours ago", "1 minute ago" or "just now" (`lastWorkedLabel`). A throwaway's is remembered by its route only.
+- Tests: `last_worked_test.dart` 4, `site_without_proxy_test.dart` 1, `relative_age_test.dart` +3, `site_wipe_test.dart` +1, and `container_route_test.dart` +16 (the `8b` group, and when a site records that it worked). Gates: `flutter analyze` clean, `flutter test` 662/662, `flutter build apk --debug` succeeding (no Kotlin changed).
+- **Seen on the emulator** (fresh install, so the v7→v8 migration ran only in the unit test):
+  - "never on this device" for a site that never loaded, and Try again with the proxy up went live.
+  - A later refusal read "Last worked · 1 minute ago", and the dashboard showed the site under IDLE with `0 SESSIONS`.
+  - Change proxy settings opened on Network: × returned to `8b`, and saving port 1080 went live through the proxy.
+  - Open without the tunnel loaded `example.com` with no route label and nothing at the proxy, and the row still read `socks5`. The next tunnelled refusal still read "1 minute ago", not "just now".
+
 ## Known gaps
 
 - **Device-verified on an emulator only** (see Device checks), not a physical phone, and never against a real-world proxy or Tor: every check talked to `tool/device-check/proxy.py`.

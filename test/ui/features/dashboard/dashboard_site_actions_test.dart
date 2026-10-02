@@ -56,6 +56,10 @@ class _Sites implements SiteRepository {
   Future<List<Site>> inWorkspace(String workspaceId) async => const [_forum];
   @override
   Future<void> touch(String id, DateTime at) async {}
+  @override
+  Future<DateTime?> lastWorked(String id) async => null;
+  @override
+  Future<void> setLastWorked(String id, DateTime? at) async {}
 }
 
 Future<ProviderContainer> _pump(WidgetTester tester, _Engine engine, _Sites sites,

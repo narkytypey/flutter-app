@@ -14,6 +14,7 @@ import '../../../../domain/models/engine_events.dart';
 import '../../../../domain/models/find_result.dart';
 import '../../../../domain/models/monogram_suggestion.dart';
 import '../../../../domain/models/open_step.dart';
+import '../../../../domain/models/relative_age.dart';
 import '../../../../domain/models/route_failure_copy.dart';
 import '../../../../domain/models/route_decision.dart' show refusalMessage;
 import '../../../../domain/models/search_engine.dart';
@@ -100,7 +101,6 @@ class _ContainerRouteState extends ConsumerState<ContainerRoute> {
   /// Whether this site is a throwaway right now: on `throwawaySitesProvider`,
   /// read at every build.
   bool _isThrowaway = false;
-  bool _opened = false;
 
   /// Whether this route's own `open` has returned. Until then, any session
   /// the site has is the one a previous visit left open, registered with the
@@ -110,8 +110,28 @@ class _ContainerRouteState extends ConsumerState<ContainerRoute> {
   /// out direct) and leave this route waiting on a new session that the view
   /// never reports `live` to.
   bool _openReturned = false;
-  bool _refusalHandled = false;
   bool _tunnelDropped = false;
+
+  /// The site as this route last opened it: [ContainerRoute.site] at first,
+  /// then whatever `8b` reopened it with — the saved site, the site as just
+  /// edited, or [Site.withoutProxy] for "Open without the tunnel". What the
+  /// session runs under, so the chrome describes this, not [_site].
+  late Site _opened = widget.site;
+
+  /// Whether [_opened] is `8b`'s direct visit. It never counts as the route
+  /// working, and a throwaway typed here keeps the site's own route.
+  bool _withoutTunnel = false;
+
+  /// Spec `8b`: why this route's open was refused, and when the site last
+  /// worked. Shown in place of the container until a reopen clears it. Held
+  /// here rather than read from the session, which is closed once refused.
+  ({RouteFailure failure, DateTime? lastWorked})? _refusal;
+  bool _refusalSeen = false;
+
+  /// When this route's current open went live on its route; recorded once
+  /// per open.
+  DateTime? _workedAt;
+  bool _workedRecorded = false;
 
   /// Whether the page has finished a load since this route opened. A
   /// throwaway's save bar waits for it (spec §5.3).
@@ -135,10 +155,15 @@ class _ContainerRouteState extends ConsumerState<ContainerRoute> {
   /// takes effect the next time this site is opened.
   late Site _site = widget.site;
 
-  String get _host => Uri.tryParse(widget.site.url)?.host ?? widget.site.url;
+  String get _host => Uri.tryParse(_opened.url)?.host ?? _opened.url;
 
   /// What this container opened: the typed address, or the stored one.
-  String get _openedUrl => widget.initialUrl ?? widget.site.url;
+  String get _openedUrl => widget.initialUrl ?? _opened.url;
+
+  /// The site whose route this container stands for, which a throwaway typed
+  /// here inherits: the site as opened, or, on a direct visit, as saved — the
+  /// user chose to go without the tunnel for this site only.
+  Site get _routeSite => _withoutTunnel ? _site : _opened;
 
   @override
   void initState() {
@@ -169,20 +194,57 @@ class _ContainerRouteState extends ConsumerState<ContainerRoute> {
     _open();
   }
 
+  /// Opens [_opened]: once from [initState], and again for each of `8b`'s
+  /// reopens (see [_reopen]).
   Future<void> _open() async {
-    if (_opened) return;
-    _opened = true;
+    final site = _opened;
     // Read before opening, and a failure here stops the open: a site is
     // never opened without the lists and scripts its vault says it gets.
     // The session keeps the stored address; a typed one is only the first
     // load, so the site's script scope and prompts never move to it.
-    final extras = await ref.read(engineExtrasBuilderProvider)(widget.site);
+    final extras = await ref.read(engineExtrasBuilderProvider)(site);
     if (!mounted) return;
+    final ContainerSession session;
     try {
-      await _engine.open(widget.site,
-          extras: extras, throwaway: widget.throwaway, initialUrl: widget.initialUrl);
+      // [_closeOnDispose]: still a throwaway, not saved as a site since.
+      session = await _engine.open(site,
+          extras: extras, throwaway: _closeOnDispose, initialUrl: widget.initialUrl);
     } finally {
       if (mounted) setState(() => _openReturned = true);
+    }
+    // A session can be live before its open returns, and the listener in
+    // [build] only counts one seen after.
+    if (mounted && session.phase == SessionPhase.live) _recordWorked();
+  }
+
+  /// `8b`'s three ways out: [site] opened again, in place, with this route's
+  /// state back to a fresh open's. In place rather than as a new route, so a
+  /// throwaway stays one: its pusher forgets it once its route is gone.
+  void _reopen(Site site, {bool withoutTunnel = false}) {
+    setState(() {
+      _opened = site;
+      _withoutTunnel = withoutTunnel;
+      _refusal = null;
+      _refusalSeen = false;
+      _openReturned = false;
+      _workedRecorded = false;
+      _tunnelDropped = false;
+    });
+    // As the dashboard opens a site: the refusal took it off OPEN NOW.
+    if (!_isThrowaway) openSite(ref, widget.site.id);
+    _open();
+  }
+
+  /// Records that this open went live on its route, for `8b`'s "Last
+  /// worked". A direct visit is not the route working. A throwaway has no
+  /// row, so only this route remembers it.
+  void _recordWorked() {
+    if (_workedRecorded || _withoutTunnel) return;
+    _workedRecorded = true;
+    final at = DateTime.now();
+    _workedAt = at;
+    if (!_isThrowaway) {
+      unawaited(ref.read(siteRepositoryProvider).setLastWorked(widget.site.id, at));
     }
   }
 
@@ -321,6 +383,35 @@ class _ContainerRouteState extends ConsumerState<ContainerRoute> {
     );
   }
 
+  /// `8b`'s "Change proxy settings": the site's form, on its Network tab.
+  /// Saving writes the site — or saves a throwaway as one, as Edit does — and
+  /// opens it again as saved. Leaving the form without saving comes back to
+  /// `8b`.
+  Future<void> _changeProxySettings() async {
+    final workspaces = await ref.read(workspacesProvider.future);
+    if (!mounted) return;
+    final throwaway = _isThrowaway;
+    await Navigator.push(context, MaterialPageRoute<void>(
+      builder: (_) => AddSiteScreen(
+        initial: throwaway ? _throwawayAsSite() : _site,
+        workspaces: workspaces,
+        initialTab: 1,
+        onSave: (updated) async {
+          if (throwaway) {
+            await _keepAsSite(updated);
+          } else {
+            await ref.read(siteRepositoryProvider).upsert(updated);
+            if (mounted) sitesChanged(ref);
+          }
+          if (!mounted) return;
+          setState(() => _site = updated);
+          Navigator.pop(context);
+          _reopen(updated);
+        },
+      ),
+    ));
+  }
+
   Future<void> _editSite() async {
     final workspaces = await ref.read(workspacesProvider.future);
     if (!mounted) return;
@@ -348,6 +439,23 @@ class _ContainerRouteState extends ConsumerState<ContainerRoute> {
   Future<void> _saveAsSite() async {
     final workspaces = await ref.read(workspacesProvider.future);
     if (!mounted) return;
+    await Navigator.push(context, MaterialPageRoute<void>(
+      builder: (_) => AddSiteScreen(
+        initial: _throwawayAsSite(),
+        workspaces: workspaces,
+        onSave: (site) async {
+          await _keepAsSite(site);
+          if (!mounted) return;
+          setState(() => _site = site);
+          Navigator.pop(context);
+        },
+      ),
+    ));
+  }
+
+  /// What the form for saving this throwaway opens on: the page it is
+  /// showing, cookies kept.
+  Site _throwawayAsSite() {
     final navigation = ref.read(navigationForSiteProvider(widget.site.id)).valueOrNull;
     final url = navigation?.url ?? _openedUrl;
     // A throwaway that has moved to another site is saved as that site, not
@@ -355,28 +463,22 @@ class _ContainerRouteState extends ConsumerState<ContainerRoute> {
     final host = Uri.tryParse(url)?.host ?? '';
     final moved = host.isNotEmpty &&
         normalizeHost(host) != normalizeHost(Uri.tryParse(_site.url)?.host ?? '');
-    final initial = _site.copyWith(
+    return _site.copyWith(
       url: url,
       name: moved ? host : _site.name,
       monogram: moved ? suggestMonogram(host) : _site.monogram,
       cookiePolicy: CookiePolicy.keep,
     );
-    await Navigator.push(context, MaterialPageRoute<void>(
-      builder: (_) => AddSiteScreen(
-        initial: initial,
-        workspaces: workspaces,
-        onSave: (site) async {
-          await ref.read(siteRepositoryProvider).upsert(site);
-          if (site.cookiePolicy != CookiePolicy.wipeOnExit) await _engine.keep(site.id);
-          if (!mounted) return;
-          _closeOnDispose = false;
-          ref.read(throwawaySitesProvider.notifier).remove(site.id);
-          sitesChanged(ref);
-          setState(() => _site = site);
-          Navigator.pop(context);
-        },
-      ),
-    ));
+  }
+
+  /// A throwaway saved as [site]: the row first, then its profile kept.
+  Future<void> _keepAsSite(Site site) async {
+    await ref.read(siteRepositoryProvider).upsert(site);
+    if (site.cookiePolicy != CookiePolicy.wipeOnExit) await _engine.keep(site.id);
+    if (!mounted) return;
+    _closeOnDispose = false;
+    ref.read(throwawaySitesProvider.notifier).remove(site.id);
+    sitesChanged(ref);
   }
 
   /// `6c`'s "Close and wipe this session", `2c`'s "Close all and wipe" and
@@ -464,7 +566,7 @@ class _ContainerRouteState extends ConsumerState<ContainerRoute> {
   Future<void> _openDestination(Destination suggested) async {
     final saved = await ref.read(siteRepositoryProvider).all();
     if (!mounted) return;
-    final destination = destinationFor(suggested.url, current: widget.site, saved: saved);
+    final destination = destinationFor(suggested.url, current: _routeSite, saved: saved);
     switch (destination) {
       case ThisContainer(:final url):
         await _engine.loadUrl(widget.site.id, url.toString());
@@ -488,7 +590,7 @@ class _ContainerRouteState extends ConsumerState<ContainerRoute> {
       case final Throwaway target:
         final throwaway = buildThrowaway(
           destination: target,
-          current: widget.site,
+          current: _routeSite,
           newId: newProfileId,
         );
         ref.read(throwawaySitesProvider.notifier).add(throwaway);
@@ -501,26 +603,44 @@ class _ContainerRouteState extends ConsumerState<ContainerRoute> {
     }
   }
 
+  /// A refused open: spec `8b`, shown in place of the container. It once
+  /// replaced this route, which left its buttons popping a context that was
+  /// gone. A saved site's dead session is closed and taken off OPEN NOW; it
+  /// read as open until the next lock. A throwaway's stays until its route
+  /// goes, which closes it and wipes its profile, since `8b` can still save
+  /// it as a site.
   void _handleRefusal(ContainerSession session) {
-    if (_refusalHandled) return;
-    _refusalHandled = true;
-    WidgetsBinding.instance.addPostFrameCallback((_) {
+    if (_refusalSeen) return;
+    _refusalSeen = true;
+    final failure = session.failure ?? RouteFailure.misconfigured;
+    final throwaway = _isThrowaway;
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
       if (!mounted) return;
-      Navigator.pushReplacement(context, MaterialPageRoute(
-        builder: (_) => ProxyUnreachableScreen(
-          host: _host,
-          siteName: widget.site.name,
-          failure: session.failure ?? RouteFailure.misconfigured,
-          tunnelDescriptor: widget.site.proxyHost == null
-              ? 'no proxy'
-              : '${widget.site.proxyMode.name} · ${widget.site.proxyHost}:${widget.site.proxyPort}',
-          lastWorkedLabel: 'never on this device',
-          onTryAgain: () => Navigator.pop(context),
-          onChangeProxySettings: () => Navigator.pop(context),
-          onOpenWithoutTunnel: () => Navigator.pop(context),
-        ),
-      ));
+      final lastWorked = throwaway
+          ? _workedAt
+          : await ref.read(siteRepositoryProvider).lastWorked(widget.site.id);
+      if (!mounted) return;
+      setState(() => _refusal = (failure: failure, lastWorked: lastWorked));
+      if (throwaway) return;
+      closeSite(ref, widget.site.id);
+      unawaited(_engine.close(widget.site.id));
     });
+  }
+
+  Widget _refusalScreen(({RouteFailure failure, DateTime? lastWorked}) refusal) {
+    return ProxyUnreachableScreen(
+      host: _host,
+      siteName: _opened.name,
+      failure: refusal.failure,
+      tunnelDescriptor: _opened.proxyHost == null
+          ? 'no proxy'
+          : '${_opened.proxyMode.name} · ${_opened.proxyHost}:${_opened.proxyPort}',
+      lastWorkedLabel: lastWorkedLabel(DateTime.now(), refusal.lastWorked),
+      // Through the tunnel again, as the site is saved now.
+      onTryAgain: () => _reopen(_site),
+      onChangeProxySettings: _changeProxySettings,
+      onOpenWithoutTunnel: () => _reopen(_site.withoutProxy(), withoutTunnel: true),
+    );
   }
 
   @override
@@ -537,19 +657,26 @@ class _ContainerRouteState extends ConsumerState<ContainerRoute> {
         ref.watch(searchEngineProvider).valueOrNull ?? SearchEngine.duckDuckGo;
     // Spec §5.3: a throwaway offers the save bar once its first load has
     // finished.
+    // Live once this route's own open has returned: never a previous visit's
+    // session (see [_openReturned]).
+    ref.listen(sessionForSiteProvider(widget.site.id), (_, next) {
+      if (_openReturned && next.valueOrNull?.phase == SessionPhase.live) _recordWorked();
+    });
     ref.listen(navigationForSiteProvider(widget.site.id), (_, next) {
       if (!_loadedOnce && next.valueOrNull?.loading == false) {
         setState(() => _loadedOnce = true);
       }
     });
+    final refusal = _refusal;
+    if (refusal != null) return _refusalScreen(refusal);
 
     return sessionAsync.when(
       loading: () => OpeningBody(
-        host: _host, steps: openStepsFor(widget.site), progress: 0.2,
+        host: _host, steps: openStepsFor(_opened), progress: 0.2,
         onCancel: () => Navigator.pop(context),
       ),
       error: (_, __) => OpeningBody(
-        host: _host, steps: openStepsFor(widget.site), progress: 0,
+        host: _host, steps: openStepsFor(_opened), progress: 0,
         onCancel: () => Navigator.pop(context),
       ),
       data: (session) {
@@ -561,7 +688,7 @@ class _ContainerRouteState extends ConsumerState<ContainerRoute> {
         // [_openReturned].
         if (session == null || !_openReturned) {
           return OpeningBody(
-            host: _host, steps: openStepsFor(widget.site), progress: 0.6,
+            host: _host, steps: openStepsFor(_opened), progress: 0.6,
             onCancel: () => Navigator.pop(context),
           );
         }
@@ -577,18 +704,18 @@ class _ContainerRouteState extends ConsumerState<ContainerRoute> {
             // and whenever the page has none (`about:blank`, a failed load).
             host: pageHost.isEmpty ? _host : pageHost,
             // There is no DIRECT label (spec §4.4).
-            routeLabel: widget.site.proxyMode == ProxyMode.direct
+            routeLabel: _opened.proxyMode == ProxyMode.direct
                 ? ''
-                : widget.site.proxyMode.name.toUpperCase(),
+                : _opened.proxyMode.name.toUpperCase(),
             live: session.phase == SessionPhase.live,
             navigation: navigation,
             openCount: 1,
             body: ContainerWebView(siteId: widget.site.id),
             entries: [
               SwitcherEntry(
-                siteId: widget.site.id, name: widget.site.name,
-                monogram: widget.site.monogram,
-                meta: 'viewing now · ${widget.site.proxyMode.name}',
+                siteId: widget.site.id, name: _opened.name,
+                monogram: _opened.monogram,
+                meta: 'viewing now · ${_opened.proxyMode.name}',
                 live: true,
               ),
             ],
@@ -604,7 +731,7 @@ class _ContainerRouteState extends ConsumerState<ContainerRoute> {
             // is "this container", its route the one a throwaway inherits.
             suggest: (text) => suggestionsFor(
               text: text,
-              current: widget.site,
+              current: _routeSite,
               saved: saved,
               workspaces: workspaces,
               engine: searchEngine,
@@ -665,7 +792,7 @@ class _ContainerRouteState extends ConsumerState<ContainerRoute> {
           if (session.phase == SessionPhase.opening)
             Positioned.fill(
               child: OpeningBody(
-                host: _host, steps: openStepsFor(widget.site), progress: 0.6,
+                host: _host, steps: openStepsFor(_opened), progress: 0.6,
                 onCancel: () => Navigator.pop(context),
               ),
             ),
