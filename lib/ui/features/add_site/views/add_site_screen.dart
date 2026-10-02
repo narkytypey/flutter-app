@@ -38,6 +38,9 @@ class _AddSiteScreenState extends State<AddSiteScreen> {
       TextEditingController(text: widget.initial?.proxyHost ?? '127.0.0.1');
   late final _portController =
       TextEditingController(text: (widget.initial?.proxyPort ?? 9050).toString());
+  late final _userController = TextEditingController(text: widget.initial?.proxyUser ?? '');
+  late final _passwordController =
+      TextEditingController(text: widget.initial?.proxyPassword ?? '');
   late final _cssController = TextEditingController(text: widget.initial?.customCss ?? '');
   late final _jsController = TextEditingController(text: widget.initial?.customJs ?? '');
 
@@ -48,6 +51,7 @@ class _AddSiteScreenState extends State<AddSiteScreen> {
   late bool _proxyEnabled = (widget.initial?.proxyMode ?? ProxyMode.direct) != ProxyMode.direct;
   late ProxyMode _proxyMode =
       widget.initial?.proxyMode == ProxyMode.http ? ProxyMode.http : ProxyMode.socks5;
+  late bool _loginPerSite = widget.initial?.proxyLoginPerSite ?? false;
   late bool _blockWebRtc = widget.initial?.blockWebRtc ?? true;
   late bool _blockTrackers = widget.initial?.blockTrackers ?? true;
   late bool _allowCamera = widget.initial?.allowCamera ?? false;
@@ -68,6 +72,8 @@ class _AddSiteScreenState extends State<AddSiteScreen> {
     _nameController.dispose();
     _hostController.dispose();
     _portController.dispose();
+    _userController.dispose();
+    _passwordController.dispose();
     _cssController.dispose();
     _jsController.dispose();
     super.dispose();
@@ -101,6 +107,9 @@ class _AddSiteScreenState extends State<AddSiteScreen> {
       proxyMode: _proxyEnabled ? _proxyMode : ProxyMode.direct,
       proxyHost: _proxyEnabled ? _hostController.text : null,
       proxyPort: _proxyEnabled ? int.tryParse(_portController.text) : null,
+      proxyUser: _userController.text,
+      proxyPassword: _passwordController.text,
+      proxyLoginPerSite: _loginPerSite,
       blockWebRtc: _blockWebRtc,
       blockTrackers: _blockTrackers,
       antiFingerprinting: _antiFingerprinting,
@@ -210,6 +219,10 @@ class _AddSiteScreenState extends State<AddSiteScreen> {
           onProxyModeChanged: (v) => setState(() => _proxyMode = v),
           hostController: _hostController,
           portController: _portController,
+          loginPerSite: _loginPerSite,
+          onLoginPerSiteChanged: (v) => setState(() => _loginPerSite = v),
+          userController: _userController,
+          passwordController: _passwordController,
           blockWebRtc: _blockWebRtc,
           onBlockWebRtcChanged: (v) => setState(() => _blockWebRtc = v),
           blockTrackers: _blockTrackers,

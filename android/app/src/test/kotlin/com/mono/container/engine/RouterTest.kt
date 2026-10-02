@@ -232,4 +232,30 @@ class RouterTest {
             }
         }
     }
+
+    @Test fun `a proxied route carries the site's login`() {
+        val typed = ProxyLogin("alice", "s3cret")
+        for (mode in listOf("socks5", "http")) {
+            val route = Router.resolve(config(mode = mode).copy(proxyLogin = typed), proxyReachable = true) as Route.Proxy
+            assertEquals(typed, route.login)
+        }
+    }
+
+    /** Ruling 7: the automatic login applies to HTTP proxies as well as SOCKS5. */
+    @Test fun `a per-site route carries the login derived from its profile`() {
+        for (mode in listOf("socks5", "http")) {
+            val route = Router.resolve(config(mode = mode).copy(proxyLoginPerSite = true), proxyReachable = true) as Route.Proxy
+            assertEquals(perSiteLogin("a".repeat(32)), route.login)
+        }
+    }
+
+    @Test fun `a proxied route with no login carries none`() {
+        assertNull((Router.resolve(config(), proxyReachable = true) as Route.Proxy).login)
+    }
+
+    /** Spec §2.1: a direct route never carries a login. */
+    @Test fun `a direct site with a login still routes direct`() {
+        val config = config(mode = "direct").copy(proxyLogin = ProxyLogin("alice", "s3cret"), proxyLoginPerSite = true)
+        assertEquals(Route.Direct, Router.resolve(config, proxyReachable = true))
+    }
 }

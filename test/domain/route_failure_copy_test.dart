@@ -57,4 +57,14 @@ void main() {
       isNull,
     );
   });
+
+  test('a rejected login has its own headline and the generic sentence', () {
+    expect(proxyFailureHeadline(RouteFailure.proxyLoginRejected), 'The proxy rejected the login');
+    expect(
+      proxyFailureDetail(RouteFailure.proxyLoginRejected,
+          siteName: 'Forum', tunnelDescriptor: 'socks5 · 127.0.0.1:9050'),
+      'Forum is set to go through socks5 · 127.0.0.1:9050, which did not complete '
+      'the connection. The page was not loaded, so no request left your device.',
+    );
+  });
 }

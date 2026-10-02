@@ -32,6 +32,7 @@ RouteFailure? _failure(String? name) => switch (name) {
       'tlsFailure' => RouteFailure.tlsFailure,
       'misconfigured' => RouteFailure.misconfigured,
       'unsupported' => RouteFailure.unsupported,
+      'proxyLoginRejected' => RouteFailure.proxyLoginRejected,
       _ => null,
     };
 
@@ -186,6 +187,9 @@ class ChannelContainerEngine implements ContainerEngine {
       'proxyMode': site.proxyMode.name,
       'proxyHost': site.proxyHost,
       'proxyPort': site.proxyPort,
+      'proxyUser': site.proxyUser,
+      'proxyPassword': site.proxyPassword,
+      'proxyLoginPerSite': site.proxyLoginPerSite,
       'blockWebRtc': site.blockWebRtc,
       'blockTrackers': site.blockTrackers,
       'antiFingerprinting': site.antiFingerprinting,

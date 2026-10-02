@@ -34,6 +34,9 @@ class Site {
     this.proxyMode = ProxyMode.direct,
     this.proxyHost,
     this.proxyPort,
+    this.proxyUser,
+    this.proxyPassword,
+    this.proxyLoginPerSite = false,
     this.requirePin = false,
     this.showInDecoy = false,
     this.lastVisitedAt,
@@ -70,6 +73,16 @@ class Site {
   final ProxyMode proxyMode;
   final String? proxyHost;
   final int? proxyPort;
+
+  /// The login typed for this site's proxy (proxy-auth spec §1). Both are null
+  /// unless the proxy is on, [proxyLoginPerSite] is off and a user was typed
+  /// (ruling 8). The password is kept exactly as typed, in the encrypted vault.
+  final String? proxyUser;
+  final String? proxyPassword;
+
+  /// Use a login derived from [profileId] instead (spec §2.3): Tor then gives
+  /// this site its own circuit, and a wipe gives it a new one.
+  final bool proxyLoginPerSite;
   final bool requirePin;
   final bool showInDecoy;
   final DateTime? lastVisitedAt;
@@ -101,6 +114,9 @@ class Site {
     ProxyMode? proxyMode,
     String? proxyHost,
     int? proxyPort,
+    String? proxyUser,
+    String? proxyPassword,
+    bool? proxyLoginPerSite,
     bool? requirePin,
     bool? showInDecoy,
     DateTime? lastVisitedAt,
@@ -130,6 +146,9 @@ class Site {
       proxyMode: proxyMode ?? this.proxyMode,
       proxyHost: proxyHost ?? this.proxyHost,
       proxyPort: proxyPort ?? this.proxyPort,
+      proxyUser: proxyUser ?? this.proxyUser,
+      proxyPassword: proxyPassword ?? this.proxyPassword,
+      proxyLoginPerSite: proxyLoginPerSite ?? this.proxyLoginPerSite,
       requirePin: requirePin ?? this.requirePin,
       showInDecoy: showInDecoy ?? this.showInDecoy,
       lastVisitedAt: lastVisitedAt ?? this.lastVisitedAt,

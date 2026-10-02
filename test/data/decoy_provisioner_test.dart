@@ -86,6 +86,24 @@ void main() {
   });
 
   group('resyncDecoy', () {
+    test('copies a site\'s proxy login, and the per-site choice on its own profile',
+        () async {
+      final sites = SqliteSiteRepository(real);
+      final news = (await sites.byId('s1'))!;
+      await sites.upsert(news.copyWith(
+          proxyMode: ProxyMode.socks5, proxyHost: '127.0.0.1', proxyPort: 9050,
+          proxyUser: 'alice', proxyPassword: 's3cret', proxyLoginPerSite: true));
+
+      await resyncDecoy(from: real, into: decoy);
+
+      final copy = (await SqliteSiteRepository(decoy).byId('s1'))!;
+      expect(copy.proxyUser, 'alice');
+      expect(copy.proxyPassword, 's3cret');
+      expect(copy.proxyLoginPerSite, isTrue);
+      expect(copy.profileId, isNot(news.profileId),
+          reason: 'so its derived login differs from the real vault\'s');
+    });
+
     test('adds a newly flagged site with a fresh profileId', () async {
       final copied = await resyncDecoy(from: real, into: decoy);
 

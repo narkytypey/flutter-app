@@ -30,6 +30,10 @@ data class SiteConfig(
     val filterRules: Map<String, List<String>> = emptyMap(),
     /** The library scripts applied to this site, in library order. */
     val userScripts: List<InjectedScript> = emptyList(),
+    /** The login typed for this site's proxy, or null. Redacted when printed. */
+    val proxyLogin: ProxyLogin? = null,
+    /** Use [perSiteLogin] instead of [proxyLogin] (spec §2.1). */
+    val proxyLoginPerSite: Boolean = false,
 )
 
 /** One library script as Dart sends it: `kind` is `css` or `js`. */

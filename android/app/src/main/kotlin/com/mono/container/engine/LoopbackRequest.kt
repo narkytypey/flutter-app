@@ -205,3 +205,12 @@ internal val CONNECTION_ESTABLISHED: ByteArray =
  * main frame from a subresource (plan deviation 1).
  */
 internal fun upstreamFailureStatus(error: Throwable): Int = if (error is SocketTimeoutException) 504 else 502
+
+/**
+ * The failure a failed upstream connection reports to its site, or null.
+ * Only a rejected login on a proxied route: it is the route's fault, not one
+ * destination's, so every request on it would fail the same way (proxy-auth
+ * spec §3). Every other failure stays unreported (plan deviation 1).
+ */
+internal fun reportedUpstreamFailure(error: Throwable, route: Route): RouteFailure? =
+    if (error is ProxyLoginRejectedException && route is Route.Proxy) RouteFailure.PROXY_LOGIN_REJECTED else null

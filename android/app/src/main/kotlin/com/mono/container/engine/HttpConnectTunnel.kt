@@ -4,11 +4,12 @@ import java.io.IOException
 import java.io.InputStream
 import java.net.InetSocketAddress
 import java.net.Socket
+import java.util.Base64
 
 /**
- * Raised when a proxy answers CONNECT with anything other than 2xx — a 407
- * wanting credentials, a 403 refusing the destination, a 502 failing to reach
- * it. Carries [statusCode] so callers can tell those apart if they ever need
+ * Raised when a proxy answers CONNECT with anything other than 2xx — a 403
+ * refusing the destination, a 502 failing to reach it. A `407` is a
+ * [ProxyLoginRejectedException] instead. Carries [statusCode] so callers can tell those apart if they ever need
  * to; today they all map to one failure.
  */
 class ProxyTunnelException(val statusCode: Int, message: String) : IOException(message)
@@ -26,11 +27,14 @@ class ProxyTunnelException(val statusCode: Int, message: String) : IOException(m
  * The returned socket is connected to the proxy but addressed to the target:
  * everything written after CONNECT succeeds is relayed end to end, which is
  * what makes it safe for [ProxyHttpClient] to negotiate TLS over it.
+ *
+ * With a [ProxyLogin] it sends `Proxy-Authorization: Basic` (UTF-8); a colon in
+ * the user is not refused (ruling 10).
  */
 object HttpConnectTunnel {
     private const val CONNECT_TIMEOUT_MS = 15_000
 
-    fun open(proxyHost: String, proxyPort: Int, targetHost: String, targetPort: Int): Socket {
+    fun open(proxyHost: String, proxyPort: Int, targetHost: String, targetPort: Int, login: ProxyLogin? = null): Socket {
         val socket = Socket()
         try {
             socket.connect(InetSocketAddress(proxyHost, proxyPort), CONNECT_TIMEOUT_MS)
@@ -41,10 +45,16 @@ object HttpConnectTunnel {
             val out = socket.getOutputStream()
             out.write("CONNECT $authority HTTP/1.1\r\n".toByteArray(Charsets.US_ASCII))
             out.write("Host: $authority\r\n".toByteArray(Charsets.US_ASCII))
+            if (login != null) {
+                val basic = Base64.getEncoder().encodeToString("${login.user}:${login.password}".toByteArray(Charsets.UTF_8))
+                out.write("Proxy-Authorization: Basic $basic\r\n".toByteArray(Charsets.US_ASCII))
+            }
             out.write("\r\n".toByteArray(Charsets.US_ASCII))
             out.flush()
 
             val status = readStatus(socket.getInputStream())
+            // Ruling 4: a 407 is a rejected login, whether or not one was sent.
+            if (status == 407) throw ProxyLoginRejectedException("the HTTP proxy rejected the login")
             if (status !in 200..299) {
                 throw ProxyTunnelException(status, "Proxy refused CONNECT to $authority (HTTP $status)")
             }

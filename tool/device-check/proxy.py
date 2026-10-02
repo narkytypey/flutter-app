@@ -10,10 +10,15 @@ addresses").
     python proxy.py                      # SOCKS5 on :1080, CONNECT on :8888
     python proxy.py --socks 0 --http 8888  # 0 turns a listener off
 
-Standard library only, so it runs unchanged on Windows. No authentication:
-the app sends none upstream (Plan 10).
+    python proxy.py --user alice --password s3cret  # require this login
+    python proxy.py --any-login          # require a login, accept any (per-site logins)
+
+Standard library only, so it runs unchanged on Windows. No login is required
+unless --user or --any-login is given (Plan 14). It logs the username it is
+sent: a test login on the host, never a real one.
 """
 import argparse
+import base64
 import ipaddress
 import socket
 import struct
@@ -21,6 +26,10 @@ import threading
 import time
 
 ATYP_NAME = {1: "IPv4", 3: "NAME", 4: "IPv6"}
+# A login is required when LOGIN is set or ANY_LOGIN is on; accepted when
+# ANY_LOGIN is on or it equals LOGIN (Plan 14). Set from the arguments in main().
+LOGIN = None
+ANY_LOGIN = False
 _print_lock = threading.Lock()
 
 
@@ -71,11 +80,26 @@ def handle_socks(client, peer):
     label = f"SOCKS5 from {peer[0]}:{peer[1]}"
     try:
         version, methods = read_exactly(client, 2)
-        read_exactly(client, methods)
+        offered = read_exactly(client, methods)
         if version != 5:
             log(f"{label} error: version {version}")
             return client.close()
-        client.sendall(b"\x05\x00")
+        if LOGIN is None and not ANY_LOGIN:
+            client.sendall(b"\x05\x00")
+        elif 2 not in offered:
+            log(f"{label} rejected: no login offered")
+            client.sendall(b"\x05\xff")
+            return client.close()
+        else:
+            client.sendall(b"\x05\x02")
+            _, ulen = read_exactly(client, 2)
+            user = read_exactly(client, ulen).decode("utf-8", "replace")
+            password = read_exactly(client, read_exactly(client, 1)[0]).decode("utf-8", "replace")
+            ok = ANY_LOGIN or (user, password) == LOGIN
+            log(f"{label} login {'accepted' if ok else 'rejected'} for user {user!r}")
+            client.sendall(b"\x01\x00" if ok else b"\x01\x01")
+            if not ok:
+                return client.close()
         _, command, _, atyp = read_exactly(client, 4)
         if atyp == 1:
             host = socket.inet_ntop(socket.AF_INET, read_exactly(client, 4))
@@ -135,6 +159,19 @@ def handle_http(client, peer):
     label = f"CONNECT {target}"
     host, _, port = target.rpartition(":")
     host = host.strip("[]")
+    if LOGIN is not None or ANY_LOGIN:
+        headers = head.split(b"\r\n\r\n", 1)[0].decode("latin-1").split("\r\n")[1:]
+        sent = next((h.split(":", 1)[1].strip() for h in headers if h.lower().startswith("proxy-authorization:")), None)
+        user = None
+        if sent is not None and sent.lower().startswith("basic "):
+            user = base64.b64decode(sent[6:]).decode("utf-8", "replace").split(":", 1)[0]
+        expected = None if LOGIN is None else \
+            "Basic " + base64.b64encode(f"{LOGIN[0]}:{LOGIN[1]}".encode("utf-8")).decode("ascii")
+        ok = sent is not None and (ANY_LOGIN or sent == expected)
+        log(f"{label} login {'missing' if sent is None else 'accepted' if ok else 'rejected'} for user {user!r}")
+        if not ok:
+            client.sendall(b"HTTP/1.1 407 Proxy Authentication Required\r\nProxy-Authenticate: Basic realm=\"device-check\"\r\nContent-Length: 0\r\nConnection: close\r\n\r\n")
+            return client.close()
     log(label)
     try:
         upstream = socket.create_connection((host, int(port)), timeout=20)
@@ -165,8 +202,15 @@ def main():
     parser.add_argument("--http", type=int, default=8888, help="HTTP CONNECT port, 0 for none (default 8888)")
     parser.add_argument("--bind", default="127.0.0.1",
                         help="address to listen on (default 127.0.0.1, which the emulator reaches as 10.0.2.2)")
+    parser.add_argument("--user", help="require this username (SOCKS5 RFC 1929 and HTTP Basic); off by default")
+    parser.add_argument("--password", default="", help="the password that goes with --user")
+    parser.add_argument("--any-login", action="store_true",
+                        help="require a login but accept any, logging its username (for per-site logins)")
     args = parser.parse_args()
     ipaddress.ip_address(args.bind)
+    global LOGIN, ANY_LOGIN
+    LOGIN = (args.user, args.password) if args.user is not None else None
+    ANY_LOGIN = args.any_login
     threads = []
     if args.socks:
         threads.append(threading.Thread(target=serve, args=(args.socks, handle_socks, "SOCKS5", args.bind), daemon=True))

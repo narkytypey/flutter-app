@@ -139,6 +139,21 @@ class PendingOpens {
     }
 }
 
+/** What a route refusal reported by the loopback proxy does to the session it reached. */
+internal enum class RefusalAction { REFUSE_SESSION, TUNNEL_DROPPED, IGNORE }
+
+/**
+ * Proxy-auth spec §3, ruling 6. A session still opening is refused, so `8b`
+ * names the failure instead of the first load ending on WebView's own error
+ * page. A live one hears `tunnel_dropped` (`8c`), as before. A backgrounded or
+ * refused one ignores it, as before.
+ */
+internal fun refusalActionFor(phase: String): RefusalAction = when (phase) {
+    Session.PHASE_OPENING -> RefusalAction.REFUSE_SESSION
+    Session.PHASE_LIVE -> RefusalAction.TUNNEL_DROPPED
+    else -> RefusalAction.IGNORE
+}
+
 /**
  * Routes `com.mono.container/engine` and pushes the live session list to
  * `com.mono.container/sessions`.
@@ -197,6 +212,27 @@ class EngineChannel(
     /** Called by [RequestInterceptor] when a *live* session's fetch starts
      * refusing mid-browse — spec §3's `tunnel_dropped`, distinct from an
      * initial-connect [Session.PHASE_REFUSED]. */
+    /**
+     * Called on the main thread for a refusal the loopback proxy reported on
+     * [session]'s binding. A session replaced since, or closed, hears nothing.
+     * Refusing an opening session also unbinds it, as a route refused at open
+     * never binds: from then on the proxy answers its requests `403`.
+     */
+    private fun onRouteRefused(session: Session, failure: RouteFailure) {
+        val siteId = session.config.siteId
+        if (sessions[siteId] !== session) return
+        when (refusalActionFor(session.phase)) {
+            RefusalAction.REFUSE_SESSION -> {
+                session.phase = Session.PHASE_REFUSED
+                session.failure = routeFailureToDartName(failure.name)
+                credentials.unbind(session.config.profileId)
+                emitSessions()
+            }
+            RefusalAction.TUNNEL_DROPPED -> onTunnelDropped(siteId, failure)
+            RefusalAction.IGNORE -> Unit
+        }
+    }
+
     private fun onTunnelDropped(siteId: String, failure: RouteFailure) {
         val session = sessions[siteId] ?: return
         if (session.phase != Session.PHASE_LIVE) return
@@ -411,7 +447,7 @@ class EngineChannel(
                 // proxy's threads; the session map and the event sink are the
                 // main thread's.
                 ProxyBinding(config) { failure ->
-                    mainHandler.post { onTunnelDropped(config.siteId, failure) }
+                    mainHandler.post { onRouteRefused(session, failure) }
                 }
             }
         }
@@ -553,6 +589,8 @@ class EngineChannel(
         wipeOnExit = call.argument<Boolean>("wipeOnExit") ?: false,
         filterRules = call.argument<Map<String, List<String>>>("filterRules") ?: emptyMap(),
         userScripts = injectedScriptsFrom(call.argument<List<Map<String, Any?>>>("userScripts")),
+        proxyLogin = proxyLoginFrom(call.argument<String>("proxyUser"), call.argument<String>("proxyPassword")),
+        proxyLoginPerSite = call.argument<Boolean>("proxyLoginPerSite") ?: false,
     )
 
     fun nextRequestId(): String = "req-${++requestCounter}"
@@ -588,6 +626,7 @@ fun routeFailureToDartName(kotlinName: String): String = when (kotlinName) {
     "UPSTREAM_TIMEOUT" -> "upstreamTimeout"
     "TLS_FAILURE" -> "tlsFailure"
     "UNSUPPORTED" -> "unsupported"
+    "PROXY_LOGIN_REJECTED" -> "proxyLoginRejected"
     else -> "misconfigured"
 }
 
