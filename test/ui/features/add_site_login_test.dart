@@ -1,3 +1,4 @@
+import 'package:container/domain/models/monogram_suggestion.dart';
 import 'package:container/domain/models/security_level.dart';
 import 'package:container/domain/models/site.dart';
 import 'package:container/domain/models/workspace.dart';
@@ -174,5 +175,31 @@ void main() {
     await _pump(tester, initial: existing);
     expect(find.text('Separate login per site'), findsOneWidget);
     expect(find.text('USERNAME'), findsNothing);
+  });
+
+  group('a blank name (dashboard spec §6)', () {
+    Site withName(String name, {String monogram = ''}) => buildSite(
+          initial: null, url: 'https://www.example.com/x', name: name, monogram: monogram,
+          workspaceId: 'ws-personal', cookiePolicy: CookiePolicy.keep, proxyMode: ProxyMode.direct,
+          blockWebRtc: true, blockTrackers: true, antiFingerprinting: true,
+          allowCamera: false, allowMicrophone: false, allowLocation: false, allowClipboard: false,
+          requirePin: false, showInDecoy: false, userAgentMode: UserAgentMode.android,
+          forceDark: true, openInReader: false, pageZoom: 100, customCss: '', customJs: '',
+        );
+
+    test("saves as the address's host, as typed, with its monogram", () {
+      final site = withName('');
+      expect(site.name, 'www.example.com');
+      expect(site.monogram, suggestMonogram('www.example.com'));
+    });
+
+    test('only spaces is blank too', () {
+      expect(withName('   ').name, 'www.example.com');
+    });
+
+    test('a name typed is kept as typed', () {
+      final site = withName('My Example', monogram: 'Me');
+      expect((site.name, site.monogram), ('My Example', 'Me'));
+    });
   });
 }
