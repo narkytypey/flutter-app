@@ -65,11 +65,11 @@ class ProxyRoute {
   final bool loginPerSite;
 
   /// Settings' row value (spec §8): `Direct`, or `SOCKS5 · 127.0.0.1:9050`.
-  /// A proxy with no address reads as its mode alone.
+  /// A proxy with no address (or an empty host) reads as its mode alone.
   String get label {
     if (mode == ProxyMode.direct) return 'Direct';
     final name = mode.name.toUpperCase();
-    return host == null || port == null ? name : '$name · $host:$port';
+    return host == null || host!.isEmpty || port == null ? name : '$name · $host:$port';
   }
 
   /// `app_settings.default_route`'s value, in the encrypted vault.

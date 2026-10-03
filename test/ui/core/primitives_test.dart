@@ -4,7 +4,6 @@ import 'package:container/ui/core/tokens.dart';
 import 'package:container/ui/core/widgets/dashed_box.dart';
 import 'package:container/ui/core/widgets/monogram.dart';
 import 'package:container/ui/core/widgets/pill_button.dart';
-import 'package:container/ui/core/widgets/section_label.dart';
 import 'package:container/ui/core/widgets/status_rail.dart';
 
 Future<void> _pump(WidgetTester tester, Widget child) {
@@ -43,17 +42,6 @@ void main() {
 
     await _pump(tester, const Monogram('Fr', open: false));
     expect(tester.widget<Text>(find.text('Fr')).style!.color, C.textMuted);
-  });
-
-  testWidgets('a section label is uppercase-styled and jade only when live', (tester) async {
-    await _pump(tester, const Column(children: [
-      SectionLabel('OPEN NOW', live: true),
-      SectionLabel('IDLE'),
-    ]));
-
-    expect(tester.widget<Text>(find.text('OPEN NOW')).style!.color, C.jade);
-    expect(tester.widget<Text>(find.text('IDLE')).style!.color, C.textFaint);
-    expect(tester.widget<Text>(find.text('IDLE')).style!.letterSpacing, 1.0);
   });
 
   testWidgets('a primary pill is jade with dark text and reports taps', (tester) async {

@@ -4812,7 +4812,7 @@ git commit -m "docs: Plan 18, the dashboard redesign, verified"
 Run 2026-10-03 on branch `dashboard-redesign`, after the fix below:
 
 - `flutter analyze`: `No issues found!`
-- `flutter test`: `+922: All tests passed!`
+- `flutter test`: `+923: All tests passed!`
 - `flutter build apk --debug`: built `app-debug.apk`, zero `e:` lines. No Kotlin changed.
 
 The first full run had 5 failures, all in `test/ui/features/shell/app_gate_test.dart` ("A Timer is still pending even after the widget tree was disposed"): the Sites tab now reads `workspacesProvider`, `allSitesProvider`, `searchEngineProvider` and `defaultRouteProvider`, which over the test's real in-memory database left a timer pending. The test now overrides them with immediate values (`23297d7`).

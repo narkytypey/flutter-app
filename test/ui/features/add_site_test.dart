@@ -323,6 +323,30 @@ void main() {
           (ProxyMode.socks5, '10.0.2.2', 1080, 'alice'));
     });
 
+    testWidgets('an HTTP default with a login per site seeds the Network tab', (tester) async {
+      Site? saved;
+      await _pump(
+        tester,
+        defaultRoute: const ProxyRoute(
+            mode: ProxyMode.http, host: 'proxy.lan', port: 3128, loginPerSite: true),
+        onSave: (s) => saved = s,
+      );
+      await tester.tap(find.text('Network'));
+      await tester.pumpAndSettle();
+      expect(find.text('proxy.lan'), findsOneWidget);
+      expect(find.text('3128'), findsOneWidget);
+
+      await tester.tap(find.text('Basics'));
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byKey(const Key('add-site-address')), 'forum.example.com');
+      await tester.pump();
+      await tester.tap(find.text('Save'));
+      await tester.pump();
+      expect((saved!.proxyMode, saved!.proxyHost, saved!.proxyPort), (ProxyMode.http, 'proxy.lan', 3128));
+      expect(saved!.proxyLoginPerSite, isTrue);
+      expect(saved!.proxyUser, isNull);
+    });
+
     testWidgets('an edited site shows its own route, not the default', (tester) async {
       await _pump(tester, initial: forum, defaultRoute: socks);
       await tester.tap(find.text('Network'));

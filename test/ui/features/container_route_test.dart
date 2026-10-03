@@ -539,7 +539,7 @@ void main() {
     expect(find.text(_homeMarker), findsOneWidget);
   });
 
-  // The dashboard's OPEN NOW rows and session count, search's live rail and
+  // The dashboard's green rails and session count, search's live rail and
   // `9b`'s session count all read openSiteIdsProvider. A session closed here
   // but left in it went on reading as open. Seen on the emulator. It is the
   // registry's now (tabs spec §5.4), so a closed container leaves it.
@@ -783,7 +783,7 @@ void main() {
       expect(open, isEmpty);
     });
 
-    testWidgets('trying again puts the site back under OPEN NOW', (tester) async {
+    testWidgets('trying again puts the site back to open, its green rail back', (tester) async {
       final (engine, _) = await refuse(tester);
       expect(
           ProviderScope.containerOf(tester.element(find.byType(ProxyUnreachableScreen)))

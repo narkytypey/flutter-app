@@ -173,7 +173,7 @@ void main() {
 
   // Tabs spec §5.7: the dashboard row's edit form is one of the forms whose
   // route change closes an open container. From the dashboard it is in the
-  // background, so it stays closed, with no wipe, and leaves OPEN NOW.
+  // background, so it stays closed, with no wipe, and its green rail goes.
   testWidgets('a row edit that changes the route of an open site closes it, and its green rail goes',
       (tester) async {
     final events = <String>[];

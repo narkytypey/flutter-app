@@ -665,7 +665,7 @@ class _ContainerRouteState extends ConsumerState<ContainerRoute> {
 
   /// A refused open: spec `8b`, shown in place of the container. A saved
   /// site's dead session is closed by the registry, and a refused saved
-  /// container is not listed, so it leaves OPEN NOW (tabs spec §5.6). A
+  /// container is not listed, so its green rail goes (tabs spec §5.6). A
   /// throwaway's stays until it is closed, since `8b` can still save it as a
   /// site.
   Widget _refusalScreen(OpenContainer viewed, Refusal refusal) {

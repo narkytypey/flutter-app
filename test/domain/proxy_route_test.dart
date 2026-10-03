@@ -48,6 +48,7 @@ void main() {
     expect(const ProxyRoute(mode: ProxyMode.http, host: 'proxy.lan', port: 3128).label,
         'HTTP · proxy.lan:3128');
     expect(ProxyRoute.unreadable.label, 'SOCKS5');
+    expect(const ProxyRoute(mode: ProxyMode.socks5, host: '', port: 9050).label, 'SOCKS5');
   });
 
   test('a route survives being stored and read back', () {
