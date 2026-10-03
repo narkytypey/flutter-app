@@ -2179,12 +2179,41 @@ Plan 15's registry (`OpenContainers`) owns every open, close and reopen. It alre
 
 ## Device checks
 
-**Not verified on a device.** No emulator or phone was available where this plan was written or executed (2026-10-02). Task 11 added the run sheet, "Run sheet: privacy controls (Plan 16)" in `tool/device-check/README.md`, and its test pages, `tool/device-check/pages.py` on `:8099`. Fill in this section with what was seen, check by check, when it is run, as Plans 13 and 14 did.
+No emulator or phone was available where this plan was written or executed (2026-10-02). Task 11 added the run sheet, "Run sheet: privacy controls (Plan 16)" in `tool/device-check/README.md`, and its test pages, `tool/device-check/pages.py` on `:8099`.
 
-Not one of the run sheet's eight checks has been run. In particular:
-- **Check 1, Safer's `http:` CSP, comes first.** If a meta CSP inserted at document start does not stop the parser's later scripts in WebView, Safer does not do what its picker line says on `http:` pages. The fallback, per-navigation `javaScriptEnabled`, is the user's call.
-- **Reader at Safest** (check 3) is expected to extract nothing, since `extractArticle` runs JavaScript.
-- **Revoke ending a live microphone stream** (check 7) comes from the WebView contract (a reload tears the document down), not from observation.
+### Device checks (2026-10-03, emulator)
+
+Run by session flutter-app-9e on the `Pixel_9` emulator (API 36, WebView 154; not a physical phone), on `main` at `e572c29` (Plans 15–17 and the Plan 15 fixes), freshly installed, with `pages.py` and `proxy.py --any-login`. Page text and DOM state were read through WebView DevTools (`Runtime.evaluate`, which only reads here), taps were made at uiautomator's bounds. **All eight checks seen.** No Plan 16 code changed.
+
+1. **Safer's `http:` CSP works.** Direct site at `http://10.0.2.2:8099/csp.html`. Standard: `INLINE RAN EXTERNAL RAN`, then a tap on `tap` added `ONCLICK RAN` and `jsurl` set the title to `JSURL RAN`. Safer (from ☰, applied at once by a reopen in place): `NO SCRIPT RAN`, the tap and `jsurl` changed nothing, the document's first `<head>` held `<meta http-equiv="Content-Security-Policy" content="script-src 'none'">` ahead of the page's own `<head>`, and `pages.py` still logged `/ext.js` being fetched. The fallback is not needed.
+2. **Safer on https.** `https://example.com` with the probe as custom JS: Standard `WASM object WEBGL true`; Safer `WASM undefined WEBGL false`, with the probe's text present, so JS stays on.
+3. **Safest.** example.com with the probe: no prefix text. `csp.html` (on the `http:` site, set to Safest): `NO SCRIPT RAN`, no CSP meta (no document-start scripts), and **`/ext.js` not requested at all**. `/image.html`: no `/dot.png` request, the image `complete=false`, width 0. **Reader on `/article.html` does not open: the tap does nothing and nothing is shown** (`extractArticle` gets no result with JavaScript off, and `_openReader` returns silently). The same page at Standard opened Reader with the article.
+4. **Default and override.** ☰ → Security level → Default on a site at Safest put it back on the vault default (Standard), and Reader then opened. With that site open, Settings → Security level → Safer left the open page running scripts (`INLINE RAN`); after closing it from `2c` and reopening from the dashboard it read `NO SCRIPT RAN` (4 of 4 reopens), and ☰ showed `SAFER`.
+5. **Reopen keeps a throwaway's cookie.** A throwaway (from a direct site) at `https://postman-echo.com/cookies/set?p16=1` redirected to `/cookies` with `p16=1`. `6c`'s Force dark mode reopened it in place at `/cookies` (a new document: a marker set in the old one was gone), still showing `p16`; a fresh `/cookies?n=2` afterwards sent it too.
+6. **New identity.** SOCKS5 site MicS (`http://localhost:8099/mic.html`, `10.0.2.2:1080`, "Separate login per site"). Cancel: the same document, no new proxy connection, nothing journaled. New identity: `proxy.py` logged a different 32-hex user (`d3b2956f…` → `4ff35b81…`), the old profile `7d425f73…` appeared in `files/pending-profile-deletions`, and a new profile was registered. Repeated from `/article.html`: it came back at `/mic.html`, the stored address, with a third user, and the second profile was journaled.
+7. **Revoke.** On MicS, `mic` → `6a` → "Allow while this site is open" → Android's own dialog ("While using the app") → `MIC ON`, with no `9b`. `6c` listed Microphone · `Revoke`; tapping it reloaded the page (a new document reading `MIC OFF`), the Microphone row went away, and `dumpsys audio` showed no recording. The next `mic` tap asked with `6a` again.
+8. **Two vaults.** The decoy's Settings shows the same `Security level` / `Standard` row and picker. Safest set in the decoy stayed Safest there; the real vault's default still read Standard. (The decoy was set back to Standard afterwards.)
+
+Seen on the way, not Plan 16 defects:
+- **Two first loads of a small `http:` page hung** with an empty document (`readyState` `loading`, no nodes, the pill's Stop shown): CspD's reopen after the default change, and MicS's first open. Reload fixed each, and four further reopens of CspD were clean. Most likely the emulator's dropped last byte (see `CLAUDE.md`'s 2026-10-02 device verification): `pages.py` answers HTTP/1.0 with a `Content-Length` and closes, and in the same run 1 of 8 `fetch('/ext.js')` calls failed with "Failed to fetch". Not proven: the loopback proxy was ruled out as holding the connection (no socket of the app's was left open for it), but Chromium's side was not traced.
+- `6c`'s "Blocked here" counts an ask that was then allowed under `Permission asks` (`EngineChannel.ask` counts every ask), as the tally always has.
+
+Still not seen: workers keeping WebAssembly and `OffscreenCanvas` WebGL at Safer (a known gap, not a check), and `8b`'s "Open without the tunnel" ending on a reopen in place.
+
+### Re-run (2026-10-03, emulator)
+
+Re-run by session flutter-app-e1 at the user's request, on the same emulator, build and vault as the run above (installed from `main` at `e572c29`; no reinstall), with `pages.py` and `proxy.py --any-login`. Same method: DevTools' `Runtime.evaluate` to read pages, taps at uiautomator's bounds. **All eight seen again.** No code changed.
+
+1. **Seen.** CspD at Standard: `INLINE RAN EXTERNAL RAN`, then `ONCLICK RAN` and the title `JSURL RAN` from taps. Safer from ☰: a new document reading `NO SCRIPT RAN`, whose `<head>` starts with the `script-src 'none'` meta; `pages.py` still logged `/ext.js`; neither tap changed anything.
+2. **Seen.** ExD (`https://example.com`, probe as custom JS): Standard `WASM object WEBGL true`, Safer `WASM undefined WEBGL false` with the page's own text.
+3. **Seen.** ExD at Safest: no probe text. CspD at Safest: `NO SCRIPT RAN`, no CSP meta, and only `/csp.html` requested (no `/ext.js`). `/image.html`: no `/dot.png` request, the image `complete=false`, width 0. Reader on `/article.html`: nothing opens and nothing is shown.
+4. **Seen.** ☰ → Default put CspD back on the vault default (☰ read `STANDARD`), and Reader then opened. Settings → Safer with CspD open on `csp.html`: the same document kept running scripts; after a close from `2c` and a reopen from the dashboard it read `NO SCRIPT RAN`, and ☰ read `SAFER`. (The default was set back to Standard.)
+5. **Seen.** A throwaway from CspD at `https://postman-echo.com/cookies/set?p16=1` landed on `/cookies` with `p16`. `6c`'s Force dark mode reopened it in place at `/cookies` as a new document, still with `p16`, and a fresh `/cookies?n=2` sent it too.
+6. **Seen.** MicS used proxy user `138da941…`. Cancel: the same document, no new proxy connection, the journal unchanged. New identity from `/mic.html`: user `375f4c77…`, profile `0f3f8370…` journaled in `files/pending-profile-deletions`, back on `/mic.html`. Again from `/article.html`: user `bc0cddb3…`, profile `e94279ca…` journaled, back on `/mic.html`, the stored address.
+7. **Seen.** `mic` → `6a` → "Allow while this site is open" → `MIC ON`, with no Android dialog this time (the app already held `RECORD_AUDIO`), and `dumpsys audio` showed the app recording. `6c` listed Microphone · `Revoke`; tapping it reloaded the page (a new document reading `MIC OFF`), the recording ended, and the row went away. The next `mic` tap asked with `6a`.
+8. **Seen.** The decoy's Settings row and picker are the same; Safest set there stayed Safest after leaving and reopening Settings, and the real vault's default still read Standard. (The decoy was set back to Standard.)
+
+Seen on the way: on the first open of CspD, before any tap, the page read `INLINE RAN EXTERNAL RAN ONCLICK RAN`. A reload and a close-and-reopen both read `INLINE RAN EXTERNAL RAN`, so it did not repeat. The only tap made was the dashboard row's, nowhere near the button; the cause is unknown. No first load hung in this run.
 
 ## Known gaps
 
@@ -2192,8 +2221,8 @@ From spec §1.4 and §9, and this plan:
 
 - **No JIT switch in WebView.** Safer's WebAssembly removal is a partial stand-in.
 - **Workers keep WebAssembly and `OffscreenCanvas` WebGL at Safer:** `safer.js` runs in documents and frames only.
-- **Safer's `http:` CSP has never been seen on a device.** It is the run sheet's first check. If it fails, the fallback is per-navigation `javaScriptEnabled`, which the user decides on.
-- **At Safest, Reader probably extracts nothing,** and custom CSS and CSS library scripts do not apply: both are injected through JavaScript.
+- ~~**Safer's `http:` CSP has never been seen on a device.**~~ **Seen working 2026-10-03 (emulator):** inline, external, `onclick` and `javascript:` scripts are all stopped; the fallback is not needed. See "Device checks (2026-10-03, emulator)".
+- **At Safest, Reader opens nothing** (seen 2026-10-03: the tap does nothing and nothing says why), and custom CSS and CSS library scripts do not apply: both are injected through JavaScript.
 - **Fonts and media are not blocked at any level** (user's ruling).
 - **A reopen keeps only the viewed page**, and loses back/forward history and "allow while open" grants (approach A; user's ruling on tabs, 2026-10-02).
 - **A vault default change reaches open sites only at their next open.**
