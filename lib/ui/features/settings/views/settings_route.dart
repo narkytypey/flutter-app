@@ -32,10 +32,13 @@ Widget? settingsDestination(String key) => switch (key) {
       _ => null,
     };
 
-/// Spec `2d` against the open vault. Pushed from the dashboard's `⋯` and
+/// Spec `2d` against the open vault. The dashboard's Settings tab, and pushed
 /// from a container's ☰ menu.
 class SettingsRoute extends ConsumerWidget {
-  const SettingsRoute({super.key});
+  const SettingsRoute({super.key, this.showBack = true});
+
+  /// False as the dashboard's tab, which has no back icon (dashboard spec §4.1).
+  final bool showBack;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -58,7 +61,7 @@ class SettingsRoute extends ConsumerWidget {
       panicOnFlip: panicOnFlip,
       onPanicLabel: 'Wipe + lock',
       searchEngineName: searchEngine?.label ?? '',
-      onBack: () => Navigator.pop(context),
+      onBack: showBack ? () => Navigator.pop(context) : null,
       securityLevelName: securityLevel?.label ?? '',
       defaultRouteLabel: defaultRoute?.label ?? '',
       defaultRouteMono: defaultRoute != null && defaultRoute.mode != ProxyMode.direct,

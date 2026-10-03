@@ -19,7 +19,6 @@ class DashboardBody extends StatelessWidget {
     required this.onSearch,
     required this.onOpenSite,
     required this.onSiteMenu,
-    required this.onOverflow,
   });
 
   final DashboardView view;
@@ -28,7 +27,6 @@ class DashboardBody extends StatelessWidget {
   final VoidCallback onSearch;
   final void Function(String siteId) onOpenSite;
   final void Function(String siteId) onSiteMenu;
-  final VoidCallback onOverflow;
 
   @override
   Widget build(BuildContext context) {
@@ -44,7 +42,6 @@ class DashboardBody extends StatelessWidget {
                   : '${view.sessionCount} SESSIONS',
               trailingIsBadge: view.wipesOnExit,
               onTap: onWorkspaceTap,
-              onOverflow: onOverflow,
             ),
             Expanded(child: _list()),
             DashboardFooter(

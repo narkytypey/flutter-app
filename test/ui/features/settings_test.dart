@@ -280,4 +280,21 @@ void main() {
   });
 }
 
-void _ignore(bool _) {}
+void _ignore(bool _) {
+  testWidgets('with no onBack it draws no back icon: the dashboard tab (spec §4.1)', (tester) async {
+    tester.view.physicalSize = const Size(500, 1600);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    await tester.pumpWidget(MaterialApp(
+      home: SettingsScreen(
+        biometrics: false, biometricsAvailable: true, autoLockLabel: 'After 1 min',
+        decoyEnabled: false, decoySiteCount: 0, hideFromSwitcher: true, panicOnFlip: false,
+        onPanicLabel: 'Wipe + lock', searchEngineName: 'DuckDuckGo', securityLevelName: 'Standard',
+        onChanged: (_, __) {}, onTap: (_) {},
+      ),
+    ));
+
+    expect(find.text('Settings'), findsOneWidget);
+    expect(findIconTap('Back'), findsNothing);
+  });
+}

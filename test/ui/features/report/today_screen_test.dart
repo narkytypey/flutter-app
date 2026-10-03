@@ -63,4 +63,14 @@ void main() {
     await tester.tap(findIconTap('Back'));
     expect(backs, 1);
   });
+
+  testWidgets('with no onBack it draws no back icon: the dashboard tab (spec §4.1)', (tester) async {
+    addTearDown(tester.view.reset);
+    tester.view.physicalSize = const Size(800, 1600);
+    tester.view.devicePixelRatio = 1;
+    await tester.pumpWidget(const MaterialApp(home: TodayScreen(tally: tally)));
+
+    expect(find.text('Today'), findsOneWidget);
+    expect(findIconTap('Back'), findsNothing);
+  });
 }
