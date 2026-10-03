@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../domain/models/workspace.dart';
 import '../../../core/tokens.dart';
 import '../../add_site/views/add_site_screen.dart';
 import '../../container/views/container_route.dart';
@@ -8,12 +9,15 @@ import '../../search/view_models/providers.dart'
     show allSitesProvider, searchQueryProvider, searchResultsProvider, sitesChanged;
 import '../../search/view_models/search_view.dart' show SearchResultEntry;
 import '../../search/views/search_screen.dart';
+import '../../workspaces/views/workspaces_route.dart' show createWorkspace, editWorkspace;
 import '../view_models/providers.dart';
 import 'dashboard_body.dart';
+import 'dashboard_footer.dart';
 import 'site_row_actions.dart';
-import 'workspace_menu.dart';
+import 'workspace_chips.dart';
 
-/// The dashboard's Sites tab (dashboard spec §4).
+/// The dashboard's Sites tab (dashboard spec §4.2–§4.4): workspace chips and
+/// the viewed workspace's sites.
 class SitesTab extends ConsumerStatefulWidget {
   const SitesTab({super.key});
 
@@ -22,11 +26,10 @@ class SitesTab extends ConsumerStatefulWidget {
 }
 
 class _SitesTabState extends ConsumerState<SitesTab> {
-  bool _menuOpen = false;
-
   @override
   Widget build(BuildContext context) {
     final dashboard = ref.watch(dashboardProvider);
+    final workspaces = ref.watch(workspacesProvider).valueOrNull ?? const <Workspace>[];
 
     return dashboard.when(
       loading: () => const Scaffold(backgroundColor: C.bg),
@@ -34,22 +37,30 @@ class _SitesTabState extends ConsumerState<SitesTab> {
         backgroundColor: C.bg,
         body: Center(child: Text('$error')),
       ),
-      data: (view) => Stack(
-        children: [
-          DashboardBody(
-            view: view,
-            onWorkspaceTap: () => setState(() => _menuOpen = !_menuOpen),
-            onAddSite: _addSite,
-            onSearch: () {
-              ref.invalidate(searchQueryProvider);
-              ref.invalidate(allSitesProvider);
-              Navigator.push(context, MaterialPageRoute(builder: (_) => const _SearchRoute()));
-            },
-            onOpenSite: _openSite,
-            onSiteMenu: (siteId) => showSiteRowMenu(context, ref, siteId),
-          ),
-          if (_menuOpen) _menu(),
+      data: (view) => DashboardBody(
+        view: view,
+        chips: [
+          for (final workspace in workspaces)
+            WorkspaceChip(
+              id: workspace.id,
+              name: workspace.name,
+              selected: workspace.id == view.workspaceId,
+            ),
         ],
+        onPickWorkspace: (id) => ref.read(activeWorkspaceIdProvider.notifier).state = id,
+        onEditWorkspace: (id) => editWorkspace(context, ref, id),
+        onNewWorkspace: () => createWorkspace(context, ref),
+        onOpenSite: _openSite,
+        onSiteMenu: (siteId) => showSiteRowMenu(context, ref, siteId),
+        footer: DashboardFooter(
+          onAddSite: _addSite,
+          onSearch: () {
+            ref.invalidate(searchQueryProvider);
+            ref.invalidate(allSitesProvider);
+            Navigator.push(context, MaterialPageRoute(builder: (_) => const _SearchRoute()));
+          },
+          emphasise: view.isEmpty,
+        ),
       ),
     );
   }
@@ -77,29 +88,6 @@ class _SitesTabState extends ConsumerState<SitesTab> {
     final site = await ref.read(siteRepositoryProvider).byId(siteId);
     if (site == null || !mounted) return;
     showContainer(context, ref, site);
-  }
-
-  Widget _menu() {
-    final options = ref.watch(workspaceOptionsProvider);
-    return SafeArea(
-      child: Padding(
-        // Sits directly under the 47px-tall workspace bar.
-        padding: const EdgeInsets.only(top: 47),
-        child: Align(
-          alignment: Alignment.topCenter,
-          child: options.maybeWhen(
-            data: (options) => WorkspaceMenu(
-              options: options,
-              onPick: (id) {
-                ref.read(activeWorkspaceIdProvider.notifier).state = id;
-                setState(() => _menuOpen = false);
-              },
-            ),
-            orElse: () => const SizedBox.shrink(),
-          ),
-        ),
-      ),
-    );
   }
 }
 

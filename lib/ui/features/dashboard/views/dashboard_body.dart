@@ -1,32 +1,37 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/tokens.dart';
-import '../../../core/widgets/section_label.dart';
 import '../view_models/dashboard_view.dart';
-import 'dashboard_footer.dart';
 import 'empty_workspace.dart';
 import 'session_row.dart';
-import 'workspace_bar.dart';
+import 'workspace_chips.dart';
 
-/// The dashboard, spec option `1b`. Takes a finished view model and callbacks,
-/// so it can be pumped in a widget test with no providers and no database.
+/// The Sites tab (dashboard spec §4.2–§4.4, replacing `1b`'s layout): the
+/// workspace chips, then the viewed workspace's sites as one list with no
+/// titles and no count, then [footer]. It takes a finished view model and
+/// callbacks, so it can be pumped in a widget test with no providers and no
+/// database.
 class DashboardBody extends StatelessWidget {
   const DashboardBody({
     super.key,
     required this.view,
-    required this.onWorkspaceTap,
-    required this.onAddSite,
-    required this.onSearch,
+    required this.chips,
+    required this.onPickWorkspace,
+    required this.onEditWorkspace,
+    required this.onNewWorkspace,
     required this.onOpenSite,
     required this.onSiteMenu,
+    required this.footer,
   });
 
   final DashboardView view;
-  final VoidCallback onWorkspaceTap;
-  final VoidCallback onAddSite;
-  final VoidCallback onSearch;
+  final List<WorkspaceChip> chips;
+  final ValueChanged<String> onPickWorkspace;
+  final ValueChanged<String> onEditWorkspace;
+  final VoidCallback onNewWorkspace;
   final void Function(String siteId) onOpenSite;
   final void Function(String siteId) onSiteMenu;
+  final Widget footer;
 
   @override
   Widget build(BuildContext context) {
@@ -35,20 +40,15 @@ class DashboardBody extends StatelessWidget {
       body: SafeArea(
         child: Column(
           children: [
-            WorkspaceBar(
-              name: view.workspaceName,
-              trailing: view.wipesOnExit
-                  ? 'WIPES ON EXIT'
-                  : '${view.sessionCount} SESSIONS',
-              trailingIsBadge: view.wipesOnExit,
-              onTap: onWorkspaceTap,
+            WorkspaceChips(
+              chips: chips,
+              onPick: onPickWorkspace,
+              onEdit: onEditWorkspace,
+              onNew: onNewWorkspace,
+              badge: view.wipesOnExit ? 'WIPES ON EXIT' : null,
             ),
             Expanded(child: _list()),
-            DashboardFooter(
-              onAddSite: onAddSite,
-              onSearch: onSearch,
-              emphasise: view.isEmpty,
-            ),
+            footer,
           ],
         ),
       ),
@@ -57,32 +57,17 @@ class DashboardBody extends StatelessWidget {
 
   Widget _list() {
     if (view.isEmpty) return const EmptyWorkspace();
-
-    final children = <Widget>[];
-
-    if (view.open.isNotEmpty) {
-      children.add(const Padding(
-        padding: EdgeInsets.fromLTRB(18, 16, 18, 6),
-        child: SectionLabel('OPEN NOW', live: true),
-      ));
-      children.addAll(view.open.map(_row));
-    }
-
-    if (view.idle.isNotEmpty) {
-      children.add(const Padding(
-        padding: EdgeInsets.fromLTRB(18, 20, 18, 6),
-        child: SectionLabel('IDLE'),
-      ));
-      children.addAll(view.idle.map(_row));
-    }
-
-    return ListView(padding: EdgeInsets.zero, children: children);
+    return ListView(
+      padding: const EdgeInsets.only(top: 6),
+      children: [
+        for (final entry in view.rows)
+          SessionRow(
+            key: ValueKey(entry.siteId),
+            entry: entry,
+            onTap: () => onOpenSite(entry.siteId),
+            onLongPress: () => onSiteMenu(entry.siteId),
+          ),
+      ],
+    );
   }
-
-  Widget _row(SessionEntry entry) => SessionRow(
-        key: ValueKey(entry.siteId),
-        entry: entry,
-        onTap: () => onOpenSite(entry.siteId),
-        onLongPress: () => onSiteMenu(entry.siteId),
-      );
 }

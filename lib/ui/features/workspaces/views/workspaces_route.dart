@@ -18,64 +18,15 @@ class WorkspacesRoute extends ConsumerWidget {
     final items = ref.watch(workspaceListItemsProvider);
     return WorkspacesScreen(
       items: items.value ?? const [],
-      onOpen: (id) => _edit(context, ref, id),
+      onOpen: (id) => editWorkspace(context, ref, id),
       onDelete: (id) => _delete(context, ref, id),
-      onNewWorkspace: () => _create(context, ref),
+      onNewWorkspace: () => createWorkspace(context, ref),
       onBack: () => Navigator.pop(context),
     );
   }
 
-  Future<Workspace?> _byId(WidgetRef ref, String id) async {
-    for (final workspace in await ref.read(workspacesProvider.future)) {
-      if (workspace.id == id) return workspace;
-    }
-    return null;
-  }
-
-  void _create(BuildContext context, WidgetRef ref) {
-    Navigator.push(context, MaterialPageRoute(
-      builder: (_) => WorkspaceFormScreen(
-        title: 'New workspace',
-        initialName: '',
-        initialMarkerIndex: 0,
-        initialStorageRule: StorageRule.keep,
-        initialRequirePin: false,
-        initialShowInDecoy: false,
-        onSave: (result) async {
-          await ref.read(workspaceActionsProvider).create(result);
-          workspacesChanged(ref);
-          if (context.mounted) Navigator.pop(context);
-        },
-        onClose: () => Navigator.pop(context),
-      ),
-    ));
-  }
-
-  /// The spec draws only the create form; editing reuses it, titled with the
-  /// workspace's own name rather than copy the spec never wrote.
-  Future<void> _edit(BuildContext context, WidgetRef ref, String id) async {
-    final workspace = await _byId(ref, id);
-    if (workspace == null || !context.mounted) return;
-    Navigator.push(context, MaterialPageRoute(
-      builder: (_) => WorkspaceFormScreen(
-        title: workspace.name,
-        initialName: workspace.name,
-        initialMarkerIndex: workspace.markerIndex,
-        initialStorageRule: workspace.storageRule,
-        initialRequirePin: workspace.requirePin,
-        initialShowInDecoy: workspace.showInDecoy,
-        onSave: (result) async {
-          await ref.read(workspaceActionsProvider).update(workspace, result);
-          workspacesChanged(ref);
-          if (context.mounted) Navigator.pop(context);
-        },
-        onClose: () => Navigator.pop(context),
-      ),
-    ));
-  }
-
   Future<void> _delete(BuildContext context, WidgetRef ref, String id) async {
-    final workspace = await _byId(ref, id);
+    final workspace = await _workspaceById(ref, id);
     if (workspace == null) return;
     final sites = await ref.read(siteRepositoryProvider).inWorkspace(id);
     final bytes = await ref.read(workspaceStorageServiceProvider).bytesFor(id);
@@ -100,4 +51,57 @@ class WorkspacesRoute extends ConsumerWidget {
       ),
     );
   }
+}
+
+Future<Workspace?> _workspaceById(WidgetRef ref, String id) async {
+  for (final workspace in await ref.read(workspacesProvider.future)) {
+    if (workspace.id == id) return workspace;
+  }
+  return null;
+}
+
+/// `10b` for a new workspace: Settings ▸ Workspaces' "+ New workspace", and
+/// the dashboard's `+` chip (dashboard spec §4.2).
+void createWorkspace(BuildContext context, WidgetRef ref) {
+  Navigator.push(context, MaterialPageRoute(
+    builder: (_) => WorkspaceFormScreen(
+      title: 'New workspace',
+      initialName: '',
+      initialMarkerIndex: 0,
+      initialStorageRule: StorageRule.keep,
+      initialRequirePin: false,
+      initialShowInDecoy: false,
+      onSave: (result) async {
+        await ref.read(workspaceActionsProvider).create(result);
+        workspacesChanged(ref);
+        if (context.mounted) Navigator.pop(context);
+      },
+      onClose: () => Navigator.pop(context),
+    ),
+  ));
+}
+
+/// `10b` for workspace [id]: a tap on its row in Settings ▸ Workspaces, or a
+/// long-press on its dashboard chip (dashboard spec §4.2). The spec draws only
+/// the create form. Editing reuses it, titled with the workspace's own name
+/// rather than copy the spec never wrote.
+Future<void> editWorkspace(BuildContext context, WidgetRef ref, String id) async {
+  final workspace = await _workspaceById(ref, id);
+  if (workspace == null || !context.mounted) return;
+  Navigator.push(context, MaterialPageRoute(
+    builder: (_) => WorkspaceFormScreen(
+      title: workspace.name,
+      initialName: workspace.name,
+      initialMarkerIndex: workspace.markerIndex,
+      initialStorageRule: workspace.storageRule,
+      initialRequirePin: workspace.requirePin,
+      initialShowInDecoy: workspace.showInDecoy,
+      onSave: (result) async {
+        await ref.read(workspaceActionsProvider).update(workspace, result);
+        workspacesChanged(ref);
+        if (context.mounted) Navigator.pop(context);
+      },
+      onClose: () => Navigator.pop(context),
+    ),
+  ));
 }

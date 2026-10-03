@@ -56,9 +56,7 @@ Site _site(String id, String workspaceId) => Site(
       profileId: 'p-$id',
     );
 
-/// A saved site and a throwaway open under Personal, and a throwaway open
-/// under Work: a throwaway counts under its opener's workspace, which
-/// `buildThrowaway` sets as its `workspaceId` (tabs spec §5.4).
+/// A saved site and a throwaway open under Personal, and a throwaway open under Work. A throwaway is never a row (it is not a site): `N OPEN`, `2c` and the swipe reach it.
 Future<ProviderContainer> _openThree() async {
   final saved = _site('s1', 'w1');
   final container = ProviderContainer(overrides: [
@@ -79,37 +77,25 @@ Future<ProviderContainer> _openThree() async {
 }
 
 void main() {
-  test("the dashboard's N SESSIONS counts a throwaway of its workspace, and lists only saved sites",
-      () async {
+  test('throwaways are never listed, and the viewed workspace follows the chip', () async {
     final container = await _openThree();
 
     final personal = await container.read(dashboardProvider.future);
-    expect(personal.sessionCount, 2);
-    expect(personal.open.map((e) => e.siteId), ['s1']);
-    expect(personal.idle.map((e) => e.siteId), ['s2']);
+    expect(personal.workspaceId, 'w1');
+    expect(personal.rows.map((e) => (e.siteId, e.live)), [('s1', true), ('s2', false)]);
 
     container.read(activeWorkspaceIdProvider.notifier).state = 'w2';
     final work = await container.read(dashboardProvider.future);
-    expect(work.sessionCount, 1);
-    expect(work.open, isEmpty);
+    expect(work.workspaceId, 'w2');
+    expect(work.rows, isEmpty);
   });
 
-  test("the workspace menu's M OPEN counts a throwaway of its workspace", () async {
+  test('the green dot follows the registry: a closed site is no longer marked', () async {
     final container = await _openThree();
 
-    final options = await container.read(workspaceOptionsProvider.future);
-    expect({for (final o in options) o.id: o.meta}, {
-      'w1': '2 SITES · 2 OPEN',
-      'w2': '0 SITES · 1 OPEN',
-    });
-  });
+    await container.read(openContainersProvider.notifier).close('s1');
 
-  test('the counts follow the registry: a closed throwaway stops counting', () async {
-    final container = await _openThree();
-    expect((await container.read(dashboardProvider.future)).sessionCount, 2);
-
-    await container.read(openContainersProvider.notifier).close('t1');
-
-    expect((await container.read(dashboardProvider.future)).sessionCount, 1);
+    final view = await container.read(dashboardProvider.future);
+    expect(view.rows.map((e) => e.live), [false, false]);
   });
 }

@@ -3,6 +3,7 @@ import 'package:container/domain/models/site.dart';
 import 'package:container/domain/models/workspace.dart';
 import 'package:container/domain/repositories/repositories.dart';
 import 'package:container/domain/models/engine_extras.dart';
+import 'package:container/ui/core/widgets/status_rail.dart';
 import 'package:container/ui/features/add_site/views/add_site_screen.dart';
 import 'package:container/ui/features/container/view_models/open_containers.dart';
 import 'package:container/ui/features/container/view_models/providers.dart'
@@ -104,7 +105,6 @@ Future<ProviderContainer> _pump(WidgetTester tester, _Engine engine, _Sites site
               openSiteIds: const {'st-forum'},
               now: _now,
             )),
-        workspaceOptionsProvider.overrideWith((ref) async => const []),
       ],
       allSitesProvider.overrideWith((ref) async {
         onSavedRead?.call();
@@ -174,15 +174,14 @@ void main() {
   // Tabs spec §5.7: the dashboard row's edit form is one of the forms whose
   // route change closes an open container. From the dashboard it is in the
   // background, so it stays closed, with no wipe, and leaves OPEN NOW.
-  testWidgets('a row edit that changes the route of an open site closes it and it leaves OPEN NOW',
+  testWidgets('a row edit that changes the route of an open site closes it, and its green rail goes',
       (tester) async {
     final events = <String>[];
     final engine = _Engine(events);
     final sites = _Sites(events, _forum.copyWith(
         proxyMode: ProxyMode.socks5, proxyHost: '10.0.2.2', proxyPort: 1080));
     final container = await _pump(tester, engine, sites, realDashboard: true);
-    expect(find.text('OPEN NOW'), findsOneWidget);
-    expect(find.text('1 SESSIONS'), findsOneWidget);
+    expect(tester.widget<StatusRail>(find.byType(StatusRail)).live, isTrue);
 
     await _menuAction(tester, 'Edit settings');
     expect(find.byType(AddSiteScreen), findsOneWidget);
@@ -199,8 +198,7 @@ void main() {
     expect(container.read(openContainersProvider).byId('st-forum'), isNull);
     expect(container.read(openSiteIdsProvider), isEmpty);
     expect(find.byType(AddSiteScreen), findsNothing);
-    expect(find.text('OPEN NOW'), findsNothing);
-    expect(find.text('0 SESSIONS'), findsOneWidget);
+    expect(tester.widget<StatusRail>(find.byType(StatusRail)).live, isFalse);
   });
 
   // The address bar's copy of the vault's sites went on offering a removed
