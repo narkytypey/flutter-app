@@ -16,7 +16,9 @@ import '../../../../domain/models/open_container.dart';
 import '../../../../domain/models/open_step.dart';
 import '../../../../domain/models/relative_age.dart';
 import '../../../../domain/models/route_decision.dart' show refusalMessage;
+import '../../../../domain/models/permissions_in_use.dart';
 import '../../../../domain/models/search_engine.dart';
+import '../../../../domain/models/security_level.dart';
 import '../../../../domain/models/site.dart';
 import '../../../../domain/models/throwaway.dart';
 import '../../../../domain/models/workspace.dart';
@@ -34,13 +36,16 @@ import '../../in_page/views/tunnel_dropped_screen.dart';
 import '../../report/views/today_route.dart';
 import '../../scripts/views/scripts_route.dart';
 import '../../search/view_models/providers.dart' show allSitesProvider, sitesChangedIn;
-import '../../settings/view_models/providers.dart' show searchEngineProvider;
+import '../../settings/view_models/providers.dart'
+    show searchEngineProvider, vaultSecurityLevelProvider;
+import '../../settings/views/security_level_picker.dart';
 import '../../settings/views/settings_route.dart';
 import '../../workspaces/views/workspaces_route.dart';
 import '../view_models/open_containers.dart';
 import '../view_models/providers.dart';
 import 'container_screen.dart';
 import 'container_web_view.dart';
+import 'new_identity_sheet.dart';
 import 'opening_screen.dart';
 
 /// The host route on the open vault's navigator, while it is up.
@@ -257,44 +262,53 @@ class _ContainerRouteState extends ConsumerState<ContainerRoute> {
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
   }
 
-  /// `6c`. A saved site's change is written, then handed to the registry,
-  /// which closes the container only for a route or cookie-policy change
-  /// (tabs spec §5.7); the switches change neither. A throwaway is not
-  /// written to the vault until it is saved (browser-chrome spec §5.1): its
-  /// switches change only the registry's record of it.
+  /// `6c`, the per-site shield panel (privacy-controls spec §3). It reads
+  /// the container from the registry each time it builds, so its counts and
+  /// grants are live. Every switch, and the level, applies at once (spec
+  /// §2.4): a saved site's change is written, a throwaway's is kept only in
+  /// the registry (browser-chrome spec §5.1), then the container reopens in
+  /// place at the page it shows. The sheet closes first, since its session
+  /// is about to be replaced.
   Future<void> _showSiteSheet() async {
     final workspaces = await ref.read(workspacesProvider.future);
     if (!mounted) return;
     final start = _state.viewed;
     if (start == null) return;
     final registry = _registry;
+    final engine = _engine;
     final sites = ref.read(siteRepositoryProvider);
-    final throwaway = start.throwaway;
     final siteId = start.siteId;
-    final blockedCount = start.blockedCount;
     String? workspaceName;
     for (final workspace in workspaces) {
       if (workspace.id == start.site.workspaceId) workspaceName = workspace.name;
     }
-    // The site as last saved from this sheet, so a second change is saved on
-    // top of the first rather than over it.
-    var site = start.site;
 
     showModalBottomSheet<void>(
       context: context,
       backgroundColor: Colors.transparent,
-      builder: (sheetContext) => StatefulBuilder(
-        builder: (sheetContext, setSheetState) {
+      // `6c` scrolls, and may be taller than the default 9/16 of the screen.
+      isScrollControlled: true,
+      builder: (sheetContext) => Consumer(
+        builder: (_, ref, __) {
+          final now = ref.watch(openContainersProvider).byId(siteId);
+          // The container went while the sheet was up.
+          if (now == null) return const SizedBox.shrink();
+          final vaultDefault =
+              ref.watch(vaultSecurityLevelProvider).valueOrNull ?? SecurityLevel.standard;
+          final throwaway = now.throwaway;
+          final site = now.site;
+
+          // Every switch applies at once (privacy-controls spec §2.4): the
+          // row is written, a throwaway only in the registry, then the
+          // container reopens in place. This replaces tabs spec §5.7's "the
+          // 6c switches never close anything".
           Future<void> save(Site updated) async {
-            site = updated;
-            setSheetState(() {});
-            if (throwaway) {
-              registry.updateSite(updated);
-              return;
+            Navigator.pop(sheetContext);
+            if (!throwaway) {
+              await sites.upsert(updated);
+              sitesChangedIn(_providers);
             }
-            await sites.upsert(updated);
-            await registry.siteSaved(updated);
-            sitesChangedIn(_providers);
+            await registry.reopenInPlace(updated);
           }
 
           final host = site.host;
@@ -308,7 +322,7 @@ class _ContainerRouteState extends ConsumerState<ContainerRoute> {
               CookiePolicy.keep => 'Keep for this site',
               CookiePolicy.wipeOnExit => 'Wipe on exit',
             },
-            blockedCount: blockedCount,
+            blockedCount: now.blockedCount,
             forceDark: site.forceDark,
             desktopView: site.userAgentMode == UserAgentMode.desktop,
             // Editing a throwaway means saving it.
@@ -331,7 +345,54 @@ class _ContainerRouteState extends ConsumerState<ContainerRoute> {
               Navigator.pop(sheetContext);
               unawaited(_closeAndWipe(siteId));
             },
+            securityLevelValue: securityLevelValue(site, vaultDefault),
+            onSecurityLevel: () {
+              Navigator.pop(sheetContext);
+              _pickSecurityLevel(siteId);
+            },
+            categoryCounts: now.categoryCounts,
+            blockWebRtc: site.blockWebRtc,
+            blockTrackers: site.blockTrackers,
+            antiFingerprinting: site.antiFingerprinting,
+            onBlockWebRtcChanged: (v) => save(site.copyWith(blockWebRtc: v)),
+            onBlockTrackersChanged: (v) => save(site.copyWith(blockTrackers: v)),
+            onAntiFingerprintingChanged: (v) => save(site.copyWith(antiFingerprinting: v)),
+            permissions: permissionsInUse(site, now.grants),
+            // Reloads every page of the container natively; the new session
+            // list takes the row away.
+            onRevoke: (kind) => engine.revokeGrant(siteId, kind),
           );
+        },
+      ),
+    );
+  }
+
+  /// The site picker (privacy-controls spec §2.3), from `6c` and ☰:
+  /// `Default` follows the vault default. A new choice is written (a
+  /// throwaway's only in the registry) and the container reopens in place
+  /// (§2.4).
+  Future<void> _pickSecurityLevel(String siteId) async {
+    final container = _state.byId(siteId);
+    if (container == null) return;
+    final vaultDefault = await ref.read(vaultSecurityLevelProvider.future);
+    if (!mounted) return;
+    final registry = _registry;
+    final sites = ref.read(siteRepositoryProvider);
+    showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (sheetContext) => SecurityLevelPicker.site(
+        current: container.site.securityLevel,
+        vaultDefault: vaultDefault,
+        onPick: (level) async {
+          Navigator.pop(sheetContext);
+          if (level == container.site.securityLevel) return;
+          final updated = container.site.withSecurityLevel(level);
+          if (!container.throwaway) {
+            await sites.upsert(updated);
+            sitesChangedIn(_providers);
+          }
+          await registry.reopenInPlace(updated);
         },
       ),
     );
@@ -453,6 +514,17 @@ class _ContainerRouteState extends ConsumerState<ContainerRoute> {
   /// goes, so the registry's change removes this route.
   Future<void> _closeAndWipe(String siteId) async {
     await _registry.closeAndWipe(siteId);
+    sitesChangedIn(_providers);
+  }
+
+  /// ☰'s New identity (privacy-controls spec §4), after its confirm sheet.
+  /// It runs after the menu has closed itself. Cancel does nothing.
+  Future<void> _newIdentity() async {
+    final viewed = _state.viewed;
+    if (viewed == null) return;
+    final registry = _registry;
+    if (!await confirmNewIdentity(context)) return;
+    await registry.newIdentity(viewed.siteId);
     sitesChangedIn(_providers);
   }
 
@@ -685,6 +757,11 @@ class _ContainerRouteState extends ConsumerState<ContainerRoute> {
         siteName: viewed.site.name,
         siteSubtitle: _menuSubtitle(viewed, workspaces),
         blockedToday: blockedToday,
+        // Display only: the level the engine runs at is resolved at open.
+        securityLevelMeta: effectiveLevel(
+          viewed.site,
+          ref.watch(vaultSecurityLevelProvider).valueOrNull ?? SecurityLevel.standard,
+        ).meta,
         findResult: _findResult,
         showSaveBar: viewed.throwaway && viewed.loadedOnce && !viewed.saveBarDismissed,
         address: navigation?.url ?? openedUrl,
@@ -713,6 +790,8 @@ class _ContainerRouteState extends ConsumerState<ContainerRoute> {
         onSettings: () => _push(const SettingsRoute()),
         // Tabs spec §4.2: to the dashboard, closing nothing on the way.
         onAllSites: _toDashboard,
+        onSecurityLevel: () => _pickSecurityLevel(siteId),
+        onNewIdentity: _newIdentity,
         onFind: (query) => _find(pageId, query),
         onFindNext: (forward) => _engine.findNext(pageId, forward: forward),
         onClearFind: () => _clearFind(pageId),

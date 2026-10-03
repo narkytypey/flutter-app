@@ -81,5 +81,8 @@ Site buildSite({
     customJs: customJs,
     lastVisitedAt: initial?.lastVisitedAt,
     sortIndex: initial?.sortIndex ?? 0,
+    // The form has no level control: saving keeps the site's own, or none
+    // (privacy-controls spec §2.1).
+    securityLevel: initial?.securityLevel,
   );
 }

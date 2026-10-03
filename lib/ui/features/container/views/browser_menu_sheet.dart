@@ -8,8 +8,8 @@ import '../../../core/widgets/sheet.dart';
 
 /// Browser-chrome spec §6.4: the ☰ sheet, in `2c`/`6c`'s sheet style. Four
 /// quick actions on this page, then screens that are also reachable from the
-/// dashboard, here as shortcuts. Project 3 adds security level and New
-/// identity to it.
+/// dashboard, here as shortcuts. Project 3's two rows, `Security level` and
+/// `New identity`, come first among the rows (privacy-controls spec §4.1).
 ///
 /// Pure: whoever shows it closes it before acting on a tap, so a screen it
 /// opens lands above the container rather than above the sheet.
@@ -20,6 +20,9 @@ class BrowserMenuSheet extends StatelessWidget {
     required this.name,
     required this.subtitle,
     required this.blockedToday,
+    required this.securityLevelMeta,
+    required this.onSecurityLevel,
+    required this.onNewIdentity,
     required this.onReload,
     required this.onFind,
     required this.onReader,
@@ -39,6 +42,16 @@ class BrowserMenuSheet extends StatelessWidget {
 
   /// Today's total, shown as `<n> BLOCKED` on the `Today` row.
   final int blockedToday;
+
+  /// The site's effective level in mono on the `Security level` row:
+  /// `STANDARD`, `SAFER` or `SAFEST` (privacy-controls spec §4.1, §5).
+  final String securityLevelMeta;
+
+  /// The `Security level` row (privacy-controls spec §4.1).
+  final VoidCallback onSecurityLevel;
+
+  /// The `New identity` row (privacy-controls spec §4.1).
+  final VoidCallback onNewIdentity;
 
   final VoidCallback onReload;
   final VoidCallback onFind;
@@ -98,6 +111,8 @@ class BrowserMenuSheet extends StatelessWidget {
             ],
           ),
         ),
+        _MenuRow(label: 'Security level', meta: securityLevelMeta, onTap: onSecurityLevel),
+        _MenuRow(label: 'New identity', onTap: onNewIdentity),
         _MenuRow(label: 'Today', meta: '$blockedToday BLOCKED', onTap: onToday),
         _MenuRow(label: 'Scripts and filters', onTap: onScripts),
         _MenuRow(label: 'Workspaces', onTap: onWorkspaces),
@@ -149,7 +164,8 @@ class _MenuRow extends StatelessWidget {
   final String label;
   final VoidCallback onTap;
 
-  /// Mono text in place of the chevron: `Today`'s blocked count.
+  /// Mono text in place of the chevron: `Today`'s blocked count, or the
+  /// security level.
   final String? meta;
   final bool divider;
 

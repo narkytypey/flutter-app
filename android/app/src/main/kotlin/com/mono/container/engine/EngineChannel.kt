@@ -104,6 +104,7 @@ class Session(
         ),
         "failure" to failure,
         "pages" to pagesToEvent(pages.values.map { it.id to it.openerId }),
+        "grants" to SessionGrants.kindsOf(sessionGrants),
     )
 
     companion object {
@@ -486,6 +487,10 @@ class EngineChannel(
                     keep(call.argument<String>("siteId")!!)
                     result.success(null)
                 }
+                "revokeGrant" -> {
+                    revokeGrant(call.argument<String>("siteId")!!, call.argument<String>("kind")!!)
+                    result.success(null)
+                }
                 "liveSessions" -> result.success(sessions.values.map(Session::toMap))
                 "resolvePermission" -> {
                     resolvePermission(call.argument<String>("requestId")!!, call.argument<String>("decision")!!)
@@ -624,16 +629,30 @@ class EngineChannel(
                 is PendingPermission.Hardware -> {
                     if (decisionName == "allowWhileOpen") session.sessionGrants.addAll(pending.toAsk)
                     pending.request.grant((pending.granted + pending.toAsk).toTypedArray())
+                    // `6c` lists the session's grants (privacy-controls spec §3).
+                    if (decisionName == "allowWhileOpen") emitSessions()
                 }
                 is PendingPermission.Geolocation -> {
-                    if (decisionName == "allowWhileOpen") session.sessionGrants.add("geolocation")
+                    if (decisionName == "allowWhileOpen") session.sessionGrants.add(SessionGrants.GEOLOCATION)
                     pending.callback.invoke(pending.origin, true, false)
+                    if (decisionName == "allowWhileOpen") emitSessions()
                 }
             }
             return
         }
         // The request already timed out or its site closed — a silent no-op,
         // per this plan's Known Gaps on backgrounded events.
+    }
+
+    /** `6c`'s Revoke (privacy-controls spec §3): one "allow while open" grant
+     *  goes, and every page of the container reloads, so no page, viewed or
+     *  paused, keeps a stream (user's ruling, 2026-10-02). A no-op on an
+     *  unknown session or a kind not granted. */
+    private fun revokeGrant(siteId: String, kind: String) {
+        val session = sessions[siteId] ?: return
+        if (!SessionGrants.revoke(session.sessionGrants, kind)) return
+        for (page in session.pages.values) page.reload()
+        emitSessions()
     }
 
     private fun resolveDownload(requestId: String, decisionName: String) {
@@ -838,6 +857,7 @@ class EngineChannel(
         userScripts = injectedScriptsFrom(call.argument<List<Map<String, Any?>>>("userScripts")),
         proxyLogin = proxyLoginFrom(call.argument<String>("proxyUser"), call.argument<String>("proxyPassword")),
         proxyLoginPerSite = call.argument<Boolean>("proxyLoginPerSite") ?: false,
+        securityLevel = SecurityLevel.fromChannel(call.argument<String>("securityLevel")),
     )
 
     fun nextRequestId(): String = "req-${++requestCounter}"

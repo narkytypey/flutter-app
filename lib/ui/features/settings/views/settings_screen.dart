@@ -34,6 +34,7 @@ class SettingsScreen extends StatelessWidget {
     required this.panicOnFlip,
     required this.onPanicLabel,
     required this.searchEngineName,
+    required this.securityLevelName,
     required this.onChanged,
     required this.onTap,
     required this.onBack,
@@ -50,6 +51,9 @@ class SettingsScreen extends StatelessWidget {
 
   /// The current engine's name (spec §6.7); empty while it loads.
   final String searchEngineName;
+
+  /// The vault default's name (privacy-controls spec §2.3); empty while it loads.
+  final String securityLevelName;
   final void Function(String key, bool value) onChanged;
   final void Function(String key) onTap;
 
@@ -113,6 +117,11 @@ class SettingsScreen extends StatelessWidget {
                     title: 'Search engine',
                     value: searchEngineName,
                     onTap: () => onTap('searchEngine'),
+                  ),
+                  SettingRow(
+                    title: 'Security level',
+                    value: securityLevelName,
+                    onTap: () => onTap('securityLevel'),
                   ),
                   if (decoyEnabled) ...[
                     const SizedBox(height: 24),

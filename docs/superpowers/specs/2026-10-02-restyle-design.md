@@ -220,7 +220,10 @@ in the set.
   **Update 2026-10-02:** Plan 15 (Tabs) was executed and is merged into
   `plan-17-restyle`; its rewritten `2c` (container rows with page rows) is
   restyled by the §3 `2c` rows, the page row's `×` drawn like the container
-  row's. Plan 16 has a spec only and draws nothing yet.
+  row's. ~~Plan 16 has a spec only and draws nothing yet.~~ **Update
+  2026-10-03:** Plan 16 (Privacy controls) was executed and merged to
+  `main`; its one Material icon, `SecurityLevelPicker`'s check, is drawn as
+  `AppGlyph.check` like the other pickers'.
 
 ## 9. Handoff to later projects
 

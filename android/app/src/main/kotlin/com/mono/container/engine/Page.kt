@@ -83,8 +83,13 @@ class Page(
     var snapshot: NavigationSnapshot? = null
         private set
 
+    /** From the session's config, like everything else here: every page of a
+     *  container, a link's included, is built by `EngineChannel.newPage`. */
+    private val policy = securityPolicyFor(config.securityLevel)
+
     val webView: WebView = WebView(context).apply {
-        settings.javaScriptEnabled = true
+        settings.javaScriptEnabled = policy.javaScriptEnabled
+        settings.blockNetworkImage = policy.blockNetworkImage
         settings.domStorageEnabled = true
         settings.userAgentString = userAgentFor(config.userAgentMode, context)
         // Tabs spec §5.2: a link may ask for a new window; script alone may not.
@@ -129,7 +134,8 @@ class Page(
         webView.setFindListener { activeMatch, matchCount, isDoneCounting ->
             if (isDoneCounting && !closed) events.found(this, activeMatch, matchCount)
         }
-        Shields.apply(webView, config) { session.counters.fingerprinting.incrementAndGet() }
+        Shields.apply(webView, config, policy,
+            onFingerprintNoiseApplied = { session.counters.fingerprinting.incrementAndGet() })
 
         webView.setDownloadListener { url, _, contentDisposition, mimeType, contentLength ->
             if (closed) return@setDownloadListener
