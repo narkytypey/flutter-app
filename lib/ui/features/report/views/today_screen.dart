@@ -10,10 +10,12 @@ import '../../../core/widgets/monogram.dart';
 /// Spec `5c` — a quiet log, not a dashboard of scary numbers. Reachable
 /// from the dashboard menu, never pushed as a notification (turn 5's note).
 class TodayScreen extends StatelessWidget {
-  const TodayScreen({super.key, required this.tally, required this.onBack});
+  const TodayScreen({super.key, required this.tally, this.onBack});
 
   final BlockedTally tally;
-  final VoidCallback onBack;
+  /// The header's back icon. Null draws none: the dashboard's Today tab
+  /// (dashboard spec §4.1).
+  final VoidCallback? onBack;
 
   @override
   Widget build(BuildContext context) {
@@ -29,14 +31,16 @@ class TodayScreen extends StatelessWidget {
               ),
               child: Row(
                 children: [
-                  IconTap(
-                    glyph: AppGlyph.back,
-                    label: 'Back',
-                    onTap: onBack,
-                    size: 20,
-                    iconSize: 18,
-                  ),
-                  const SizedBox(width: 10),
+                  if (onBack != null) ...[
+                    IconTap(
+                      glyph: AppGlyph.back,
+                      label: 'Back',
+                      onTap: onBack,
+                      size: 20,
+                      iconSize: 18,
+                    ),
+                    const SizedBox(width: 10),
+                  ],
                   Text('Today', style: T.screenTitle),
                 ],
               ),

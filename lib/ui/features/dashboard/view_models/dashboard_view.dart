@@ -29,59 +29,74 @@ class SessionEntry {
 
 class DashboardView {
   const DashboardView({
-    required this.workspaceName,
+    required this.workspaceId,
     required this.wipesOnExit,
-    required this.sessionCount,
-    required this.open,
-    required this.idle,
+    required this.rows,
   });
 
-  final String workspaceName;
+  /// A vault with no workspaces: no chip is viewed.
+  static const empty = DashboardView(workspaceId: null, wipesOnExit: false, rows: []);
 
-  /// True for a workspace whose storage rule is wipe-on-exit; the bar shows
-  /// `WIPES ON EXIT` instead of the session counts (spec `5b`).
+  /// The viewed workspace (dashboard spec §4.2): its chip is drawn selected,
+  /// and a new site or a typed address's throwaway goes into it. Null only
+  /// for a vault with no workspaces.
+  final String? workspaceId;
+
+  /// True for a workspace whose storage rule is wipe-on-exit: the chip row
+  /// shows `WIPES ON EXIT` (spec `5b`, plan D3).
   final bool wipesOnExit;
-  final int sessionCount;
-  final List<SessionEntry> open;
-  final List<SessionEntry> idle;
 
-  bool get isEmpty => open.isEmpty && idle.isEmpty;
+  /// Spec §4.3, rulings 5 and 6: one list, no titles. Open sites first, then
+  /// the rest, each most recently visited first and never-visited last.
+  final List<SessionEntry> rows;
 
-  /// Which sites are live is runtime state, not stored state: sessions do not
-  /// survive the app closing, so [openSiteIds] comes from a provider rather
-  /// than from the database.
-  ///
-  /// [throwawaysOpen] counts toward `N SESSIONS` but is never listed: OPEN
-  /// NOW shows saved sites only (tabs spec §5.4).
+  bool get isEmpty => rows.isEmpty;
+
+  /// Which sites are live is runtime state, not stored state: containers do
+  /// not survive the app closing, so [openSiteIds] comes from the registry
+  /// rather than from the database. A throwaway is never a row (it is not a
+  /// site). `N OPEN`, `2c` and the swipe reach it (spec §11).
   static DashboardView from({
     required Workspace workspace,
     required List<Site> sites,
     required Set<String> openSiteIds,
-    int throwawaysOpen = 0,
     required DateTime now,
   }) {
-    SessionEntry entry(Site s, bool live) => SessionEntry(
-          siteId: s.id,
-          name: s.name,
-          monogram: s.monogram,
-          meta: '${s.host} · ${siteDescriptor(s)}',
-          age: relativeAge(now, s.lastVisitedAt),
-          live: live,
-        );
-
-    final open = <SessionEntry>[];
-    final idle = <SessionEntry>[];
-    for (final site in sites) {
-      final live = openSiteIds.contains(site.id);
-      (live ? open : idle).add(entry(site, live));
-    }
+    // Ties keep the vault's order: `List.sort` is not stable.
+    final position = {for (var i = 0; i < sites.length; i++) sites[i].id: i};
+    final ordered = [...sites]
+      ..sort((a, b) {
+        final aOpen = openSiteIds.contains(a.id);
+        final bOpen = openSiteIds.contains(b.id);
+        if (aOpen != bOpen) return aOpen ? -1 : 1;
+        final byRecency = _byRecency(a, b);
+        return byRecency != 0 ? byRecency : position[a.id]!.compareTo(position[b.id]!);
+      });
 
     return DashboardView(
-      workspaceName: workspace.name,
+      workspaceId: workspace.id,
       wipesOnExit: workspace.storageRule == StorageRule.wipeOnExit,
-      sessionCount: open.length + throwawaysOpen,
-      open: open,
-      idle: idle,
+      rows: [
+        for (final site in ordered)
+          SessionEntry(
+            siteId: site.id,
+            name: site.name,
+            monogram: site.monogram,
+            meta: '${site.host} · ${siteDescriptor(site)}',
+            age: relativeAge(now, site.lastVisitedAt),
+            live: openSiteIds.contains(site.id),
+          ),
+      ],
     );
   }
+}
+
+/// Most recently visited first; never visited last.
+int _byRecency(Site a, Site b) {
+  final at = a.lastVisitedAt;
+  final bt = b.lastVisitedAt;
+  if (at == null && bt == null) return 0;
+  if (at == null) return 1;
+  if (bt == null) return -1;
+  return bt.compareTo(at);
 }

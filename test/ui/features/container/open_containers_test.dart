@@ -464,7 +464,7 @@ void main() {
     expect(h.state.openSiteIds, {'s2'});
   });
 
-  test('17. openCount, openSiteIds and throwawaysIn count listed containers only', () async {
+  test('17. openCount and openSiteIds count listed containers only', () async {
     final h = await _harness();
     await h.registry.view(_site('s1', workspaceId: 'w1'));
     await h.registry.view(_site('t1', workspaceId: 'w1'), throwaway: true, openerSiteId: 's1');
@@ -476,9 +476,6 @@ void main() {
     expect(h.state.containers, hasLength(4));
     expect(h.state.openCount, 3);
     expect(h.state.openSiteIds, {'s1', 't1', 't2'});
-    expect(h.state.throwawaysIn('w1'), 1);
-    expect(h.state.throwawaysIn('w2'), 1);
-    expect(h.state.throwawaysIn('w3'), 0);
   });
 
   group('18. siteSaved', () {

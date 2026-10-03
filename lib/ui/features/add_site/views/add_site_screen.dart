@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../../domain/models/monogram_suggestion.dart';
+import '../../../../domain/models/proxy_route.dart';
 import '../../../../domain/models/site.dart';
 import '../../../../domain/models/workspace.dart';
 import '../../../core/icons.dart';
@@ -22,6 +23,8 @@ class AddSiteScreen extends StatefulWidget {
     required this.workspaces,
     required this.onSave,
     this.initialTab = 0,
+    this.initialWorkspaceId,
+    this.defaultRoute = ProxyRoute.direct,
   });
 
   final Site? initial;
@@ -32,6 +35,14 @@ class AddSiteScreen extends StatefulWidget {
   /// `8b`'s "Change proxy settings" opens on Network.
   final int initialTab;
 
+  /// The workspace a new site starts in: the dashboard's viewed chip (spec
+  /// §6). Ignored when editing, or when it is not among [workspaces].
+  final String? initialWorkspaceId;
+
+  /// Where a new site's Network tab starts (spec §6): the vault's default
+  /// route. An edited site shows its own.
+  final ProxyRoute defaultRoute;
+
   @override
   State<AddSiteScreen> createState() => _AddSiteScreenState();
 }
@@ -41,24 +52,35 @@ class _AddSiteScreenState extends State<AddSiteScreen> {
 
   late final _urlController = TextEditingController(text: widget.initial?.url ?? '');
   late final _nameController = TextEditingController(text: widget.initial?.name ?? '');
-  late final _hostController =
-      TextEditingController(text: widget.initial?.proxyHost ?? '127.0.0.1');
+  /// The route the Network tab starts from.
+  late final ProxyRoute _startRoute =
+      widget.initial == null ? widget.defaultRoute : ProxyRoute.of(widget.initial!);
+  late final _hostController = TextEditingController(text: _startRoute.host ?? '127.0.0.1');
   late final _portController =
-      TextEditingController(text: (widget.initial?.proxyPort ?? 9050).toString());
-  late final _userController = TextEditingController(text: widget.initial?.proxyUser ?? '');
-  late final _passwordController =
-      TextEditingController(text: widget.initial?.proxyPassword ?? '');
+      TextEditingController(text: (_startRoute.port ?? 9050).toString());
+  late final _userController = TextEditingController(text: _startRoute.user ?? '');
+  late final _passwordController = TextEditingController(text: _startRoute.password ?? '');
   late final _cssController = TextEditingController(text: widget.initial?.customCss ?? '');
   late final _jsController = TextEditingController(text: widget.initial?.customJs ?? '');
 
   late int _tabIndex = widget.initialTab;
   late String _monogram = widget.initial?.monogram ?? '';
-  late String _workspaceId = widget.initial?.workspaceId ?? widget.workspaces.first.id;
+  late String _workspaceId = widget.initial?.workspaceId ?? _startWorkspace();
   late CookiePolicy _cookiePolicy = widget.initial?.cookiePolicy ?? CookiePolicy.keep;
-  late bool _proxyEnabled = (widget.initial?.proxyMode ?? ProxyMode.direct) != ProxyMode.direct;
+  late bool _proxyEnabled = _startRoute.mode != ProxyMode.direct;
   late ProxyMode _proxyMode =
-      widget.initial?.proxyMode == ProxyMode.http ? ProxyMode.http : ProxyMode.socks5;
-  late bool _loginPerSite = widget.initial?.proxyLoginPerSite ?? false;
+      _startRoute.mode == ProxyMode.http ? ProxyMode.http : ProxyMode.socks5;
+  late bool _loginPerSite = _startRoute.loginPerSite;
+
+  /// The keyboard is up on ADDRESS when a new site's form opens (spec §6).
+  final _addressFocus = FocusNode();
+
+  String _startWorkspace() {
+    for (final workspace in widget.workspaces) {
+      if (workspace.id == widget.initialWorkspaceId) return workspace.id;
+    }
+    return widget.workspaces.first.id;
+  }
   late bool _blockWebRtc = widget.initial?.blockWebRtc ?? true;
   late bool _blockTrackers = widget.initial?.blockTrackers ?? true;
   late bool _allowCamera = widget.initial?.allowCamera ?? false;
@@ -83,6 +105,7 @@ class _AddSiteScreenState extends State<AddSiteScreen> {
     _passwordController.dispose();
     _cssController.dispose();
     _jsController.dispose();
+    _addressFocus.dispose();
     super.dispose();
   }
 
@@ -91,6 +114,11 @@ class _AddSiteScreenState extends State<AddSiteScreen> {
     super.initState();
     _nameController.addListener(_updateMonogram);
     _updateMonogram();
+    if (widget.initial == null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _addressFocus.requestFocus();
+      });
+    }
   }
 
   void _updateMonogram() {
@@ -213,6 +241,7 @@ class _AddSiteScreenState extends State<AddSiteScreen> {
   Widget _body() {
     return switch (_tabIndex) {
       0 => BasicsTab(
+          addressFocus: _addressFocus,
           urlController: _urlController,
           nameController: _nameController,
           monogram: _monogram,

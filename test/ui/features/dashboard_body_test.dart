@@ -4,6 +4,7 @@ import 'package:container/ui/core/tokens.dart';
 import 'package:container/domain/models/site.dart';
 import 'package:container/domain/models/workspace.dart';
 import 'package:container/ui/features/dashboard/views/dashboard_body.dart';
+import 'package:container/ui/features/dashboard/views/workspace_chips.dart';
 import 'package:container/ui/features/dashboard/view_models/dashboard_view.dart';
 
 final _now = DateTime(2026, 8, 30, 9, 10);
@@ -19,7 +20,7 @@ Site _site(String id, String name, String mono, String url, Duration ago,
       lastVisitedAt: _now.subtract(ago),
     );
 
-DashboardView _personal({Set<String> open = const {'st-notes', 'st-webmail'}}) {
+DashboardView _personal({Set<String> open = const {'st-notes', 'st-bank'}}) {
   return DashboardView.from(
     workspace: const Workspace(
         id: 'ws', name: 'Personal', markerIndex: 0, storageRule: StorageRule.keep),
@@ -38,43 +39,51 @@ DashboardView _personal({Set<String> open = const {'st-notes', 'st-webmail'}}) {
   );
 }
 
+DashboardView _empty() => DashboardView.from(
+      workspace: const Workspace(
+          id: 'ws', name: 'Ephemeral', markerIndex: 4, storageRule: StorageRule.wipeOnExit),
+      sites: const [],
+      openSiteIds: const {},
+      now: _now,
+    );
+
 Future<void> _pump(WidgetTester tester, DashboardView view,
-    {void Function(String)? onOpenSite, VoidCallback? onAddSite}) {
+    {void Function(String)? onOpenSite, void Function(String)? onSiteMenu, Widget? cover}) {
   return tester.pumpWidget(MaterialApp(
     home: DashboardBody(
       view: view,
-      onWorkspaceTap: () {},
-      onAddSite: onAddSite ?? () {},
-      onSearch: () {},
+      chips: const [WorkspaceChip(id: 'ws', name: 'Personal', selected: true)],
+      onPickWorkspace: (_) {},
+      onEditWorkspace: (_) {},
+      onNewWorkspace: () {},
       onOpenSite: onOpenSite ?? (_) {},
-      onSiteMenu: (_) {},
-      onOverflow: () {},
+      onSiteMenu: onSiteMenu ?? (_) {},
+      cover: cover,
+      footer: const Text('the footer'),
     ),
   ));
 }
 
 void main() {
-  testWidgets('the bar names the workspace and counts sessions, and no leaks',
-      (tester) async {
+  testWidgets('no section titles and no count: the green dot alone (rulings 5)', (tester) async {
     await _pump(tester, _personal());
 
-    expect(find.text('Personal'), findsOneWidget);
-    expect(find.text('2 SESSIONS'), findsOneWidget);
+    expect(find.text('OPEN NOW'), findsNothing);
+    expect(find.text('IDLE'), findsNothing);
+    expect(find.textContaining('SESSIONS'), findsNothing);
     // User's ruling 2026-10-02: the dashboard shows no leak count.
     expect(find.textContaining('LEAK'), findsNothing);
   });
 
-  testWidgets('sites are grouped into OPEN NOW and IDLE', (tester) async {
+  testWidgets('open sites come first, then the rest, most recent first (ruling 6)',
+      (tester) async {
     await _pump(tester, _personal());
 
-    expect(find.text('OPEN NOW'), findsOneWidget);
-    expect(find.text('IDLE'), findsOneWidget);
-
-    final openLabel = tester.getTopLeft(find.text('OPEN NOW')).dy;
-    final idleLabel = tester.getTopLeft(find.text('IDLE')).dy;
-    expect(tester.getTopLeft(find.text('Notes')).dy, greaterThan(openLabel));
-    expect(tester.getTopLeft(find.text('Notes')).dy, lessThan(idleLabel));
-    expect(tester.getTopLeft(find.text('Forum')).dy, greaterThan(idleLabel));
+    final ys = [
+      for (final name in ['Notes', 'Bank', 'Webmail', 'Forum'])
+        tester.getTopLeft(find.text(name)).dy,
+    ];
+    expect(ys, orderedEquals([...ys]..sort()));
   });
 
   testWidgets('each row shows host and descriptor, and its age', (tester) async {
@@ -98,62 +107,33 @@ void main() {
     expect(tester.widget<Text>(find.text('Forum')).style!.color, C.textTertiary);
   });
 
-  testWidgets('tapping a row opens that site', (tester) async {
+  testWidgets('a tap opens a site, a long-press its menu', (tester) async {
     final opened = <String>[];
-    await _pump(tester, _personal(), onOpenSite: opened.add);
+    final menus = <String>[];
+    await _pump(tester, _personal(), onOpenSite: opened.add, onSiteMenu: menus.add);
 
     await tester.tap(find.text('Forum'));
+    await tester.longPress(find.text('Webmail'));
     expect(opened, ['st-forum']);
+    expect(menus, ['st-webmail']);
   });
 
-  testWidgets('with nothing open the OPEN NOW group is absent', (tester) async {
-    await _pump(tester, _personal(open: const {}));
+  testWidgets('the chips sit on top and the footer at the bottom', (tester) async {
+    await _pump(tester, _personal());
 
-    expect(find.text('OPEN NOW'), findsNothing);
-    expect(find.text('IDLE'), findsOneWidget);
-    expect(find.text('0 SESSIONS'), findsOneWidget);
+    expect(tester.getTopLeft(find.text('Personal')).dy,
+        lessThan(tester.getTopLeft(find.text('Notes')).dy));
+    expect(tester.getTopLeft(find.text('the footer')).dy,
+        greaterThan(tester.getTopLeft(find.text('Forum')).dy));
   });
 
-  testWidgets('the footer offers Add site and reports taps', (tester) async {
-    var added = 0;
-    await _pump(tester, _personal(), onAddSite: () => added++);
-
-    expect(find.text('+ Add site'), findsOneWidget);
-    await tester.tap(find.text('+ Add site'));
-    expect(added, 1);
-  });
-
-  testWidgets('a wipe-on-exit workspace shows its rule instead of counts',
-      (tester) async {
-    await _pump(
-      tester,
-      DashboardView.from(
-        workspace: const Workspace(
-            id: 'ws', name: 'Ephemeral', markerIndex: 4,
-            storageRule: StorageRule.wipeOnExit),
-        sites: const [],
-        openSiteIds: const {},
-        now: _now,
-      ),
-    );
-
+  testWidgets('a wipe-on-exit workspace shows its rule (plan D3)', (tester) async {
+    await _pump(tester, _empty());
     expect(find.text('WIPES ON EXIT'), findsOneWidget);
-    expect(find.textContaining('SESSIONS'), findsNothing);
   });
 
-  testWidgets('an empty workspace says so in one sentence with one action',
-      (tester) async {
-    await _pump(
-      tester,
-      DashboardView.from(
-        workspace: const Workspace(
-            id: 'ws', name: 'Ephemeral', markerIndex: 4,
-            storageRule: StorageRule.wipeOnExit),
-        sites: const [],
-        openSiteIds: const {},
-        now: _now,
-      ),
-    );
+  testWidgets('an empty workspace says so in one sentence', (tester) async {
+    await _pump(tester, _empty());
 
     expect(find.text('Nothing here yet'), findsOneWidget);
     expect(
@@ -161,24 +141,14 @@ void main() {
           'you close the app.'),
       findsOneWidget,
     );
-    expect(find.text('+ Add site'), findsOneWidget);
-    expect(find.text('OPEN NOW'), findsNothing);
   });
 
-  testWidgets('the empty state promotes Add site to the jade action',
-      (tester) async {
-    await _pump(
-      tester,
-      DashboardView.from(
-        workspace: const Workspace(
-            id: 'ws', name: 'Ephemeral', markerIndex: 4,
-            storageRule: StorageRule.wipeOnExit),
-        sites: const [],
-        openSiteIds: const {},
-        now: _now,
-      ),
-    );
+  testWidgets("a cover takes the list's place: the search field's suggestions", (tester) async {
+    await _pump(tester, _personal(), cover: const Text('suggestions'));
 
-    expect(tester.widget<Text>(find.text('+ Add site')).style!.color, C.bg);
+    expect(find.text('suggestions'), findsOneWidget);
+    expect(find.text('Notes'), findsNothing);
+    expect(find.text('Personal'), findsOneWidget, reason: 'the chips stay');
+    expect(find.text('the footer'), findsOneWidget);
   });
 }

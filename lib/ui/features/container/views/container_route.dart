@@ -651,7 +651,7 @@ class _ContainerRouteState extends ConsumerState<ContainerRoute> {
       case final Throwaway target:
         final throwaway = buildThrowaway(
           destination: target,
-          current: _routeSite(viewed),
+          workspaceId: _routeSite(viewed).workspaceId,
           newId: newProfileId,
         );
         showContainer(context, ref, throwaway, throwaway: true, openerSiteId: viewed.siteId);
@@ -665,7 +665,7 @@ class _ContainerRouteState extends ConsumerState<ContainerRoute> {
 
   /// A refused open: spec `8b`, shown in place of the container. A saved
   /// site's dead session is closed by the registry, and a refused saved
-  /// container is not listed, so it leaves OPEN NOW (tabs spec §5.6). A
+  /// container is not listed, so its green rail goes (tabs spec §5.6). A
   /// throwaway's stays until it is closed, since `8b` can still save it as a
   /// site.
   Widget _refusalScreen(OpenContainer viewed, Refusal refusal) {
@@ -728,8 +728,14 @@ class _ContainerRouteState extends ConsumerState<ContainerRoute> {
     final navigation = state.navigation[pageId];
     final pageHost = navigation?.host ?? '';
     final openedUrl = _openedUrl(viewed);
+    final neighbours = swipeNeighbours(state.containers, siteId);
+    final previous = neighbours.previous;
+    final next = neighbours.next;
     return Stack(children: [
       ContainerScreen(
+        // Dashboard spec §9: switched in place, as a tap on a `2c` row is.
+        onPreviousContainer: previous == null ? null : () => _viewContainer(previous),
+        onNextContainer: next == null ? null : () => _viewContainer(next),
         // The page's host once it reports one; the site's before that, and
         // whenever the page has none (`about:blank`, a failed load).
         host: pageHost.isEmpty ? opened.host : pageHost,

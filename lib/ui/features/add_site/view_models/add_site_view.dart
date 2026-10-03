@@ -1,5 +1,7 @@
 import '../../../../data/services/app_database.dart' show newProfileId;
 import '../../../../domain/models/address_input.dart';
+import '../../../../domain/models/monogram_suggestion.dart';
+import '../../../../domain/models/proxy_route.dart';
 import '../../../../domain/models/site.dart';
 
 /// [typed] as a site's address, read as the address bar reads it
@@ -45,25 +47,35 @@ Site buildSite({
   required String customCss,
   required String customJs,
 }) {
-  // Ruling 8: a typed login is kept only while the proxy is on, per-site login
-  // is off and a user was typed; otherwise neither half is. Nothing is trimmed.
-  final proxied = proxyMode != ProxyMode.direct;
-  final perSite = proxied && proxyLoginPerSite;
-  final typed = proxied && !perSite && proxyUser.isNotEmpty;
+  // Ruling 8, in one place (ProxyRoute.fromForm): a typed login is kept only
+  // while the proxy is on, per-site login is off and a user was typed.
+  final route = ProxyRoute.fromForm(
+    mode: proxyMode,
+    host: proxyHost,
+    port: proxyPort,
+    user: proxyUser,
+    password: proxyPassword,
+    loginPerSite: proxyLoginPerSite,
+  );
+  // Dashboard spec §6: a blank name saves as the address's host, as typed,
+  // and takes that host's monogram, as a throwaway saved as a site does
+  // (`buildThrowaway`).
+  final blank = name.trim().isEmpty;
+  final host = Uri.parse(url).host;
   return Site(
     id: initial?.id ?? newProfileId(),
     workspaceId: workspaceId,
-    name: name,
-    monogram: monogram,
+    name: blank ? host : name,
+    monogram: blank ? suggestMonogram(host) : monogram,
     url: url,
     profileId: initial?.profileId ?? newProfileId(),
     cookiePolicy: cookiePolicy,
-    proxyMode: proxyMode,
-    proxyHost: proxyHost,
-    proxyPort: proxyPort,
-    proxyUser: typed ? proxyUser : null,
-    proxyPassword: typed ? proxyPassword : null,
-    proxyLoginPerSite: perSite,
+    proxyMode: route.mode,
+    proxyHost: route.host,
+    proxyPort: route.port,
+    proxyUser: route.user,
+    proxyPassword: route.password,
+    proxyLoginPerSite: route.loginPerSite,
     blockWebRtc: blockWebRtc,
     blockTrackers: blockTrackers,
     antiFingerprinting: antiFingerprinting,

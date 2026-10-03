@@ -12,8 +12,7 @@ import '../../../core/widgets/setting_row.dart';
 /// The VAULT section is present only when a decoy has been configured. This
 /// screen is *meant* to be a real-vault surface — a decoy that offers to
 /// manage a decoy would announce itself — but that is a design intent, not
-/// something any code enforces: `DashboardScreen`'s `⋯` icon (which pushes
-/// this screen) is wired identically for every open session, and nothing
+/// something any code enforces: the dashboard's Settings tab is wired identically for every open session, and nothing
 /// anywhere asks a `SessionOpen` which vault it holds before deciding what
 /// to show it (see `dashboard/view_models/providers.dart`'s
 /// `databaseProvider` doc comment — "no code anywhere asking which one that
@@ -35,9 +34,11 @@ class SettingsScreen extends StatelessWidget {
     required this.onPanicLabel,
     required this.searchEngineName,
     required this.securityLevelName,
+    this.defaultRouteLabel = '',
+    this.defaultRouteMono = false,
     required this.onChanged,
     required this.onTap,
-    required this.onBack,
+    this.onBack,
   });
 
   final bool biometrics;
@@ -54,12 +55,19 @@ class SettingsScreen extends StatelessWidget {
 
   /// The vault default's name (privacy-controls spec §2.3); empty while it loads.
   final String securityLevelName;
+
+  /// The default route's row value (dashboard spec §8); empty while it loads.
+  final String defaultRouteLabel;
+
+  /// True when [defaultRouteLabel] is a proxy's address, shown in mono.
+  final bool defaultRouteMono;
   final void Function(String key, bool value) onChanged;
   final void Function(String key) onTap;
 
   /// The header's back icon. Pops Settings, like every other screen's `‹`
-  /// (restyle spec §4).
-  final VoidCallback onBack;
+  /// (restyle spec §4). Null draws none: the dashboard's Settings tab
+  /// (dashboard spec §4.1).
+  final VoidCallback? onBack;
 
   @override
   Widget build(BuildContext context) {
@@ -72,14 +80,16 @@ class SettingsScreen extends StatelessWidget {
               padding: const EdgeInsets.fromLTRB(18, 14, 18, 12),
               child: Row(
                 children: [
-                  IconTap(
-                    glyph: AppGlyph.back,
-                    label: 'Back',
-                    onTap: onBack,
-                    size: 20,
-                    iconSize: 18,
-                  ),
-                  const SizedBox(width: 10),
+                  if (onBack != null) ...[
+                    IconTap(
+                      glyph: AppGlyph.back,
+                      label: 'Back',
+                      onTap: onBack,
+                      size: 20,
+                      iconSize: 18,
+                    ),
+                    const SizedBox(width: 10),
+                  ],
                   Text('Settings', style: T.screenTitle),
                 ],
               ),
@@ -117,6 +127,12 @@ class SettingsScreen extends StatelessWidget {
                     title: 'Search engine',
                     value: searchEngineName,
                     onTap: () => onTap('searchEngine'),
+                  ),
+                  SettingRow(
+                    title: 'Default route',
+                    value: defaultRouteLabel,
+                    monoValue: defaultRouteMono,
+                    onTap: () => onTap('defaultRoute'),
                   ),
                   SettingRow(
                     title: 'Security level',

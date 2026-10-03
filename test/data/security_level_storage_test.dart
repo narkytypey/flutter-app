@@ -130,7 +130,7 @@ void main() {
   test('a throwaway follows the vault default', () {
     final throwaway = buildThrowaway(
       destination: Throwaway(Uri.parse('https://news.example.org'), ProxyMode.direct, null, null),
-      current: _site.withSecurityLevel(SecurityLevel.safest),
+      workspaceId: _site.workspaceId,
       newId: () => 'fresh',
     );
     expect(throwaway.securityLevel, isNull, reason: 'spec: only the route is inherited');

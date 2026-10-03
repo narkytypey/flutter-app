@@ -2,6 +2,7 @@ import 'package:container/ui/features/settings/views/settings_route.dart';
 import 'package:container/ui/features/scripts/views/scripts_route.dart';
 import 'package:container/ui/features/settings/views/change_pin_route.dart';
 import 'package:container/ui/features/settings/views/decoy_resync_route.dart';
+import 'package:container/ui/features/settings/views/default_route_screen.dart';
 import 'package:container/ui/features/workspaces/views/workspaces_route.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -11,6 +12,7 @@ void main() {
     expect(settingsDestination('scripts'), isA<ScriptsRoute>());
     expect(settingsDestination('resyncDecoy'), isA<DecoyResyncRoute>());
     expect(settingsDestination('changePin'), isA<ChangePinRoute>());
+    expect(settingsDestination('defaultRoute'), isA<DefaultRouteRoute>());
   });
 
   /// User's ruling, 2026-09-30: which sites the decoy shows is decided per

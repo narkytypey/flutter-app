@@ -57,10 +57,6 @@ class OpenContainersState {
   /// Every listed container, saved and throwaway.
   Set<String> get openSiteIds => {for (final c in listed) c.siteId};
 
-  /// Throwaways counted under [workspaceId] — their opener's (§5.4).
-  int throwawaysIn(String workspaceId) =>
-      listed.where((c) => c.throwaway && c.site.workspaceId == workspaceId).length;
-
   OpenContainersState copyWith({
     List<OpenContainer>? containers,
     Object? viewedSiteId = _keep,

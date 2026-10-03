@@ -5,12 +5,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  test("the set is spec §6.6's fifteen glyphs, then the restyle's eight", () {
+  test("the set is spec §6.6's fifteen glyphs, the restyle's eight, then the dashboard's three", () {
     expect(AppGlyph.values.map((g) => g.name), [
       'back', 'forward', 'reload', 'stop', 'shield', 'panic', 'menu', 'find',
       'reader', 'link', 'search', 'globe', 'chevronUp', 'chevronDown', 'close',
       'check', 'plus', 'more', 'vault', 'fingerprint', 'backspace', 'refused',
-      'contrast',
+      'contrast', 'sites', 'today', 'settings',
     ]);
   });
 

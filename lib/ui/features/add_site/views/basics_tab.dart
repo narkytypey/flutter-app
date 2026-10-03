@@ -18,8 +18,10 @@ class BasicsTab extends StatelessWidget {
     required this.onWorkspaceChanged,
     required this.cookiePolicy,
     required this.onCookiePolicyChanged,
+    this.addressFocus,
   });
 
+  final FocusNode? addressFocus;
   final TextEditingController urlController;
   final TextEditingController nameController;
   final String monogram;
@@ -38,7 +40,7 @@ class BasicsTab extends StatelessWidget {
       children: [
         Text('ADDRESS', style: _label),
         const SizedBox(height: 7),
-        _field(key: const Key('add-site-address'), controller: urlController),
+        _field(key: const Key('add-site-address'), controller: urlController, focusNode: addressFocus),
         const SizedBox(height: 18),
         Text('NAME', style: _label),
         const SizedBox(height: 7),
@@ -115,7 +117,8 @@ class BasicsTab extends StatelessWidget {
     );
   }
 
-  Widget _field({required Key key, required TextEditingController controller}) => Container(
+  Widget _field({required Key key, required TextEditingController controller, FocusNode? focusNode}) =>
+      Container(
         height: 46,
         padding: const EdgeInsets.symmetric(horizontal: 13),
         decoration: BoxDecoration(
@@ -126,6 +129,7 @@ class BasicsTab extends StatelessWidget {
         child: TextField(
           key: key,
           controller: controller,
+          focusNode: focusNode,
           style: ui(size: 13, color: C.textSecondary),
           decoration: const InputDecoration(border: InputBorder.none, isDense: true),
         ),

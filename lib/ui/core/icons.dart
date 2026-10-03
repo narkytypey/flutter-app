@@ -5,7 +5,8 @@ import 'package:flutter/widgets.dart';
 import 'tokens.dart';
 
 /// Spec §6.6's set, drawn in-repo: no icon font, no dependency. The last
-/// eight are the restyle's (`2026-10-02-restyle-design.md` §2).
+/// eight are the restyle's (`2026-10-02-restyle-design.md` §2),
+/// and the dashboard redesign added the last three.
 enum AppGlyph {
   back,
   forward,
@@ -30,6 +31,9 @@ enum AppGlyph {
   backspace,
   refused,
   contrast,
+  sites,
+  today,
+  settings,
 }
 
 /// One line icon at the size the caller passes. Every icon in the app is one
@@ -225,6 +229,28 @@ class AppIconPainter extends CustomPainter {
             ..close(),
           Paint()..color = color,
         );
+      case AppGlyph.sites:
+        for (final corner in const [Offset(4, 4), Offset(14, 4), Offset(4, 14), Offset(14, 14)]) {
+          canvas.drawRRect(
+            RRect.fromRectAndRadius(corner & const Size(6, 6), const Radius.circular(1.5)),
+            stroke,
+          );
+        }
+      case AppGlyph.today:
+        canvas.drawRRect(
+          RRect.fromRectAndRadius(const Rect.fromLTRB(4, 6, 20, 20), const Radius.circular(2)),
+          stroke,
+        );
+        _lines(canvas, stroke, const [Offset(4, 10.5), Offset(20, 10.5)]);
+        _lines(canvas, stroke, const [Offset(8.5, 3.5), Offset(8.5, 7.5)]);
+        _lines(canvas, stroke, const [Offset(15.5, 3.5), Offset(15.5, 7.5)]);
+      case AppGlyph.settings:
+        // Three sliders: each line stops at its knob, a ring.
+        for (final (y, knob) in const [(7.0, 15.0), (12.0, 9.0), (17.0, 13.0)]) {
+          _lines(canvas, stroke, [Offset(4, y), Offset(knob - 2, y)]);
+          canvas.drawCircle(Offset(knob, y), 2, stroke);
+          _lines(canvas, stroke, [Offset(knob + 2, y), Offset(20, y)]);
+        }
     }
     canvas.restore();
   }

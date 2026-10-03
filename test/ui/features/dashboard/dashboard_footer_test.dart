@@ -1,31 +1,80 @@
 import 'package:container/ui/core/icons.dart';
 import 'package:container/ui/core/tokens.dart';
+import 'package:container/ui/core/widgets/icon_tap.dart';
 import 'package:container/ui/features/dashboard/views/dashboard_footer.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../../../support/glyph_finders.dart';
 
-void main() {
-  testWidgets('search is a drawn icon, named for screen readers, and reports a tap', (tester) async {
-    final semantics = tester.ensureSemantics();
-    var searches = 0;
-    await tester.pumpWidget(MaterialApp(
-      home: Scaffold(
-        body: Align(
-          alignment: Alignment.bottomCenter,
-          child: DashboardFooter(onAddSite: () {}, onSearch: () => searches++),
+Future<List<String>> _pump(WidgetTester tester, {bool emphasise = false}) async {
+  final calls = <String>[];
+  final controller = TextEditingController();
+  final focus = FocusNode();
+  addTearDown(controller.dispose);
+  addTearDown(focus.dispose);
+  await tester.pumpWidget(MaterialApp(
+    home: Scaffold(
+      body: Align(
+        alignment: Alignment.bottomCenter,
+        child: DashboardFooter(
+          controller: controller,
+          focusNode: focus,
+          onChanged: (text) => calls.add('changed $text'),
+          onSubmitted: (text) => calls.add('submitted $text'),
+          onAddSite: () => calls.add('add'),
+          emphasise: emphasise,
         ),
       ),
-    ));
+    ),
+  ));
+  return calls;
+}
 
-    expect(find.text('+ Add site'), findsOneWidget);
-    expect(tester.getSize(findGlyph(AppGlyph.search)), const Size(20, 20));
-    expect(tester.widget<AppIcon>(findGlyph(AppGlyph.search)).color, C.icon);
-    expect(find.bySemanticsLabel('Search'), findsOneWidget);
+void main() {
+  testWidgets("a search field with the address bar's placeholder, then + (spec §5)",
+      (tester) async {
+    final semantics = tester.ensureSemantics();
+    await _pump(tester);
 
-    await tester.tap(findGlyph(AppGlyph.search));
-    expect(searches, 1);
+    expect(find.text('Search or type an address'), findsOneWidget);
+    expect(find.text('+ Add site'), findsNothing);
+    expect(tester.getSize(findIconTap('Add site')), const Size(46, 46));
+    expect(find.bySemanticsLabel('Add site'), findsOneWidget);
+    expect(tester.getCenter(findIconTap('Add site')).dx,
+        greaterThan(tester.getCenter(find.byType(TextField)).dx));
     semantics.dispose();
+  });
+
+  testWidgets('typing, the keyboard action and + are reported', (tester) async {
+    final calls = await _pump(tester);
+
+    await tester.enterText(find.byKey(const Key('dashboard-search')), 'forum');
+    await tester.testTextInput.receiveAction(TextInputAction.go);
+    await tester.tap(findIconTap('Add site'));
+
+    expect(calls, ['changed forum', 'submitted forum', 'add']);
+  });
+
+  testWidgets('typed addresses stay out of the keyboard dictionary', (tester) async {
+    await _pump(tester);
+    final field = tester.widget<TextField>(find.byKey(const Key('dashboard-search')));
+    expect(field.autocorrect, isFalse);
+    expect(field.enableSuggestions, isFalse);
+    expect(field.enableIMEPersonalizedLearning, isFalse);
+    expect(field.keyboardType, TextInputType.url);
+  });
+
+  testWidgets('+ is jade only on an empty workspace; the field never is (§4.4)', (tester) async {
+    await _pump(tester);
+    var plus = tester.widget<IconTap>(findIconTap('Add site'));
+    expect(plus.background, C.button);
+    expect(plus.color, C.icon);
+
+    await _pump(tester, emphasise: true);
+    plus = tester.widget<IconTap>(findIconTap('Add site'));
+    expect(plus.background, C.jade);
+    expect(plus.color, C.bg);
+    expect(tester.widget<AppIcon>(findGlyph(AppGlyph.plus)).color, C.bg);
   });
 }

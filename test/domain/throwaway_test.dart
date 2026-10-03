@@ -29,7 +29,7 @@ Site _build() {
   var next = 0;
   return buildThrowaway(
     destination: destination,
-    current: _current,
+    workspaceId: _current.workspaceId,
     newId: () => 'id${next++}',
   );
 }
@@ -81,7 +81,7 @@ void main() {
     ) as Throwaway;
     var next = 0;
     final throwaway = buildThrowaway(
-        destination: destination, current: _current, newId: () => 'id${next++}');
+        destination: destination, workspaceId: _current.workspaceId, newId: () => 'id${next++}');
 
     expect(throwaway.proxyLoginPerSite, isTrue);
     expect(throwaway.profileId, isNot(_current.profileId),
@@ -94,5 +94,15 @@ void main() {
       runAtDocumentStart: false, enabled: true, appliedSiteIds: ['forum'],
     );
     expect(selectUserScripts(_build(), const [script]), isEmpty);
+  });
+
+  test('its workspace is the one it is given: the viewed chip from the dashboard', () {
+    final throwaway = buildThrowaway(
+      destination: Throwaway(Uri.parse('https://news.example.org'), ProxyMode.direct, null, null),
+      workspaceId: 'w-work',
+      newId: () => 'fresh',
+    );
+    expect(throwaway.workspaceId, 'w-work');
+    expect(throwaway.name, 'news.example.org');
   });
 }

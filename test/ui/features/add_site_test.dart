@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:container/domain/models/proxy_route.dart';
 import 'package:container/domain/models/site.dart';
 import 'package:container/domain/models/workspace.dart';
 import 'package:container/ui/features/add_site/views/add_site_screen.dart';
@@ -12,14 +13,28 @@ const _workspaces = [
   Workspace(id: 'ws-ephemeral', name: 'Ephemeral', markerIndex: 4, storageRule: StorageRule.wipeOnExit),
 ];
 
-Future<void> _pump(WidgetTester tester, {ValueChanged<Site>? onSave}) {
+Future<void> _pump(WidgetTester tester,
+    {ValueChanged<Site>? onSave, String? initialWorkspaceId,
+    ProxyRoute defaultRoute = ProxyRoute.direct, Site? initial}) {
   addTearDown(tester.view.reset);
   tester.view.physicalSize = const Size(428, 1400);
   tester.view.devicePixelRatio = 1;
   return tester.pumpWidget(MaterialApp(
-    home: AddSiteScreen(workspaces: _workspaces, onSave: onSave ?? (_) {}),
+    home: AddSiteScreen(
+      initial: initial,
+      workspaces: _workspaces,
+      initialWorkspaceId: initialWorkspaceId,
+      defaultRoute: defaultRoute,
+      onSave: onSave ?? (_) {},
+    ),
   ));
 }
+
+/// Whether the field under [key] holds focus: the keyboard is up on it.
+bool _focused(WidgetTester tester, String key) => tester
+    .widget<EditableText>(find.descendant(of: find.byKey(Key(key)), matching: find.byType(EditableText)))
+    .focusNode
+    .hasFocus;
 
 void main() {
   testWidgets('the header and all four tabs are visible from the start',
@@ -237,5 +252,107 @@ void main() {
     expect(find.text('Add site'), findsNothing);
     expect(find.text('open'), findsOneWidget);
     expect(saves, 0);
+  });
+
+  group('defaults (dashboard spec §6)', () {
+    const forum = Site(
+      id: 's1', workspaceId: 'ws-personal', name: 'Forum', monogram: 'Fr',
+      url: 'https://forum.example.com', profileId: 'p1',
+    );
+    const socks = ProxyRoute(
+        mode: ProxyMode.socks5, host: '10.0.2.2', port: 1080, user: 'alice', password: 'pw');
+
+    testWidgets('a new site opens with the keyboard up on ADDRESS', (tester) async {
+      await _pump(tester);
+      await tester.pump();
+      expect(_focused(tester, 'add-site-address'), isTrue);
+    });
+
+    testWidgets('an edited site does not', (tester) async {
+      await _pump(tester, initial: forum);
+      await tester.pump();
+      expect(_focused(tester, 'add-site-address'), isFalse);
+    });
+
+    testWidgets('WORKSPACE starts on the one given', (tester) async {
+      Site? saved;
+      await _pump(tester, initialWorkspaceId: 'ws-work', onSave: (s) => saved = s);
+      await tester.enterText(find.byKey(const Key('add-site-address')), 'forum.example.com');
+      await tester.pump();
+      await tester.tap(find.text('Save'));
+      await tester.pump();
+      expect(saved!.workspaceId, 'ws-work');
+    });
+
+    testWidgets('a workspace that is not there falls back to the first', (tester) async {
+      Site? saved;
+      await _pump(tester, initialWorkspaceId: 'gone', onSave: (s) => saved = s);
+      await tester.enterText(find.byKey(const Key('add-site-address')), 'forum.example.com');
+      await tester.pump();
+      await tester.tap(find.text('Save'));
+      await tester.pump();
+      expect(saved!.workspaceId, 'ws-personal');
+    });
+
+    testWidgets('an empty NAME saves as the host', (tester) async {
+      Site? saved;
+      await _pump(tester, onSave: (s) => saved = s);
+      await tester.enterText(find.byKey(const Key('add-site-address')), 'example.com');
+      await tester.pump();
+      await tester.tap(find.text('Save'));
+      await tester.pump();
+      expect(saved!.name, 'example.com');
+    });
+
+    testWidgets("a new site's Network tab starts from the default route", (tester) async {
+      Site? saved;
+      await _pump(tester, defaultRoute: socks, onSave: (s) => saved = s);
+      await tester.tap(find.text('Network'));
+      await tester.pumpAndSettle();
+      expect(find.text('10.0.2.2'), findsOneWidget);
+      expect(find.text('1080'), findsOneWidget);
+      expect(find.text('alice'), findsOneWidget);
+
+      await tester.tap(find.text('Basics'));
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byKey(const Key('add-site-address')), 'forum.example.com');
+      await tester.pump();
+      await tester.tap(find.text('Save'));
+      await tester.pump();
+      expect((saved!.proxyMode, saved!.proxyHost, saved!.proxyPort, saved!.proxyUser),
+          (ProxyMode.socks5, '10.0.2.2', 1080, 'alice'));
+    });
+
+    testWidgets('an HTTP default with a login per site seeds the Network tab', (tester) async {
+      Site? saved;
+      await _pump(
+        tester,
+        defaultRoute: const ProxyRoute(
+            mode: ProxyMode.http, host: 'proxy.lan', port: 3128, loginPerSite: true),
+        onSave: (s) => saved = s,
+      );
+      await tester.tap(find.text('Network'));
+      await tester.pumpAndSettle();
+      expect(find.text('proxy.lan'), findsOneWidget);
+      expect(find.text('3128'), findsOneWidget);
+
+      await tester.tap(find.text('Basics'));
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byKey(const Key('add-site-address')), 'forum.example.com');
+      await tester.pump();
+      await tester.tap(find.text('Save'));
+      await tester.pump();
+      expect((saved!.proxyMode, saved!.proxyHost, saved!.proxyPort), (ProxyMode.http, 'proxy.lan', 3128));
+      expect(saved!.proxyLoginPerSite, isTrue);
+      expect(saved!.proxyUser, isNull);
+    });
+
+    testWidgets('an edited site shows its own route, not the default', (tester) async {
+      await _pump(tester, initial: forum, defaultRoute: socks);
+      await tester.tap(find.text('Network'));
+      await tester.pumpAndSettle();
+      expect(find.text('10.0.2.2'), findsNothing);
+      expect(find.text('Separate login per site'), findsNothing, reason: 'the proxy is off');
+    });
   });
 }

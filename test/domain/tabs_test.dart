@@ -184,6 +184,14 @@ void main() {
         isA<CloseThrowawayToDashboard>(),
       );
     });
+
+    test('a throwaway opened from the dashboard is closed to it, even with others open', () {
+      final c = _container('t', throwaway: true, pages: const [first]);
+      expect(
+        backTarget(canGoBack: false, container: c, pageId: 'p1', others: {'b': late}),
+        isA<CloseThrowawayToDashboard>(),
+      );
+    });
   });
 
   group('OpenContainer.viewedPageId', () {
@@ -347,6 +355,35 @@ void main() {
         now: now,
       );
       expect([for (final p in entries.single.pages) p.current], [false, false, true]);
+    });
+  });
+
+  group('swipeNeighbours (dashboard spec §9, plan D1)', () {
+    final containers = [_container('a'), _container('b'), _container('c')];
+
+    test('the containers opened just before and just after the viewed one', () {
+      expect(swipeNeighbours(containers, 'b'), (previous: 'a', next: 'c'));
+    });
+
+    test('nothing past either end', () {
+      expect(swipeNeighbours(containers, 'a'), (previous: null, next: 'b'));
+      expect(swipeNeighbours(containers, 'c'), (previous: 'b', next: null));
+    });
+
+    test('only listed containers: a refused saved site is skipped, a refused throwaway is not', () {
+      final mixed = [
+        _container('a'),
+        _container('r', refusal: _refused),
+        _container('t', throwaway: true, refusal: _refused),
+        _container('c'),
+      ];
+      expect(swipeNeighbours(mixed, 'a'), (previous: null, next: 't'));
+      expect(swipeNeighbours(mixed, 'c'), (previous: 't', next: null));
+    });
+
+    test('one container, or one not listed, has none', () {
+      expect(swipeNeighbours([_container('a')], 'a'), (previous: null, next: null));
+      expect(swipeNeighbours(containers, 'gone'), (previous: null, next: null));
     });
   });
 }

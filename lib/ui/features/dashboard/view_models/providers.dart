@@ -7,7 +7,6 @@ import '../../../../data/repositories/workspace_repository_sqlite.dart';
 import '../../../../domain/repositories/repositories.dart';
 import '../../../../domain/models/workspace.dart';
 import 'dashboard_view.dart';
-import '../views/workspace_menu.dart';
 import '../../container/view_models/open_containers.dart' show openContainersProvider;
 import '../../shell/view_models/session_controller.dart'
     show sessionProvider, SessionOpen;
@@ -38,7 +37,7 @@ final workspacesProvider = FutureProvider<List<Workspace>>(
   (ref) => ref.watch(workspaceRepositoryProvider).all(),
 );
 
-/// Null means "the first workspace"; set when the user picks one.
+/// The viewed chip (dashboard spec §4.2). Null means the first workspace.
 final activeWorkspaceIdProvider = StateProvider<String?>((ref) => null);
 
 /// Every listed open container, throwaways included (tabs spec §5.4): read
@@ -64,22 +63,9 @@ class _SiteIds {
   int get hashCode => Object.hashAllUnordered(ids);
 }
 
-/// Throwaways open under [workspaceId], their opener's workspace (tabs spec
-/// §5.4).
-int _throwawaysIn(Ref ref, String workspaceId) =>
-    ref.watch(openContainersProvider.select((s) => s.throwawaysIn(workspaceId)));
-
 final dashboardProvider = FutureProvider<DashboardView>((ref) async {
   final workspaces = await ref.watch(workspacesProvider.future);
-  if (workspaces.isEmpty) {
-    return const DashboardView(
-      workspaceName: '',
-      wipesOnExit: false,
-      sessionCount: 0,
-      open: [],
-      idle: [],
-    );
-  }
+  if (workspaces.isEmpty) return DashboardView.empty;
 
   final activeId = ref.watch(activeWorkspaceIdProvider);
   final workspace = workspaces.firstWhere(
@@ -93,42 +79,14 @@ final dashboardProvider = FutureProvider<DashboardView>((ref) async {
     workspace: workspace,
     sites: sites,
     openSiteIds: ref.watch(openSiteIdsProvider),
-    throwawaysOpen: _throwawaysIn(ref, workspace.id),
     now: DateTime.now(),
   );
 });
 
-/// The switcher's rows, with each workspace's site and open counts.
-final workspaceOptionsProvider = FutureProvider<List<WorkspaceOption>>((ref) async {
-  final workspaces = await ref.watch(workspacesProvider.future);
-  final sites = ref.watch(siteRepositoryProvider);
-  final openIds = ref.watch(openSiteIdsProvider);
-  final activeId = ref.watch(activeWorkspaceIdProvider) ??
-      (workspaces.isEmpty ? null : workspaces.first.id);
-
-  final options = <WorkspaceOption>[];
-  for (final workspace in workspaces) {
-    final inWorkspace = await sites.inWorkspace(workspace.id);
-    options.add(WorkspaceOption(
-      id: workspace.id,
-      name: workspace.name,
-      meta: workspaceMeta(
-        workspace: workspace,
-        siteCount: inWorkspace.length,
-        openCount: inWorkspace.where((s) => openIds.contains(s.id)).length +
-            _throwawaysIn(ref, workspace.id),
-      ),
-      selected: workspace.id == activeId,
-    ));
-  }
-  return options;
-});
-
-/// Records a visit to [siteId]. Shared by `DashboardScreen`'s own row tap,
-/// the search screen's result tap and the address bar's saved-site
-/// destination, so all three agree on what "opening a site" records. The
-/// registry, not this, decides what is open (tabs spec §5.4): `showContainer`
-/// tells it.
+/// Records a visit to [siteId]. Shared by a dashboard row's tap and the
+/// saved-site destinations of the address bar and the dashboard's search
+/// field, so all three agree on what "opening a site" records. The registry,
+/// not this, decides what is open (tabs spec §5.4): `showContainer` tells it.
 void openSite(WidgetRef ref, String siteId) {
   ref.read(siteRepositoryProvider).touch(siteId, DateTime.now());
   ref.invalidate(dashboardProvider);

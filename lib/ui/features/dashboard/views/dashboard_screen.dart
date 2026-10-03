@@ -1,225 +1,60 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../../data/services/site_wipe.dart';
 import '../../../core/tokens.dart';
-import '../../add_site/views/add_site_screen.dart';
-import '../../container/view_models/open_containers.dart' show openContainersProvider;
-import '../../container/view_models/providers.dart' show containerEngineProvider;
-import '../../container/views/container_route.dart';
 import '../../report/views/today_route.dart';
-import '../../search/view_models/providers.dart'
-    show allSitesProvider, searchQueryProvider, searchResultsProvider, sitesChanged;
-import '../../search/view_models/search_view.dart' show SearchResultEntry;
-import '../../search/views/search_screen.dart';
 import '../../settings/views/settings_route.dart';
-import '../view_models/providers.dart';
-import 'dashboard_body.dart';
-import 'site_row_menu.dart';
-import 'wipe_site_sheet.dart';
-import '../views/workspace_menu.dart';
+import 'dashboard_tab_bar.dart';
+import 'sites_tab.dart';
 
-class DashboardScreen extends ConsumerStatefulWidget {
+/// The open vault's first screen (dashboard spec §4): Sites, Today and
+/// Settings under a bottom tab bar. The bar belongs to the dashboard only:
+/// anything pushed (a container, a form, a screen opened from a tab) covers
+/// it.
+class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
 
   @override
-  ConsumerState<DashboardScreen> createState() => _DashboardScreenState();
+  State<DashboardScreen> createState() => _DashboardScreenState();
 }
 
-class _DashboardScreenState extends ConsumerState<DashboardScreen> {
-  bool _menuOpen = false;
+class _DashboardScreenState extends State<DashboardScreen> {
+  /// Not remembered: every unlock builds this screen anew, on Sites (§4.1).
+  DashboardTab _tab = DashboardTab.sites;
 
   @override
   Widget build(BuildContext context) {
-    final dashboard = ref.watch(dashboardProvider);
-
-    return dashboard.when(
-      loading: () => const Scaffold(backgroundColor: C.bg),
-      error: (error, _) => Scaffold(
-        backgroundColor: C.bg,
-        body: Center(child: Text('$error')),
-      ),
-      data: (view) => Stack(
-        children: [
-          DashboardBody(
-            view: view,
-            onWorkspaceTap: () => setState(() => _menuOpen = !_menuOpen),
-            onAddSite: () async {
-              final workspaces = await ref.read(workspacesProvider.future);
-              if (!context.mounted) return;
-              await Navigator.push(context, MaterialPageRoute(
-                builder: (_) => AddSiteScreen(
-                  workspaces: workspaces,
-                  onSave: (site) async {
-                    await ref.read(siteRepositoryProvider).upsert(site);
-                    sitesChanged(ref);
-                    if (!context.mounted) return;
-                    Navigator.pop(context);
-                  },
-                ),
-              ));
-            },
-            onSearch: () {
-              ref.invalidate(searchQueryProvider);
-              ref.invalidate(allSitesProvider);
-              Navigator.push(context, MaterialPageRoute(builder: (_) => const _SearchRoute()));
-            },
-            // Tabs spec §4.2: an open container is shown as it is, with no
-            // second open; otherwise it opens. Either way through the one
-            // host route.
-            onOpenSite: (siteId) async {
-              openSite(ref, siteId);
-              final site = await ref.read(siteRepositoryProvider).byId(siteId);
-              if (site == null || !context.mounted) return;
-              showContainer(context, ref, site);
-            },
-            onSiteMenu: (siteId) async {
-              final site = await ref.read(siteRepositoryProvider).byId(siteId);
-              if (site == null || !context.mounted) return;
-              showModalBottomSheet<void>(
+    // Plan D4: while the keyboard is up the bar steps aside, so the search
+    // field sits on the keyboard.
+    final keyboardUp = MediaQuery.viewInsetsOf(context).bottom > 0;
+    return PopScope(
+      // §4.1: back on Today or Settings shows Sites. On Sites it does what it
+      // always did.
+      canPop: _tab == DashboardTab.sites,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop && _tab != DashboardTab.sites) setState(() => _tab = DashboardTab.sites);
+      },
+      child: ColoredBox(
+        color: C.bg,
+        child: Column(
+          children: [
+            Expanded(
+              // The same widget whether or not the keyboard is up, so a tab
+              // keeps its state (the search field's text) as it comes and goes.
+              child: MediaQuery.removePadding(
                 context: context,
-                backgroundColor: Colors.transparent,
-                builder: (_) => SiteRowMenu(
-                  monogram: site.monogram,
-                  name: site.name,
-                  subtitle: site.url,
-                  ephemeralWorkspaceName: 'Ephemeral',
-                  duplicateTargetName: 'Work',
-                  onCancel: () => Navigator.pop(context),
-                  onAction: (action) async {
-                    Navigator.pop(context);
-                    if (action == SiteRowAction.editSettings) {
-                      final workspaces = await ref.read(workspacesProvider.future);
-                      if (!context.mounted) return;
-                      await Navigator.push(context, MaterialPageRoute(
-                        builder: (_) => AddSiteScreen(
-                          initial: site,
-                          workspaces: workspaces,
-                          // A change of route or cookie policy closes the
-                          // site's open container (tabs spec §5.7); from
-                          // here it is in the background, so it stays closed
-                          // until it is next opened.
-                          onSave: (updated) async {
-                            await ref.read(siteRepositoryProvider).upsert(updated);
-                            await ref
-                                .read(openContainersProvider.notifier)
-                                .siteSaved(updated);
-                            sitesChanged(ref);
-                            if (!context.mounted) return;
-                            Navigator.pop(context);
-                          },
-                        ),
-                      ));
-                    } else if (action == SiteRowAction.removeSite) {
-                      // Closed and wiped first: deleting the row alone left
-                      // the site's profile and downloads on disk. The
-                      // close reaches the registry through the sessions event.
-                      await removeSavedSite(
-                        engine: ref.read(containerEngineProvider),
-                        sites: ref.read(siteRepositoryProvider),
-                        site: site,
-                      );
-                      sitesChanged(ref);
-                    } else if (action == SiteRowAction.wipeData) {
-                      // Asked first (user's ruling, 2026-09-30); the site
-                      // stays, under a fresh profile (wipeSavedSite).
-                      if (!await confirmWipeSite(context) || !mounted) return;
-                      await wipeSavedSite(
-                        engine: ref.read(containerEngineProvider),
-                        sites: ref.read(siteRepositoryProvider),
-                        site: site,
-                      );
-                      sitesChanged(ref);
-                    }
-                    // openEphemeral, duplicate, requirePin: Known Gap, see
-                    // Plan 6's Known gaps — none has a target workspace or
-                    // PIN flow built anywhere yet.
-                  },
-                ),
-              );
-            },
-            onOverflow: () => Navigator.push(
-                context, MaterialPageRoute(builder: (_) => const SettingsRoute())),
-          ),
-          if (_menuOpen) _menu(),
-        ],
-      ),
-    );
-  }
-
-  Widget _menu() {
-    final options = ref.watch(workspaceOptionsProvider);
-    return SafeArea(
-      child: Padding(
-        // Sits directly under the 47px-tall workspace bar.
-        padding: const EdgeInsets.only(top: 47),
-        child: Align(
-          alignment: Alignment.topCenter,
-          child: options.maybeWhen(
-            data: (options) => WorkspaceMenu(
-              options: options,
-              onPick: (id) {
-                ref.read(activeWorkspaceIdProvider.notifier).state = id;
-                setState(() => _menuOpen = false);
-              },
-              managementOptions: [
-                ManagementOption(label: 'Today', onTap: () {
-                  setState(() => _menuOpen = false);
-                  Navigator.push(context,
-                      MaterialPageRoute(builder: (_) => const TodayRoute()));
-                }),
-              ],
+                removeBottom: !keyboardUp,
+                child: switch (_tab) {
+                  DashboardTab.sites => const SitesTab(),
+                  DashboardTab.today => const TodayRoute(showBack: false),
+                  DashboardTab.settings => const SettingsRoute(showBack: false),
+                },
+              ),
             ),
-            orElse: () => const SizedBox.shrink(),
-          ),
+            if (!keyboardUp)
+              DashboardTabBar(current: _tab, onSelect: (tab) => setState(() => _tab = tab)),
+          ],
         ),
       ),
-    );
-  }
-}
-
-class _SearchRoute extends ConsumerStatefulWidget {
-  const _SearchRoute();
-
-  @override
-  ConsumerState<_SearchRoute> createState() => _SearchRouteState();
-}
-
-class _SearchRouteState extends ConsumerState<_SearchRoute> {
-  final _controller = TextEditingController();
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final results = ref.watch(searchResultsProvider);
-
-    return SearchScreen(
-      controller: _controller,
-      results: results.value ?? const [],
-      onQueryChanged: (value) => ref.read(searchQueryProvider.notifier).state = value,
-      onOpen: (siteId) async {
-        final entries = results.value ?? const [];
-        SearchResultEntry? entry;
-        for (final candidate in entries) {
-          if (candidate.siteId == siteId) {
-            entry = candidate;
-            break;
-          }
-        }
-        if (entry == null) return;
-        ref.read(activeWorkspaceIdProvider.notifier).state = entry.workspaceId;
-        openSite(ref, siteId);
-        final site = await ref.read(siteRepositoryProvider).byId(siteId);
-        if (site == null || !context.mounted) return;
-        // Pops this search route itself, down to the dashboard.
-        showContainer(context, ref, site);
-      },
-      onBack: () => Navigator.pop(context),
     );
   }
 }

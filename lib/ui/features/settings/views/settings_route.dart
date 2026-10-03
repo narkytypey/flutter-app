@@ -4,12 +4,14 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../domain/models/lock_state.dart';
 import '../../../../domain/models/search_engine.dart';
 import '../../../../domain/models/security_level.dart';
+import '../../../../domain/models/site.dart';
 import '../../scripts/views/scripts_route.dart';
 import '../../workspaces/views/workspaces_route.dart';
 import '../view_models/providers.dart';
 import 'auto_lock_picker.dart';
 import 'change_pin_route.dart';
 import 'decoy_resync_route.dart';
+import 'default_route_screen.dart';
 import 'search_engine_picker.dart';
 import 'security_level_picker.dart';
 import 'settings_screen.dart';
@@ -26,13 +28,17 @@ Widget? settingsDestination(String key) => switch (key) {
       // 2026-09-30).
       'decoySites' => const WorkspacesRoute(),
       'scripts' => const ScriptsRoute(),
+      'defaultRoute' => const DefaultRouteRoute(),
       _ => null,
     };
 
-/// Spec `2d` against the open vault. Pushed from the dashboard's `⋯` and
+/// Spec `2d` against the open vault. The dashboard's Settings tab, and pushed
 /// from a container's ☰ menu.
 class SettingsRoute extends ConsumerWidget {
-  const SettingsRoute({super.key});
+  const SettingsRoute({super.key, this.showBack = true});
+
+  /// False as the dashboard's tab, which has no back icon (dashboard spec §4.1).
+  final bool showBack;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -43,6 +49,7 @@ class SettingsRoute extends ConsumerWidget {
     final searchEngine = ref.watch(searchEngineProvider).valueOrNull;
     final securityLevel = ref.watch(vaultSecurityLevelProvider).valueOrNull;
     final autoLock = ref.watch(autoLockProvider).valueOrNull ?? AutoLockPolicy.oneMinute;
+    final defaultRoute = ref.watch(defaultRouteProvider).valueOrNull;
     final panicOnFlip = ref.watch(panicOnFlipProvider).valueOrNull ?? false;
     return SettingsScreen(
       biometrics: biometrics.value ?? false,
@@ -54,8 +61,10 @@ class SettingsRoute extends ConsumerWidget {
       panicOnFlip: panicOnFlip,
       onPanicLabel: 'Wipe + lock',
       searchEngineName: searchEngine?.label ?? '',
-      onBack: () => Navigator.pop(context),
+      onBack: showBack ? () => Navigator.pop(context) : null,
       securityLevelName: securityLevel?.label ?? '',
+      defaultRouteLabel: defaultRoute?.label ?? '',
+      defaultRouteMono: defaultRoute != null && defaultRoute.mode != ProxyMode.direct,
       onChanged: (key, value) {
         if (key == 'biometrics') {
           ref.read(settingsControllerProvider).setBiometricsEnabled(value);

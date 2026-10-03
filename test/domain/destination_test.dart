@@ -1,5 +1,6 @@
 import 'package:container/domain/models/address_input.dart';
 import 'package:container/domain/models/destination.dart';
+import 'package:container/domain/models/proxy_route.dart';
 import 'package:container/domain/models/search_engine.dart';
 import 'package:container/domain/models/site.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -103,5 +104,53 @@ void main() {
       ),
       throwsArgumentError,
     );
+  });
+
+  group('with no opener (the dashboard, spec §5)', () {
+    const socks = ProxyRoute(
+        mode: ProxyMode.socks5, host: '127.0.0.1', port: 9050, user: 'alice', password: 'pw');
+
+    Destination open(String url, {List<Site> saved = const []}) =>
+        destinationFor(Uri.parse(url), route: socks, saved: saved);
+
+    test('a host no site has opens a throwaway on the route given, login and all', () {
+      final destination = open('https://news.example.org/today') as Throwaway;
+      expect(destination.url.toString(), 'https://news.example.org/today');
+      expect((destination.mode, destination.proxyHost, destination.proxyPort),
+          (ProxyMode.socks5, '127.0.0.1', 9050));
+      expect((destination.proxyUser, destination.proxyPassword), ('alice', 'pw'));
+      expect(destination.proxyLoginPerSite, isFalse);
+    });
+
+    test("a saved site's host opens its own container, never this one", () {
+      final destination = open('https://www.forum.example.com/x', saved: [_forum]);
+      expect(destination, isA<SavedSiteContainer>());
+      expect((destination as SavedSiteContainer).site.id, 'forum');
+    });
+
+    test('a per-site route gives a per-site throwaway', () {
+      final destination = destinationFor(Uri.parse('https://a.example'),
+          route: const ProxyRoute(mode: ProxyMode.http, host: 'h', port: 1, loginPerSite: true),
+          saved: const []) as Throwaway;
+      expect(destination.proxyLoginPerSite, isTrue);
+      expect(destination.proxyUser, isNull);
+    });
+
+    test('a search resolves the same way', () {
+      final destination = resolveDestination(
+        input: parseAddressInput('two words'),
+        route: ProxyRoute.direct,
+        saved: const [],
+        engine: SearchEngine.duckDuckGo,
+      );
+      expect(destination, isA<Throwaway>());
+      expect((destination as Throwaway).mode, ProxyMode.direct);
+      expect(destination.url.host, 'duckduckgo.com');
+    });
+
+    test('neither an opener nor a route is a mistake', () {
+      expect(() => destinationFor(Uri.parse('https://a.example'), saved: const []),
+          throwsArgumentError);
+    });
   });
 }

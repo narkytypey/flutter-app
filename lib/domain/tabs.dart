@@ -52,7 +52,8 @@ class ViewContainer extends BackTarget {
   final String siteId;
 }
 
-/// A throwaway with nothing else open: closed, wiped, dashboard.
+/// A throwaway opened from the dashboard (dashboard spec §5), or one with
+/// nothing else open: closed, wiped, dashboard.
 class CloseThrowawayToDashboard extends BackTarget {
   const CloseThrowawayToDashboard();
 }
@@ -69,6 +70,8 @@ BackTarget backTarget({
   final opener = container.page(pageId)?.openerPageId;
   if (opener != null && container.page(opener) != null) return ClosePageToOpener(opener);
   if (!container.throwaway) return const LeaveToDashboard();
+  // Opened from the dashboard: back goes there, even with others open.
+  if (container.openerSiteId == null) return const CloseThrowawayToDashboard();
   final openerSite = container.openerSiteId;
   if (openerSite != null && others.containsKey(openerSite)) return ViewContainer(openerSite);
   final recent = mostRecent(others);
@@ -134,5 +137,25 @@ SwitcherPage _pageRow(String pageId, NavigationState? nav, OpenContainer c,
     title: title.isEmpty ? host : title,
     host: host,
     current: current,
+  );
+}
+
+/// Where a fling on the bottom bar goes (dashboard spec §9): the listed
+/// container opened just before [viewedSiteId], and the one just after.
+/// Null past either end, where nothing happens.
+///
+/// Opening order, not `2c`'s (plan D1): `2c` puts the viewed container first,
+/// so its order changes with every swipe, and a swipe right would never find
+/// anything before the one it had just moved to.
+({String? previous, String? next}) swipeNeighbours(
+  List<OpenContainer> containers,
+  String viewedSiteId,
+) {
+  final listed = [for (final c in containers) if (c.listed) c.siteId];
+  final at = listed.indexOf(viewedSiteId);
+  if (at < 0) return (previous: null, next: null);
+  return (
+    previous: at > 0 ? listed[at - 1] : null,
+    next: at < listed.length - 1 ? listed[at + 1] : null,
   );
 }

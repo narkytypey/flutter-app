@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../data/repositories/decoy_provisioner.dart' show resyncDecoy;
 import '../../../../data/repositories/settings_repository_sqlite.dart';
 import '../../../../domain/models/lock_state.dart';
+import '../../../../domain/models/proxy_route.dart';
 import '../../../../domain/models/search_engine.dart';
 import '../../../../domain/models/security_level.dart';
 import '../../../../domain/models/vault.dart';
@@ -69,6 +70,18 @@ final searchEngineProvider = FutureProvider<SearchEngine>((ref) async {
 final vaultSecurityLevelProvider = FutureProvider<SecurityLevel>((ref) async {
   final stored = await ref.watch(settingsRepositoryProvider).getString(securityLevelSettingKey);
   return SecurityLevel.vaultDefaultFrom(stored);
+});
+
+/// `app_settings`' key for the default route (dashboard spec §7).
+const defaultRouteSettingKey = 'default_route';
+
+/// The open vault's default route (dashboard spec §7): what the dashboard's
+/// search field opens a throwaway on, and where a new site's Network tab
+/// starts. Per vault, like the search engine; Direct until chosen. A stored
+/// value that cannot be read is refused, never direct (`ProxyRoute.fromStored`).
+final defaultRouteProvider = FutureProvider<ProxyRoute>((ref) async {
+  final stored = await ref.watch(settingsRepositoryProvider).getString(defaultRouteSettingKey);
+  return ProxyRoute.fromStored(stored);
 });
 
 /// The Auto-lock choice (user's ruling, 2026-09-30), one for both vaults
@@ -193,6 +206,13 @@ class SettingsController {
   Future<void> setSecurityLevel(SecurityLevel level) async {
     await _ref.read(settingsRepositoryProvider).setString(securityLevelSettingKey, level.name);
     _ref.invalidate(vaultSecurityLevelProvider);
+  }
+
+  /// The default route (dashboard spec §7). No saved site and no open
+  /// container changes: it applies to what is opened next.
+  Future<void> setDefaultRoute(ProxyRoute route) async {
+    await _ref.read(settingsRepositoryProvider).setString(defaultRouteSettingKey, route.toStored());
+    _ref.invalidate(defaultRouteProvider);
   }
 
   /// Change main PIN, step 1: whether [pin] opens the vault open now. Checked

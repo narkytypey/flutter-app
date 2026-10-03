@@ -57,6 +57,8 @@ class ContainerScreen extends StatefulWidget {
     required this.onStop,
     required this.onReload,
     required this.onPanic,
+    this.onNextContainer,
+    this.onPreviousContainer,
     required this.onSiteDetails,
     required this.onReader,
     required this.onCopyLink,
@@ -134,6 +136,10 @@ class ContainerScreen extends StatefulWidget {
   final VoidCallback onReload;
   final VoidCallback onPanic;
 
+  /// Dashboard spec §9's swipe on the bottom bar. Null at that end.
+  final VoidCallback? onNextContainer;
+  final VoidCallback? onPreviousContainer;
+
   /// The shield: `6c`.
   final VoidCallback onSiteDetails;
   final VoidCallback onReader;
@@ -207,13 +213,7 @@ class _ContainerScreenState extends State<ContainerScreen> {
   /// The keyboard's action opens the address row if there is one, otherwise
   /// the search row. With nothing typed there is neither, and editing ends.
   void _submitAddress(String text) {
-    AddressSuggestion? address;
-    AddressSuggestion? search;
-    for (final row in widget.suggest(text)) {
-      if (row.kind == SuggestionKind.address) address ??= row;
-      if (row.kind == SuggestionKind.search) search ??= row;
-    }
-    final pick = address ?? search;
+    final pick = submittedSuggestion(widget.suggest(text));
     if (pick == null) {
       _stopEditing();
     } else {
@@ -405,6 +405,8 @@ class _ContainerScreenState extends State<ContainerScreen> {
                             onForward: canGoForward ? widget.onForward : null,
                             onOpenSwitcher: _openSwitcher,
                             onMenu: _openMenu,
+                            onNextContainer: widget.onNextContainer,
+                            onPreviousContainer: widget.onPreviousContainer,
                           ),
                         ],
                       ),
