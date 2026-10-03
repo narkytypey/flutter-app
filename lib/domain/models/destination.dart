@@ -1,4 +1,5 @@
 import 'address_input.dart';
+import 'proxy_route.dart';
 import 'search_engine.dart';
 import 'site.dart';
 
@@ -27,9 +28,10 @@ class SavedSiteContainer extends Destination {
   final Uri url;
 }
 
-/// Opens a new throwaway container at [url], on the route of the container
-/// it was typed in: [mode], [proxyHost], [proxyPort] and its proxy login
-/// exactly as they are (proxy-auth spec §4).
+/// Opens a new throwaway container at [url], on the route it is given: the
+/// route of the container it was typed in, or the vault's default route from
+/// the dashboard. [mode], [proxyHost], [proxyPort] and its proxy login exactly
+/// as they are (proxy-auth spec §4).
 class Throwaway extends Destination {
   const Throwaway(this.url, this.mode, this.proxyHost, this.proxyPort,
       {this.proxyUser, this.proxyPassword, this.proxyLoginPerSite = false});
@@ -52,12 +54,15 @@ String normalizeHost(String host) {
 }
 
 /// [current] is the site this container was opened for, not the page it is
-/// showing now; [saved] is every site in the open vault. A search becomes
-/// [engine]'s results address first, then follows the same rules, so a
-/// suggestion's tag is always where it really opens.
+/// showing now. The dashboard has none (dashboard spec §5). [route] is what a
+/// throwaway runs on: [current]'s own route when it is not given. [saved] is
+/// every site in the open vault. A search becomes [engine]'s results address
+/// first, then follows the same rules, so a suggestion's tag is always where
+/// it really opens.
 Destination resolveDestination({
   required AddressInput input,
-  required Site current,
+  Site? current,
+  ProxyRoute? route,
   required List<Site> saved,
   required SearchEngine engine,
 }) {
@@ -66,36 +71,43 @@ Destination resolveDestination({
     AddressSearch(:final query) => engine.resultsFor(query),
     AddressEmpty() => throw ArgumentError.value(input, 'input', 'Nothing to open'),
   };
-  return destinationFor(url, current: current, saved: saved);
+  return destinationFor(url, current: current, route: route, saved: saved);
 }
 
-/// §4.3's rules for an address already decided.
+/// §4.3's rules for an address already decided. With no [current] there is
+/// no "this container": a saved site's host opens its own, anything else a
+/// throwaway on [route].
 Destination destinationFor(
   Uri url, {
-  required Site current,
+  Site? current,
+  ProxyRoute? route,
   required List<Site> saved,
 }) {
+  final via = route ?? (current == null ? null : ProxyRoute.of(current));
+  if (via == null) {
+    throw ArgumentError('A throwaway needs a route: give current or route');
+  }
   final host = normalizeHost(url.host);
-  if (host == normalizeHost(current.host)) return ThisContainer(url);
+  if (current != null && host == normalizeHost(current.host)) return ThisContainer(url);
 
   final matches = [
     for (final site in saved)
       if (normalizeHost(site.host) == host) site,
   ];
   if (matches.isNotEmpty) {
-    matches.sort((a, b) => _preference(a, b, current.workspaceId));
+    matches.sort((a, b) => _preference(a, b, current?.workspaceId));
     return SavedSiteContainer(matches.first, url);
   }
 
-  return Throwaway(url, current.proxyMode, current.proxyHost, current.proxyPort,
-      proxyUser: current.proxyUser,
-      proxyPassword: current.proxyPassword,
-      proxyLoginPerSite: current.proxyLoginPerSite);
+  return Throwaway(url, via.mode, via.host, via.port,
+      proxyUser: via.user,
+      proxyPassword: via.password,
+      proxyLoginPerSite: via.loginPerSite);
 }
 
-/// Sites in [workspaceId] first, then the most recently visited; never
-/// visited last.
-int _preference(Site a, Site b, String workspaceId) {
+/// Sites in [workspaceId] first, when there is one, then the most recently
+/// visited; never visited last.
+int _preference(Site a, Site b, String? workspaceId) {
   final aHere = a.workspaceId == workspaceId;
   final bHere = b.workspaceId == workspaceId;
   if (aHere != bHere) return aHere ? -1 : 1;

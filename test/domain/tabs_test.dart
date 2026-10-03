@@ -184,6 +184,14 @@ void main() {
         isA<CloseThrowawayToDashboard>(),
       );
     });
+
+    test('a throwaway opened from the dashboard is closed to it, even with others open', () {
+      final c = _container('t', throwaway: true, pages: const [first]);
+      expect(
+        backTarget(canGoBack: false, container: c, pageId: 'p1', others: {'b': late}),
+        isA<CloseThrowawayToDashboard>(),
+      );
+    });
   });
 
   group('OpenContainer.viewedPageId', () {

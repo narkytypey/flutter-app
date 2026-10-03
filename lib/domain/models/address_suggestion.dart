@@ -1,6 +1,7 @@
 import '../site_search.dart';
 import 'address_input.dart';
 import 'destination.dart';
+import 'proxy_route.dart';
 import 'search_engine.dart';
 import 'site.dart';
 import 'workspace.dart';
@@ -45,10 +46,13 @@ String destinationTag(Destination destination) => switch (destination) {
 /// In order: up to [maxSavedSuggestions] saved sites matching [text] (each
 /// opening at its own saved address), the address row when [text] parses as
 /// an address, and the search row whenever [text] is not empty. Reads only
-/// what it is given — the open vault's sites — and fetches nothing.
+/// what it is given (the open vault's sites) and fetches nothing. [current]
+/// and [route] are `destinationFor`'s: the dashboard gives a route and no
+/// opener.
 List<AddressSuggestion> suggestionsFor({
   required String text,
-  required Site current,
+  Site? current,
+  ProxyRoute? route,
   required List<Site> saved,
   required List<Workspace> workspaces,
   required SearchEngine engine,
@@ -63,7 +67,7 @@ List<AddressSuggestion> suggestionsFor({
     final url = Uri.tryParse(site.url);
     if (url == null) continue;
     final destination =
-        site.id == current.id ? ThisContainer(url) : SavedSiteContainer(site, url);
+        site.id == current?.id ? ThisContainer(url) : SavedSiteContainer(site, url);
     final workspace = workspaceNames[site.workspaceId];
     rows.add(AddressSuggestion(
       kind: SuggestionKind.savedSite,
@@ -76,7 +80,8 @@ List<AddressSuggestion> suggestionsFor({
   }
 
   if (input is AddressUrl) {
-    final destination = destinationFor(input.url, current: current, saved: saved);
+    final destination =
+        destinationFor(input.url, current: current, route: route, saved: saved);
     rows.add(AddressSuggestion(
       kind: SuggestionKind.address,
       primary: typed,
@@ -86,8 +91,8 @@ List<AddressSuggestion> suggestionsFor({
     ));
   }
 
-  final search =
-      destinationFor(engine.resultsFor(typed), current: current, saved: saved);
+  final search = destinationFor(engine.resultsFor(typed),
+      current: current, route: route, saved: saved);
   rows.add(AddressSuggestion(
     kind: SuggestionKind.search,
     primary: 'Search ${engine.label} for “$typed”',
@@ -96,4 +101,16 @@ List<AddressSuggestion> suggestionsFor({
     destination: search,
   ));
   return rows;
+}
+
+/// What the keyboard's action opens (browser-chrome spec §6.2): the address
+/// row if there is one, otherwise the search row. Null with nothing typed.
+/// The container's address bar and the dashboard's field both use it.
+AddressSuggestion? submittedSuggestion(List<AddressSuggestion> rows) {
+  AddressSuggestion? search;
+  for (final row in rows) {
+    if (row.kind == SuggestionKind.address) return row;
+    if (row.kind == SuggestionKind.search) search ??= row;
+  }
+  return search;
 }

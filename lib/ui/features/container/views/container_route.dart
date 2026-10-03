@@ -651,7 +651,7 @@ class _ContainerRouteState extends ConsumerState<ContainerRoute> {
       case final Throwaway target:
         final throwaway = buildThrowaway(
           destination: target,
-          current: _routeSite(viewed),
+          workspaceId: _routeSite(viewed).workspaceId,
           newId: newProfileId,
         );
         showContainer(context, ref, throwaway, throwaway: true, openerSiteId: viewed.siteId);

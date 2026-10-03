@@ -1,5 +1,6 @@
 import 'package:container/domain/models/address_suggestion.dart';
 import 'package:container/domain/models/destination.dart';
+import 'package:container/domain/models/proxy_route.dart';
 import 'package:container/domain/models/search_engine.dart';
 import 'package:container/domain/models/site.dart';
 import 'package:container/domain/models/workspace.dart';
@@ -114,5 +115,54 @@ void main() {
 
   test('nothing typed suggests nothing', () {
     expect(_for('   '), isEmpty);
+  });
+
+  group('with no opener (the dashboard, spec §5)', () {
+    List<AddressSuggestion> dashboard(String text, {ProxyRoute route = ProxyRoute.direct}) =>
+        suggestionsFor(
+          text: text,
+          route: route,
+          saved: [_forum, _market],
+          workspaces: const [_personal, _work],
+          engine: SearchEngine.duckDuckGo,
+        );
+
+    test('every saved site opens its own container; nothing is THIS CONTAINER', () {
+      final rows = dashboard('example');
+      final saved = rows.where((r) => r.kind == SuggestionKind.savedSite).toList();
+      expect(saved.map((r) => r.primary), ['Forum', 'Marketplace']);
+      expect(saved.map((r) => r.tag).toSet(), {'ITS OWN CONTAINER'});
+      expect(rows.map((r) => r.tag), isNot(contains('THIS CONTAINER')));
+    });
+
+    test('an unsaved address is a throwaway on the route given', () {
+      expect(dashboard('news.example.org').map((r) => r.tag),
+          ['THROWAWAY', 'THROWAWAY']);
+      const socks = ProxyRoute(mode: ProxyMode.socks5, host: '127.0.0.1', port: 9050);
+      expect(dashboard('news.example.org', route: socks).map((r) => r.tag),
+          ['THROWAWAY · SOCKS5', 'THROWAWAY · SOCKS5']);
+    });
+
+    test("a saved site's host typed is its own container", () {
+      final address = dashboard('market.example.com')
+          .firstWhere((r) => r.kind == SuggestionKind.address);
+      expect(address.tag, 'ITS OWN CONTAINER');
+    });
+  });
+
+  group('submittedSuggestion: what the keyboard action opens', () {
+    final rows = _for('market.example.com');
+
+    test('the address row when there is one', () {
+      expect(submittedSuggestion(rows)!.kind, SuggestionKind.address);
+    });
+
+    test('otherwise the search row', () {
+      expect(submittedSuggestion(_for('two words'))!.kind, SuggestionKind.search);
+    });
+
+    test('nothing for nothing typed', () {
+      expect(submittedSuggestion(_for('   ')), isNull);
+    });
   });
 }

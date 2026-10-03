@@ -207,13 +207,7 @@ class _ContainerScreenState extends State<ContainerScreen> {
   /// The keyboard's action opens the address row if there is one, otherwise
   /// the search row. With nothing typed there is neither, and editing ends.
   void _submitAddress(String text) {
-    AddressSuggestion? address;
-    AddressSuggestion? search;
-    for (final row in widget.suggest(text)) {
-      if (row.kind == SuggestionKind.address) address ??= row;
-      if (row.kind == SuggestionKind.search) search ??= row;
-    }
-    final pick = address ?? search;
+    final pick = submittedSuggestion(widget.suggest(text));
     if (pick == null) {
       _stopEditing();
     } else {

@@ -52,7 +52,8 @@ class ViewContainer extends BackTarget {
   final String siteId;
 }
 
-/// A throwaway with nothing else open: closed, wiped, dashboard.
+/// A throwaway opened from the dashboard (dashboard spec §5), or one with
+/// nothing else open: closed, wiped, dashboard.
 class CloseThrowawayToDashboard extends BackTarget {
   const CloseThrowawayToDashboard();
 }
@@ -69,6 +70,8 @@ BackTarget backTarget({
   final opener = container.page(pageId)?.openerPageId;
   if (opener != null && container.page(opener) != null) return ClosePageToOpener(opener);
   if (!container.throwaway) return const LeaveToDashboard();
+  // Opened from the dashboard: back goes there, even with others open.
+  if (container.openerSiteId == null) return const CloseThrowawayToDashboard();
   final openerSite = container.openerSiteId;
   if (openerSite != null && others.containsKey(openerSite)) return ViewContainer(openerSite);
   final recent = mostRecent(others);
