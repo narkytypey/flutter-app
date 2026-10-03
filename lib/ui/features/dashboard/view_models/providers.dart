@@ -83,11 +83,10 @@ final dashboardProvider = FutureProvider<DashboardView>((ref) async {
   );
 });
 
-/// Records a visit to [siteId]. Shared by `DashboardScreen`'s own row tap,
-/// the search screen's result tap and the address bar's saved-site
-/// destination, so all three agree on what "opening a site" records. The
-/// registry, not this, decides what is open (tabs spec §5.4): `showContainer`
-/// tells it.
+/// Records a visit to [siteId]. Shared by a dashboard row's tap and the
+/// saved-site destinations of the address bar and the dashboard's search
+/// field, so all three agree on what "opening a site" records. The registry,
+/// not this, decides what is open (tabs spec §5.4): `showContainer` tells it.
 void openSite(WidgetRef ref, String siteId) {
   ref.read(siteRepositoryProvider).touch(siteId, DateTime.now());
   ref.invalidate(dashboardProvider);

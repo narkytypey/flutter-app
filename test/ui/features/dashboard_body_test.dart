@@ -48,7 +48,7 @@ DashboardView _empty() => DashboardView.from(
     );
 
 Future<void> _pump(WidgetTester tester, DashboardView view,
-    {void Function(String)? onOpenSite, void Function(String)? onSiteMenu}) {
+    {void Function(String)? onOpenSite, void Function(String)? onSiteMenu, Widget? cover}) {
   return tester.pumpWidget(MaterialApp(
     home: DashboardBody(
       view: view,
@@ -58,6 +58,7 @@ Future<void> _pump(WidgetTester tester, DashboardView view,
       onNewWorkspace: () {},
       onOpenSite: onOpenSite ?? (_) {},
       onSiteMenu: onSiteMenu ?? (_) {},
+      cover: cover,
       footer: const Text('the footer'),
     ),
   ));
@@ -140,5 +141,14 @@ void main() {
           'you close the app.'),
       findsOneWidget,
     );
+  });
+
+  testWidgets("a cover takes the list's place: the search field's suggestions", (tester) async {
+    await _pump(tester, _personal(), cover: const Text('suggestions'));
+
+    expect(find.text('suggestions'), findsOneWidget);
+    expect(find.text('Notes'), findsNothing);
+    expect(find.text('Personal'), findsOneWidget, reason: 'the chips stay');
+    expect(find.text('the footer'), findsOneWidget);
   });
 }

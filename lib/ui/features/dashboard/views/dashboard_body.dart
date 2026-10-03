@@ -22,6 +22,7 @@ class DashboardBody extends StatelessWidget {
     required this.onOpenSite,
     required this.onSiteMenu,
     required this.footer,
+    this.cover,
   });
 
   final DashboardView view;
@@ -32,6 +33,10 @@ class DashboardBody extends StatelessWidget {
   final void Function(String siteId) onOpenSite;
   final void Function(String siteId) onSiteMenu;
   final Widget footer;
+
+  /// Shown in the list's place while non-null: the search field's
+  /// suggestions (dashboard spec §5). The chips and the footer stay.
+  final Widget? cover;
 
   @override
   Widget build(BuildContext context) {
@@ -47,7 +52,7 @@ class DashboardBody extends StatelessWidget {
               onNew: onNewWorkspace,
               badge: view.wipesOnExit ? 'WIPES ON EXIT' : null,
             ),
-            Expanded(child: _list()),
+            Expanded(child: cover ?? _list()),
             footer,
           ],
         ),
