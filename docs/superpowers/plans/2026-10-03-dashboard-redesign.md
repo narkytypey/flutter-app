@@ -3319,7 +3319,7 @@ final dashboardProvider = FutureProvider<DashboardView>((ref) async {
 
 - Change `activeWorkspaceIdProvider`'s doc to `/// The viewed chip (dashboard spec §4.2). Null means the first workspace.`
 
-`OpenContainersState.throwawaysIn` stays. Its test in `open_containers_test.dart` still pins it, and it is how a throwaway counts under a workspace.
+`OpenContainersState.throwawaysIn` was removed in the final review (nothing in `lib/` read it), with `SectionLabel`; the dashboard counts throwaways under their opener in `dashboard_view.dart` itself.
 
 - [ ] **Step 5: The chip row**
 
