@@ -4805,6 +4805,28 @@ git commit -m "docs: Plan 18, the dashboard redesign, verified"
 
 ---
 
+## Verification
+
+Run 2026-10-03 on branch `dashboard-redesign`, after the fix below:
+
+- `flutter analyze`: `No issues found!`
+- `flutter test`: `+922: All tests passed!`
+- `flutter build apk --debug`: built `app-debug.apk`, zero `e:` lines. No Kotlin changed.
+
+The first full run had 5 failures, all in `test/ui/features/shell/app_gate_test.dart` ("A Timer is still pending even after the widget tree was disposed"): the Sites tab now reads `workspacesProvider`, `allSitesProvider`, `searchEngineProvider` and `defaultRouteProvider`, which over the test's real in-memory database left a timer pending. The test now overrides them with immediate values (`23297d7`).
+
+## Device checks
+
+Not yet run (2026-10-03): they need the user's physical phone, and the user is asked before it is used. Nothing below has been seen on a device. The checks:
+
+1. **Tabs.** Each tab shows its screen with no back icon. Back on Today and on Settings shows Sites. Back on Sites backgrounds the app. Settings ▸ Workspaces covers the tab bar.
+2. **Chips.** A tap switches the list. A long-press opens the workspace's form. `+` opens New workspace.
+3. **List.** An open site has its green rail and sits first. There are no titles and no count.
+4. **Search, direct.** With Default route Direct, type an unsaved address. Its rows read `THROWAWAY`, and Enter loads the page. Back closes it to the dashboard with another site still open, and `2c` no longer lists it.
+5. **Search, proxied.** Set Default route to SOCKS5 on the user's proxy (ask for host and port first). The rows read `THROWAWAY · SOCKS5`, and the page loads through it. Also try a proxy that is down: `8b` shows, with nothing direct.
+6. **Add site.** `+` opens the form with the keyboard up, on the viewed chip's workspace, with the Network tab on the default route. An empty name saves as the host.
+7. **Swipe.** With three containers open, a fling left and right on the bottom bar moves between them in opening order. Nothing happens at either end, and the buttons still tap.
+
 ## Known gaps
 
 - **Long-press on a chip is not discoverable** (spec §11). Settings ▸ Workspaces stays the visible way in.
