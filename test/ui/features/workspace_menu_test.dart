@@ -81,4 +81,39 @@ void main() {
     await tester.tap(find.text('Today'));
     expect(tapped, ['Today']);
   });
+
+  // The dashboard stacks the menu beside its Scaffold, not inside it, so the
+  // menu has no Material above it there. Its InkWells threw "No Material
+  // widget found" on a device, and the menu drew as an error box.
+  testWidgets('the menu opens and takes taps with no Material above it',
+      (tester) async {
+    final picked = <String>[];
+    await tester.pumpWidget(MaterialApp(
+      home: Stack(
+        children: [
+          const Scaffold(backgroundColor: C.bg),
+          Align(
+            alignment: Alignment.topCenter,
+            child: WorkspaceMenu(
+              options: const [
+                WorkspaceOption(
+                    id: 'a', name: 'Personal', meta: '6 SITES · 2 OPEN', selected: true),
+                WorkspaceOption(
+                    id: 'b', name: 'Work', meta: '2 SITES · 1 OPEN', selected: false),
+              ],
+              onPick: picked.add,
+              managementOptions: [
+                ManagementOption(label: 'Today', onTap: () => picked.add('Today')),
+              ],
+            ),
+          ),
+        ],
+      ),
+    ));
+
+    expect(tester.takeException(), isNull);
+    await tester.tap(find.text('Work'));
+    await tester.tap(find.text('Today'));
+    expect(picked, ['b', 'Today']);
+  });
 }
