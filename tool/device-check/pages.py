@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Local test pages for device checks of security levels (Plan 16).
+"""Local test pages for device checks of tabs (Plan 15) and security levels (Plan 16).
 
 Runs on the host. The emulator reaches it at 10.0.2.2, so a direct site at
 http://10.0.2.2:8099/csp.html loads these pages. Every request is logged with
@@ -20,6 +20,15 @@ Pages (each self-contained; nothing loads from anywhere but this server):
                    context, so open it as http://localhost:8099/mic.html (see
                    README), not through 10.0.2.2
     /article.html  an article-shaped page, for Reader
+
+Plan 15 (tabs); each of these shows LOADED <time> so a reload is visible:
+
+    /tabs.html     a target=_blank link to /linked.html, then 60 paragraphs
+                   to scroll
+    /linked.html   a target=_blank link to /linked2.html
+    /popup.html    window.open('/popped.html') one second after load, no tap
+    /ask.html      asks for the camera ten seconds after load; open it as
+                   http://localhost:8099/ask.html, like /mic.html
 
 Every response is sent with Cache-Control: no-store, so a page or image seen
 earlier at another level is fetched again rather than taken from the cache.
@@ -113,7 +122,50 @@ ARTICLE = html("A test article", "<article><h1>A test article</h1>" + "".join(
     f"text, and no scripts, images or links of its own.</p>" for n in range(1, 9)
 ) + "</article>")
 
+# Plan 15 (tabs). Each page shows the time it loaded, so a page reattached
+# without a reload is told from a reloaded one in a uiautomator dump.
+LOADED = "<p id=loaded></p><script>document.getElementById('loaded').textContent='LOADED '+new Date().toISOString().slice(11,23)</script>"
+
+TABS = html("Tabs opener", LOADED + """
+<p><a href="/linked.html" target="_blank">open linked page</a></p>
+""" + "".join(f"<p>Opener paragraph {n}.</p>" for n in range(1, 61)))
+
+LINKED = html("Linked page", LOADED + """
+<p><a href="/linked2.html" target="_blank">open another linked page</a></p>
+""" + "".join(f"<p>Linked paragraph {n}.</p>" for n in range(1, 31)))
+
+LINKED2 = html("Second linked page", LOADED + "<p>A page opened from the linked page.</p>")
+
+POPUP = html("Popup", LOADED + """
+<p>In one second this page calls window.open('/popped.html') with no tap.</p>
+<script>setTimeout(function () { window.open('/popped.html'); }, 1000)</script>
+""")
+
+POPPED = html("Popped", "<p>POPPED: a popup without a tap opened this.</p>")
+
+ASK = html("Camera ask", LOADED + """
+<p id=r>CAMERA NOT ASKED YET</p>
+<script>
+var r = document.getElementById('r');
+setTimeout(function () {
+  if (!navigator.mediaDevices) { r.textContent = 'NO MEDIADEVICES (not a secure context?)'; return; }
+  r.textContent = 'CAMERA ASKED';
+  navigator.mediaDevices.getUserMedia({video: true}).then(function () {
+    r.textContent = 'CAMERA ON';
+  }, function (error) {
+    r.textContent = 'CAMERA REFUSED ' + error.name;
+  });
+}, 10000);
+</script>
+""")
+
 PAGES = {
+    "/tabs.html": ("text/html; charset=utf-8", TABS),
+    "/linked.html": ("text/html; charset=utf-8", LINKED),
+    "/linked2.html": ("text/html; charset=utf-8", LINKED2),
+    "/popup.html": ("text/html; charset=utf-8", POPUP),
+    "/popped.html": ("text/html; charset=utf-8", POPPED),
+    "/ask.html": ("text/html; charset=utf-8", ASK),
     "/csp.html": ("text/html; charset=utf-8", CSP),
     "/ext.js": ("text/javascript", EXT_JS),
     "/probes.html": ("text/html; charset=utf-8", PROBES),
