@@ -101,6 +101,12 @@ class Page(
         settings.javaScriptCanOpenWindowsAutomatically = false
         settings.mediaPlaybackRequiresUserGesture = true
         settings.setSafeBrowsingEnabled(false)   // pings Google directly; see Constraints
+        // Pinch zoom. WebView ignores pinches unless its built-in zoom is on;
+        // the on-screen +/- buttons that come with it stay hidden. A page whose
+        // viewport says `user-scalable=no` still cannot be zoomed.
+        settings.setSupportZoom(true)
+        settings.builtInZoomControls = true
+        settings.displayZoomControls = false
 
         if (WebViewFeature.isFeatureSupported(WebViewFeature.ALGORITHMIC_DARKENING)) {
             WebSettingsCompat.setAlgorithmicDarkeningAllowed(settings, config.forceDark)
