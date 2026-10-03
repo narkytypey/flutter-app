@@ -14,6 +14,7 @@ class SettingRow extends StatelessWidget {
     this.trailing,
     this.value,
     this.onTap,
+    this.monoValue = false,
   });
 
   final String title;
@@ -21,6 +22,9 @@ class SettingRow extends StatelessWidget {
   final Widget? trailing;
   final String? value;
   final VoidCallback? onTap;
+
+  /// [value] in mono: an address, as everything technical (spec §8).
+  final bool monoValue;
 
   @override
   Widget build(BuildContext context) {
@@ -49,7 +53,10 @@ class SettingRow extends StatelessWidget {
               ),
               if (trailing != null) trailing!,
               if (value != null)
-                Text(value!, style: ui(size: 12.5, color: C.textMuted)),
+                Text(value!,
+                    style: monoValue
+                        ? mono(size: 12, color: C.textMuted)
+                        : ui(size: 12.5, color: C.textMuted)),
               if (trailing == null && value == null && onTap != null)
                 const AppIcon(AppGlyph.forward, size: 16, color: C.textFaint),
             ],

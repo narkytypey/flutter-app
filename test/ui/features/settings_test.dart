@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:container/ui/core/icons.dart';
+import 'package:container/ui/core/typography.dart';
 import 'package:container/ui/core/widgets/app_toggle.dart';
 import 'package:container/ui/core/widgets/setting_row.dart';
 import 'package:container/ui/features/settings/views/settings_screen.dart';
@@ -34,6 +35,7 @@ void main() {
         onPanicLabel: 'Wipe + lock',
         searchEngineName: 'DuckDuckGo',
         securityLevelName: 'Standard',
+        defaultRouteLabel: 'SOCKS5 · 127.0.0.1:9050', defaultRouteMono: true,
         onChanged: (_, __) {},
         onTap: (_) {},
         onBack: () {},
@@ -252,6 +254,29 @@ void main() {
     expect(backs, 1);
     expect(findGlyph(AppGlyph.forward), findsWidgets);
     expect(tester.getSize(findGlyph(AppGlyph.forward).first), const Size(16, 16));
+  });
+
+  testWidgets('BROWSING has Default route, its proxy value in mono, and it reports a tap',
+      (tester) async {
+    final taps = <String>[];
+    tester.view.physicalSize = const Size(500, 1600);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    await tester.pumpWidget(MaterialApp(
+      home: SettingsScreen(
+        biometrics: false, biometricsAvailable: true, autoLockLabel: 'After 1 min',
+        decoyEnabled: false, decoySiteCount: 0, hideFromSwitcher: true, panicOnFlip: false,
+        onPanicLabel: 'Wipe + lock', searchEngineName: 'DuckDuckGo', securityLevelName: 'Standard',
+        defaultRouteLabel: 'SOCKS5 · 127.0.0.1:9050', defaultRouteMono: true,
+        onChanged: (_, __) {}, onTap: taps.add, onBack: () {},
+      ),
+    ));
+
+    expect(find.text('Default route'), findsOneWidget);
+    final value = tester.widget<Text>(find.text('SOCKS5 · 127.0.0.1:9050'));
+    expect(value.style!.fontFamily, mono(size: 12).fontFamily);
+    await tester.tap(find.text('Default route'));
+    expect(taps, ['defaultRoute']);
   });
 }
 

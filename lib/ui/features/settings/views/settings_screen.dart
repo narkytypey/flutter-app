@@ -35,6 +35,8 @@ class SettingsScreen extends StatelessWidget {
     required this.onPanicLabel,
     required this.searchEngineName,
     required this.securityLevelName,
+    this.defaultRouteLabel = '',
+    this.defaultRouteMono = false,
     required this.onChanged,
     required this.onTap,
     required this.onBack,
@@ -54,6 +56,12 @@ class SettingsScreen extends StatelessWidget {
 
   /// The vault default's name (privacy-controls spec §2.3); empty while it loads.
   final String securityLevelName;
+
+  /// The default route's row value (dashboard spec §8); empty while it loads.
+  final String defaultRouteLabel;
+
+  /// True when [defaultRouteLabel] is a proxy's address, shown in mono.
+  final bool defaultRouteMono;
   final void Function(String key, bool value) onChanged;
   final void Function(String key) onTap;
 
@@ -117,6 +125,12 @@ class SettingsScreen extends StatelessWidget {
                     title: 'Search engine',
                     value: searchEngineName,
                     onTap: () => onTap('searchEngine'),
+                  ),
+                  SettingRow(
+                    title: 'Default route',
+                    value: defaultRouteLabel,
+                    monoValue: defaultRouteMono,
+                    onTap: () => onTap('defaultRoute'),
                   ),
                   SettingRow(
                     title: 'Security level',
