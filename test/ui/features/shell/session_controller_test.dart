@@ -208,6 +208,50 @@ void main() {
     expect(container.read(sessionProvider), isA<SessionOpen>());
   });
 
+  // After a panic `3c` returns to a lock screen no PIN opens (ruling in
+  // `dismissPanicReport`). With meta.bin gone, a PIN there used to throw out
+  // of `unlock`, so the screen did nothing at all: unlike a wrong PIN, and a
+  // tell that the vault had been destroyed.
+  group('after a panic, with no meta.bin', () {
+    SessionLocked afterPanic() =>
+        const SessionLocked(mood: LockMood.normal, gate: AttemptGate());
+
+    test('a PIN is refused like a wrong one', () async {
+      final container = buildContainer(afterPanic());
+
+      await container.read(sessionProvider.notifier).unlock('111111');
+
+      final session = container.read(sessionProvider) as SessionLocked;
+      expect(session.mood, LockMood.wrong);
+      expect(session.gate.triesLeft, 4);
+    });
+
+    test('the tries keep counting down', () async {
+      final container = buildContainer(afterPanic());
+
+      await container.read(sessionProvider.notifier).unlock('111111');
+      await container.read(sessionProvider.notifier).unlock('222222');
+
+      expect((container.read(sessionProvider) as SessionLocked).gate.triesLeft, 3);
+    });
+
+    test('a PIN costs the same two derivations as one against real slots', () async {
+      final container = buildContainer(afterPanic());
+
+      await container.read(sessionProvider.notifier).unlock('111111');
+
+      expect(crypto.derivations, hasLength(2));
+    });
+
+    test('nothing is written to disk', () async {
+      final container = buildContainer(afterPanic());
+
+      await container.read(sessionProvider.notifier).unlock('111111');
+
+      expect(dir.listSync(), isEmpty);
+    });
+  });
+
   // A saved site and a throwaway, opened through the registry as the host
   // route does, so the lock sees containers that really are open.
   Future<void> openTwo(ProviderContainer container) async {

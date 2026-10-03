@@ -104,6 +104,21 @@ class VaultStore {
     await provision(pin: throwaway, vault: vault);
   }
 
+  /// Two slots shaped like real ones that no PIN opens, held only in memory:
+  /// a random key wrapped under a random key. What a PIN is checked against
+  /// once a panic has destroyed the real ones, so it costs the same two
+  /// derivations and is refused the same way.
+  Future<List<VaultSlot>> unopenableSlots() async => [
+        for (var i = 0; i < 2; i++)
+          VaultSlot(
+            salt: await _crypto.randomBytes(saltLength),
+            wrappedKey: await _crypto.wrap(
+              await _crypto.randomBytes(dataKeyLength),
+              await _crypto.randomBytes(dataKeyLength),
+            ),
+          ),
+      ];
+
   Future<void> destroy() async {
     await _serialized(() async {
       // A temp file a crash left mid-write holds a copy of the slots too.

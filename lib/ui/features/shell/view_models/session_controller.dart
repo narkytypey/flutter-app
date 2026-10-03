@@ -214,8 +214,15 @@ class SessionController extends Notifier<Session> {
     // An earlier attempt in the queue already opened a vault (or panic ran):
     // there is nothing left for this PIN to decide.
     if (previous is! SessionLocked) return;
-    final currentGate = await _vaultStore.gate();
-    final slots = await _vaultStore.slots();
+    // No meta.bin: a panic destroyed it, and this is the lock screen no PIN
+    // opens (`dismissPanicReport`). A PIN must still look refused, not do
+    // nothing: it is checked against slots made in memory, at the same cost,
+    // and the tries count down in memory only. Nothing is written.
+    final provisioned = await _vaultStore.exists;
+    final currentGate = provisioned ? await _vaultStore.gate() : previous.gate;
+    final slots = provisioned
+        ? await _vaultStore.slots()
+        : await _vaultStore.unopenableSlots();
     final outcome = await _unlocker.attempt(
       pin: pin,
       slots: slots,
@@ -239,7 +246,7 @@ class SessionController extends Notifier<Session> {
           biometricWrappedKey: await _rewrapIfEnabled(vault, database, dataKey),
         );
       case Rejected(:final gate):
-        await _vaultStore.saveGate(gate);
+        if (provisioned) await _vaultStore.saveGate(gate);
         // The failure is counted, but a late rejection must never take an
         // open vault (or a panic report) back to the lock screen.
         if (state is! SessionLocked) return;
