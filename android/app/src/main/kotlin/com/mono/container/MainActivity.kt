@@ -57,10 +57,20 @@ class MainActivity : FlutterFragmentActivity() {
             applicationContext, profiles, throwaways, Loopback.credentials, proxyOverride, Loopback.applied::await,
         )
         engine.attach(flutterEngine.dartExecutor.binaryMessenger)
+        this.engine = engine
 
         flutterEngine.platformViewsController.registry.registerViewFactory(
             EngineChannel.VIEW_TYPE,
             PageHostFactory(engine),
         )
+    }
+
+    private var engine: EngineChannel? = null
+
+    // Pages outlive their platform views, so they must not outlive the engine.
+    override fun cleanUpFlutterEngine(flutterEngine: FlutterEngine) {
+        engine?.detach()
+        engine = null
+        super.cleanUpFlutterEngine(flutterEngine)
     }
 }

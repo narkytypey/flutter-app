@@ -199,9 +199,30 @@ class EngineChannel(
     private val mainHandler = android.os.Handler(android.os.Looper.getMainLooper())
     private val downloadFetcher = DownloadFetcher(context, profiles)
 
+    private var methods: MethodChannel? = null
+    private var events: EventChannel? = null
+
     fun attach(messenger: BinaryMessenger) {
-        MethodChannel(messenger, METHOD_CHANNEL).setMethodCallHandler(this)
-        EventChannel(messenger, EVENT_CHANNEL).setStreamHandler(this)
+        methods = MethodChannel(messenger, METHOD_CHANNEL).also { it.setMethodCallHandler(this) }
+        events = EventChannel(messenger, EVENT_CHANNEL).also { it.setStreamHandler(this) }
+    }
+
+    /**
+     * The Flutter engine this channel serves is going away (the Activity
+     * finished: back on the dashboard). A page owns its WebView apart from
+     * any platform view (tabs spec §3), so nothing else would close it: the
+     * pages would live on in the process, holding their profiles, under a
+     * new engine whose Dart side starts at a cold lock with nothing open.
+     * Every container is closed as at a lock, a throwaway or wipe-on-exit
+     * site wiped after its Teardown. Nothing is reported: no one listens.
+     */
+    fun detach() {
+        sink = null
+        methods?.setMethodCallHandler(null)
+        events?.setStreamHandler(null)
+        methods = null
+        events = null
+        closeAll()
     }
 
     // --- Pages -------------------------------------------------------------
