@@ -201,8 +201,10 @@ unchanged. None of Plan 15 has run on a device yet.
 
 Plan `docs/superpowers/plans/2026-10-02-privacy-controls.md`, spec
 `docs/superpowers/specs/2026-10-02-privacy-controls-design.md` (§7 and §1.4).
-**None of these checks has run on a device yet.** Record each as "seen" or
-"not seen, because …", in the plan's Device checks.
+**All eight were seen on the emulator on 2026-10-03** (`main` at `e572c29`), and
+again in a re-run the same day; the results are in the plan's "Device checks
+(2026-10-03, emulator)" and "Re-run (2026-10-03, emulator)". Record a re-run
+the same way, each as "seen" or "not seen, because …".
 
 **Setup.** Alongside the setup above, in two more terminals:
 
@@ -238,38 +240,38 @@ or image seen at one level is fetched again at the next, and a missing
   shows Android's own permission dialog as well as `6a`.
 - `/article.html`: an article-shaped page for Reader.
 
-**Checks.** In this order. Not yet run on a device, any of them.
+**Checks.** In this order.
 
-1. **First, Safer's `http:` CSP (spec §1.4).** Not yet run.
+1. **First, Safer's `http:` CSP (spec §1.4).** Seen 2026-10-03.
    - A direct site at `http://10.0.2.2:8099/csp.html`: at Standard it reads
      `INLINE RAN EXTERNAL RAN`, and tapping `tap` adds `ONCLICK RAN`.
    - At Safer it reads `NO SCRIPT RAN`, tapping adds nothing, and `pages.py`
      still logs `/ext.js` being fetched (CSP blocks execution, not the fetch).
    - **If Safer still runs scripts, stop: record the failure and take the
      fallback** (per-navigation `javaScriptEnabled`) to the user.
-2. **Safer on https.** Not yet run.
+2. **Safer on https.** Seen 2026-10-03.
    - Give a site at `https://example.com` this custom JS:
      `document.addEventListener('DOMContentLoaded',()=>document.body.prepend('WASM '+typeof WebAssembly+' WEBGL '+!!document.createElement('canvas').getContext('webgl')))`.
    - At Standard: `WASM object WEBGL true` (or `false` where the emulator has
      no GL).
    - At Safer: `WASM undefined WEBGL false`, and example.com's own text still
      renders, so JS is on.
-3. **Safest.** Not yet run.
+3. **Safest.** Seen 2026-10-03 (Reader does not open).
    - `http://10.0.2.2:8099/csp.html` reads `NO SCRIPT RAN`, and so does an
      https page with the custom JS above (no prefix text).
    - `/image.html` logs no `/dot.png` request.
    - Reader on an article page (`http://10.0.2.2:8099/article.html`): record
      whether it opens (spec §1.4).
-4. **Default and override.** Not yet run.
+4. **Default and override.** Seen 2026-10-03.
    - Settings → Security level → Safer: an open site is unchanged until it is
      closed and reopened, then Safer applies.
    - ☰ → Security level → Default returns a site with its own level to the
      default.
-5. **Reopen keeps a throwaway's cookie.** Not yet run.
+5. **Reopen keeps a throwaway's cookie.** Seen 2026-10-03.
    - A throwaway on `https://postman-echo.com/cookies/set?p16=1`, then any
      `6c` switch.
    - The reopened page at `/cookies` still shows `p16`.
-6. **New identity.** Not yet run.
+6. **New identity.** Seen 2026-10-03.
    - A SOCKS5 site with "Separate login per site", against
      `proxy.py --any-login`.
    - Note its user, then ☰ → New identity → New identity. `proxy.py` logs a
@@ -277,10 +279,10 @@ or image seen at one level is fetched again at the next, and a missing
      `files/pending-profile-deletions`, and the page is the site's stored
      address.
    - Cancel changes nothing.
-7. **Revoke.** Not yet run.
+7. **Revoke.** Seen 2026-10-03.
    - `/mic.html` (as `http://localhost:8099/mic.html` on a SOCKS5 site, see
      above), then "Allow while this site is open", then `MIC ON`.
    - In `6c`, Microphone shows `Revoke`. Tapping it reloads the page
      (`MIC ENDED`, or a fresh page), and the next tap asks with `6a` again.
-8. **Two vaults.** Not yet run. Settings' Security level row looks the same in
+8. **Two vaults.** Seen 2026-10-03. Settings' Security level row looks the same in
    the decoy, and setting it there leaves the real vault's default unchanged.
