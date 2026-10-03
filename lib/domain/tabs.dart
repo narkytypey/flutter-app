@@ -139,3 +139,23 @@ SwitcherPage _pageRow(String pageId, NavigationState? nav, OpenContainer c,
     current: current,
   );
 }
+
+/// Where a fling on the bottom bar goes (dashboard spec §9): the listed
+/// container opened just before [viewedSiteId], and the one just after.
+/// Null past either end, where nothing happens.
+///
+/// Opening order, not `2c`'s (plan D1): `2c` puts the viewed container first,
+/// so its order changes with every swipe, and a swipe right would never find
+/// anything before the one it had just moved to.
+({String? previous, String? next}) swipeNeighbours(
+  List<OpenContainer> containers,
+  String viewedSiteId,
+) {
+  final listed = [for (final c in containers) if (c.listed) c.siteId];
+  final at = listed.indexOf(viewedSiteId);
+  if (at < 0) return (previous: null, next: null);
+  return (
+    previous: at > 0 ? listed[at - 1] : null,
+    next: at < listed.length - 1 ? listed[at + 1] : null,
+  );
+}

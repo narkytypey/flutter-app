@@ -728,8 +728,14 @@ class _ContainerRouteState extends ConsumerState<ContainerRoute> {
     final navigation = state.navigation[pageId];
     final pageHost = navigation?.host ?? '';
     final openedUrl = _openedUrl(viewed);
+    final neighbours = swipeNeighbours(state.containers, siteId);
+    final previous = neighbours.previous;
+    final next = neighbours.next;
     return Stack(children: [
       ContainerScreen(
+        // Dashboard spec §9: switched in place, as a tap on a `2c` row is.
+        onPreviousContainer: previous == null ? null : () => _viewContainer(previous),
+        onNextContainer: next == null ? null : () => _viewContainer(next),
         // The page's host once it reports one; the site's before that, and
         // whenever the page has none (`about:blank`, a failed load).
         host: pageHost.isEmpty ? opened.host : pageHost,

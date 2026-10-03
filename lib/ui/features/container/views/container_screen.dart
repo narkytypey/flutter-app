@@ -57,6 +57,8 @@ class ContainerScreen extends StatefulWidget {
     required this.onStop,
     required this.onReload,
     required this.onPanic,
+    this.onNextContainer,
+    this.onPreviousContainer,
     required this.onSiteDetails,
     required this.onReader,
     required this.onCopyLink,
@@ -133,6 +135,10 @@ class ContainerScreen extends StatefulWidget {
   final VoidCallback onStop;
   final VoidCallback onReload;
   final VoidCallback onPanic;
+
+  /// Dashboard spec §9's swipe on the bottom bar. Null at that end.
+  final VoidCallback? onNextContainer;
+  final VoidCallback? onPreviousContainer;
 
   /// The shield: `6c`.
   final VoidCallback onSiteDetails;
@@ -399,6 +405,8 @@ class _ContainerScreenState extends State<ContainerScreen> {
                             onForward: canGoForward ? widget.onForward : null,
                             onOpenSwitcher: _openSwitcher,
                             onMenu: _openMenu,
+                            onNextContainer: widget.onNextContainer,
+                            onPreviousContainer: widget.onPreviousContainer,
                           ),
                         ],
                       ),

@@ -11,6 +11,8 @@ import 'package:container/ui/features/container/views/throwaway_save_bar.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import '../../../support/glyph_finders.dart';
+
 Finder _icon(String label) =>
     find.byWidgetPredicate((w) => w is IconTap && w.label == label);
 
@@ -246,5 +248,75 @@ void main() {
     ));
 
     expect(tester.takeException(), isNull);
+  });
+
+  group('the swipe between open containers (dashboard spec §9)', () {
+    Future<List<String>> pumpBar(WidgetTester tester,
+        {bool next = true, bool previous = true}) async {
+      final calls = <String>[];
+      await tester.pumpWidget(MaterialApp(
+        home: Scaffold(
+          body: Align(
+            alignment: Alignment.bottomCenter,
+            child: ContainerBottomBar(
+              openCount: 3,
+              onBack: () => calls.add('back'),
+              onForward: null,
+              onOpenSwitcher: () => calls.add('switcher'),
+              onMenu: () => calls.add('menu'),
+              onNextContainer: next ? () => calls.add('next') : null,
+              onPreviousContainer: previous ? () => calls.add('previous') : null,
+            ),
+          ),
+        ),
+      ));
+      return calls;
+    }
+
+    testWidgets('a fling to the left views the next, to the right the previous', (tester) async {
+      final calls = await pumpBar(tester);
+
+      await tester.fling(find.byType(ContainerBottomBar), const Offset(-200, 0), 800);
+      await tester.pumpAndSettle();
+      await tester.fling(find.byType(ContainerBottomBar), const Offset(200, 0), 800);
+      await tester.pumpAndSettle();
+
+      expect(calls, ['next', 'previous']);
+    });
+
+    testWidgets('with no neighbour a fling does nothing', (tester) async {
+      final calls = await pumpBar(tester, next: false, previous: false);
+
+      await tester.fling(find.byType(ContainerBottomBar), const Offset(-200, 0), 800);
+      await tester.fling(find.byType(ContainerBottomBar), const Offset(200, 0), 800);
+      await tester.pumpAndSettle();
+
+      expect(calls, isEmpty);
+    });
+
+    testWidgets('at the last container only a fling to the right works', (tester) async {
+      final calls = await pumpBar(tester, next: false);
+
+      await tester.fling(find.byType(ContainerBottomBar), const Offset(-200, 0), 800);
+      await tester.fling(find.byType(ContainerBottomBar), const Offset(200, 0), 800);
+      await tester.pumpAndSettle();
+
+      expect(calls, ['previous']);
+    });
+
+    testWidgets('a short drag does not switch and a tap still taps', (tester) async {
+      final calls = await pumpBar(tester);
+      final height = tester.getSize(find.byType(ContainerBottomBar)).height;
+
+      await tester.drag(find.byType(ContainerBottomBar), Offset(-(height - 10), 0));
+      await tester.pumpAndSettle();
+      expect(calls, isEmpty, reason: 'shorter than the bar is tall');
+
+      // A tap that moves a little, under the touch slop, is still a tap.
+      await tester.dragFrom(tester.getCenter(findIconTap('Menu')), const Offset(6, 0));
+      await tester.pumpAndSettle();
+      await tester.tap(findIconTap('Back'));
+      expect(calls, ['menu', 'back']);
+    });
   });
 }

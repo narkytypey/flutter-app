@@ -33,6 +33,7 @@ import 'package:container/ui/features/add_site/views/add_site_screen.dart';
 import 'package:container/ui/features/container/view_models/open_containers.dart';
 import 'package:container/ui/features/container/view_models/providers.dart';
 import 'package:container/ui/features/container/views/address_suggestions.dart';
+import 'package:container/ui/features/container/views/container_bottom_bar.dart';
 import 'package:container/ui/features/container/views/container_route.dart';
 import 'package:container/ui/features/container/views/container_web_view.dart';
 import 'package:container/ui/features/container/views/find_bar.dart';
@@ -2199,6 +2200,28 @@ void main() {
       expect(engine.closed, isEmpty);
       expect(engine.openedExtras['s1']!.securityLevel, SecurityLevel.standard);
     });
+  });
+
+  testWidgets('a fling on the bottom bar moves between open containers, in opening order',
+      (tester) async {
+    final engine = FakeContainerEngine();
+    _standInForPlatformViews(tester);
+    await _pump(tester, engine, _site());
+    await _settle(tester);
+    final registry = ProviderScope.containerOf(tester.element(find.byType(MaterialApp)))
+        .read(openContainersProvider.notifier);
+    await tester.runAsync(() => registry.view(_market));
+    await _settle(tester);
+    expect(_tabs(tester).viewedSiteId, 'm1');
+
+    await tester.fling(find.byType(ContainerBottomBar), const Offset(200, 0), 800);
+    await tester.pumpAndSettle();
+    expect(_tabs(tester).viewedSiteId, 's1', reason: 'right: the one opened before');
+
+    await tester.fling(find.byType(ContainerBottomBar), const Offset(-200, 0), 800);
+    await tester.pumpAndSettle();
+    expect(_tabs(tester).viewedSiteId, 'm1', reason: 'left: the one opened after');
+    expect(engine.openedSites.keys.toSet(), {'s1', 'm1'}, reason: 'switched, not reopened');
   });
 }
 
