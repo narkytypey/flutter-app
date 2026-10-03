@@ -80,7 +80,12 @@ final panicServiceProvider = Provider<PanicService>((ref) {
 ///
 /// Called from [ContainerRoute]'s `onPanic` (Task 4) — the real call site
 /// this was written ahead of.
+///
+/// The session is read before the panic runs: closing every container
+/// disposes the container route whose button called this, and its [ref]
+/// with it.
 Future<void> panic(WidgetRef ref) async {
+  final session = ref.read(sessionProvider.notifier);
   final report = await ref.read(panicServiceProvider).trigger();
-  ref.read(sessionProvider.notifier).panicked(report);
+  session.panicked(report);
 }

@@ -62,55 +62,77 @@ class WorkspaceMenu extends StatelessWidget {
         borderRadius: BorderRadius.circular(14),
       ),
       clipBehavior: Clip.antiAlias,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          for (final option in options)
-            InkWell(
-              onTap: () => onPick(option.id),
-              child: DecoratedBox(
-                decoration: BoxDecoration(
-                  border: option == options.last
-                      ? null
-                      : const Border(bottom: BorderSide(color: C.line05)),
-                ),
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(option.name, style: ui(size: 14, weight: 500)),
-                            const SizedBox(height: 2),
-                            Text(option.meta,
-                                style: ui(size: 10, color: C.textFaint)),
-                          ],
+      // The dashboard stacks this beside its Scaffold, so nothing above it is
+      // a Material; the InkWells need one of their own.
+      child: Material(
+        type: MaterialType.transparency,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            for (final option in options)
+              InkWell(
+                onTap: () => onPick(option.id),
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    border: option == options.last
+                        ? null
+                        : const Border(bottom: BorderSide(color: C.line05)),
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 14,
+                      vertical: 12,
+                    ),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                option.name,
+                                style: ui(size: 14, weight: 500),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                option.meta,
+                                style: ui(size: 10, color: C.textFaint),
+                              ),
+                            ],
+                          ),
                         ),
-                      ),
-                      if (option.selected)
-                        const AppIcon(AppGlyph.check, size: 15, color: C.jade),
-                    ],
+                        if (option.selected)
+                          const AppIcon(
+                            AppGlyph.check,
+                            size: 15,
+                            color: C.jade,
+                          ),
+                      ],
+                    ),
                   ),
                 ),
               ),
-            ),
-          for (final management in managementOptions)
-            InkWell(
-              onTap: management.onTap,
-              child: Container(
-                width: double.infinity,
-                decoration: const BoxDecoration(
-                  border: Border(top: BorderSide(color: C.line05)),
+            for (final management in managementOptions)
+              InkWell(
+                onTap: management.onTap,
+                child: Container(
+                  width: double.infinity,
+                  decoration: const BoxDecoration(
+                    border: Border(top: BorderSide(color: C.line05)),
+                  ),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 12,
+                  ),
+                  child: Text(
+                    management.label,
+                    style: ui(size: 13, color: C.textSecondary),
+                  ),
                 ),
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                child: Text(management.label,
-                    style: ui(size: 13, color: C.textSecondary)),
               ),
-            ),
-        ],
+          ],
+        ),
       ),
     );
   }
