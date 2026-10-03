@@ -78,9 +78,8 @@ void main() {
     await tester.tap(findIconTap('Back'));
     await tester.pumpAndSettle();
 
-    expect(done, [
-      const ProxyRoute(mode: ProxyMode.socks5, host: '127.0.0.1', port: 9050, user: 'alice', password: 'pw'),
-    ]);
+    expect(done.last,
+        const ProxyRoute(mode: ProxyMode.socks5, host: '127.0.0.1', port: 9050, user: 'alice', password: 'pw'));
     expect(find.text('open'), findsOneWidget);
   });
 
@@ -92,6 +91,27 @@ void main() {
     await tester.pump();
     await _systemBack(tester);
 
-    expect(done, [ProxyRoute.direct]);
+    expect(done.last, ProxyRoute.direct);
+  });
+
+  testWidgets('every change is reported without leaving the screen', (tester) async {
+    final done = await _pump(tester, ProxyRoute.direct);
+
+    await tester.tap(find.byKey(const Key('proxy-enabled')));
+    await tester.pump();
+    expect(done.last, const ProxyRoute(mode: ProxyMode.socks5, host: '127.0.0.1', port: 9050));
+
+    await tester.enterText(
+        find.descendant(of: find.byKey(const Key('proxy-user')), matching: find.byType(TextField)),
+        'alice');
+    await tester.pump();
+    expect(done.last.user, 'alice');
+
+    await tester.tap(find.text('HTTP'));
+    await tester.pump();
+    expect(done.last.mode, ProxyMode.http);
+
+    // Still on the screen: nothing was popped.
+    expect(find.text('Default route'), findsOneWidget);
   });
 }

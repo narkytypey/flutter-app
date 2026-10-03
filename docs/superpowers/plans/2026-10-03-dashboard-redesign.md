@@ -42,7 +42,7 @@ Each one is a place where the spec is silent, or where taking it literally does 
 - **D2.** The Default route screen's proxy switch has **no subtitle**, because the add-site form's `This site only` would be wrong there. "Separate login per site" keeps `Tor gives this site its own circuit`, since every throwaway is a site of its own. No new string.
 - **D3.** The `WIPES ON EXIT` badge stays, fixed at the right end of the chip row, for a wipe-on-exit workspace. Spec §4.1 removes the dropdown, `⋯` and `N SESSIONS`, not this badge.
 - **D4.** The tab bar is hidden while the keyboard is up. Otherwise the search field would sit a tab bar's height above the keyboard.
-- **D5.** The default route is saved when you leave its screen, by its back icon or by system back. It has no Save button, which matches how the other Settings choices save without one.
+- **D5.** The default route is saved on every change, and again when you leave its screen, by its back icon or by system back. It has no Save button, which matches how the other Settings choices save without one.
 - **D6.** A blank NAME (empty or only spaces) also takes the host's monogram, as `buildThrowaway` does. This applies to an edited site too, since `buildSite` is shared.
 - **D7.** System back while the search field holds text clears it (Review Focus 3).
 
@@ -1365,6 +1365,8 @@ import '../view_models/providers.dart';
 /// Dashboard spec §7: the vault's default route, edited with `2a`'s own route
 /// fields. Leaving the screen, by its back icon or system back, reports the
 /// route as set ([onDone]), with ruling 8 applied (plan D5: no Save button).
+/// It is reported on every change as well as on leaving: a lock tears the
+/// screen down without popping it, which would otherwise drop the edits.
 class DefaultRouteScreen extends StatefulWidget {
   const DefaultRouteScreen({super.key, required this.initial, required this.onDone});
 
@@ -4832,7 +4834,7 @@ Not yet run (2026-10-03): they need the user's physical phone, and the user is a
 - **Long-press on a chip is not discoverable** (spec §11). Settings ▸ Workspaces stays the visible way in.
 - **A throwaway opened from the dashboard is never on the dashboard's list** (spec §11), because it is not a site. `N OPEN`, `2c` and the swipe reach it.
 - **Changing the default route does not move open throwaways** (spec §11) or any open container.
-- **The default route is saved only when its screen is left** (D5). A lock while the screen is open leaves the stored route as it was.
+- **The default route is saved on every change and on leaving its screen** (D5). A lock while the screen is open keeps what was typed, since a lock tears the screen down without a pop.
 - **The swipe order is opening order** (D1). If the user wants `2c`'s order instead, that needs a rule for how the order stays put between swipes, which the spec does not give.
 - **A workspace made with the `+` chip is not viewed afterwards.** The list stays on the chip that was viewed. The spec does not say otherwise.
 - **`activeWorkspaceIdProvider` survives a lock** (unchanged from before this plan). The viewed tab resets to Sites on every unlock, but the viewed chip does not, unless the workspace is gone.

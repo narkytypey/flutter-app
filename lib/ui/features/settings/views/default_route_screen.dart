@@ -13,6 +13,8 @@ import '../view_models/providers.dart';
 /// Dashboard spec §7: the vault's default route, edited with `2a`'s own route
 /// fields. Leaving the screen, by its back icon or system back, reports the
 /// route as set ([onDone]), with ruling 8 applied (plan D5: no Save button).
+/// It is reported on every change as well as on leaving: a lock tears the
+/// screen down without popping it, which would otherwise drop the edits.
 class DefaultRouteScreen extends StatefulWidget {
   const DefaultRouteScreen({super.key, required this.initial, required this.onDone});
 
@@ -34,6 +36,16 @@ class _DefaultRouteScreenState extends State<DefaultRouteScreen> {
   late ProxyMode _mode =
       widget.initial.mode == ProxyMode.http ? ProxyMode.http : ProxyMode.socks5;
   late bool _perSite = widget.initial.loginPerSite;
+
+  @override
+  void initState() {
+    super.initState();
+    for (final c in [_host, _port, _user, _password]) {
+      c.addListener(_report);
+    }
+  }
+
+  void _report() => widget.onDone(_route());
 
   @override
   void dispose() {
@@ -87,13 +99,22 @@ class _DefaultRouteScreenState extends State<DefaultRouteScreen> {
                   children: [
                     RouteFields(
                       proxyEnabled: _enabled,
-                      onProxyEnabledChanged: (v) => setState(() => _enabled = v),
+                      onProxyEnabledChanged: (v) {
+                        setState(() => _enabled = v);
+                        _report();
+                      },
                       proxyMode: _mode,
-                      onProxyModeChanged: (v) => setState(() => _mode = v),
+                      onProxyModeChanged: (v) {
+                        setState(() => _mode = v);
+                        _report();
+                      },
                       hostController: _host,
                       portController: _port,
                       loginPerSite: _perSite,
-                      onLoginPerSiteChanged: (v) => setState(() => _perSite = v),
+                      onLoginPerSiteChanged: (v) {
+                        setState(() => _perSite = v);
+                        _report();
+                      },
                       userController: _user,
                       passwordController: _password,
                     ),
