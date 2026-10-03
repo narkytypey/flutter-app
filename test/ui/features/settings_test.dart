@@ -278,9 +278,7 @@ void main() {
     await tester.tap(find.text('Default route'));
     expect(taps, ['defaultRoute']);
   });
-}
 
-void _ignore(bool _) {
   testWidgets('with no onBack it draws no back icon: the dashboard tab (spec §4.1)', (tester) async {
     tester.view.physicalSize = const Size(500, 1600);
     tester.view.devicePixelRatio = 1;
@@ -298,3 +296,5 @@ void _ignore(bool _) {
     expect(findIconTap('Back'), findsNothing);
   });
 }
+
+void _ignore(bool _) {}
