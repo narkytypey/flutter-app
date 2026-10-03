@@ -2,6 +2,7 @@ package com.mono.container
 
 import android.os.Bundle
 import android.view.WindowManager
+import androidx.activity.result.contract.ActivityResultContracts
 import com.mono.container.engine.PageHostFactory
 import com.mono.container.engine.EngineChannel
 import com.mono.container.engine.Loopback
@@ -15,6 +16,10 @@ import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
 
 class MainActivity : FlutterFragmentActivity() {
+
+    companion object {
+        const val SYSTEM_DIALOG_CHANNEL = "com.mono.container/system_dialog"
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         // Set before the Flutter view exists. A flag toggled per screen has a
@@ -55,9 +60,11 @@ class MainActivity : FlutterFragmentActivity() {
         val proxyOverride = Loopback.start()
         val engine = EngineChannel(
             applicationContext, profiles, throwaways, Loopback.credentials, proxyOverride, Loopback.applied::await,
+            ::launchPermissionDialog,
         )
         engine.attach(flutterEngine.dartExecutor.binaryMessenger)
         this.engine = engine
+        systemDialog = MethodChannel(flutterEngine.dartExecutor.binaryMessenger, SYSTEM_DIALOG_CHANNEL)
 
         flutterEngine.platformViewsController.registry.registerViewFactory(
             EngineChannel.VIEW_TYPE,
@@ -67,10 +74,29 @@ class MainActivity : FlutterFragmentActivity() {
 
     private var engine: EngineChannel? = null
 
+    // Registered before the Activity starts, as the API requires. The engine
+    // reads what is held itself, so the result's map is not passed on.
+    private val permissionDialog =
+        registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) {
+            systemDialog?.invokeMethod("showing", false)
+            engine?.onAndroidPermissionsResult()
+        }
+
+    /** Tells Dart the dialog is the app's own, so the pause it causes is not
+     *  read as leaving the app (`LifecycleController.systemDialogShowing`).
+     *  Sent first: it reaches Dart before the lifecycle's `inactive`. */
+    private var systemDialog: MethodChannel? = null
+
+    private fun launchPermissionDialog(permissions: Array<String>) {
+        systemDialog?.invokeMethod("showing", true)
+        permissionDialog.launch(permissions)
+    }
+
     // Pages outlive their platform views, so they must not outlive the engine.
     override fun cleanUpFlutterEngine(flutterEngine: FlutterEngine) {
         engine?.detach()
         engine = null
+        systemDialog = null
         super.cleanUpFlutterEngine(flutterEngine)
     }
 }

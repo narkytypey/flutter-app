@@ -3,6 +3,15 @@
          debug and profile manifests (for hot reload), so without this line a
          release build ships unable to load a single page. -->
     <uses-permission android:name="android.permission.INTERNET"/>
+    <!-- A site's camera or microphone (6a). WebView hands a granted capture
+         to the system, which refuses an app without these; they are asked at
+         runtime only when a site has been allowed one. Audio capture also
+         needs MODIFY_AUDIO_SETTINGS (no dialog). -->
+    <uses-permission android:name="android.permission.CAMERA"/>
+    <uses-permission android:name="android.permission.RECORD_AUDIO"/>
+    <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS"/>
+    <uses-feature android:name="android.hardware.camera" android:required="false"/>
+    <uses-feature android:name="android.hardware.microphone" android:required="false"/>
     <!-- usesCleartextTraffic: the address bar and the site form accept
          http:// (user's ruling 2026-10-02: allow them). Without it, targetSdk
          28+ makes WebView refuse every http:// page before a request leaves. -->

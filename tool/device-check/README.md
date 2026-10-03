@@ -232,7 +232,10 @@ or image seen at one level is fetched again at the next, and a missing
   live, `MIC ENDED` when it ends. `getUserMedia` needs a secure context, which
   `http://10.0.2.2` is not (the page then reads `NO MEDIADEVICES`), so open it
   as `http://localhost:8099/mic.html` on a SOCKS5 site: `proxy.py` connects to
-  `localhost` on the host.
+  `localhost` on the host. Or, for a direct site, run `adb reverse tcp:8099
+  tcp:8099` and open `http://localhost:8099/mic.html` (or `/ask.html`): the
+  device's own `localhost:8099` then reaches this server. The first allow
+  shows Android's own permission dialog as well as `6a`.
 - `/article.html`: an article-shaped page for Reader.
 
 **Checks.** In this order. Not yet run on a device, any of them.

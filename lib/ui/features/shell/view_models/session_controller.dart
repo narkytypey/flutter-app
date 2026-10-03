@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path/path.dart' as p;
 
@@ -148,6 +149,10 @@ final sessionProvider =
 class SessionController extends Notifier<Session> {
   late final LifecycleController _lifecycle;
 
+  /// `MainActivity` says when its runtime permission dialog opens and closes.
+  static const _systemDialog =
+      MethodChannel('com.mono.container/system_dialog');
+
   VaultStore get _vaultStore => ref.read(vaultStoreProvider);
   VaultUnlocker get _unlocker => VaultUnlocker(ref.read(cryptoServiceProvider));
 
@@ -161,7 +166,15 @@ class SessionController extends Notifier<Session> {
       onMaskChanged: (_) {},
       onReturn: _handleReturn,
     )..start();
-    ref.onDispose(_lifecycle.stop);
+    _systemDialog.setMethodCallHandler((call) async {
+      if (call.method == 'showing') {
+        _lifecycle.systemDialogShowing = call.arguments as bool;
+      }
+    });
+    ref.onDispose(() {
+      _systemDialog.setMethodCallHandler(null);
+      _lifecycle.stop();
+    });
     return ref.watch(initialSessionProvider);
   }
 

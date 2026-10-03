@@ -188,6 +188,8 @@ class EngineChannel(
     private val proxyOverride: Boolean,
     /** Blocks until WebView has applied that override; see [routeAtOpen]. */
     private val awaitOverride: () -> Unit,
+    /** Shows Android's runtime permission dialog; [onAndroidPermissionsResult] follows. */
+    launchPermissionDialog: (Array<String>) -> Unit,
 ) : MethodChannel.MethodCallHandler, EventChannel.StreamHandler, PageEvents {
 
     private val sessions = LinkedHashMap<String, Session>()
@@ -198,6 +200,33 @@ class EngineChannel(
     private val networkExecutor = java.util.concurrent.Executors.newCachedThreadPool()
     private val mainHandler = android.os.Handler(android.os.Looper.getMainLooper())
     private val downloadFetcher = DownloadFetcher(context, profiles)
+    private val permissionAsks = PermissionAsks(::holds, launchPermissionDialog)
+
+    private fun holds(permission: String) =
+        context.checkSelfPermission(permission) == android.content.pm.PackageManager.PERMISSION_GRANTED
+
+    /** Android's permission dialog was answered. */
+    fun onAndroidPermissionsResult() = permissionAsks.onResult()
+
+    /**
+     * Grants [resources] to [request] once Android's permissions for them have
+     * been asked: the page gets only what the app may use, and a refusal
+     * everywhere is a deny. [then] hears what was granted.
+     */
+    private fun grantCapture(
+        request: android.webkit.PermissionRequest,
+        resources: List<String>,
+        then: (granted: List<String>) -> Unit = {},
+    ) {
+        permissionAsks.ask(androidPermissionsFor(resources)) {
+            val grantable = grantableResources(resources, ::holds)
+            if (grantable.isEmpty()) request.deny() else request.grant(grantable.toTypedArray())
+            then(grantable)
+        }
+    }
+
+    override fun grantHardware(request: android.webkit.PermissionRequest, resources: List<String>) =
+        grantCapture(request, resources)
 
     private var methods: MethodChannel? = null
     private var events: EventChannel? = null
@@ -222,6 +251,7 @@ class EngineChannel(
         events?.setStreamHandler(null)
         methods = null
         events = null
+        permissionAsks.cancelAll()
         closeAll()
     }
 
@@ -647,11 +677,14 @@ class EngineChannel(
                 return
             }
             when (pending) {
-                is PendingPermission.Hardware -> {
-                    if (decisionName == "allowWhileOpen") session.sessionGrants.addAll(pending.toAsk)
-                    pending.request.grant((pending.granted + pending.toAsk).toTypedArray())
-                    // `6c` lists the session's grants (privacy-controls spec §3).
-                    if (decisionName == "allowWhileOpen") emitSessions()
+                is PendingPermission.Hardware -> grantCapture(pending.request, pending.granted + pending.toAsk) { granted ->
+                    // Only what Android let through: a grant the app cannot use
+                    // would pre-grant the next ask into the same refusal.
+                    if (decisionName == "allowWhileOpen") {
+                        session.sessionGrants.addAll(pending.toAsk.filter { it in granted })
+                        // `6c` lists the session's grants (privacy-controls spec §3).
+                        emitSessions()
+                    }
                 }
                 is PendingPermission.Geolocation -> {
                     if (decisionName == "allowWhileOpen") session.sessionGrants.add(SessionGrants.GEOLOCATION)

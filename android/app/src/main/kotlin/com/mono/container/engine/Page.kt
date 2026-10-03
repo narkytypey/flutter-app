@@ -32,6 +32,9 @@ interface PageEvents {
 
     /** The page's own `window.close()`. */
     fun closeRequested(page: Page)
+
+    /** Hardware [resources] the site's config or session already grants. */
+    fun grantHardware(request: android.webkit.PermissionRequest, resources: List<String>)
 }
 
 /**
@@ -101,7 +104,7 @@ class Page(
         if (WebViewFeature.isFeatureSupported(WebViewFeature.ALGORITHMIC_DARKENING)) {
             WebSettingsCompat.setAlgorithmicDarkeningAllowed(settings, config.forceDark)
         }
-        setInitialScale(config.pageZoom)
+        setInitialScale(initialScaleFor(config.pageZoom, context.resources.displayMetrics.density))
     }
 
     init {
@@ -128,6 +131,7 @@ class Page(
             onTitle = { title -> report { navigation.titled(title) } },
             onNewWindow = { gesture, message -> !closed && events.newWindow(this, gesture, message) },
             onCloseWindow = { if (!closed) events.closeRequested(this) },
+            onPreGranted = { request, resources -> events.grantHardware(request, resources) },
         )
         // Reported once counting is done, so the find bar never shows a
         // count that is still climbing.
@@ -266,3 +270,12 @@ class Page(
         onDestroyed()
     }
 }
+
+/**
+ * `setInitialScale` for a site's Page zoom. Its unit is a percentage of
+ * physical pixels, so the zoom is scaled by the screen's density; passing it
+ * through drew every page at 1/density and ignored `width=device-width`. At
+ * 100% the scale is WebView's own (0), which honours the page's viewport.
+ */
+internal fun initialScaleFor(pageZoom: Int, density: Float): Int =
+    if (pageZoom == 100) 0 else Math.round(pageZoom * density)

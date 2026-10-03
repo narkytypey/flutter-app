@@ -27,12 +27,21 @@ class LifecycleController with WidgetsBindingObserver {
 
   DateTime? _leftAt;
 
+  /// True while Android's runtime permission dialog, opened by the app for a
+  /// site it was just told to allow, is over it (set from `MainActivity`).
+  /// The dialog pauses the Activity, so it reads as focus lost; it is not
+  /// leaving the app, and locking there closed the site that asked. Only
+  /// `inactive` is excused: going home with the dialog up still locks.
+  bool systemDialogShowing = false;
+
   void start() => WidgetsBinding.instance.addObserver(this);
   void stop() => WidgetsBinding.instance.removeObserver(this);
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     switch (state) {
+      case AppLifecycleState.inactive when systemDialogShowing:
+        break;
       case AppLifecycleState.inactive:
       case AppLifecycleState.paused:
       case AppLifecycleState.hidden:

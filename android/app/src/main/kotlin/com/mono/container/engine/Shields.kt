@@ -2,6 +2,17 @@ package com.mono.container.engine
 
 import android.webkit.WebView
 
+/**
+ * WebRTC never reaches the interceptor — it leaks over UDP past any proxy.
+ * Removing the constructors is the only fix. Camera and microphone are left
+ * to the site's `allow*` flags and `6a`: a capture stream sends nothing by
+ * itself, and stubbing `getUserMedia` here refused every ask before it
+ * reached the app.
+ */
+internal const val WEB_RTC_BLOCK_JS =
+    "delete window.RTCPeerConnection;" +
+    "delete window.webkitRTCPeerConnection;"
+
 object Shields {
     fun apply(
         webView: WebView,
@@ -15,16 +26,7 @@ object Shields {
             if (policy.saferScript) {
                 append(webView.context.assets.open("shields/safer.js").bufferedReader().readText())
             }
-            if (config.blockWebRtc) {
-                // WebRTC never reaches the interceptor — it leaks over UDP past
-                // any proxy. Removing the constructors is the only fix.
-                append(
-                    "delete window.RTCPeerConnection;" +
-                    "delete window.webkitRTCPeerConnection;" +
-                    "navigator.mediaDevices && (navigator.mediaDevices.getUserMedia=" +
-                    "()=>Promise.reject(new DOMException('Blocked','NotAllowedError')));"
-                )
-            }
+            if (config.blockWebRtc) append(WEB_RTC_BLOCK_JS)
             // WebSocket does not reach shouldInterceptRequest either.
             append("window.WebSocket=function(){throw new Error('Blocked');};")
             if (config.antiFingerprinting) {
@@ -69,6 +71,10 @@ object Shields {
         onNewWindow: (isUserGesture: Boolean, resultMsg: android.os.Message) -> Boolean = { _, _ -> false },
         /** The page's own `window.close()`. */
         onCloseWindow: () -> Unit = {},
+        /** Grants hardware [resources] a stored `allow*` flag or a session
+         *  grant pre-authorizes; the engine checks Android's permissions first. */
+        onPreGranted: (request: android.webkit.PermissionRequest, resources: List<String>) -> Unit =
+            { request, resources -> request.grant(resources.toTypedArray()) },
     ) = object : android.webkit.WebChromeClient() {
         override fun onProgressChanged(view: android.webkit.WebView, newProgress: Int) = onProgress(newProgress)
 
@@ -94,7 +100,7 @@ object Shields {
                 if (storedAllow || alreadyGrantedThisSession) granted.add(resource) else toAsk.add(resource)
             }
             if (toAsk.isEmpty()) {
-                if (granted.isEmpty()) request.deny() else request.grant(granted.toTypedArray())
+                if (granted.isEmpty()) request.deny() else onPreGranted(request, granted)
                 return
             }
             val requestId = onAsk(PendingPermission.Hardware(
