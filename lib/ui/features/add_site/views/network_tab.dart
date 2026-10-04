@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../../domain/models/route_display.dart';
 import '../../../../domain/models/site.dart';
 import 'form_toggle_row.dart';
 import 'route_fields.dart';
@@ -63,8 +64,9 @@ class NetworkTab extends StatelessWidget {
         FormToggleRow(
           title: 'Block WebRTC',
           subtitle: 'Prevents real IP leaking past the proxy',
-          value: blockWebRtc,
-          onChanged: onBlockWebRtcChanged,
+          // Built-in Tor spec §5.4: always on for Tor, and inert.
+          value: blockWebRtc || (proxyEnabled && webRtcLocked(proxyMode)),
+          onChanged: proxyEnabled && webRtcLocked(proxyMode) ? null : onBlockWebRtcChanged,
         ),
         const SizedBox(height: 14),
         FormToggleRow(

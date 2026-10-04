@@ -114,4 +114,24 @@ void main() {
     // Still on the screen: nothing was popped.
     expect(find.text('Default route'), findsOneWidget);
   });
+
+  testWidgets('Tor can be the default route, and it starts there', (tester) async {
+    final done = await _pump(tester, ProxyRoute.direct);
+
+    await tester.tap(find.byKey(const Key('proxy-enabled')));
+    await tester.pump();
+    await tester.tap(find.text('Tor'));
+    await tester.pump();
+
+    expect(done.last, ProxyRoute.tor);
+    expect(find.text('HOST'), findsNothing);
+    expect(find.text('Through the Tor network. Each site gets its own circuit.'), findsOneWidget);
+  });
+
+  testWidgets('a stored Tor route opens on Tor', (tester) async {
+    await _pump(tester, ProxyRoute.tor);
+
+    expect(find.text('Through the Tor network. Each site gets its own circuit.'), findsOneWidget);
+    expect(find.text('HOST'), findsNothing);
+  });
 }

@@ -6,8 +6,9 @@ import '../../../core/tokens.dart';
 import '../../../core/typography.dart';
 import 'form_toggle_row.dart';
 
-/// A route's fields (dashboard spec §7): the proxy switch, SOCKS5/HTTP, HOST,
-/// PORT, and Plan 14's login. `2a`'s Network tab and the Default route screen
+/// A route's fields (dashboard spec §7): the proxy switch, SOCKS5/HTTP/Tor, HOST,
+/// PORT, and Plan 14's login; with Tor, one line in their place (built-in Tor
+/// spec §6). `2a`'s Network tab and the Default route screen
 /// both use it, so the two never differ. [proxySubtitle] is the switch's
 /// subtitle: `2a`'s "This site only", none on Default route (plan D2).
 class RouteFields extends StatelessWidget {
@@ -58,75 +59,85 @@ class RouteFields extends StatelessWidget {
             Expanded(child: _modeChip('SOCKS5', ProxyMode.socks5)),
             const SizedBox(width: 8),
             Expanded(child: _modeChip('HTTP', ProxyMode.http)),
+            const SizedBox(width: 8),
+            Expanded(child: _modeChip('Tor', ProxyMode.tor)),
           ],
         ),
         const SizedBox(height: 18),
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Expanded(
-              flex: 2,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text('HOST', style: _label),
-                  const SizedBox(height: 7),
-                  _field(hostController),
-                ],
+        // Built-in Tor spec §6: Tor has no address and no typed login.
+        if (proxyMode == ProxyMode.tor)
+          Text(
+            'Through the Tor network. Each site gets its own circuit.',
+            style: ui(size: 12.5, height: 1.5, color: C.textMuted),
+          )
+        else ...[
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                flex: 2,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('HOST', style: _label),
+                    const SizedBox(height: 7),
+                    _field(hostController),
+                  ],
+                ),
               ),
-            ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text('PORT', style: _label),
-                  const SizedBox(height: 7),
-                  _field(portController),
-                ],
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('PORT', style: _label),
+                    const SizedBox(height: 7),
+                    _field(portController),
+                  ],
+                ),
               ),
-            ),
-          ],
-        ),
-        // Proxy-auth spec §1: only while the proxy is on.
-        if (proxyEnabled) ...[
-          const SizedBox(height: 18),
-          FormToggleRow(
-            title: 'Separate login per site',
-            subtitle: 'Tor gives this site its own circuit',
-            value: loginPerSite,
-            onChanged: onLoginPerSiteChanged,
-            switchKey: const Key('proxy-login-per-site'),
+            ],
           ),
-          if (!loginPerSite) ...[
+          // Proxy-auth spec §1: only while the proxy is on.
+          if (proxyEnabled) ...[
             const SizedBox(height: 18),
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text('USERNAME', style: _label),
-                      const SizedBox(height: 7),
-                      _field(userController, key: const Key('proxy-user'), loginField: true),
-                    ],
-                  ),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text('PASSWORD', style: _label),
-                      const SizedBox(height: 7),
-                      _field(passwordController,
-                          key: const Key('proxy-password'), loginField: true, obscure: true),
-                    ],
-                  ),
-                ),
-              ],
+            FormToggleRow(
+              title: 'Separate login per site',
+              subtitle: 'Tor gives this site its own circuit',
+              value: loginPerSite,
+              onChanged: onLoginPerSiteChanged,
+              switchKey: const Key('proxy-login-per-site'),
             ),
+            if (!loginPerSite) ...[
+              const SizedBox(height: 18),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('USERNAME', style: _label),
+                        const SizedBox(height: 7),
+                        _field(userController, key: const Key('proxy-user'), loginField: true),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('PASSWORD', style: _label),
+                        const SizedBox(height: 7),
+                        _field(passwordController,
+                            key: const Key('proxy-password'), loginField: true, obscure: true),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ],
           ],
         ],
       ],

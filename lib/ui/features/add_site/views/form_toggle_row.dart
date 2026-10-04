@@ -11,14 +11,16 @@ class FormToggleRow extends StatelessWidget {
     required this.title,
     this.subtitle,
     required this.value,
-    required this.onChanged,
+    this.onChanged,
     this.switchKey,
   });
 
   final String title;
   final String? subtitle;
   final bool value;
-  final ValueChanged<bool> onChanged;
+  /// Null draws the switch inert at 40%, as `AppToggle` does: built-in Tor's
+  /// Block WebRTC (spec §5.4).
+  final ValueChanged<bool>? onChanged;
 
   /// On the switch itself, for tests: `proxy-enabled`, `proxy-login-per-site`.
   final Key? switchKey;
@@ -42,22 +44,25 @@ class FormToggleRow extends StatelessWidget {
         ),
         GestureDetector(
           key: switchKey,
-          onTap: () => onChanged(!value),
-          child: Container(
-            width: 44,
-            height: 26,
-            padding: const EdgeInsets.symmetric(horizontal: 3),
-            alignment: value ? Alignment.centerRight : Alignment.centerLeft,
-            decoration: BoxDecoration(
-              color: value ? C.jade : C.trackOff,
-              borderRadius: BorderRadius.circular(20),
-            ),
+          onTap: onChanged == null ? null : () => onChanged!(!value),
+          child: Opacity(
+            opacity: onChanged == null ? 0.4 : 1,
             child: Container(
-              width: 20,
-              height: 20,
+              width: 44,
+              height: 26,
+              padding: const EdgeInsets.symmetric(horizontal: 3),
+              alignment: value ? Alignment.centerRight : Alignment.centerLeft,
               decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: value ? C.bg : C.knobOff,
+                color: value ? C.jade : C.trackOff,
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Container(
+                width: 20,
+                height: 20,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: value ? C.bg : C.knobOff,
+                ),
               ),
             ),
           ),

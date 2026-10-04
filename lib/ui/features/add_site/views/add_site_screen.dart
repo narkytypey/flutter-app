@@ -4,6 +4,7 @@ import '../../../../domain/models/monogram_suggestion.dart';
 import '../../../../domain/models/proxy_route.dart';
 import '../../../../domain/models/site.dart';
 import '../../../../domain/models/workspace.dart';
+import '../../../../domain/onion.dart';
 import '../../../core/icons.dart';
 import '../../../core/tokens.dart';
 import '../../../core/typography.dart';
@@ -69,7 +70,7 @@ class _AddSiteScreenState extends State<AddSiteScreen> {
   late CookiePolicy _cookiePolicy = widget.initial?.cookiePolicy ?? CookiePolicy.keep;
   late bool _proxyEnabled = _startRoute.mode != ProxyMode.direct;
   late ProxyMode _proxyMode =
-      _startRoute.mode == ProxyMode.http ? ProxyMode.http : ProxyMode.socks5;
+      _startRoute.mode == ProxyMode.direct ? ProxyMode.socks5 : _startRoute.mode;
   late bool _loginPerSite = _startRoute.loginPerSite;
 
   /// The keyboard is up on ADDRESS when a new site's form opens (spec §6).
@@ -114,6 +115,7 @@ class _AddSiteScreenState extends State<AddSiteScreen> {
     super.initState();
     _nameController.addListener(_updateMonogram);
     _updateMonogram();
+    _urlController.addListener(_onionNeedsTor);
     if (widget.initial == null) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) _addressFocus.requestFocus();
@@ -124,6 +126,17 @@ class _AddSiteScreenState extends State<AddSiteScreen> {
   void _updateMonogram() {
     final suggestion = suggestMonogram(_nameController.text);
     if (suggestion != _monogram) setState(() => _monogram = suggestion);
+  }
+
+  /// Built-in Tor spec §5.3, plan D7: an onion address cannot be saved on
+  /// Direct, so typing one turns the proxy on, on Tor.
+  void _onionNeedsTor() {
+    final host = Uri.tryParse(_address ?? '')?.host ?? '';
+    if (_proxyEnabled || !isOnionHost(host)) return;
+    setState(() {
+      _proxyEnabled = true;
+      _proxyMode = ProxyMode.tor;
+    });
   }
 
   /// The address Save writes, or null while the field holds no web address.

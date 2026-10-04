@@ -34,7 +34,7 @@ class _DefaultRouteScreenState extends State<DefaultRouteScreen> {
   late final _password = TextEditingController(text: widget.initial.password ?? '');
   late bool _enabled = widget.initial.mode != ProxyMode.direct;
   late ProxyMode _mode =
-      widget.initial.mode == ProxyMode.http ? ProxyMode.http : ProxyMode.socks5;
+      widget.initial.mode == ProxyMode.direct ? ProxyMode.socks5 : widget.initial.mode;
   late bool _perSite = widget.initial.loginPerSite;
 
   @override
