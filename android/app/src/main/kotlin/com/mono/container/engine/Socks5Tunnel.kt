@@ -23,6 +23,14 @@ import java.net.Socket
  */
 object Socks5Tunnel {
     private const val TIMEOUT_MS = 15_000
+
+    /**
+     * Tor answers a CONNECT only once a circuit is built and the exit or
+     * rendezvous has connected, which for an onion service often takes longer
+     * than [TIMEOUT_MS]. Tor's own `SocksTimeout` default bounds the wait
+     * itself (Plan 19 final review, Minor 4).
+     */
+    const val TOR_TIMEOUT_MS = 120_000
     private const val NO_AUTH = 0x00
     private const val USER_PASSWORD = 0x02
     private const val NO_ACCEPTABLE_METHOD = 0xFF
@@ -33,7 +41,7 @@ object Socks5Tunnel {
         val socket = Socket()
         try {
             socket.connect(InetSocketAddress(proxyHost, proxyPort), TIMEOUT_MS)
-            handshake(socket, request)
+            handshake(socket, request, TIMEOUT_MS)
             return socket
         } catch (error: Throwable) {
             // As HttpConnectTunnel: never leak a half-open socket to the proxy.
@@ -42,10 +50,13 @@ object Socks5Tunnel {
         }
     }
 
-    /** The same handshake on [socket], already connected to a SOCKS5 proxy. Closes it on any failure. */
-    fun over(socket: Socket, targetHost: String, targetPort: Int, login: ProxyLogin? = null): Socket {
+    /**
+     * The same handshake on [socket], already connected to a SOCKS5 proxy,
+     * reading for at most [timeoutMs]. Closes it on any failure.
+     */
+    fun over(socket: Socket, targetHost: String, targetPort: Int, login: ProxyLogin? = null, timeoutMs: Int = TIMEOUT_MS): Socket {
         try {
-            handshake(socket, request(targetHost, targetPort, login))
+            handshake(socket, request(targetHost, targetPort, login), timeoutMs)
             return socket
         } catch (error: Throwable) {
             runCatching { socket.close() }
@@ -66,8 +77,8 @@ object Socks5Tunnel {
         return Request(user, password, host, targetPort)
     }
 
-    private fun handshake(socket: Socket, request: Request) {
-        socket.soTimeout = TIMEOUT_MS
+    private fun handshake(socket: Socket, request: Request, timeoutMs: Int) {
+        socket.soTimeout = timeoutMs
         val input = DataInputStream(socket.getInputStream())
         val out = socket.getOutputStream()
         val user = request.user

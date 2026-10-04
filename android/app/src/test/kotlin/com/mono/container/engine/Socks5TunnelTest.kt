@@ -219,6 +219,25 @@ class Socks5TunnelTest {
         }
     }
 
+    /**
+     * Plan 19 final review, Minor 4: Tor answers a CONNECT only once a circuit
+     * is built, so its handshake waits as long as Tor's own `SocksTimeout`
+     * (120 s); a SOCKS5 proxy keeps 15 s. The returned socket still carries
+     * the handshake's read timeout, so it shows which one was used.
+     */
+    @Test fun `a Tor route waits 120 s for the SOCKS handshake, a SOCKS5 route 15 s`() {
+        FakeSocks5(method = 2).use { proxy ->
+            Router.connect(
+                Route.Tor("/data/files/tor/socks:0", ProxyLogin("u", "p")), "example.com", 443,
+                local = { java.net.Socket("127.0.0.1", proxy.port) },
+            ).use { assertEquals(120_000, it.soTimeout) }
+        }
+        FakeSocks5().use { proxy ->
+            Router.connect(Route.Proxy("127.0.0.1", proxy.port, socks = true), "example.com", 443)
+                .use { assertEquals(15_000, it.soTimeout) }
+        }
+    }
+
     @Test fun `the router sends a SOCKS route's login`() {
         FakeSocks5(method = 2).use { proxy ->
             Router.connect(Route.Proxy("127.0.0.1", proxy.port, socks = true, login = ProxyLogin("alice", "s3cret")), "example.com", 443).close()

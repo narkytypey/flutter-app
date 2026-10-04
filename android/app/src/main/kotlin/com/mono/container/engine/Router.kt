@@ -89,7 +89,9 @@ object Router {
             is Route.Proxy ->
                 if (route.socks) Socks5Tunnel.open(route.host, route.port, targetHost, targetPort, route.login)
                 else HttpConnectTunnel.open(route.host, route.port, targetHost, targetPort, route.login)
-            is Route.Tor -> Socks5Tunnel.over(local(route.socketPath), targetHost, targetPort, route.login)
+            is Route.Tor -> Socks5Tunnel.over(
+                local(route.socketPath), targetHost, targetPort, route.login, Socks5Tunnel.TOR_TIMEOUT_MS,
+            )
             is Route.Refused -> error("connect() called for a refused route")
         }
 }
