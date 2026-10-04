@@ -3217,6 +3217,8 @@ The one miss in run 1 is `www.google.com`, which Android's own connectivity chec
 - **The AAR metadata check is off**: tor-android 0.4.9.13 declares minCompileSdk 37; this project compiles against 36 (AGP 9.1.0's maximum here), so `android/app/build.gradle.kts` disables `check*AarMetadata` for every library. Remove the block once compileSdk reaches 37.
 - **A `LocalSocket` read timeout reads as a plain `IOException`**, so a Tor handshake timeout shows as a 502 / "Download failed", not 504 / `UPSTREAM_TIMEOUT`.
 - **TLS over `StreamSocket` is verified only on API 36** (Conscrypt's engine-socket path); not on API 29, the minSdk.
+- **Tor keeps running while the app is in the background, until a lock is decided on return.** A lock is decided only when the app comes back (`LifecycleController.onReturn`), and the auto-lock timer does not stop Tor in the background. In Device checks, check 6, Tor ran about 70 s of background time, until Android's cached-app freezer froze the process, and stopped as the app returned. `closeAll` → `stopAll` runs at that decision, not at the moment the grace period ends.
+- **Open, not reproduced: Tor aborted the app once** (`SIGABRT` in `pubsub_install`, called from `tor_run_main`) when a Tor site opened 46 s after a lock that followed Android freezing and unfreezing the process. One retry did not reproduce it, and the cause is not known. See Device checks, "Found".
 
 ## Handoff
 
