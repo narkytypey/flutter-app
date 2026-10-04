@@ -64,7 +64,11 @@ flutter {
 
 // tor-android 0.4.9.13 declares minCompileSdk 37; this project compiles against 36
 // (AGP 9.1.0's maximum; SDK 37 is not installed). tor-android's own code references no
-// API 37 symbol (the debug build links). Remove this block once compileSdk reaches 37.
-tasks.configureEach {
-    if (name.startsWith("check") && name.endsWith("AarMetadata")) enabled = false
+// API 37 symbol (the debug build links). This disables the AAR metadata check for every
+// library, so it applies only while compileSdk is below 37: at 37 it switches itself off
+// and the check runs again. Delete the block then.
+if ((android.compileSdk ?: 0) < 37) {
+    tasks.configureEach {
+        if (name.startsWith("check") && name.endsWith("AarMetadata")) enabled = false
+    }
 }
