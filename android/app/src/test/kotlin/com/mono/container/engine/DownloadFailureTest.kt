@@ -17,6 +17,7 @@ class DownloadFailureTest {
     @Test fun `an onion download is refused on a direct route only`() {
         assertTrue(refusesOnionDownload(Route.Direct, "http://abc.onion/file.pdf"))
         assertTrue(refusesOnionDownload(Route.Direct, "https://ABC.ONION./file.pdf"))
+        assertTrue(refusesOnionDownload(Route.Direct, "http://a_b.onion/file.pdf"))
         assertFalse(refusesOnionDownload(Route.Direct, "https://example.com/file.pdf"))
         assertFalse(refusesOnionDownload(Route.Tor("/s", ProxyLogin("u", "p")), "http://abc.onion/file.pdf"))
         assertFalse(refusesOnionDownload(Route.Proxy("127.0.0.1", 9050, socks = true), "http://abc.onion/file.pdf"))

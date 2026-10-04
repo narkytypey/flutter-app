@@ -122,7 +122,12 @@ internal fun downloadFailureFor(error: Throwable, route: Route): RouteFailure? =
 
 /** Plan D8: a download from an onion address on a direct route would send the name to DNS. */
 internal fun refusesOnionDownload(route: Route, url: String): Boolean =
-    route is Route.Direct && isOnionHost(runCatching { java.net.URI(url).host }.getOrNull() ?: "")
+    route is Route.Direct && isOnionHost(
+        runCatching { java.net.URI(url).host }.getOrNull()
+            // URI leaves the host null for a name it cannot parse (an underscore): URL does not.
+            ?: runCatching { java.net.URL(url).host }.getOrNull()
+            ?: ""
+    )
 
 class DownloadFetcher(
     private val context: android.content.Context,

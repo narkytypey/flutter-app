@@ -40,7 +40,7 @@ object Router {
         // Only these two upstream proxy modes exist besides Tor. Anything else is a mode this
         // build does not understand, and is refused rather than allowed to
         // fall through to connect() — http reaches HttpConnectTunnel, socks5
-        // is delegated to the platform.
+        // reaches Socks5Tunnel.
         if (config.proxyMode != "socks5" && config.proxyMode != "http") {
             return Route.Refused(RouteFailure.MISCONFIGURED)
         }

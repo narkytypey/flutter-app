@@ -20,7 +20,7 @@ class StreamSocketTest {
         val out = ByteArrayOutputStream()
         val timeouts = mutableListOf<Int>()
         var closes = 0
-        val socket = StreamSocket(ByteArrayInputStream(byteArrayOf(7)), out, { closes++ }) { timeouts += it }
+        val socket = StreamSocket(ByteArrayInputStream(byteArrayOf(7)), out, { closes++ }, setTimeout = { timeouts += it })
 
         assertEquals(7, socket.getInputStream().read())
         socket.getOutputStream().write(9)
@@ -35,6 +35,20 @@ class StreamSocketTest {
         socket.close()
         assertEquals(1, closes)
         assertTrue(socket.isClosed)
+    }
+
+    @Test fun `shutdowns go to the channel`() {
+        var ins = 0
+        var outs = 0
+        val socket = StreamSocket(ByteArrayInputStream(ByteArray(0)), ByteArrayOutputStream(), {}, shutdownIn = { ins++ }, shutdownOut = { outs++ })
+
+        socket.shutdownInput()
+        socket.shutdownOutput()
+
+        assertEquals(1, ins)
+        assertEquals(1, outs)
+        assertTrue(socket.isInputShutdown)
+        assertTrue(socket.isOutputShutdown)
     }
 
     /** Downloads layer TLS on whatever `Router.connect` returns (`ProxyHttpClient.startTls`). */
@@ -75,7 +89,7 @@ class StreamSocketTest {
             }
         }.start()
         val tcp = Socket("127.0.0.1", server.localPort)
-        val wrapped = StreamSocket(tcp.getInputStream(), tcp.getOutputStream(), tcp::close) { tcp.soTimeout = it }
+        val wrapped = StreamSocket(tcp.getInputStream(), tcp.getOutputStream(), tcp::close, setTimeout = { tcp.soTimeout = it })
 
         val tunnel = Socks5Tunnel.over(wrapped, "abc.onion", 80, ProxyLogin("u", "p"))
         tunnel.getOutputStream().write(42)
