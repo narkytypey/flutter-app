@@ -15,7 +15,7 @@ path conversion (`MSYS_NO_PATHCONV`) does not apply.
 | `dns_log.py` | Every name the device looks up, when the emulator runs with `-dns-server` pointed at it. |
 | `app_sockets.py watch` | Every socket of the app's uid, when it opens, changes state and closes. Anything whose remote end is not loopback is marked `** OUTSIDE LOOPBACK **`. |
 | `app_sockets.py port` / `probe` | The loopback proxy's port, and check 5's three strangers' probes against it. |
-| `pages.py` | Local test pages on `:8099` for Plan 16's security levels (`/csp.html`, `/probes.html`, `/image.html`, `/mic.html`, `/article.html`), and each request's path and `User-Agent`. The emulator reaches it at `10.0.2.2:8099`. |
+| `pages.py` | Local test pages on `:8099` for Plan 16's security levels (`/csp.html`, `/probes.html`, `/image.html`, `/mic.html`, `/article.html`), Plan 19's onion links (`/onion.html`), and each request's path and `User-Agent`. The emulator reaches it at `10.0.2.2:8099`. |
 
 ## Setup
 
@@ -286,3 +286,65 @@ or image seen at one level is fetched again at the next, and a missing
      (`MIC ENDED`, or a fresh page), and the next tap asks with `6a` again.
 8. **Two vaults.** Seen 2026-10-03. Settings' Security level row looks the same in
    the decoy, and setting it there leaves the real vault's default unchanged.
+
+## Run sheet: built-in Tor (Plan 19)
+
+Plan `docs/superpowers/plans/2026-10-04-built-in-tor.md`, spec
+`docs/superpowers/specs/2026-10-04-built-in-tor-design.md` (§9). **All eight
+checks and the controller's A–D were seen on the emulator on 2026-10-04**; the
+results, and the one bug found, are in the plan's "Device checks". Record a
+re-run the same way, each as "seen" or "not seen, because …".
+
+**Setup.** `dns_log.py` and the emulator with `-dns-server` (see Setup
+above), `app_sockets.py watch`, and `pages.py` for the onion links. No
+`proxy.py`: Tor is in the app. The emulator must reach the real Tor network;
+right after a cold boot its network can take a minute or two, and a Tor open
+then stalls into `8b` (`Tor did not connect`), so retry before calling it a
+bug. Tor's own lines are in `adb logcat | grep TorService` (`Acquired lock` at
+a start, `Releasing lock` at a stop); Tor itself logs nothing there.
+
+`pages.py` serves `/onion.html`: two big links, to DuckDuckGo's onion and to
+a made-up one. Open it on a Direct site as `http://10.0.2.2:8099/onion.html`.
+
+**Checks.**
+
+1. Cold start, unlock, no Tor site: `watch` shows only the two loopback
+   listeners, `dns_log.py` nothing from the app, and
+   `adb shell run-as com.mono.container ls files/tor` fails.
+2. A site `https://check.torproject.org` on Tor (Network tab ▸ Route through
+   proxy ▸ Tor): `8a` reads `Connecting to Tor · N%`, then the page says
+   "Congratulations".
+3. Two Tor sites on `https://api.ipify.org`: two addresses. ☰ ▸ New identity
+   on one changes only its own.
+4. On a Direct site, type DuckDuckGo's onion in the pill: `THROWAWAY · TOR`,
+   and it opens. Tap both links on `/onion.html`: WebView's error page, no
+   `.onion` in `dns_log.py`, and (with no Tor site open) no `TorService` line.
+5. With a Tor site live: no app TCP listener but the loopback ones;
+   `ls -l files/tor` shows `socks:0`.
+6. Lock (`9c`, or Home and straight back for `9b`): `Releasing lock` as the
+   app returns, and Tor's relay connections gone. A lock is decided on
+   return, not while the app is away.
+7. **Last:** Panic. `ls files/tor app_TorService cache/TorService` finds none
+   of them, again 10 s later. Then set the vault up again.
+8. `adb shell svc wifi disable; adb shell svc data disable`, open a Tor
+   site: `8b` `Tor did not connect` two minutes after Tor's start. Turn both
+   back on; Try again loads.
+
+- A. A `6c` switch on a live Tor site reopens it in place with no new
+  `Acquired lock`. Mark the page first (DevTools `window.__mark`) to see the
+  reopen.
+- B. Close the last Tor container: `Releasing lock` about 10 s later.
+- C. Lock, unlock and open a Tor site at once: it loads, or `8b` and Try
+  again loads.
+- D. Lock during a long request (`https://postman-echo.com/delay/10` as a
+  Tor throwaway): no relay connection left, no ANR.
+
+**dns-prefetch measurement.** Find a page with hints from the host
+(`curl -s <url> | grep -o -i '<link[^>]*dns-prefetch[^>]*>'`; on 2026-10-04
+`https://www.theguardian.com/international` had 9 and `https://edition.cnn.com/`
+12). Before each run, force-stop the app and toggle the emulator's network off
+and on, so neither Chromium's nor the device's resolver cache holds the names.
+Load the page on a Tor site and count its hinted hosts in `dns_log.py`. For
+the comparison, comment out `append(torDocumentStartJs(config))` in
+`Shields.kt` locally (never commit it), build, `adb install -r`, and repeat;
+then `git checkout` the file and reinstall.

@@ -30,6 +30,13 @@ Plan 15 (tabs); each of these shows LOADED <time> so a reload is visible:
     /ask.html      asks for the camera ten seconds after load; open it as
                    http://localhost:8099/ask.html, like /mic.html
 
+Plan 19 (built-in Tor):
+
+    /onion.html    two big links to onion addresses (DuckDuckGo's real one and
+                   a made-up abc...onion), for spec section 9 check 4: tapped
+                   on a Direct site, each must show WebView's error page and
+                   dns_log.py must show no lookup of the .onion name
+
 Every response is sent with Cache-Control: no-store, so a page or image seen
 earlier at another level is fetched again rather than taken from the cache.
 
@@ -159,7 +166,14 @@ setTimeout(function () {
 </script>
 """)
 
+ONION = html("Onion links", """
+<style>a{display:block;font-size:40px;padding:60px 10px;border:2px solid #888;margin:20px 0}</style>
+<p><a id=ddg href="http://duckduckgogg42xjoc72x3sjasowoarfbgcmvfimaftt6twagswzczad.onion/">DDG ONION LINK</a></p>
+<p><a id=fake href="http://abcdefghijklmnopqrstuvwxyz234567abcdefghijklmnopqrstuvwx.onion/">FAKE ONION LINK</a></p>
+""")
+
 PAGES = {
+    "/onion.html": ("text/html; charset=utf-8", ONION),
     "/tabs.html": ("text/html; charset=utf-8", TABS),
     "/linked.html": ("text/html; charset=utf-8", LINKED),
     "/linked2.html": ("text/html; charset=utf-8", LINKED2),
