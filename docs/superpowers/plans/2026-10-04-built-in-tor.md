@@ -3171,6 +3171,11 @@ Not yet run. Task 3 runs the engine spike (`TorSpikeTest`) on the emulator; Task
 - **A site saved on Direct with an onion address before this plan** opens on Direct and is refused by the loopback proxy (WebView's error page). Editing and saving it moves it to Tor.
 - **The release build is not checked.** Tor's JNI classes must survive R8; only `flutter build apk --debug` is run.
 - **The Tor percentage is process-wide**, not per site: two Tor sites opening at once show the same number, which is true, since they share one Tor.
+- **Tor lingers 10 s** after the last Tor container closes (`TorRuntime.LINGER_MS`), a deviation from spec §4.2's "stops when the last one closes": a reopen in place (a `6c` switch, a security level, New identity) would otherwise stop and restart Tor, and the previous `TorService` instance's late OFF/STOPPING broadcasts failed the new run. Every lock and panic (`stopAll`) still stops it at once. `postDelayed` counts uptime, so a sleeping device can stretch the 10 s.
+- **A Tor start within about a second of a stop** (a lock, then an immediate unlock and open; or "Try again" right after a failure) can still hear the old instance's late broadcast and show `8b`; Try again recovers. The broadcasts carry no instance id.
+- **The AAR metadata check is off**: tor-android 0.4.9.13 declares minCompileSdk 37; this project compiles against 36 (AGP 9.1.0's maximum here), so `android/app/build.gradle.kts` disables `check*AarMetadata` for every library. Remove the block once compileSdk reaches 37.
+- **A `LocalSocket` read timeout reads as a plain `IOException`**, so a Tor handshake timeout shows as a 502 / "Download failed", not 504 / `UPSTREAM_TIMEOUT`.
+- **TLS over `StreamSocket` is verified only on API 36** (Conscrypt's engine-socket path); not on API 29, the minSdk.
 
 ## Handoff
 

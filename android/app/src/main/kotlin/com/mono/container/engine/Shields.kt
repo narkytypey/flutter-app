@@ -13,6 +13,26 @@ internal const val WEB_RTC_BLOCK_JS =
     "delete window.RTCPeerConnection;" +
     "delete window.webkitRTCPeerConnection;"
 
+/**
+ * Built-in Tor spec §10 (accepted leak a2): a Tor page's dns-prefetch hints
+ * are looked up through the phone's own DNS. This turns the page's DNS
+ * prefetching off before it parses, and removes each hint as it appears. The
+ * HTML preload scanner and `Link:` headers act before any script, so it
+ * narrows the gap at most; Step 8 of the plan measures by how much.
+ */
+internal const val TOR_DNS_HINTS_JS =
+    "(function(){" +
+    "var m=document.createElement('meta');m.httpEquiv='x-dns-prefetch-control';m.content='off';" +
+    "(document.head||document.documentElement).appendChild(m);" +
+    "var q='link[rel~=\"dns-prefetch\" i]';" +
+    "var drop=function(n){if(n.matches&&n.matches(q)){n.remove();}else if(n.querySelectorAll){n.querySelectorAll(q).forEach(function(e){e.remove();});}};" +
+    "new MutationObserver(function(ms){ms.forEach(function(r){r.addedNodes.forEach(drop);});})" +
+    ".observe(document,{childList:true,subtree:true});" +
+    "})();"
+
+/** The Tor-only part of a page's document-start script. */
+fun torDocumentStartJs(config: SiteConfig): String = if (config.proxyMode == "tor") TOR_DNS_HINTS_JS else ""
+
 object Shields {
     fun apply(
         webView: WebView,
@@ -27,6 +47,7 @@ object Shields {
                 append(webView.context.assets.open("shields/safer.js").bufferedReader().readText())
             }
             if (config.blockWebRtc) append(WEB_RTC_BLOCK_JS)
+            append(torDocumentStartJs(config))
             // WebSocket does not reach shouldInterceptRequest either.
             append("window.WebSocket=function(){throw new Error('Blocked');};")
             if (config.antiFingerprinting) {

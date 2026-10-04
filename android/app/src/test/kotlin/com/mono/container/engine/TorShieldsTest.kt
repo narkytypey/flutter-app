@@ -25,4 +25,13 @@ class TorShieldsTest {
         assertSame(direct, direct.withTorShields())
         assertFalse(direct.withTorShields().blockWebRtc)
     }
+
+    /** Spec §10: an experiment, measured on the device in Step 8; it does not close the gap. */
+    @Test fun `a Tor page turns dns-prefetch off and drops its hints`() {
+        val js = torDocumentStartJs(site("tor", blockWebRtc = true))
+        assertTrue(js.contains("x-dns-prefetch-control"))
+        assertTrue(js.contains("dns-prefetch"))
+        assertTrue(torDocumentStartJs(site("socks5", blockWebRtc = true)).isEmpty())
+        assertTrue(torDocumentStartJs(site("direct", blockWebRtc = true)).isEmpty())
+    }
 }
