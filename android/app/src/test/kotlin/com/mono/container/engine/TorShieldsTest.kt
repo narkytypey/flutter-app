@@ -31,6 +31,7 @@ class TorShieldsTest {
         val js = torDocumentStartJs(site("tor", blockWebRtc = true))
         assertTrue(js.contains("x-dns-prefetch-control"))
         assertTrue(js.contains("dns-prefetch"))
+        assertTrue(js.contains("try{"))
         assertTrue(torDocumentStartJs(site("socks5", blockWebRtc = true)).isEmpty())
         assertTrue(torDocumentStartJs(site("direct", blockWebRtc = true)).isEmpty())
     }

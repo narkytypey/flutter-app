@@ -21,14 +21,14 @@ internal const val WEB_RTC_BLOCK_JS =
  * narrows the gap at most; Step 8 of the plan measures by how much.
  */
 internal const val TOR_DNS_HINTS_JS =
-    "(function(){" +
+    "(function(){try{" +
     "var m=document.createElement('meta');m.httpEquiv='x-dns-prefetch-control';m.content='off';" +
-    "(document.head||document.documentElement).appendChild(m);" +
+    "var p=document.head||document.documentElement;if(p){p.appendChild(m);}" +
     "var q='link[rel~=\"dns-prefetch\" i]';" +
     "var drop=function(n){if(n.matches&&n.matches(q)){n.remove();}else if(n.querySelectorAll){n.querySelectorAll(q).forEach(function(e){e.remove();});}};" +
     "new MutationObserver(function(ms){ms.forEach(function(r){r.addedNodes.forEach(drop);});})" +
     ".observe(document,{childList:true,subtree:true});" +
-    "})();"
+    "}catch(e){}})();"
 
 /** The Tor-only part of a page's document-start script. */
 fun torDocumentStartJs(config: SiteConfig): String = if (config.proxyMode == "tor") TOR_DNS_HINTS_JS else ""
