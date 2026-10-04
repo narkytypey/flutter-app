@@ -39,6 +39,10 @@ data class SiteConfig(
     val securityLevel: SecurityLevel = SecurityLevel.SAFEST,
 )
 
+/** Built-in Tor spec §5.4: on Tor, WebRTC is always blocked, whatever the site stored. */
+fun SiteConfig.withTorShields(): SiteConfig =
+    if (proxyMode == "tor" && !blockWebRtc) copy(blockWebRtc = true) else this
+
 /** One library script as Dart sends it: `kind` is `css` or `js`. */
 data class InjectedScript(val kind: String, val code: String, val atDocumentStart: Boolean)
 

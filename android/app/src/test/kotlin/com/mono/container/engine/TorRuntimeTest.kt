@@ -301,4 +301,78 @@ class TorRuntimeTest {
         assertEquals(0, tor.stops)
         assertEquals(TorRuntime.State.Starting(0), runtime.state)
     }
+
+    private fun torSite(siteId: String = "a") = SiteConfig(
+        siteId = siteId, profileId = "p-$siteId", url = "https://check.torproject.org",
+        proxyMode = "tor", proxyHost = null, proxyPort = null,
+        blockWebRtc = true, blockTrackers = true, antiFingerprinting = true,
+        allowCamera = false, allowMicrophone = false, allowLocation = false,
+        allowClipboard = false, userAgentMode = "android", forceDark = true,
+        pageZoom = 100, customCss = "", customJs = "", wipeOnExit = false,
+    )
+
+    @Test fun `an open of another route resolves as it always has`() {
+        val direct = torSite().copy(proxyMode = "direct")
+        assertEquals(Route.Direct, routeForOpen(direct, null, null, {}) { Route.Direct })
+    }
+
+    @Test fun `a Tor open waits, hears the percentage, and gets Tor's route`() {
+        val tor = FakeTor()
+        val runtime = runtime(tor)
+        runtime.hold("a")
+        val heard = mutableListOf<Int>()
+        val answer = AtomicReference<Route?>(null)
+        val done = CountDownLatch(1)
+        Thread {
+            answer.set(routeForOpen(torSite(), runtime, "/s", { synchronized(heard) { heard += it } }))
+            done.countDown()
+        }.start()
+
+        tor.events!!.progress(60)
+        eventually { synchronized(heard) { 60 in heard } }
+        tor.events!!.progress(100)
+
+        assertTrue(done.await(5, TimeUnit.SECONDS))
+        assertTrue(synchronized(heard) { 100 in heard })
+        assertEquals(Route.Tor("/s", perSiteLogin("p-a")), answer.get())
+    }
+
+    @Test fun `a Tor open whose Tor fails is refused, never direct`() {
+        val tor = FakeTor()
+        val runtime = runtime(tor)
+        runtime.hold("a")
+        val answer = AtomicReference<Route?>(null)
+        val done = CountDownLatch(1)
+        Thread {
+            answer.set(routeForOpen(torSite(), runtime, "/s", {}))
+            done.countDown()
+        }.start()
+
+        tor.events!!.failed()
+
+        assertTrue(done.await(5, TimeUnit.SECONDS))
+        assertEquals(Route.Refused(RouteFailure.TOR_FAILED), answer.get())
+    }
+
+    /** Review Focus 1: a lock (stopAll) while the open waits. */
+    @Test fun `a Tor open let go of while it waits is refused`() {
+        val tor = FakeTor()
+        val runtime = runtime(tor)
+        runtime.hold("a")
+        val answer = AtomicReference<Route?>(null)
+        val done = CountDownLatch(1)
+        Thread {
+            answer.set(routeForOpen(torSite(), runtime, "/s", {}))
+            done.countDown()
+        }.start()
+
+        runtime.stopAll()
+
+        assertTrue(done.await(5, TimeUnit.SECONDS))
+        assertEquals(Route.Refused(RouteFailure.TOR_FAILED), answer.get())
+    }
+
+    @Test fun `a Tor open with no Tor installed is refused`() {
+        assertEquals(Route.Refused(RouteFailure.TOR_FAILED), routeForOpen(torSite(), null, null, {}))
+    }
 }

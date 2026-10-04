@@ -579,7 +579,7 @@ class EngineChannel(
         val throwaway = call.argument<Boolean>("throwaway") ?: false
         val initialUrl = call.argument<String>("initialUrl")
         // A throwaway always wipes on exit, whatever else the call says.
-        val config = configFrom(call).let { if (throwaway) it.copy(wipeOnExit = true) else it }
+        val config = configFrom(call).withTorShields().let { if (throwaway) it.copy(wipeOnExit = true) else it }
         // Listed before its profile can exist (register() creates it), so a
         // crash from here on still leaves it for the next start's sweep.
         if (throwaway) throwaways.add(config.profileId)
@@ -587,9 +587,18 @@ class EngineChannel(
             result.success(register(config, route = null, initialUrl = initialUrl))
             return
         }
+        // Built-in Tor spec §4.2: this site needs Tor from now until it
+        // closes; on any other route it lets go. Without the proxy override a
+        // Tor site is refused anyway (routeAtOpen), so Tor is not started.
+        if (config.proxyMode == "tor" && proxyOverride) Tor.runtime?.hold(config.siteId)
+        else Tor.runtime?.release(config.siteId)
         val ticket = pendingOpens.begin(config.siteId)
         networkExecutor.execute {
-            val route = runCatching { routeAtOpen(config, proxyOverride, awaitOverride) { config.currentRoute() } }
+            val route = runCatching {
+                routeAtOpen(config, proxyOverride, awaitOverride) {
+                    routeForOpen(config, Tor.runtime, Tor.socketPath, ::emitTorProgress)
+                }
+            }
             mainHandler.post {
                 if (!pendingOpens.finish(config.siteId, ticket)) {
                     result.success(Session(config).toMap())
@@ -834,6 +843,8 @@ class EngineChannel(
      */
     private fun close(siteId: String, wipe: Boolean? = null) {
         pendingOpens.cancel(siteId)
+        // An open still waiting for Tor stops waiting; the last Tor site stops Tor.
+        Tor.runtime?.release(siteId)
         val session = sessions.remove(siteId) ?: return
         // Chromium keeps sending this profile's credential; the proxy now
         // answers 403, and closes every tunnel it opened on this session's
@@ -860,10 +871,11 @@ class EngineChannel(
         emitSessions()
     }
 
-    /** Tabs spec §5.8: every lock, and panic's first step. */
+    /** Tabs spec §5.8: every lock, and panic's first step. Tor stops too, opens still waiting for it included (spec §4.2). */
     private fun closeAll() {
         pendingOpens.cancelAll()
         for (siteId in sessions.keys.toList()) close(siteId)
+        Tor.runtime?.stopAll()
     }
 
     /**
@@ -878,6 +890,28 @@ class EngineChannel(
         profiles.wipeAll()
         // Every profile is gone, throwaways included: nothing left to sweep.
         throwaways.clear()
+        wipeTorState()
+    }
+
+    /**
+     * Panic's part for Tor (spec §4.5, plan D4): Tor stopped by [closeAll],
+     * its state deleted, and deleted again once its own shutdown has had time
+     * to write it. The marker makes the next start delete it once more.
+     */
+    private fun wipeTorState() {
+        val wipe = {
+            TorWipe.wipe(
+                TorFiles.all(context.filesDir, context.dataDir, context.cacheDir),
+                TorFiles.wipeMarker(context.filesDir),
+            )
+        }
+        runCatching(wipe)
+        mainHandler.postDelayed({ networkExecutor.execute { runCatching(wipe) } }, TOR_REWIPE_DELAY_MS)
+    }
+
+    /** Built-in Tor spec §7: `8a` shows Tor's own percentage while it starts. */
+    private fun emitTorProgress(percent: Int) {
+        mainHandler.post { sink?.success(mapOf("type" to "tor_progress", "percent" to percent)) }
     }
 
     /** `keep` (spec §5.3–5.4): a throwaway saved as a site. A no-op on an
@@ -937,6 +971,7 @@ class EngineChannel(
         const val METHOD_CHANNEL = "com.mono.container/engine"
         const val EVENT_CHANNEL = "com.mono.container/sessions"
         const val VIEW_TYPE = "com.mono.container/view"
+        const val TOR_REWIPE_DELAY_MS = 5_000L
     }
 }
 

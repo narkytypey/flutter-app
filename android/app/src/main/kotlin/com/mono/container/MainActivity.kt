@@ -9,6 +9,9 @@ import com.mono.container.engine.Loopback
 import com.mono.container.engine.PendingDeletions
 import com.mono.container.engine.ProfileManager
 import com.mono.container.engine.SystemProxies
+import com.mono.container.engine.Tor
+import com.mono.container.engine.TorFiles
+import com.mono.container.engine.TorWipe
 import com.mono.container.engine.ThrowawayJournal
 import com.mono.container.engine.deleteDownloadsDir
 import io.flutter.embedding.android.FlutterFragmentActivity
@@ -53,6 +56,13 @@ class MainActivity : FlutterFragmentActivity() {
         // Before anything can load a profile: a loaded one cannot be deleted.
         profiles.sweepPendingDeletions()
         profiles.sweepThrowaways(throwaways) { deleteDownloadsDir(applicationContext, it) }
+        // Before Tor can run: a panic's wipe that Tor's own shutdown may have
+        // undone is finished (built-in Tor plan D4). Then the process's one Tor.
+        TorWipe.sweep(
+            TorFiles.all(applicationContext.filesDir, applicationContext.dataDir, applicationContext.cacheDir),
+            TorFiles.wipeMarker(applicationContext.filesDir),
+        )
+        Tor.install(applicationContext)
         // Before any page can load, like the sweeps above: from here every
         // site's traffic goes through the loopback proxy (P2 spec §1), and a
         // direct site's through the network's own proxy if it has one.

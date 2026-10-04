@@ -188,3 +188,26 @@ class TorRuntime(
         }
     }
 }
+
+/**
+ * The route an open decides (built-in Tor spec §4.3). A Tor site first waits
+ * for Tor, hearing its percentage; Tor that fails, stalls or is let go of is
+ * refused, never direct. Any other site resolves as before. Blocks: never on
+ * the main thread.
+ */
+fun routeForOpen(
+    config: SiteConfig,
+    tor: TorRuntime?,
+    socketPath: String?,
+    onProgress: (Int) -> Unit,
+    resolve: () -> Route = { config.currentRoute() },
+): Route {
+    if (config.proxyMode != "tor") return resolve()
+    if (tor == null || socketPath == null || !tor.awaitReady(config.siteId, onProgress)) {
+        return Route.Refused(RouteFailure.TOR_FAILED)
+    }
+    // awaitReady never reports 100 (a waiter wakes on Ready without emitting),
+    // so say it once: Dart's last-seen percentage must not linger below it.
+    onProgress(100)
+    return Router.resolve(config, proxyReachable = true, torSocket = socketPath)
+}
