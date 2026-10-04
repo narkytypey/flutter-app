@@ -6,12 +6,16 @@ enum class RouteFailure {
     UNSUPPORTED,
     /** The site's proxy turned its login down, or wanted one it does not have (proxy-auth spec §3). */
     PROXY_LOGIN_REJECTED,
+    /** Built-in Tor is off, failed, stalled or was let go of (built-in Tor spec §4.3). Never direct. */
+    TOR_FAILED,
 }
 
 sealed class Route {
     object Direct : Route()
     /** [login] is what the tunnel offers the proxy, or null for none (proxy-auth spec §2.1). */
     data class Proxy(val host: String, val port: Int, val socks: Boolean, val login: ProxyLogin? = null) : Route()
+    /** Built-in Tor (spec §4.4): its Unix SOCKS socket, and the site's own login, so its own circuit (§5.2). */
+    data class Tor(val socketPath: String, val login: ProxyLogin) : Route()
     data class Refused(val failure: RouteFailure) : Route()
 }
 
@@ -20,10 +24,20 @@ sealed class Route {
  * There is deliberately no branch returning [Route.Direct] for a proxied site.
  */
 object Router {
-    fun resolve(config: SiteConfig, proxyReachable: Boolean): Route {
+    /**
+     * [proxyReachable] is, for a Tor site, whether built-in Tor is ready; and
+     * [torSocket] its socket. A Tor site always sends its per-site login,
+     * whatever login was typed (spec §5.2).
+     */
+    fun resolve(config: SiteConfig, proxyReachable: Boolean, torSocket: String? = null): Route {
         if (config.proxyMode == "direct") return Route.Direct
 
-        // Only these two proxy modes exist. Anything else is a mode this
+        if (config.proxyMode == "tor") {
+            if (!proxyReachable || torSocket == null) return Route.Refused(RouteFailure.TOR_FAILED)
+            return Route.Tor(torSocket, perSiteLogin(config.profileId))
+        }
+
+        // Only these two upstream proxy modes exist besides Tor. Anything else is a mode this
         // build does not understand, and is refused rather than allowed to
         // fall through to connect() — http reaches HttpConnectTunnel, socks5
         // is delegated to the platform.
@@ -53,6 +67,7 @@ object Router {
      * SOCKS goes through [Socks5Tunnel], HTTP proxies through
      * [HttpConnectTunnel] (Android removed `Proxy.Type.HTTP` from
      * [java.net.Socket]). Both send [Route.Proxy.login] when there is one.
+     * A Tor route goes through [Socks5Tunnel] too, over Tor's Unix socket ([local]).
      *
      * Both name the target by hostname, so the proxy does the lookup. A
      * resolved address would make the device look the name up itself first,
@@ -64,6 +79,7 @@ object Router {
         route: Route,
         targetHost: String,
         targetPort: Int,
+        local: (String) -> java.net.Socket = ::localSocket,
         systemProxy: () -> SystemProxy? = SystemProxies.current,
     ): java.net.Socket =
         when (route) {
@@ -73,13 +89,19 @@ object Router {
             is Route.Proxy ->
                 if (route.socks) Socks5Tunnel.open(route.host, route.port, targetHost, targetPort, route.login)
                 else HttpConnectTunnel.open(route.host, route.port, targetHost, targetPort, route.login)
+            is Route.Tor -> Socks5Tunnel.over(local(route.socketPath), targetHost, targetPort, route.login)
             is Route.Refused -> error("connect() called for a refused route")
         }
 }
 
-/** Resolves a site's live route consistently for pages and downloads. */
+/**
+ * Resolves a site's live route consistently for pages and downloads. A Tor
+ * site's is Tor's state now, read without waiting (spec §4.3): ready, or
+ * refused.
+ */
 fun SiteConfig.currentRoute(): Route =
-    Router.resolve(this, ProxyProbe.reachable(proxyHost ?: "", proxyPort ?: -1))
+    if (proxyMode == "tor") Router.resolve(this, Tor.runtime?.isReady == true, Tor.socketPath)
+    else Router.resolve(this, ProxyProbe.reachable(proxyHost ?: "", proxyPort ?: -1))
 
 /**
  * The route `open` decides (P2 spec §1.4). Every site's traffic reaches its

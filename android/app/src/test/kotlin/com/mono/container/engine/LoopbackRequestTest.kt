@@ -128,6 +128,23 @@ class LoopbackRequestTest {
     }
 
     /** Review Focus 5 (plan deviation 2): only the proxy may challenge as 127.0.0.1. */
+    /** Built-in Tor spec §5.3, Review Focus 4: an onion name on a direct route goes nowhere. */
+    @Test fun `an onion host on a direct route is refused, in any case and with a trailing dot`() {
+        assertEquals(ProxyDecision.Reply(403), decide(request("CONNECT abc.onion:443 HTTP/1.1\r\n${auth()}\r\n"), lookup))
+        assertEquals(ProxyDecision.Reply(403), decide(request("CONNECT ABC.ONION.:443 HTTP/1.1\r\n${auth()}\r\n"), lookup))
+        assertEquals(ProxyDecision.Reply(403), decide(request("GET http://abc.onion/ HTTP/1.1\r\n${auth()}\r\n"), lookup))
+    }
+
+    @Test fun `an onion host on a proxied route goes to the proxy by name`() {
+        val socks = ProxyBinding(site.config.copy(proxyMode = "socks5", proxyHost = "127.0.0.1", proxyPort = 9050)) {}
+        val decision = decide(request("CONNECT abc.onion:443 HTTP/1.1\r\n${auth()}\r\n")) { _, _ -> socks }
+        // `Tunnel` is not a data class: compare what it carries.
+        decision as ProxyDecision.Tunnel
+        assertEquals("abc.onion", decision.host)
+        assertEquals(443, decision.port)
+        assertSame(socks, decision.binding)
+    }
+
     @Test fun `a destination named 127_0_0_1 is refused whatever the credentials`() {
         assertEquals(ProxyDecision.Reply(403), decide(request("CONNECT 127.0.0.1:8443 HTTP/1.1\r\n${auth()}\r\n"), lookup))
         assertEquals(ProxyDecision.Reply(403), decide(request("GET http://127.0.0.1:8080/ HTTP/1.1\r\n${auth()}\r\n"), lookup))

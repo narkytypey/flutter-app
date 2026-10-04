@@ -33,6 +33,62 @@ class RouterTest {
         assertTrue((route as Route.Refused).failure == RouteFailure.PROXY_UNREACHABLE)
     }
 
+    @Test fun `a tor site routes to Tor's socket with its own login, whatever was typed`() {
+        val site = config(mode = "tor", host = null, port = null)
+            .copy(proxyLogin = ProxyLogin("typed", "pw"), proxyLoginPerSite = false)
+        val route = Router.resolve(site, proxyReachable = true, torSocket = "/data/files/tor/socks:0")
+        assertEquals(Route.Tor("/data/files/tor/socks:0", perSiteLogin(site.profileId)), route)
+    }
+
+    /** Review Focus 3. */
+    @Test fun `a tor site with Tor not ready is refused, never direct`() {
+        val route = Router.resolve(config(mode = "tor", host = null, port = null), proxyReachable = false, torSocket = "/s")
+        assertEquals(Route.Refused(RouteFailure.TOR_FAILED), route)
+    }
+
+    @Test fun `a tor site with no socket is refused`() {
+        val route = Router.resolve(config(mode = "tor", host = null, port = null), proxyReachable = true, torSocket = null)
+        assertEquals(Route.Refused(RouteFailure.TOR_FAILED), route)
+    }
+
+    @Test fun `a tor route connects through the local socket and names the target to Tor`() {
+        val server = java.net.ServerSocket(0)
+        val hosts = java.util.concurrent.ArrayBlockingQueue<String>(1)
+        Thread {
+            runCatching {
+                server.accept().use { client ->
+                    val input = java.io.DataInputStream(client.getInputStream())
+                    val out = client.getOutputStream()
+                    input.readFully(ByteArray(3))
+                    out.write(byteArrayOf(5, 2))
+                    input.readUnsignedByte()
+                    input.readFully(ByteArray(input.readUnsignedByte()))
+                    input.readFully(ByteArray(input.readUnsignedByte()))
+                    out.write(byteArrayOf(1, 0))
+                    input.readFully(ByteArray(4))
+                    hosts += String(ByteArray(input.readUnsignedByte()).also(input::readFully))
+                    input.readFully(ByteArray(2))
+                    out.write(byteArrayOf(5, 0, 0, 1, 0, 0, 0, 0, 0, 0))
+                    out.flush()
+                }
+            }
+        }.start()
+        val paths = mutableListOf<String>()
+
+        val socket = Router.connect(
+            Route.Tor("/data/files/tor/socks:0", ProxyLogin("u", "p")), "abc.onion", 443,
+            local = { path ->
+                paths += path
+                java.net.Socket("127.0.0.1", server.localPort)
+            },
+        )
+
+        assertEquals(listOf("/data/files/tor/socks:0"), paths)
+        assertEquals("abc.onion", hosts.poll(5, java.util.concurrent.TimeUnit.SECONDS))
+        socket.close()
+        server.close()
+    }
+
     @Test fun `proxied site with no host is misconfigured`() {
         val route = Router.resolve(config(host = null), proxyReachable = true)
         assertTrue((route as Route.Refused).failure == RouteFailure.MISCONFIGURED)

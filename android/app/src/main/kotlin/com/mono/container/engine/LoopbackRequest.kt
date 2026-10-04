@@ -139,6 +139,9 @@ internal fun decide(request: ProxyRequest?, lookup: (String, String) -> ProxyBin
     val authorization = request.header("Proxy-Authorization") ?: return ProxyDecision.Reply(407)
     val (user, password) = basicCredentials(authorization) ?: return ProxyDecision.Reply(403)
     val binding = lookup(user, password) ?: return ProxyDecision.Reply(403)
+    // Built-in Tor spec §5.3: an onion name on a direct route is never looked
+    // up nor sent anywhere, and does not start Tor.
+    if (binding.config.proxyMode == "direct" && isOnionHost(host)) return ProxyDecision.Reply(403)
 
     if (request.path == null) return ProxyDecision.Tunnel(request.host, request.port, binding)
 

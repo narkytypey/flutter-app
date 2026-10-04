@@ -1,7 +1,9 @@
 package com.mono.container.engine
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class DownloadFailureTest {
@@ -9,6 +11,15 @@ class DownloadFailureTest {
 
     @Test fun `a rejected login names itself`() {
         assertEquals(RouteFailure.PROXY_LOGIN_REJECTED, downloadFailureFor(ProxyLoginRejectedException("x"), proxied))
+    }
+
+    /** Plan D8: an onion download on a direct route would send the name to DNS. */
+    @Test fun `an onion download is refused on a direct route only`() {
+        assertTrue(refusesOnionDownload(Route.Direct, "http://abc.onion/file.pdf"))
+        assertTrue(refusesOnionDownload(Route.Direct, "https://ABC.ONION./file.pdf"))
+        assertFalse(refusesOnionDownload(Route.Direct, "https://example.com/file.pdf"))
+        assertFalse(refusesOnionDownload(Route.Tor("/s", ProxyLogin("u", "p")), "http://abc.onion/file.pdf"))
+        assertFalse(refusesOnionDownload(Route.Proxy("127.0.0.1", 9050, socks = true), "http://abc.onion/file.pdf"))
     }
 
     @Test fun `the existing mapping is unchanged`() {

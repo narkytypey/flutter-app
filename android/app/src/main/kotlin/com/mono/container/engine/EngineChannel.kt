@@ -948,6 +948,7 @@ fun routeFailureToDartName(kotlinName: String): String = when (kotlinName) {
     "TLS_FAILURE" -> "tlsFailure"
     "UNSUPPORTED" -> "unsupported"
     "PROXY_LOGIN_REJECTED" -> "proxyLoginRejected"
+    "TOR_FAILED" -> "torFailed"
     else -> "misconfigured"
 }
 

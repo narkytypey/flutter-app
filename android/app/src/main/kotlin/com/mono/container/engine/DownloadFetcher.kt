@@ -120,6 +120,10 @@ internal fun downloadFailureFor(error: Throwable, route: Route): RouteFailure? =
     else -> null
 }
 
+/** Plan D8: a download from an onion address on a direct route would send the name to DNS. */
+internal fun refusesOnionDownload(route: Route, url: String): Boolean =
+    route is Route.Direct && isOnionHost(runCatching { java.net.URI(url).host }.getOrNull() ?: "")
+
 class DownloadFetcher(
     private val context: android.content.Context,
     private val profiles: ProfileManager,
@@ -133,6 +137,7 @@ class DownloadFetcher(
     fun run(config: SiteConfig, pending: PendingDownload, request: DownloadRequest, decisionName: String): DownloadOutcome {
         val route = config.currentRoute()
         if (route is Route.Refused) return DownloadOutcome.Failed(route.failure)
+        if (refusesOnionDownload(route, pending.url)) return DownloadOutcome.Failed(null)
         val fileName = sanitizeFileName(pending.fileName)
         return when (decisionName) {
             "keepInContainer" -> runCatching { keepInContainer(route, config, pending, request, fileName) }
@@ -140,7 +145,7 @@ class DownloadFetcher(
             "saveToDevice" -> when (route) {
                 is Route.Direct -> runCatching { saveViaDownloadManager(pending, request, fileName) }
                     .getOrElse { DownloadOutcome.Failed(downloadFailureFor(it, route)) }
-                is Route.Proxy -> runCatching { saveViaMediaStore(route, pending, request, fileName) }
+                is Route.Proxy, is Route.Tor -> runCatching { saveViaMediaStore(route, pending, request, fileName) }
                     .getOrElse { DownloadOutcome.Failed(downloadFailureFor(it, route)) }
                 is Route.Refused -> error("handled above")
             }

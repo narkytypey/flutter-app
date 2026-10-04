@@ -15,6 +15,7 @@ class RouteFailureNameTest {
                 "MISCONFIGURED" to "misconfigured",
                 "UNSUPPORTED" to "unsupported",
                 "PROXY_LOGIN_REJECTED" to "proxyLoginRejected",
+                "TOR_FAILED" to "torFailed",
             ),
             RouteFailure.values().associate { it.name to routeFailureToDartName(it.name) },
         )
