@@ -63,7 +63,8 @@ flutter {
 }
 
 // tor-android 0.4.9.13 declares minCompileSdk 37; this project compiles against 36
-// (AGP 9.1.0's maximum, and SDK 37 is not installed). Nothing of ours calls an API 37 symbol.
+// (AGP 9.1.0's maximum; SDK 37 is not installed). tor-android's own code references no
+// API 37 symbol (the debug build links). Remove this block once compileSdk reaches 37.
 tasks.configureEach {
     if (name.startsWith("check") && name.endsWith("AarMetadata")) enabled = false
 }

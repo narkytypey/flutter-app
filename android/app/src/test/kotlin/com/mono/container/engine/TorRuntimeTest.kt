@@ -25,7 +25,20 @@ class TorRuntimeTest {
         }
     }
 
-    private fun runtime(tor: FakeTor, stallMs: Long = 60_000) = TorRuntime(tor, stallMs = stallMs, pollMs = 10)
+    /** Captures the linger stop; the test runs it when the delay would have passed. */
+    private class Sched {
+        val tasks = mutableListOf<() -> Unit>()
+        val delays = mutableListOf<Long>()
+        fun schedule(delay: Long, task: () -> Unit) {
+            delays += delay
+            tasks += task
+        }
+        fun runAll() = tasks.toList().also { tasks.clear() }.forEach { it() }
+    }
+
+    /** A large [pollMs] makes the wake-up signal load-bearing; the stall tests pass a small one. */
+    private fun runtime(tor: FakeTor, stallMs: Long = 60_000, pollMs: Long = 60_000, sched: Sched = Sched()) =
+        TorRuntime(tor, stallMs = stallMs, pollMs = pollMs, schedule = sched::schedule)
 
     /** [TorRuntime.awaitReady] on another thread, as an open runs it; the returned
      *  function gives its answer, or null if it had none within 5 s. */
@@ -90,17 +103,65 @@ class TorRuntimeTest {
         assertEquals(1, tor.starts)
     }
 
-    @Test fun `the last release stops Tor and lets a waiting open go`() {
+    @Test fun `the last release lets a waiting open go and stops Tor after the linger`() {
         val tor = FakeTor()
-        val runtime = runtime(tor)
+        val sched = Sched()
+        val runtime = runtime(tor, sched = sched)
         runtime.hold("a")
         val answer = waitOn(runtime, "a")
 
         runtime.release("a")
 
         assertEquals(false, answer())
+        assertEquals(0, tor.stops)
+        assertEquals(listOf(TorRuntime.LINGER_MS), sched.delays)
+        sched.runAll()
         assertEquals(1, tor.stops)
         assertEquals(TorRuntime.State.Off, runtime.state)
+    }
+
+    @Test fun `a hold during the linger keeps the same run`() {
+        val tor = FakeTor()
+        val sched = Sched()
+        val runtime = runtime(tor, sched = sched)
+        runtime.hold("a")
+        runtime.release("a")
+        runtime.hold("b")
+        val state = runtime.state
+
+        sched.runAll()
+
+        assertEquals(0, tor.stops)
+        assertEquals(1, tor.starts)
+        assertEquals(state, runtime.state)
+    }
+
+    @Test fun `a release, hold and release again stops only after the last linger`() {
+        val tor = FakeTor()
+        val sched = Sched()
+        val runtime = runtime(tor, sched = sched)
+        runtime.hold("a")
+        runtime.release("a")
+        runtime.hold("a")
+        runtime.release("a")
+        sched.tasks.first()()
+        assertEquals(0, tor.stops)
+        sched.tasks.last()()
+        assertEquals(1, tor.stops)
+    }
+
+    @Test fun `the linger stop is cancelled by stopAll`() {
+        val tor = FakeTor()
+        val sched = Sched()
+        val runtime = runtime(tor, sched = sched)
+        runtime.hold("a")
+        runtime.release("a")
+        runtime.stopAll()
+        assertEquals(1, tor.stops)
+
+        sched.runAll()
+
+        assertEquals(1, tor.stops)
     }
 
     /** Review Focus 2. */
@@ -139,7 +200,7 @@ class TorRuntimeTest {
     /** Spec §4.3: no new percentage for the stall time is a failure. */
     @Test fun `progress that stops moving for the stall time fails Tor`() {
         val tor = FakeTor()
-        val runtime = runtime(tor, stallMs = 100)
+        val runtime = runtime(tor, stallMs = 100, pollMs = 10)
         runtime.hold("a")
         tor.events!!.progress(30)
 
@@ -150,7 +211,7 @@ class TorRuntimeTest {
 
     @Test fun `the same percentage again does not count as moving`() {
         val tor = FakeTor()
-        val runtime = runtime(tor, stallMs = 150)
+        val runtime = runtime(tor, stallMs = 150, pollMs = 10)
         runtime.hold("a")
         tor.events!!.progress(30)
         val answer = waitOn(runtime, "a")
@@ -175,10 +236,12 @@ class TorRuntimeTest {
 
     @Test fun `a stopped run's late events count for nothing`() {
         val tor = FakeTor()
-        val runtime = runtime(tor)
+        val sched = Sched()
+        val runtime = runtime(tor, sched = sched)
         runtime.hold("a")
         val old = tor.events!!
         runtime.release("a")
+        sched.runAll()
         runtime.hold("a")
 
         old.progress(100)

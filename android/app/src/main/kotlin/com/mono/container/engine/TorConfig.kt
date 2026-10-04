@@ -73,6 +73,6 @@ object TorWipe {
     fun sweep(dirs: List<File>, marker: File) {
         if (!marker.exists()) return
         for (dir in dirs) dir.deleteRecursively()
-        marker.delete()
+        if (dirs.none { it.exists() }) marker.delete()
     }
 }

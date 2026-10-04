@@ -1,5 +1,7 @@
 package com.mono.container.engine
 
+import java.util.Timer
+import java.util.TimerTask
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.locks.ReentrantLock
 import kotlin.concurrent.withLock
@@ -23,7 +25,10 @@ interface TorEvents {
 
 /**
  * The process's one Tor (built-in Tor spec §4.2, ruling 1): off until a site
- * on the Tor route holds it, stopped when the last one lets go.
+ * on the Tor route holds it, stopped [LINGER_MS] after the last one lets go
+ * (spec §4.2 deviation: a close then reopen reuses the run, and a new
+ * `TorService` never starts while the old Tor thread is still exiting), and
+ * at once on [stopAll] or a failure.
  *
  * [hold], [release] and [stopAll] run on the main thread, as the engine's
  * open and close do. [awaitReady] blocks, so never there. Each run has a
@@ -31,9 +36,10 @@ interface TorEvents {
  */
 class TorRuntime(
     private val daemon: TorDaemon,
-    private val now: () -> Long = System::currentTimeMillis,
+    private val now: () -> Long = { System.nanoTime() / 1_000_000 },
     private val stallMs: Long = STALL_MS,
     private val pollMs: Long = POLL_MS,
+    private val schedule: (Long, () -> Unit) -> Unit = ::scheduleOnTimer,
 ) {
     sealed class State {
         data object Off : State()
@@ -46,6 +52,7 @@ class TorRuntime(
     private val changed = lock.newCondition()
     private val holders = HashSet<String>()
     private var generation = 0
+    private var lingerSeq = 0
     private var lastMovedAt = 0L
     private var current: State = State.Off
 
@@ -57,16 +64,28 @@ class TorRuntime(
     fun hold(holder: String) {
         lock.withLock {
             holders += holder
+            lingerSeq++
             if (current == State.Off || current == State.Failed) begin()
         }
     }
 
-    /** [holder] no longer needs Tor; its wait, if any, ends false. The last one stops Tor. */
+    /**
+     * [holder] no longer needs Tor; its wait, if any, ends false. The last one
+     * schedules the stop [LINGER_MS] later; a [hold] in between cancels it.
+     */
     fun release(holder: String) {
         lock.withLock {
             if (!holders.remove(holder)) return
             changed.signalAll()
-            if (holders.isEmpty()) halt(State.Off)
+            if (holders.isEmpty()) {
+                val run = generation
+                val seq = ++lingerSeq
+                schedule(LINGER_MS) {
+                    lock.withLock {
+                        if (seq == lingerSeq && run == generation && holders.isEmpty()) halt(State.Off)
+                    }
+                }
+            }
         }
     }
 
@@ -81,7 +100,9 @@ class TorRuntime(
     /**
      * Blocks until Tor is ready (true), or until it fails, stalls ([stallMs]
      * with no new percentage, spec §4.3) or [holder] lets go of it (false).
-     * [onProgress] hears each new percentage while it waits.
+     * [onProgress] hears each new percentage while it waits. It runs while the
+     * runtime's lock is held, so it must not block: post to another thread,
+     * never wait on the main thread.
      */
     fun awaitReady(holder: String, onProgress: (Int) -> Unit = {}): Boolean {
         var heard = -1
@@ -156,5 +177,14 @@ class TorRuntime(
         /** Spec §4.3: two minutes with no new percentage is a failure. */
         const val STALL_MS = 120_000L
         const val POLL_MS = 500L
+
+        /** How long Tor keeps running after the last holder lets go. */
+        const val LINGER_MS = 10_000L
+
+        private val timer by lazy { Timer("tor-linger", true) }
+
+        private fun scheduleOnTimer(delayMs: Long, task: () -> Unit) {
+            timer.schedule(object : TimerTask() { override fun run() = task() }, delayMs)
+        }
     }
 }

@@ -18,8 +18,8 @@ import java.io.File
  * The service broadcasts only on and off, so progress is read by polling its
  * control connection's `status/bootstrap-phase` (plan D5). An error
  * broadcast, the service stopping or the binding dying is a failure;
- * [TorRuntime] ignores whatever a stopped run still says. Main thread only,
- * like [TorRuntime.hold].
+ * [TorRuntime] ignores whatever a stopped run still says. Calls are
+ * serialised by [TorRuntime]'s lock; any thread.
  */
 class TorServiceDaemon(private val context: Context) : TorDaemon {
 
@@ -28,10 +28,16 @@ class TorServiceDaemon(private val context: Context) : TorDaemon {
     private class Run(val events: TorEvents) : ServiceConnection {
         @Volatile var service: TorService? = null
 
+        /** The old run's service broadcasts OFF/STOPPING late; ignore everything before our own connect. */
+        @Volatile var connected = false
+
+        @Volatile var stopped = false
+
         val poller = Thread({ poll() }, "tor-bootstrap").apply { isDaemon = true }
 
         val receiver = object : BroadcastReceiver() {
             override fun onReceive(context: Context, intent: Intent) {
+                if (!connected) return
                 val status = intent.getStringExtra(TorService.EXTRA_STATUS)
                 if (intent.action == TorService.ACTION_ERROR ||
                     status == TorService.STATUS_STOPPING || status == TorService.STATUS_OFF
@@ -43,6 +49,7 @@ class TorServiceDaemon(private val context: Context) : TorDaemon {
 
         override fun onServiceConnected(name: ComponentName, binder: IBinder) {
             service = (binder as TorService.LocalBinder).service
+            connected = true
             poller.start()
         }
 
@@ -50,10 +57,12 @@ class TorServiceDaemon(private val context: Context) : TorDaemon {
 
         private fun poll() {
             try {
-                while (!Thread.currentThread().isInterrupted) {
-                    runCatching { service?.getInfo("status/bootstrap-phase") }.getOrNull()
+                while (!stopped) {
+                    val percent = runCatching { service?.getInfo("status/bootstrap-phase") }.getOrNull()
                         ?.let(::bootstrapPercent)
-                        ?.let(events::progress)
+                    if (percent != null) events.progress(percent)
+                    // After ready, Tor's death is the STOPPING broadcast.
+                    if (percent == 100) return
                     Thread.sleep(TorRuntime.POLL_MS)
                 }
             } catch (_: InterruptedException) {
@@ -63,20 +72,30 @@ class TorServiceDaemon(private val context: Context) : TorDaemon {
     }
 
     override fun start(events: TorEvents) {
-        val socket = TorFiles.socket(context.filesDir)
-        prepareSocketDir(socket)
-        TorService.getTorrc(context).apply { parentFile?.mkdirs() }.writeText(torrc(socket))
-
         val next = Run(events)
-        LocalBroadcastManager.getInstance(context).registerReceiver(
-            next.receiver,
-            IntentFilter().apply {
-                addAction(TorService.ACTION_STATUS)
-                addAction(TorService.ACTION_ERROR)
-            },
-        )
-        run = next
-        if (!context.bindService(Intent(context, TorService::class.java), next, Context.BIND_AUTO_CREATE)) {
+        val broadcasts = LocalBroadcastManager.getInstance(context)
+        var registered = false
+        try {
+            val socket = TorFiles.socket(context.filesDir)
+            prepareSocketDir(socket)
+            TorService.getTorrc(context).apply { parentFile?.mkdirs() }.writeText(torrc(socket))
+            broadcasts.registerReceiver(
+                next.receiver,
+                IntentFilter().apply {
+                    addAction(TorService.ACTION_STATUS)
+                    addAction(TorService.ACTION_ERROR)
+                },
+            )
+            registered = true
+            run = next
+            if (!context.bindService(Intent(context, TorService::class.java), next, Context.BIND_AUTO_CREATE)) {
+                throw IllegalStateException("TorService could not be bound")
+            }
+        } catch (_: Exception) {
+            next.stopped = true
+            if (run === next) run = null
+            if (registered) runCatching { broadcasts.unregisterReceiver(next.receiver) }
+            runCatching { context.unbindService(next) }
             events.failed()
         }
     }
@@ -84,6 +103,7 @@ class TorServiceDaemon(private val context: Context) : TorDaemon {
     override fun stop() {
         val current = run ?: return
         run = null
+        current.stopped = true
         current.poller.interrupt()
         LocalBroadcastManager.getInstance(context).unregisterReceiver(current.receiver)
         runCatching { context.unbindService(current) }
@@ -114,6 +134,10 @@ internal object Tor {
     @Synchronized fun install(context: Context) {
         if (runtime != null) return
         socketPath = TorFiles.socket(context.filesDir).absolutePath
-        runtime = TorRuntime(TorServiceDaemon(context.applicationContext))
+        val main = android.os.Handler(android.os.Looper.getMainLooper())
+        runtime = TorRuntime(
+            TorServiceDaemon(context.applicationContext),
+            schedule = { delayMs, task -> main.postDelayed(task, delayMs) },
+        )
     }
 }
