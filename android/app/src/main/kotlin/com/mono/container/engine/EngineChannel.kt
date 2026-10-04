@@ -608,7 +608,12 @@ class EngineChannel(
                 // crash the main thread rather than reach Dart as an error.
                 route.mapCatching { register(config, it, initialUrl) }.fold(
                     onSuccess = { result.success(it) },
-                    onFailure = { result.error("engine", it.message, null) },
+                    onFailure = {
+                        // No session holds Tor for this open, so neither may the open
+                        // (Plan 19 final review, Minor 2): the linger can stop it.
+                        Tor.runtime?.release(config.siteId)
+                        result.error("engine", it.message, null)
+                    },
                 )
             }
         }
@@ -887,10 +892,15 @@ class EngineChannel(
     private fun wipeAll() {
         closeAll()
         java.io.File(context.filesDir, "downloads").deleteRecursively()
-        profiles.wipeAll()
-        // Every profile is gone, throwaways included: nothing left to sweep.
-        throwaways.clear()
-        wipeTorState()
+        try {
+            profiles.wipeAll()
+            // Every profile is gone, throwaways included: nothing left to sweep.
+            throwaways.clear()
+        } finally {
+            // Panic is best effort (4f02968): a profile wipe that throws must not
+            // leave Tor's guards and consensus behind (Plan 19 final review, Minor 1).
+            wipeTorState()
+        }
     }
 
     /**
