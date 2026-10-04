@@ -5,7 +5,9 @@ enum CookiePolicy { keep, wipeOnExit }
 
 /// How a site's traffic is routed. The design's rule (turn 8) is that a site
 /// set to a proxy never silently falls back to [direct].
-enum ProxyMode { direct, socks5, http }
+/// [tor] is the app's own Tor client (built-in Tor spec §5.1): no address,
+/// no typed login.
+enum ProxyMode { direct, socks5, http, tor }
 
 /// Spec `2a`, USER AGENT. Three presets and no free-text field, because a
 /// unique UA string is itself a fingerprint.

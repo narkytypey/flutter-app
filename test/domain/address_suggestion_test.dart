@@ -165,4 +165,9 @@ void main() {
       expect(submittedSuggestion(_for('   ')), isNull);
     });
   });
+
+  test('a throwaway on Tor is tagged THROWAWAY · TOR', () {
+    expect(destinationTag(Throwaway(Uri.parse('http://abc.onion/'), ProxyMode.tor, null, null)),
+        'THROWAWAY · TOR');
+  });
 }

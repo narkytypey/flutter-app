@@ -1,5 +1,6 @@
 import 'models/navigation_state.dart';
 import 'models/open_container.dart';
+import 'models/route_display.dart';
 import 'models/site.dart';
 import 'models/switcher_entry.dart';
 
@@ -113,7 +114,7 @@ List<SwitcherEntry> switcherEntries({
         name: c.opened.name,
         monogram: c.opened.monogram,
         meta: c.siteId == viewedSiteId
-            ? 'viewing now · ${c.opened.proxyMode.name}'
+            ? 'viewing now · ${switcherRouteName(c.opened.proxyMode)}'
             : 'background · ${backgroundAge(now, c.lastViewedAt)}',
         live: c.siteId == viewedSiteId,
         pages: c.pages.length < 2

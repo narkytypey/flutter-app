@@ -64,11 +64,26 @@ void main() {
   });
 
   test('a stored route that cannot be read is refused, never direct', () {
-    for (final stored in ['{not json', '[]', '{"mode":"tor","host":"h","port":1}', '{"mode":7}']) {
+    for (final stored in ['{not json', '[]', '{"mode":"pigeon","host":"h","port":1}', '{"mode":7}']) {
       final route = ProxyRoute.fromStored(stored);
       expect(route, ProxyRoute.unreadable, reason: stored);
       expect(route.mode, isNot(ProxyMode.direct), reason: stored);
       expect(route.host, isNull, reason: 'no address: every open refuses it (8b)');
     }
+  });
+
+  group('Tor', () {
+    test('a Tor form keeps no address and no login', () {
+      expect(
+        ProxyRoute.fromForm(mode: ProxyMode.tor, host: '127.0.0.1', port: 9050, user: 'u', password: 'p'),
+        ProxyRoute.tor,
+      );
+    });
+
+    test('it reads as Tor', () => expect(ProxyRoute.tor.label, 'Tor'));
+
+    test('it is stored and read back', () {
+      expect(ProxyRoute.fromStored(ProxyRoute.tor.toStored()), ProxyRoute.tor);
+    });
   });
 }

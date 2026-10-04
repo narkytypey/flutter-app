@@ -24,6 +24,10 @@ class ProxyRoute {
   /// been a proxy, and nothing falls back to direct.
   static const unreadable = ProxyRoute(mode: ProxyMode.socks5);
 
+  /// Built-in Tor (built-in Tor spec §5.1): no address and no typed login.
+  /// The engine gives each site its own login, so its own circuit (§5.2).
+  static const tor = ProxyRoute(mode: ProxyMode.tor);
+
   /// The route a form describes, with ruling 8 applied: a typed login is kept
   /// only while the proxy is on, per-site login is off and a user was typed.
   /// A direct route keeps no address and no login. Nothing is trimmed.
@@ -36,6 +40,7 @@ class ProxyRoute {
     bool loginPerSite = false,
   }) {
     if (mode == ProxyMode.direct) return direct;
+    if (mode == ProxyMode.tor) return tor;
     final typed = !loginPerSite && user.isNotEmpty;
     return ProxyRoute(
       mode: mode,
@@ -68,6 +73,7 @@ class ProxyRoute {
   /// A proxy with no address (or an empty host) reads as its mode alone.
   String get label {
     if (mode == ProxyMode.direct) return 'Direct';
+    if (mode == ProxyMode.tor) return 'Tor';
     final name = mode.name.toUpperCase();
     return host == null || host!.isEmpty || port == null ? name : '$name · $host:$port';
   }

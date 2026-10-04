@@ -153,4 +153,35 @@ void main() {
           throwsArgumentError);
     });
   });
+
+  group('onion addresses (built-in Tor spec §5.3)', () {
+    const onion = 'http://duckduckgogg42xjoc72x3sjasowoarfbgcmvfimaftt6twagswzczad.onion/';
+
+    test('typed on a direct route, one opens as a throwaway on Tor', () {
+      final direct = _site('home', 'https://home.example.com');
+      final destination = _resolve(onion, current: direct);
+      expect(destination, isA<Throwaway>());
+      destination as Throwaway;
+      expect(destination.mode, ProxyMode.tor);
+      expect(destination.proxyHost, isNull);
+    });
+
+    test('from the dashboard on a direct default route, too', () {
+      final destination =
+          destinationFor(Uri.parse(onion), route: ProxyRoute.direct, saved: const []);
+      expect((destination as Throwaway).mode, ProxyMode.tor);
+    });
+
+    test('on a proxy route it goes to that proxy by name', () {
+      final destination = _resolve(onion);
+      destination as Throwaway;
+      expect(destination.mode, ProxyMode.socks5);
+      expect(destination.proxyPort, 9050);
+    });
+
+    test('a saved onion site still opens its own container', () {
+      final saved = _site('hidden', onion, mode: ProxyMode.tor);
+      expect(_resolve(onion, saved: [saved]), isA<SavedSiteContainer>());
+    });
+  });
 }

@@ -12,6 +12,7 @@ import '../../../../domain/models/destination.dart';
 import '../../../../domain/models/engine_events.dart';
 import '../../../../domain/models/find_result.dart';
 import '../../../../domain/models/monogram_suggestion.dart';
+import '../../../../domain/models/route_display.dart';
 import '../../../../domain/models/open_container.dart';
 import '../../../../domain/models/open_step.dart';
 import '../../../../domain/models/relative_age.dart';
@@ -317,7 +318,7 @@ class _ContainerRouteState extends ConsumerState<ContainerRoute> {
             name: site.name,
             // A throwaway belongs to no workspace until it is saved.
             subtitle: throwaway || workspaceName == null ? host : '$host · $workspaceName',
-            proxyDescriptor: _proxyDescriptor(site),
+            proxyDescriptor: proxyDescriptor(site),
             cookiesDescriptor: switch (site.cookiePolicy) {
               CookiePolicy.keep => 'Keep for this site',
               CookiePolicy.wipeOnExit => 'Wipe on exit',
@@ -674,9 +675,7 @@ class _ContainerRouteState extends ConsumerState<ContainerRoute> {
       host: opened.host,
       siteName: opened.name,
       failure: refusal.failure,
-      tunnelDescriptor: opened.proxyHost == null
-          ? 'no proxy'
-          : '${opened.proxyMode.name} · ${opened.proxyHost}:${opened.proxyPort}',
+      tunnelDescriptor: tunnelDescriptor(opened),
       lastWorkedLabel: lastWorkedLabel(DateTime.now(), refusal.lastWorked),
       // Through the tunnel again, as the site is saved now.
       onTryAgain: () => _reopen(viewed, viewed.site),
@@ -740,9 +739,7 @@ class _ContainerRouteState extends ConsumerState<ContainerRoute> {
         // whenever the page has none (`about:blank`, a failed load).
         host: pageHost.isEmpty ? opened.host : pageHost,
         // There is no DIRECT label (spec §4.4).
-        routeLabel: opened.proxyMode == ProxyMode.direct
-            ? ''
-            : opened.proxyMode.name.toUpperCase(),
+        routeLabel: topBarRouteLabel(opened.proxyMode),
         live: viewed.phase == SessionPhase.live,
         navigation: navigation,
         openCount: state.openCount,
@@ -848,10 +845,3 @@ String? _workspaceName(List<Workspace> workspaces, String workspaceId) {
   }
   return null;
 }
-
-/// Spec `6c`'s proxy row: `SOCKS5 · 127.0.0.1:9050`.
-String _proxyDescriptor(Site site) => switch (site.proxyMode) {
-      ProxyMode.direct => 'Direct',
-      ProxyMode.socks5 => 'SOCKS5 · ${site.proxyHost}:${site.proxyPort}',
-      ProxyMode.http => 'HTTP · ${site.proxyHost}:${site.proxyPort}',
-    };

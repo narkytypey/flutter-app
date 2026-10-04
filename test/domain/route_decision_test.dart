@@ -62,4 +62,24 @@ void main() {
     expect(refusalMessage(RouteFailure.proxyUnreachable),
         isNot(refusalMessage(RouteFailure.proxyRefused)));
   });
+
+  group('Tor', () {
+    const site = Site(
+      id: 's', workspaceId: 'w', name: 'n', monogram: 'Nn',
+      url: 'https://a.example', profileId: 'p', proxyMode: ProxyMode.tor,
+    );
+
+    test('Tor up routes through Tor', () {
+      expect(resolveRoute(site, proxyReachable: true), isA<RouteTor>());
+    });
+
+    test('Tor down is refused as torFailed, never direct', () {
+      final decision = resolveRoute(site, proxyReachable: false);
+      expect((decision as RouteRefused).failure, RouteFailure.torFailed);
+    });
+
+    test('its refusal reads Tor did not connect', () {
+      expect(refusalMessage(RouteFailure.torFailed), 'Tor did not connect');
+    });
+  });
 }

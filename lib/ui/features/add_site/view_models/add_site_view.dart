@@ -3,6 +3,7 @@ import '../../../../domain/models/address_input.dart';
 import '../../../../domain/models/monogram_suggestion.dart';
 import '../../../../domain/models/proxy_route.dart';
 import '../../../../domain/models/site.dart';
+import '../../../../domain/onion.dart';
 
 /// [typed] as a site's address, read as the address bar reads it
 /// ([parseAddressInput]): an `http` or `https` address, a bare host given
@@ -49,7 +50,7 @@ Site buildSite({
 }) {
   // Ruling 8, in one place (ProxyRoute.fromForm): a typed login is kept only
   // while the proxy is on, per-site login is off and a user was typed.
-  final route = ProxyRoute.fromForm(
+  final formRoute = ProxyRoute.fromForm(
     mode: proxyMode,
     host: proxyHost,
     port: proxyPort,
@@ -62,6 +63,9 @@ Site buildSite({
   // (`buildThrowaway`).
   final blank = name.trim().isEmpty;
   final host = Uri.parse(url).host;
+  // Built-in Tor spec §5.3, plan D7: an onion address is never saved on Direct.
+  final route =
+      formRoute.mode == ProxyMode.direct && isOnionHost(host) ? ProxyRoute.tor : formRoute;
   return Site(
     id: initial?.id ?? newProfileId(),
     workspaceId: workspaceId,

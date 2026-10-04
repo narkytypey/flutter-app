@@ -18,6 +18,10 @@ enum RouteFailure {
   /// The site's proxy turned its login down, or wanted one it does not have
   /// (proxy-auth spec §3).
   proxyLoginRejected,
+
+  /// Built-in Tor is off, failed, stalled or was let go of (built-in Tor
+  /// spec §4.3). Never direct.
+  torFailed,
 }
 
 sealed class RouteDecision {
@@ -36,6 +40,11 @@ class RouteProxy extends RouteDecision {
   final ProxyMode mode;
 }
 
+/// Through built-in Tor (built-in Tor spec §5).
+class RouteTor extends RouteDecision {
+  const RouteTor();
+}
+
 class RouteRefused extends RouteDecision {
   const RouteRefused(this.failure);
 
@@ -48,6 +57,11 @@ class RouteRefused extends RouteDecision {
 /// add one, you have removed the product's central guarantee.
 RouteDecision resolveRoute(Site site, {required bool proxyReachable}) {
   if (site.proxyMode == ProxyMode.direct) return const RouteDirect();
+
+  // For a Tor site, [proxyReachable] is whether Tor is up.
+  if (site.proxyMode == ProxyMode.tor) {
+    return proxyReachable ? const RouteTor() : const RouteRefused(RouteFailure.torFailed);
+  }
 
   final host = site.proxyHost;
   final port = site.proxyPort;
@@ -67,4 +81,5 @@ String refusalMessage(RouteFailure failure) => switch (failure) {
       RouteFailure.misconfigured => 'This site has no proxy configured',
       RouteFailure.unsupported => 'This phone cannot route sites through a proxy',
       RouteFailure.proxyLoginRejected => 'The proxy rejected the login',
+      RouteFailure.torFailed => 'Tor did not connect',
     };

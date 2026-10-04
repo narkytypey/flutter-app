@@ -41,4 +41,28 @@ void main() {
     final steps = openStepsFor(_site(trackers: false, fingerprint: false));
     expect(steps, hasLength(2));
   });
+
+  group('Tor', () {
+    test('a Tor site connects to Tor, not to an address', () {
+      final steps = openStepsFor(_site(mode: ProxyMode.tor));
+      expect(steps.last.label, 'Connecting to Tor');
+      expect(steps.any((s) => s.label.startsWith('Connecting through')), isFalse);
+    });
+
+    test("it shows Tor's own percentage while Tor starts", () {
+      expect(openStepsFor(_site(mode: ProxyMode.tor), torPercent: 45).last.label, 'Connecting to Tor · 45%');
+    });
+
+    // Review Focus 5: 0 has nothing to say, and 100 is a start already over.
+    test('no percentage before a report, at 0 or at 100', () {
+      expect(torStepLabel(null), 'Connecting to Tor');
+      expect(torStepLabel(0), 'Connecting to Tor');
+      expect(torStepLabel(100), 'Connecting to Tor');
+      expect(torStepLabel(99), 'Connecting to Tor · 99%');
+    });
+
+    test('a percentage is ignored for any other route', () {
+      expect(openStepsFor(_site(), torPercent: 45).last.label, 'Connecting through 127.0.0.1:9050');
+    });
+  });
 }

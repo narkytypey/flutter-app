@@ -67,4 +67,14 @@ void main() {
       'the connection. The page was not loaded, so no request left your device.',
     );
   });
+
+  test("Tor's failure has the approved headline and sentence", () {
+    // Built-in Tor spec §7, approved word for word on 2026-10-04.
+    expect(proxyFailureHeadline(RouteFailure.torFailed), 'Tor did not connect');
+    expect(
+      proxyFailureDetail(RouteFailure.torFailed, siteName: 'Forum', tunnelDescriptor: 'Tor'),
+      'Forum is set to go through Tor, which could not reach the Tor network. '
+      'The page was not loaded, so no request left your device.',
+    );
+  });
 }

@@ -1,3 +1,4 @@
+import '../onion.dart';
 import 'address_input.dart';
 import 'proxy_route.dart';
 import 'search_engine.dart';
@@ -97,6 +98,12 @@ Destination destinationFor(
   if (matches.isNotEmpty) {
     matches.sort((a, b) => _preference(a, b, current?.workspaceId));
     return SavedSiteContainer(matches.first, url);
+  }
+
+  // Built-in Tor spec §5.3: an onion address never goes direct. Typed on a
+  // direct route it opens on Tor, whatever the opener's route.
+  if (via.mode == ProxyMode.direct && isOnionHost(url.host)) {
+    return Throwaway(url, ProxyMode.tor, null, null);
   }
 
   return Throwaway(url, via.mode, via.host, via.port,

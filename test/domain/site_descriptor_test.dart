@@ -48,4 +48,12 @@ void main() {
       'pin required',
     );
   });
+
+  test('a Tor site reads tor, like its lowercase siblings', () {
+    const site = Site(
+      id: 's', workspaceId: 'w', name: 'n', monogram: 'Nn',
+      url: 'https://a.example', profileId: 'p', proxyMode: ProxyMode.tor,
+    );
+    expect(siteDescriptor(site), 'tor');
+  });
 }

@@ -42,6 +42,12 @@ String? proxyFailureDetail(
   required String tunnelDescriptor,
 }) {
   if (failure == RouteFailure.misconfigured) return null;
+  // Built-in Tor spec §7, approved word for word: Tor is not a tunnel that
+  // "did not complete the connection"; it never reached its network.
+  if (failure == RouteFailure.torFailed) {
+    return '$siteName is set to go through Tor, which could not reach the Tor network. '
+        'The page was not loaded, so no request left your device.';
+  }
   if (failure == RouteFailure.unsupported) {
     return 'Update Android System WebView to open proxied sites.';
   }

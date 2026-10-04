@@ -14,5 +14,6 @@ String siteDescriptor(Site site) {
     ProxyMode.socks5 => 'socks5',
     ProxyMode.http => 'http',
     ProxyMode.direct => 'direct',
+    ProxyMode.tor => 'tor',
   };
 }
