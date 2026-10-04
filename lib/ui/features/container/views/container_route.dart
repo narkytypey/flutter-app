@@ -352,10 +352,13 @@ class _ContainerRouteState extends ConsumerState<ContainerRoute> {
               _pickSecurityLevel(siteId);
             },
             categoryCounts: now.categoryCounts,
-            blockWebRtc: site.blockWebRtc,
+            blockWebRtc: site.blockWebRtc || webRtcLocked(site.proxyMode),
             blockTrackers: site.blockTrackers,
             antiFingerprinting: site.antiFingerprinting,
-            onBlockWebRtcChanged: (v) => save(site.copyWith(blockWebRtc: v)),
+            // Built-in Tor spec §5.4: always on for Tor, and inert.
+            onBlockWebRtcChanged: webRtcLocked(site.proxyMode)
+                ? null
+                : (v) => save(site.copyWith(blockWebRtc: v)),
             onBlockTrackersChanged: (v) => save(site.copyWith(blockTrackers: v)),
             onAntiFingerprintingChanged: (v) => save(site.copyWith(antiFingerprinting: v)),
             permissions: permissionsInUse(site, now.grants),
@@ -680,8 +683,10 @@ class _ContainerRouteState extends ConsumerState<ContainerRoute> {
       // Through the tunnel again, as the site is saved now.
       onTryAgain: () => _reopen(viewed, viewed.site),
       onChangeProxySettings: _changeProxySettings,
-      onOpenWithoutTunnel: () =>
-          _reopen(viewed, viewed.site.withoutProxy(), withoutTunnel: true),
+      // Built-in Tor spec §5.6: an onion address cannot go direct.
+      onOpenWithoutTunnel: canOpenWithoutTunnel(opened)
+          ? () => _reopen(viewed, viewed.site.withoutProxy(), withoutTunnel: true)
+          : null,
     );
   }
 
@@ -702,6 +707,8 @@ class _ContainerRouteState extends ConsumerState<ContainerRoute> {
     final saved = ref.watch(allSitesProvider).valueOrNull ?? const <Site>[];
     final searchEngine =
         ref.watch(searchEngineProvider).valueOrNull ?? SearchEngine.duckDuckGo;
+    // Built-in Tor spec §7: `8a` shows Tor's own percentage while it starts.
+    final torPercent = ref.watch(torProgressProvider).valueOrNull;
 
     final viewed = state.viewed;
     if (viewed == null) return const SizedBox.shrink();
@@ -718,7 +725,7 @@ class _ContainerRouteState extends ConsumerState<ContainerRoute> {
     final pageId = viewed.viewedPageId;
     if (!viewed.openReturned || pageId == null) {
       return OpeningBody(
-        host: opened.host, steps: openStepsFor(opened), progress: 0.6,
+        host: opened.host, steps: openStepsFor(opened, torPercent: torPercent), progress: 0.6,
         onCancel: () => _cancelOpening(viewed),
       );
     }
@@ -828,7 +835,7 @@ class _ContainerRouteState extends ConsumerState<ContainerRoute> {
       if (viewed.phase == SessionPhase.opening)
         Positioned.fill(
           child: OpeningBody(
-            host: opened.host, steps: openStepsFor(opened), progress: 0.6,
+            host: opened.host, steps: openStepsFor(opened, torPercent: torPercent), progress: 0.6,
             onCancel: () => _cancelOpening(viewed),
           ),
         ),

@@ -13,6 +13,7 @@ import '../../domain/models/open_page.dart';
 import '../../domain/models/permissions.dart';
 import '../../domain/models/reader_article.dart';
 import '../../domain/models/route_decision.dart';
+import '../../domain/models/route_display.dart';
 import '../../domain/models/site.dart';
 import 'container_engine.dart';
 
@@ -34,6 +35,7 @@ RouteFailure? _failure(String? name) => switch (name) {
       'misconfigured' => RouteFailure.misconfigured,
       'unsupported' => RouteFailure.unsupported,
       'proxyLoginRejected' => RouteFailure.proxyLoginRejected,
+      'torFailed' => RouteFailure.torFailed,
       _ => null,
     };
 
@@ -131,6 +133,9 @@ DownloadResult downloadResultFromEvent(Map<Object?, Object?> event) => DownloadR
     );
 
 /// Exposed for testing — decodes a `type: "tunnel_dropped"` event.
+/// Exposed for testing — decodes a `type: "tor_progress"` event.
+int torProgressFromEvent(Map<Object?, Object?> event) => event['percent']! as int;
+
 TunnelDroppedEvent tunnelDroppedFromEvent(Map<Object?, Object?> event) => TunnelDroppedEvent(
       siteId: event['siteId']! as String,
       host: event['host']! as String,
@@ -182,6 +187,8 @@ class ChannelContainerEngine implements ContainerEngine {
           _navigationController.add(navigationFromEvent(map));
         case 'find_result':
           _findController.add(findResultFromEvent(map));
+        case 'tor_progress':
+          _torProgressController.add(torProgressFromEvent(map));
         case 'page_opened':
           _pageOpenedController.add(pageOpenedFromEvent(map));
         default:
@@ -195,6 +202,7 @@ class ChannelContainerEngine implements ContainerEngine {
   final _downloadController = StreamController<HeldDownloadEvent>.broadcast();
   final _downloadResultController = StreamController<DownloadResult>.broadcast();
   final _tunnelDroppedController = StreamController<TunnelDroppedEvent>.broadcast();
+  final _torProgressController = StreamController<int>.broadcast();
   final _navigationController = StreamController<NavigationState>.broadcast();
   final _findController = StreamController<FindResult>.broadcast();
   final _pageOpenedController = StreamController<PageOpened>.broadcast();
@@ -221,7 +229,8 @@ class ChannelContainerEngine implements ContainerEngine {
       'proxyUser': site.proxyUser,
       'proxyPassword': site.proxyPassword,
       'proxyLoginPerSite': site.proxyLoginPerSite,
-      'blockWebRtc': site.blockWebRtc,
+      // Built-in Tor spec §5.4: always blocked on Tor, whatever is stored.
+      'blockWebRtc': site.blockWebRtc || webRtcLocked(site.proxyMode),
       'blockTrackers': site.blockTrackers,
       'antiFingerprinting': site.antiFingerprinting,
       'allowCamera': site.allowCamera,
@@ -300,6 +309,9 @@ class ChannelContainerEngine implements ContainerEngine {
 
   @override
   Stream<TunnelDroppedEvent> tunnelDropped() => _tunnelDroppedController.stream;
+
+  @override
+  Stream<int> torProgress() => _torProgressController.stream;
 
   @override
   Future<ReaderArticle?> extractArticle(String pageId) async {

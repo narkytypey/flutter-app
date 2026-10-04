@@ -13,6 +13,7 @@ void main() {
     VoidCallback? onTryAgain,
     VoidCallback? onChangeProxySettings,
     VoidCallback? onOpenWithoutTunnel,
+    bool canGoDirect = true,
   }) {
     return MaterialApp(
       home: ProxyUnreachableScreen(
@@ -23,10 +24,31 @@ void main() {
         lastWorkedLabel: '2 hours ago',
         onTryAgain: onTryAgain ?? () {},
         onChangeProxySettings: onChangeProxySettings ?? () {},
-        onOpenWithoutTunnel: onOpenWithoutTunnel ?? () {},
+        onOpenWithoutTunnel: canGoDirect ? (onOpenWithoutTunnel ?? () {}) : null,
       ),
     );
   }
+
+  testWidgets("Tor's failure shows its own headline and sentence", (tester) async {
+    await tester.pumpWidget(host(failure: RouteFailure.torFailed));
+
+    expect(find.text('Tor did not connect'), findsOneWidget);
+    expect(
+      find.text('Forum is set to go through Tor, which could not reach the Tor network. '
+          'The page was not loaded, so no request left your device.'),
+      findsOneWidget,
+    );
+  });
+
+  // Built-in Tor spec 5.6: an onion address cannot go direct.
+  testWidgets('with no way direct, Open without the tunnel is not offered', (tester) async {
+    await tester.pumpWidget(host(canGoDirect: false));
+
+    expect(find.text('Open without the tunnel'), findsNothing);
+    expect(find.text('This site will see your real IP'), findsNothing);
+    expect(find.text('Try again'), findsOneWidget);
+    expect(find.text('Change proxy settings'), findsOneWidget);
+  });
 
   testWidgets('renders the spec copy verbatim for the drawn failure', (tester) async {
     await tester.pumpWidget(host());

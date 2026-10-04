@@ -241,6 +241,22 @@ void main() {
     expect((result.siteId, result.activeMatch, result.matchCount), ('s1', 2, 7));
   });
 
+  test('a tor_progress event decodes its percentage', () {
+    expect(torProgressFromEvent(<String, Object?>{'type': 'tor_progress', 'percent': 45}), 45);
+  });
+
+  test("a session refused for Tor decodes as torFailed", () {
+    final sessions = sessionsFromEvent(<String, Object?>{
+      'sessions': [
+        <String, Object?>{
+          'siteId': 's1', 'phase': 'refused', 'lastActiveAt': null,
+          'blockedCount': 0, 'categoryCounts': <String, Object?>{}, 'failure': 'torFailed',
+        },
+      ],
+    });
+    expect(sessions.single.failure, RouteFailure.torFailed);
+  });
+
   group('over the channels', () {
     const methods = MethodChannel('com.mono.container/engine');
     const events = EventChannel('com.mono.container/sessions');
@@ -357,6 +373,39 @@ void main() {
       final opened = await engine.pageOpened().first;
 
       expect((opened.siteId, opened.pageId, opened.openerPageId), ('s1', 'pg-2', 'pg-1'));
+    });
+
+    test('a tor_progress event reaches its own stream', () async {
+      messenger.setMockStreamHandler(events, MockStreamHandler.inline(onListen: (_, sink) {
+        sink.success(<String, Object?>{'type': 'tor_progress', 'percent': 60});
+      }));
+      final engine = ChannelContainerEngine();
+
+      expect(await engine.torProgress().first, 60);
+    });
+
+    // Built-in Tor spec 5.4: Dart sends WebRTC blocked for a Tor site, whatever is stored.
+    test('open sends WebRTC blocked for a Tor site', () async {
+      messenger.setMockStreamHandler(events, MockStreamHandler.inline(onListen: (_, __) {}));
+      final calls = <MethodCall>[];
+      messenger.setMockMethodCallHandler(methods, (call) async {
+        calls.add(call);
+        return <String, Object?>{
+          'siteId': 's1', 'phase': 'opening', 'lastActiveAt': null,
+          'blockedCount': 0, 'categoryCounts': <String, Object?>{}, 'failure': null,
+        };
+      });
+      const site = Site(
+        id: 's1', workspaceId: 'w', name: 'Forum', monogram: 'Fr',
+        url: 'https://forum.example.com', profileId: 'p',
+        proxyMode: ProxyMode.tor, blockWebRtc: false,
+      );
+
+      await ChannelContainerEngine().open(site);
+
+      final args = calls.single.arguments as Map<Object?, Object?>;
+      expect(args['proxyMode'], 'tor');
+      expect(args['blockWebRtc'], isTrue);
     });
 
     test('open says whether the site is a throwaway', () async {

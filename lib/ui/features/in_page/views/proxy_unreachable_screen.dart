@@ -19,7 +19,7 @@ class ProxyUnreachableScreen extends StatelessWidget {
     required this.lastWorkedLabel,
     required this.onTryAgain,
     required this.onChangeProxySettings,
-    required this.onOpenWithoutTunnel,
+    this.onOpenWithoutTunnel,
   });
 
   final String host;
@@ -29,7 +29,8 @@ class ProxyUnreachableScreen extends StatelessWidget {
   final String lastWorkedLabel;
   final VoidCallback onTryAgain;
   final VoidCallback onChangeProxySettings;
-  final VoidCallback onOpenWithoutTunnel;
+  /// Null when the site cannot go direct (built-in Tor spec §5.6): the button is not shown.
+  final VoidCallback? onOpenWithoutTunnel;
 
   @override
   Widget build(BuildContext context) {
@@ -97,13 +98,15 @@ class ProxyUnreachableScreen extends StatelessWidget {
                     PillButton(label: 'Try again', tone: PillTone.primary, onTap: onTryAgain),
                     const SizedBox(height: 9),
                     PillButton(label: 'Change proxy settings', onTap: onChangeProxySettings),
-                    const SizedBox(height: 9),
-                    PillButton(
-                      label: 'Open without the tunnel',
-                      sublabel: 'This site will see your real IP',
-                      tone: PillTone.dangerOutline,
-                      onTap: onOpenWithoutTunnel,
-                    ),
+                    if (onOpenWithoutTunnel case final openDirect?) ...[
+                      const SizedBox(height: 9),
+                      PillButton(
+                        label: 'Open without the tunnel',
+                        sublabel: 'This site will see your real IP',
+                        tone: PillTone.dangerOutline,
+                        onTap: openDirect,
+                      ),
+                    ],
                     const SizedBox(height: 20),
                   ],
                 ),
@@ -152,7 +155,14 @@ class _TunnelHeader extends StatelessWidget {
                     decoration: const BoxDecoration(color: C.danger, shape: BoxShape.circle),
                   ),
                   const SizedBox(width: 7),
-                  Text(host, style: ui(size: 11.5, color: C.textTertiary)),
+                  Flexible(
+                    child: Text(
+                      host,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: ui(size: 11.5, color: C.textTertiary),
+                    ),
+                  ),
                 ],
               ),
             ),

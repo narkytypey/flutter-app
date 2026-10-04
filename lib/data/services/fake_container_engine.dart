@@ -77,6 +77,7 @@ class FakeContainerEngine implements ContainerEngine {
   final _downloadController = StreamController<HeldDownloadEvent>.broadcast();
   final _downloadResultController = StreamController<DownloadResult>.broadcast();
   final _tunnelDroppedController = StreamController<TunnelDroppedEvent>.broadcast();
+  final _torProgressController = StreamController<int>.broadcast();
   final _navigationController = StreamController<NavigationState>.broadcast();
   final _findController = StreamController<FindResult>.broadcast();
   final _pageOpenedController = StreamController<PageOpened>.broadcast();
@@ -125,6 +126,7 @@ class FakeContainerEngine implements ContainerEngine {
           ? SessionPhase.refused
           : (opensLive ? SessionPhase.live : SessionPhase.opening),
       lastActiveAt: DateTime(2026, 8, 30, 12),
+      failure: decision is RouteRefused ? decision.failure : null,
       // A refused open has no page; a routable one starts with one.
       pages: refused ? const [] : [OpenPage(pageId: _newPageId(site.id))],
     );
@@ -273,6 +275,12 @@ class FakeContainerEngine implements ContainerEngine {
       _permissionController.add(request);
   void emitDownload(HeldDownloadEvent event) => _downloadController.add(event);
   void emitDownloadResult(DownloadResult result) => _downloadResultController.add(result);
+  /// Reports Tor's percentage, as the platform does while Tor starts.
+  void emitTorProgress(int percent) => _torProgressController.add(percent);
+
+  @override
+  Stream<int> torProgress() => _torProgressController.stream;
+
   void emitTunnelDropped(TunnelDroppedEvent event) => _tunnelDroppedController.add(event);
 
   /// Test helper: what a native page does on every change — the event, and
@@ -354,6 +362,7 @@ class FakeContainerEngine implements ContainerEngine {
     _downloadController.close();
     _downloadResultController.close();
     _tunnelDroppedController.close();
+    _torProgressController.close();
     _navigationController.close();
     _findController.close();
     _pageOpenedController.close();

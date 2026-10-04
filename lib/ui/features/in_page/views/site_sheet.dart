@@ -36,7 +36,7 @@ class SiteSheet extends StatelessWidget {
     required this.blockWebRtc,
     required this.blockTrackers,
     required this.antiFingerprinting,
-    required this.onBlockWebRtcChanged,
+    this.onBlockWebRtcChanged,
     required this.onBlockTrackersChanged,
     required this.onAntiFingerprintingChanged,
     required this.permissions,
@@ -75,8 +75,8 @@ class SiteSheet extends StatelessWidget {
   /// The site's `Anti-fingerprinting` setting (spec §3).
   final bool antiFingerprinting;
 
-  /// `Block WebRTC`'s new value (spec §3).
-  final ValueChanged<bool> onBlockWebRtcChanged;
+  /// `Block WebRTC`'s new value (spec §3); null draws it inert (built-in Tor spec §5.4).
+  final ValueChanged<bool>? onBlockWebRtcChanged;
 
   /// `Block trackers and ads`' new value (spec §3).
   final ValueChanged<bool> onBlockTrackersChanged;

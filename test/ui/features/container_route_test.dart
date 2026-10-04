@@ -608,6 +608,23 @@ void main() {
     expect(find.text('forum.example.com'), findsOneWidget);
   });
 
+  // Built-in Tor spec 7.
+  testWidgets("a Tor site's checklist shows Tor's own percentage", (tester) async {
+    final engine = _GatedEngine();
+    final gate = engine.holdNextOpen();
+    await _pump(tester, engine, _site().copyWith(proxyMode: ProxyMode.tor));
+    await tester.pumpAndSettle();
+    expect(find.text('Connecting to Tor'), findsOneWidget);
+
+    engine.emitTorProgress(45);
+    await tester.pump();
+    await tester.pump();
+    expect(find.text('Connecting to Tor · 45%'), findsOneWidget);
+
+    gate.complete();
+    await tester.pumpAndSettle();
+  });
+
   // The real engine reports `opening` until the native view's first load
   // finishes, and that view only exists once PageView is built. A
   // route that waits for `live` before building it never gets there — on a
@@ -872,6 +889,29 @@ void main() {
       await _typeAddress(tester, 'news.example.org');
 
       expect(find.textContaining('THROWAWAY · SOCKS5'), findsWidgets);
+    });
+
+    testWidgets("a Tor site's 8b names Tor and keeps the way direct", (tester) async {
+      final engine = FakeContainerEngine(proxyReachable: false);
+      await _pump(tester, engine, _site().copyWith(proxyMode: ProxyMode.tor));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Tor did not connect'), findsOneWidget);
+      expect(find.text('Tor'), findsOneWidget); // the Tunnel row
+      expect(find.text('Open without the tunnel'), findsOneWidget);
+    });
+
+    // Built-in Tor spec 5.6.
+    testWidgets("an onion site's 8b offers no way direct", (tester) async {
+      final engine = FakeContainerEngine(proxyReachable: false);
+      await _pump(tester, engine, _site().copyWith(
+        proxyMode: ProxyMode.tor,
+        url: 'http://duckduckgogg42xjoc72x3sjasowoarfbgcmvfimaftt6twagswzczad.onion/',
+      ));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Tor did not connect'), findsOneWidget);
+      expect(find.text('Open without the tunnel'), findsNothing);
     });
   });
 
@@ -2113,6 +2153,20 @@ void main() {
       expect(engine.openedSites['t1']!.blockWebRtc, isFalse);
       expect(engine.openedInitialUrls['t1'], 'https://news.example.org/t/9');
       expect(_tabs(tester).byId('t1')!.throwaway, isTrue);
+    });
+
+    // Built-in Tor spec 5.4.
+    testWidgets("on Tor, 6c's Block WebRTC is on and inert", (tester) async {
+      final engine = FakeContainerEngine();
+      await pumpOpen(tester, engine, _site().copyWith(proxyMode: ProxyMode.tor, blockWebRtc: false));
+
+      await openSiteSheet(tester);
+      await tester.ensureVisible(_sheetToggle('Block WebRTC'));
+      await tester.pumpAndSettle();
+
+      final toggle = tester.widget<AppToggle>(_sheetToggle('Block WebRTC'));
+      expect(toggle.value, isTrue);
+      expect(toggle.onChanged, isNull);
     });
 
     testWidgets("6c shows the live session's counts and grants, and Revoke ends one",

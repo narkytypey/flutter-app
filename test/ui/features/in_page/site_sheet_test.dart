@@ -19,6 +19,7 @@ void main() {
     VoidCallback? onSecurityLevel,
     Map<BlockedCategory, int> categoryCounts = const {},
     bool blockWebRtc = true,
+    bool lockWebRtc = false,
     bool blockTrackers = true,
     bool antiFingerprinting = true,
     ValueChanged<bool>? onBlockWebRtcChanged,
@@ -48,7 +49,7 @@ void main() {
           blockWebRtc: blockWebRtc,
           blockTrackers: blockTrackers,
           antiFingerprinting: antiFingerprinting,
-          onBlockWebRtcChanged: onBlockWebRtcChanged ?? (_) {},
+          onBlockWebRtcChanged: lockWebRtc ? null : (onBlockWebRtcChanged ?? (_) {}),
           onBlockTrackersChanged: onBlockTrackersChanged ?? (_) {},
           onAntiFingerprintingChanged: onAntiFingerprintingChanged ?? (_) {},
           permissions: permissions,
@@ -57,6 +58,18 @@ void main() {
       ),
     );
   }
+
+  // Built-in Tor spec 5.4.
+  testWidgets('a locked Block WebRTC is drawn on and inert', (tester) async {
+    await tester.pumpWidget(host(blockWebRtc: true, lockWebRtc: true));
+
+    final toggle = tester.widget<AppToggle>(find.descendant(
+      of: find.ancestor(of: find.text('Block WebRTC'), matching: find.byType(Row)).first,
+      matching: find.byType(AppToggle),
+    ));
+    expect(toggle.value, isTrue);
+    expect(toggle.onChanged, isNull);
+  });
 
   testWidgets('renders the spec copy and values verbatim', (tester) async {
     await tester.pumpWidget(host());

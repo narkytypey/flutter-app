@@ -93,6 +93,11 @@ abstract interface class ContainerEngine {
   /// live — see Plan 6's design spec §3.
   Stream<TunnelDroppedEvent> tunnelDropped();
 
+  /// Built-in Tor's bootstrap percentage while it starts (built-in Tor spec
+  /// §7), for `8a`. There is one Tor, so this is not per site. Broadcast,
+  /// with no replay.
+  Stream<int> torProgress();
+
   /// Runs the reader-mode heuristic against the page [pageId] has loaded.
   /// Returns `null` when extraction finds nothing article-shaped.
   Future<ReaderArticle?> extractArticle(String pageId);

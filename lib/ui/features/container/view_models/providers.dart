@@ -25,6 +25,10 @@ import '../../shell/view_models/session_controller.dart'
 final containerEngineProvider =
     Provider<ContainerEngine>((ref) => ChannelContainerEngine());
 
+/// Built-in Tor's last reported percentage (built-in Tor spec §7), for `8a`.
+final torProgressProvider =
+    StreamProvider<int>((ref) => ref.watch(containerEngineProvider).torProgress());
+
 final bundledFilterRulesProvider =
     Provider<BundledFilterRules>((ref) => defaultBundledFilterRules);
 
