@@ -1258,6 +1258,61 @@ with zero `e:` lines.
   Kotlin JVM 368/368 (49 JUnit XML files), `flutter build apk --debug`
   succeeding.
 
+## Full app test (2026-10-05, branch `tor-early-stop-device-test`)
+
+Every gate, then the app driven on the `Pixel_9` emulator (API 36, WebView
+154; not a physical phone). Gates before the fixes: `flutter analyze` clean,
+`flutter test` 1016/1016, Kotlin JVM 368/368 (49 JUnit XML files),
+`flutter build apk --debug` succeeding; after them, `flutter test` 1025/1025
+and analyze clean (no Kotlin changed).
+
+- **Seen working:** wrong PIN refused with tries left; `9b` with the open
+  count, `9c` "Locked after 1 minute", the decoy PIN opening the decoy; a
+  direct site; a SOCKS5 site added through `2a` (the proxy got the hostname,
+  and a cookie survived a close and a reopen over a fresh tunnel); changing
+  it to HTTP closed the tunnel and reopened it in place over CONNECT;
+  built-in Tor (`Connecting to Tor · N%`, then check.torproject.org's
+  "Congratulations", Tor's lock released at the lock); a dashboard
+  throwaway with its save bar; a `target=_blank` page nested in `2c`, back
+  closing it to its opener; the bottom-bar fling both ways; keep-in-container
+  (13,264 bytes, opened in the system viewer, wiped with its throwaway);
+  Reader and its ◑ softer theme; Find; `6c`; Today; Settings.
+- **Fixed, each seen on the emulator:**
+  - **Force dark mode never worked on a phone in light mode** (`61f8215`).
+    `values/styles.xml` was `Theme.Light`, and WebView darkens only under a
+    dark theme. Both themes are dark now, and so is the application's own
+    context, which every page's WebView is made on. Side effect: a page with
+    its own dark styles (example.com) now shows them on every phone.
+    `test/android_theme_test.dart` guards it.
+  - **The dashboard's tab labels had a yellow double underline**: the bar sat
+    outside any Material (`7d222e8`).
+  - **Settings' values began mid-row** since `1bd3b24`'s loose `Flexible`;
+    they end at the row's right edge again, as the canvas draws them
+    (`53292f4`).
+  - **A switch row's label did nothing**, only its switch toggled: `6c`
+    (`6e374cf`), and `2a`'s Network/Privacy/Appearance tabs, the Default route
+    screen, `10b` and setup's decoy switch (`f5ec3e2`). An inert switch's row
+    stays inert.
+- **Found, open:**
+  - **WebView sends `X-Requested-With: com.mono.container` on every request**,
+    on every route including Tor (seen in postman-echo's echoed headers, on a
+    navigation and a `fetch`), naming this app to every site.
+    `WebSettingsCompat.setRequestedWithHeaderOriginAllowList` would stop it,
+    but `WebViewFeature.REQUESTED_WITH_HEADER_ALLOW_LIST` is unsupported on
+    WebView 154, so it was tried and reverted. The loopback proxy sees only
+    TLS tunnels, so it cannot strip it either. No fix known.
+  - **Copy questions:** `2a`'s Network tab reads "Local filter lists · 42
+    rules matched today" for every site (the canvas's example number,
+    hardcoded in `network_tab.dart`); `5b`'s "Sites you open in this workspace
+    leave nothing behind when you close the app" shows for every empty
+    workspace, keep-storage ones included (the canvas draws it for an
+    Ephemeral one); editing a site opens a form titled "Add site".
+  - The dashboard's search field has no accessibility label (its hint is not
+    exposed).
+- **Not run:** panic (it wipes the test vault; last seen 2026-10-04), and
+  `TorSpikeTest` (Gradle uninstalls the app after an instrumentation run,
+  which destroys the vault's Keystore key).
+
 ## Working on this repo
 
 - ~~No git repo initialized yet, and Flutter isn't installed on this machine as
