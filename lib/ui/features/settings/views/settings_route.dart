@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -66,10 +68,19 @@ class SettingsRoute extends ConsumerWidget {
       defaultRouteLabel: defaultRoute?.label ?? '',
       defaultRouteMono: defaultRoute != null && defaultRoute.mode != ProxyMode.direct,
       onChanged: (key, value) {
+        // A failure (a Keystore error, or the vault closing meanwhile) leaves
+        // the stored setting, and so the switch, as it was; there is no copy
+        // to show for it.
         if (key == 'biometrics') {
-          ref.read(settingsControllerProvider).setBiometricsEnabled(value);
+          unawaited(ref
+              .read(settingsControllerProvider)
+              .setBiometricsEnabled(value)
+              .catchError((Object error) => debugPrint('biometrics toggle failed: $error')));
         } else if (key == 'panicOnFlip') {
-          ref.read(settingsControllerProvider).setPanicOnFlip(value);
+          unawaited(ref
+              .read(settingsControllerProvider)
+              .setPanicOnFlip(value)
+              .catchError((Object error) => debugPrint('panic-on-flip toggle failed: $error')));
         }
       },
       onTap: (key) {
