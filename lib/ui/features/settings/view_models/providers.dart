@@ -2,7 +2,8 @@ import 'dart:typed_data';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../../data/repositories/decoy_provisioner.dart' show resyncDecoy;
+import '../../../../data/repositories/decoy_provisioner.dart'
+    show DecoyResyncResult, resyncDecoy;
 import '../../../../data/repositories/settings_repository_sqlite.dart';
 import '../../../../domain/models/lock_state.dart';
 import '../../../../domain/models/proxy_route.dart';
@@ -11,6 +12,7 @@ import '../../../../domain/models/security_level.dart';
 import '../../../../domain/models/vault.dart';
 import '../../../../domain/repositories/repositories.dart' show SettingsRepository;
 import '../../../../domain/services/vault_unlocker.dart';
+import '../../container/view_models/providers.dart' show containerEngineProvider;
 import '../../dashboard/view_models/providers.dart'
     show databaseProvider, siteRepositoryProvider;
 import '../../shell/view_models/session_controller.dart'
@@ -331,8 +333,20 @@ class SettingsController {
           path: vaultDatabasePath(_ref.read(documentsDirectoryProvider), vault),
           dataKey: dataKey,
         );
-        await resyncDecoy(from: session.database, into: decoyDatabase);
-        await decoyDatabase.close();
+        final DecoyResyncResult result;
+        try {
+          result =
+              await resyncDecoy(from: session.database, into: decoyDatabase);
+        } finally {
+          await decoyDatabase.close();
+        }
+        // A removed decoy row leaves its WebView profile and kept downloads
+        // with nothing pointing at them; no decoy site is open in this
+        // session, so wiping the profile is all that is left to do.
+        final engine = _ref.read(containerEngineProvider);
+        for (final profileId in result.removedProfileIds) {
+          await engine.wipe(profileId);
+        }
         _ref.invalidate(decoySiteCountProvider);
         return const DecoyResyncSucceeded();
     }

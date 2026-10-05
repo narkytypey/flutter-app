@@ -7,6 +7,7 @@ import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:container/data/repositories/site_repository_sqlite.dart';
 import 'package:container/data/repositories/workspace_repository_sqlite.dart';
 import 'package:container/data/services/app_database.dart';
+import 'package:container/data/services/fake_container_engine.dart';
 import 'package:container/data/services/vault_store.dart';
 import 'package:container/domain/models/attempt_gate.dart';
 import 'package:container/domain/services/vault_unlocker.dart';
@@ -14,6 +15,8 @@ import 'package:container/domain/models/lock_state.dart';
 import 'package:container/domain/models/site.dart';
 import 'package:container/domain/models/vault.dart';
 import 'package:container/domain/models/workspace.dart';
+import 'package:container/ui/features/container/view_models/providers.dart'
+    show containerEngineProvider;
 import 'package:container/ui/features/settings/view_models/providers.dart';
 import 'package:container/ui/features/shell/view_models/session_controller.dart';
 
@@ -162,6 +165,75 @@ void main() {
       expect(outcome, isA<DecoyResyncRejected>());
       final gate = await container.read(vaultStoreProvider).gate();
       expect(gate.failures, 1);
+    });
+
+    group('against a decoy store that persists', () {
+      late FakeContainerEngine engine;
+      late List<AppDatabase> opened;
+      late ProviderContainer persistent;
+
+      setUp(() {
+        engine = FakeContainerEngine();
+        opened = [];
+        persistent = ProviderContainer(overrides: [
+          cryptoServiceProvider.overrideWithValue(FakeCrypto()),
+          vaultStoreProvider.overrideWithValue(container.read(vaultStoreProvider)),
+          documentsDirectoryProvider.overrideWithValue(dir),
+          biometricServiceProvider.overrideWithValue(biometrics),
+          containerEngineProvider.overrideWithValue(engine),
+          vaultOpenerProvider.overrideWithValue(
+            ({required String path, required Uint8List dataKey}) async {
+              final database =
+                  await AppDatabase.open(path: path, factory: databaseFactoryFfi);
+              opened.add(database);
+              return database;
+            },
+          ),
+          initialSessionProvider.overrideWithValue(
+              SessionOpen(vault: VaultId.a, database: db, dataKey: Uint8List(32))),
+        ]);
+        addTearDown(persistent.dispose);
+      });
+
+      test("wipes the profile of every decoy site the sync removed", () async {
+        await SqliteWorkspaceRepository(db).upsert(const Workspace(
+            id: 'ws', name: 'Personal', markerIndex: 0,
+            storageRule: StorageRule.keep, showInDecoy: true));
+        await SqliteSiteRepository(db).upsert(Site(
+            id: 's1', workspaceId: 'ws', name: 'News', monogram: 'Nw',
+            url: 'https://news.example.com', profileId: newProfileId(),
+            showInDecoy: true));
+        final controller = persistent.read(settingsControllerProvider);
+        await controller.resyncDecoyVault('222222');
+        expect(engine.wiped, isEmpty);
+        final decoy = await AppDatabase.open(
+            path: vaultDatabasePath(dir, VaultId.b), factory: databaseFactoryFfi);
+        final decoyProfile =
+            (await SqliteSiteRepository(decoy).byId('s1'))!.profileId;
+        await decoy.close();
+
+        await SqliteSiteRepository(db).upsert(
+            (await SqliteSiteRepository(db).byId('s1'))!.copyWith(showInDecoy: false));
+        final outcome = await controller.resyncDecoyVault('222222');
+
+        expect(outcome, isA<DecoyResyncSucceeded>());
+        expect(engine.wiped, [decoyProfile]);
+        expect(opened.every((d) => !d.db.isOpen), isTrue);
+      });
+
+      test('closes the decoy store even when the sync throws', () async {
+        final decoy = await AppDatabase.open(
+            path: vaultDatabasePath(dir, VaultId.b), factory: databaseFactoryFfi);
+        await decoy.db.execute('DROP TABLE workspaces');
+        await decoy.close();
+
+        await expectLater(
+            persistent.read(settingsControllerProvider).resyncDecoyVault('222222'),
+            throwsA(anything));
+
+        expect(opened, hasLength(1));
+        expect(opened.single.db.isOpen, isFalse);
+      });
     });
 
     test('five wrong attempts throttle the sixth', () async {

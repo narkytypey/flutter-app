@@ -105,7 +105,7 @@ void main() {
     });
 
     test('adds a newly flagged site with a fresh profileId', () async {
-      final copied = await resyncDecoy(from: real, into: decoy);
+      final copied = (await resyncDecoy(from: real, into: decoy)).added;
 
       expect(copied, 1);
       final sites = await SqliteSiteRepository(decoy).inWorkspace('ws');
@@ -118,7 +118,7 @@ void main() {
       final firstProfile =
           (await SqliteSiteRepository(decoy).byId('s1'))!.profileId;
 
-      final copied = await resyncDecoy(from: real, into: decoy);
+      final copied = (await resyncDecoy(from: real, into: decoy)).added;
 
       expect(copied, 0, reason: 'nothing new was flagged the second time');
       final secondProfile =
@@ -172,6 +172,85 @@ void main() {
           isNotNull);
       expect(await SqliteSiteRepository(decoy).byId('decoy-only-site'),
           isNotNull);
+    });
+
+    // Unflagging a synced workspace deleted it, and ON DELETE CASCADE took
+    // every site in it — including ones the owner added from inside the decoy.
+    test('keeps a decoy-added site when its synced workspace is unflagged',
+        () async {
+      await resyncDecoy(from: real, into: decoy);
+      await SqliteSiteRepository(decoy).upsert(Site(
+          id: 'decoy-added', workspaceId: 'ws', name: 'Blog', monogram: 'Bl',
+          url: 'https://blog.example.com', profileId: 'c' * 32));
+      await SqliteWorkspaceRepository(real).upsert(
+        (await SqliteWorkspaceRepository(real).byId('ws'))!
+            .copyWith(showInDecoy: false),
+      );
+
+      await resyncDecoy(from: real, into: decoy);
+
+      expect(await SqliteWorkspaceRepository(decoy).byId('ws'), isNull);
+      expect(await SqliteSiteRepository(decoy).byId('s1'), isNull);
+      final blog = await SqliteSiteRepository(decoy).byId('decoy-added');
+      expect(blog, isNotNull);
+      expect(blog!.profileId, 'c' * 32);
+      final home = await SqliteWorkspaceRepository(decoy).byId(blog.workspaceId);
+      expect(home!.name, 'Personal');
+      expect(home.markerIndex, 0);
+      expect(home.storageRule, StorageRule.keep);
+      expect(home.id, isNot('ws'));
+    });
+
+    test('a rescued workspace merges back when its workspace is reflagged',
+        () async {
+      await resyncDecoy(from: real, into: decoy);
+      await SqliteSiteRepository(decoy).upsert(Site(
+          id: 'decoy-added', workspaceId: 'ws', name: 'Blog', monogram: 'Bl',
+          url: 'https://blog.example.com', profileId: newProfileId()));
+      final workspaces = SqliteWorkspaceRepository(real);
+      final ws = (await workspaces.byId('ws'))!;
+      await workspaces.upsert(ws.copyWith(showInDecoy: false));
+      await resyncDecoy(from: real, into: decoy);
+      await workspaces.upsert(ws.copyWith(showInDecoy: true));
+
+      await resyncDecoy(from: real, into: decoy);
+
+      expect((await SqliteWorkspaceRepository(decoy).all()).map((w) => w.id),
+          ['ws']);
+      expect((await SqliteSiteRepository(decoy).byId('decoy-added'))!.workspaceId,
+          'ws');
+    });
+
+    test("returns the removed sites' profiles, never a kept site's", () async {
+      await resyncDecoy(from: real, into: decoy);
+      final newsProfile =
+          (await SqliteSiteRepository(decoy).byId('s1'))!.profileId;
+      await SqliteSiteRepository(decoy).upsert(Site(
+          id: 'decoy-added', workspaceId: 'ws', name: 'Blog', monogram: 'Bl',
+          url: 'https://blog.example.com', profileId: 'c' * 32));
+      await SqliteWorkspaceRepository(real).upsert(
+        (await SqliteWorkspaceRepository(real).byId('ws'))!
+            .copyWith(showInDecoy: false),
+      );
+
+      final result = await resyncDecoy(from: real, into: decoy);
+
+      expect(result.removedProfileIds, [newsProfile]);
+    });
+
+    test("returns an unflagged site's profile", () async {
+      await resyncDecoy(from: real, into: decoy);
+      final newsProfile =
+          (await SqliteSiteRepository(decoy).byId('s1'))!.profileId;
+      await SqliteSiteRepository(real).upsert(
+        (await SqliteSiteRepository(real).byId('s1'))!.copyWith(showInDecoy: false),
+      );
+
+      final result = await resyncDecoy(from: real, into: decoy);
+
+      expect(result.removedProfileIds, [newsProfile]);
+      expect((await resyncDecoy(from: real, into: decoy)).removedProfileIds,
+          isEmpty);
     });
 
     // Re-syncing replaced the synced workspace's row, and that delete
