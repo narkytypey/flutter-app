@@ -202,9 +202,21 @@ void main() {
     await tester.tap(_icon('Panic'));
 
     expect(_calls, ['site details', 'panic']);
-    // 2b's ‹ and ⟳ have left the top bar.
+    // 2b's ‹ glyph and ⟳ text have left the top bar; reload is a drawn icon.
     expect(find.text('‹'), findsNothing);
     expect(find.text('⟳'), findsNothing);
+  });
+
+  // User's ruling 2026-10-05: reload takes stop's place in the pill.
+  testWidgets('reload sits before the shield while the page is idle', (tester) async {
+    await tester.pumpWidget(_app(_screen(navigation: _nav())));
+    expect(tester.getCenter(_icon('Reload')).dx,
+        lessThan(tester.getCenter(_icon('Site details')).dx));
+    await tester.tap(_icon('Reload'));
+    expect(_calls, ['reload']);
+
+    await tester.pumpWidget(_app(_screen(navigation: _nav(loading: true, progress: 30))));
+    expect(_icon('Reload'), findsNothing);
   });
 
   testWidgets('stop sits before the shield only while the page loads', (tester) async {

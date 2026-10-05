@@ -37,6 +37,7 @@ void main() {
           name: 'Forum',
           subtitle: 'forum.example.com · Personal',
           proxyDescriptor: 'SOCKS5 · 127.0.0.1:9050',
+          onProxy: onProxy ?? () {},
           cookiesDescriptor: 'Wipe on exit',
           blockedCount: blockedCount,
           forceDark: forceDark,
@@ -60,6 +61,21 @@ void main() {
       ),
     );
   }
+
+  // User's ruling 2026-10-05: the route can change while browsing.
+  testWidgets('a tap on the Proxy row reports it', (tester) async {
+    var taps = 0;
+    await tester.pumpWidget(host(onProxy: () => taps++));
+    await tester.tap(find.text('Proxy'));
+    await tester.tap(find.text('SOCKS5 · 127.0.0.1:9050'));
+    expect(taps, 2);
+  });
+
+  // User's ruling 2026-10-05: one request reads singular.
+  testWidgets('one blocked request reads "1 request"', (tester) async {
+    await tester.pumpWidget(host(blockedCount: 1));
+    expect(find.text('1 request'), findsOneWidget);
+  });
 
   // Built-in Tor spec 5.4.
   testWidgets('a locked Block WebRTC is drawn on and inert', (tester) async {

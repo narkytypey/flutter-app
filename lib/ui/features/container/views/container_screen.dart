@@ -351,6 +351,7 @@ class _ContainerScreenState extends State<ContainerScreen> {
                     loading: loading,
                     onEditAddress: _startEditing,
                     onStop: widget.onStop,
+                    onReload: widget.onReload,
                     onSiteDetails: widget.onSiteDetails,
                     onPanic: widget.onPanic,
                   ),

@@ -27,6 +27,7 @@ class SiteSheet extends StatelessWidget {
     required this.forceDark,
     required this.desktopView,
     required this.onEdit,
+    required this.onProxy,
     required this.onForceDarkChanged,
     required this.onDesktopViewChanged,
     required this.onCloseAndWipe,
@@ -52,6 +53,10 @@ class SiteSheet extends StatelessWidget {
   final bool forceDark;
   final bool desktopView;
   final VoidCallback onEdit;
+
+  /// The Proxy row: the site's route, changed while browsing (user's ruling
+  /// 2026-10-05).
+  final VoidCallback onProxy;
   final ValueChanged<bool> onForceDarkChanged;
   final ValueChanged<bool> onDesktopViewChanged;
   final VoidCallback onCloseAndWipe;
@@ -141,7 +146,7 @@ class SiteSheet extends StatelessWidget {
                     ),
                   ),
                 ),
-                _SheetInfoRow(label: 'Proxy', value: proxyDescriptor),
+                _SheetInfoRow(label: 'Proxy', value: proxyDescriptor, onTap: onProxy),
                 _SheetInfoRow(label: 'Cookies', value: cookiesDescriptor),
                 _SheetInfoRow(
                   label: 'Security level',
