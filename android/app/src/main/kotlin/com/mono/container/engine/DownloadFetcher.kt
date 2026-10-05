@@ -55,6 +55,46 @@ class IncompleteDownloadException(val received: Long, val expected: Long) :
     java.io.IOException("download ended at $received of $expected bytes")
 
 /**
+ * Which profiles have been wiped since a download began, so a kept download
+ * still running when its site is wiped (or the app panics) never lands in the
+ * container afterwards, and is never opened.
+ *
+ * A download takes a [Ticket] on the platform thread when it is resolved; a
+ * wipe is recorded ([wiped], [wipedAll]) on the platform thread *before* the
+ * files it deletes. [unlessWiped] runs the final rename under the same lock,
+ * so a download either lands before the wipe is recorded (and the deletion
+ * that follows removes it) or is refused.
+ */
+class DownloadWipes {
+    data class Ticket(val profileId: String, val everything: Long, val profile: Long)
+
+    private var everything = 0L
+    private val profiles = HashMap<String, Long>()
+
+    @Synchronized fun ticket(profileId: String) = Ticket(profileId, everything, profiles[profileId] ?: 0L)
+
+    @Synchronized fun wiped(profileId: String) {
+        profiles[profileId] = (profiles[profileId] ?: 0L) + 1
+    }
+
+    @Synchronized fun wipedAll() {
+        everything++
+    }
+
+    @Synchronized fun isWiped(ticket: Ticket): Boolean =
+        everything != ticket.everything || (profiles[ticket.profileId] ?: 0L) != ticket.profile
+
+    /** Runs [commit] unless [ticket]'s profile was wiped since it was taken; else throws [DownloadWipedException]. */
+    @Synchronized fun <T> unlessWiped(ticket: Ticket, commit: () -> T): T {
+        if (isWiped(ticket)) throw DownloadWipedException()
+        return commit()
+    }
+}
+
+/** The site was wiped, or the app panicked, while its download ran. */
+class DownloadWipedException : java.io.IOException("the site was wiped while its download ran")
+
+/**
  * Streams [response]'s body into [target], and leaves [target] in place only
  * if the download is whole.
  *
@@ -67,23 +107,32 @@ class IncompleteDownloadException(val received: Long, val expected: Long) :
  * `report.pdf` would read as a success.
  *
  * A read error is rethrown unchanged so [downloadFailureFor] can still name it.
+ *
+ * The final rename runs inside [commit], which may refuse it by throwing
+ * (a wipe since the download began: [DownloadWipes.unlessWiped]); the `.part`
+ * is deleted then too. The body is closed on every path.
  */
-fun writeDownload(response: ProxyHttpClient.FetchedResponse, target: java.io.File) {
-    if (response.status !in 200..299) {
-        response.body.close()
-        throw DownloadRejectedException(response.status)
-    }
-    val expected = response.headers.entries
-        .firstOrNull { it.key.equals("Content-Length", ignoreCase = true) }
-        ?.value?.trim()?.toLongOrNull()
-    val part = java.io.File(target.parentFile, "${target.name}.part")
-    try {
-        val received = java.io.FileOutputStream(part).use { out -> response.body.use { it.copyTo(out) } }
-        if (expected != null && received != expected) throw IncompleteDownloadException(received, expected)
-        if (!part.renameTo(target)) throw java.io.IOException("could not move ${part.name} into place")
-    } catch (e: Throwable) {
-        part.delete()
-        throw e
+fun writeDownload(
+    response: ProxyHttpClient.FetchedResponse,
+    target: java.io.File,
+    commit: (move: () -> Unit) -> Unit = { it() },
+) {
+    response.body.use { body ->
+        if (response.status !in 200..299) throw DownloadRejectedException(response.status)
+        val expected = response.headers.entries
+            .firstOrNull { it.key.equals("Content-Length", ignoreCase = true) }
+            ?.value?.trim()?.toLongOrNull()
+        val part = java.io.File(target.parentFile, "${target.name}.part")
+        try {
+            val received = java.io.FileOutputStream(part).use { out -> body.copyTo(out) }
+            if (expected != null && received != expected) throw IncompleteDownloadException(received, expected)
+            commit {
+                if (!part.renameTo(target)) throw java.io.IOException("could not move ${part.name} into place")
+            }
+        } catch (e: Throwable) {
+            part.delete()
+            throw e
+        }
     }
 }
 
@@ -132,6 +181,7 @@ internal fun refusesOnionDownload(route: Route, url: String): Boolean =
 class DownloadFetcher(
     private val context: android.content.Context,
     private val profiles: ProfileManager,
+    private val wipes: DownloadWipes,
 ) {
     /**
      * Blocking network and disk work — call off the main thread.
@@ -139,13 +189,20 @@ class DownloadFetcher(
      * [request] comes from [requestFor], which has to run on the main thread
      * first; see there for why the two are split.
      */
-    fun run(config: SiteConfig, pending: PendingDownload, request: DownloadRequest, decisionName: String): DownloadOutcome {
+    fun run(
+        config: SiteConfig,
+        pending: PendingDownload,
+        request: DownloadRequest,
+        decisionName: String,
+        ticket: DownloadWipes.Ticket,
+    ): DownloadOutcome {
+        if (wipes.isWiped(ticket)) return DownloadOutcome.Failed(null)
         val route = config.currentRoute()
         if (route is Route.Refused) return DownloadOutcome.Failed(route.failure)
         if (refusesOnionDownload(route, pending.url)) return DownloadOutcome.Failed(null)
         val fileName = sanitizeFileName(pending.fileName)
         return when (decisionName) {
-            "keepInContainer" -> runCatching { keepInContainer(route, config, pending, request, fileName) }
+            "keepInContainer" -> runCatching { keepInContainer(route, config, pending, request, fileName, ticket) }
                 .getOrElse { DownloadOutcome.Failed(downloadFailureFor(it, route)) }
             "saveToDevice" -> when (route) {
                 is Route.Direct -> runCatching { saveViaDownloadManager(pending, request, fileName) }
@@ -158,11 +215,23 @@ class DownloadFetcher(
         }
     }
 
-    private fun keepInContainer(route: Route, config: SiteConfig, pending: PendingDownload, request: DownloadRequest, fileName: String): DownloadOutcome {
+    private fun keepInContainer(
+        route: Route, config: SiteConfig, pending: PendingDownload, request: DownloadRequest, fileName: String,
+        ticket: DownloadWipes.Ticket,
+    ): DownloadOutcome {
         val dir = java.io.File(context.filesDir, "downloads/${config.profileId}")
         dir.mkdirs()
         val target = uniqueFile(dir, fileName)
-        fetchTo(route, request, target)
+        try {
+            fetchTo(route, request, target) { move -> wipes.unlessWiped(ticket, move) }
+            // A wipe between the rename and here: the file must not be opened.
+            if (wipes.isWiped(ticket)) throw DownloadWipedException()
+        } catch (e: DownloadWipedException) {
+            target.delete()
+            // Only if empty: the mkdirs above must not leave a wiped site's directory behind.
+            dir.delete()
+            return DownloadOutcome.Failed(null)
+        }
         val uri = androidx.core.content.FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", target)
         val intent = android.content.Intent(android.content.Intent.ACTION_VIEW).apply {
             setDataAndType(uri, pending.mimeType)
@@ -176,14 +245,28 @@ class DownloadFetcher(
         val temp = deviceSaveTempFile(context.cacheDir)
         return try {
             fetchTo(route, request, temp)
+            // Pending until whole: other apps never see a half-written file,
+            // and a failed copy deletes the entry rather than leaving a
+            // truncated one in Downloads.
+            val resolver = context.contentResolver
             val values = android.content.ContentValues().apply {
                 put(android.provider.MediaStore.Downloads.DISPLAY_NAME, fileName)
                 put(android.provider.MediaStore.Downloads.MIME_TYPE, pending.mimeType)
+                put(android.provider.MediaStore.Downloads.IS_PENDING, 1)
             }
-            val uri = context.contentResolver.insert(android.provider.MediaStore.Downloads.EXTERNAL_CONTENT_URI, values)
+            val uri = resolver.insert(android.provider.MediaStore.Downloads.EXTERNAL_CONTENT_URI, values)
                 ?: return DownloadOutcome.Failed(null)
-            val output = context.contentResolver.openOutputStream(uri) ?: return DownloadOutcome.Failed(null)
-            output.use { out -> temp.inputStream().use { input -> input.copyTo(out) } }
+            try {
+                val output = resolver.openOutputStream(uri) ?: throw java.io.IOException("no output stream for $uri")
+                output.use { out -> temp.inputStream().use { input -> input.copyTo(out) } }
+                val done = android.content.ContentValues().apply {
+                    put(android.provider.MediaStore.Downloads.IS_PENDING, 0)
+                }
+                resolver.update(uri, done, null, null)
+            } catch (e: Throwable) {
+                runCatching { resolver.delete(uri, null, null) }
+                throw e
+            }
             DownloadOutcome.Saved
         } finally { temp.delete() }
     }
@@ -199,11 +282,14 @@ class DownloadFetcher(
         return DownloadOutcome.Saved
     }
 
-    private fun fetchTo(route: Route, request: DownloadRequest, target: java.io.File) {
+    private fun fetchTo(
+        route: Route, request: DownloadRequest, target: java.io.File,
+        commit: (move: () -> Unit) -> Unit = { it() },
+    ) {
         val response = ProxyHttpClient.fetch(
             route, request.host, request.port, request.secure, "GET", request.path, request.headers,
         )
-        writeDownload(response, target)
+        writeDownload(response, target, commit)
     }
 
     /**

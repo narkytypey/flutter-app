@@ -199,7 +199,8 @@ class EngineChannel(
     /** Blocking network work: route probes and download fetches. Never the main thread. */
     private val networkExecutor = java.util.concurrent.Executors.newCachedThreadPool()
     private val mainHandler = android.os.Handler(android.os.Looper.getMainLooper())
-    private val downloadFetcher = DownloadFetcher(context, profiles)
+    private val downloadWipes = DownloadWipes()
+    private val downloadFetcher = DownloadFetcher(context, profiles, downloadWipes)
     private val permissionAsks = PermissionAsks(::holds, launchPermissionDialog)
 
     private fun holds(permission: String) =
@@ -292,11 +293,15 @@ class EngineChannel(
     /**
      * A hardware or location permission the site's stored config does not
      * already grant, asked live. A page that is closing has no one to ask:
-     * it is answered "keep blocked" at once.
+     * it is answered "keep blocked" at once, and null is returned so the
+     * caller stores no pending entry for it.
      */
-    override fun ask(page: Page, pending: PendingPermission): String {
+    override fun ask(page: Page, pending: PendingPermission): String? {
+        val session = sessionOf(page) ?: run {
+            answerKeepBlocked(pending)
+            return null
+        }
         val requestId = nextRequestId()
-        val session = sessionOf(page) ?: return requestId.also { answerKeepBlocked(pending) }
         session.pageOf[requestId] = page.id
         session.counters.permissionAsks.incrementAndGet()
         val kind = when (pending) {
@@ -736,8 +741,11 @@ class EngineChannel(
                     emitDownloadResult(requestId, DownloadOutcome.Failed(null))
                     return
                 }
+            // Taken now, on the platform thread where wipes are recorded: a
+            // wipe of this profile, or panic, from here on refuses the file.
+            val ticket = downloadWipes.ticket(session.config.profileId)
             networkExecutor.execute {
-                val outcome = downloadFetcher.run(session.config, pending, request, decisionName)
+                val outcome = downloadFetcher.run(session.config, pending, request, decisionName, ticket)
                 mainHandler.post { emitDownloadResult(requestId, outcome) }
             }
             return
@@ -801,10 +809,14 @@ class EngineChannel(
         val draining = tearingDown.getOrPut(profileId) { Draining() }
         draining.closes++
         if (wipe) {
+            // Recorded now, not when the deferred wipe runs: a kept download
+            // still running must neither land nor be opened from here on.
+            downloadWipes.wiped(profileId)
             draining.then += {
                 // Off the throwaway journal only once the wipe has run: a
                 // wipe that throws leaves it for the next start's sweep.
                 wipeThenForget(profileId, throwaways) {
+                    downloadWipes.wiped(profileId)
                     deleteDownloadsDir(context, profileId)
                     profiles.wipe(profileId)
                 }
@@ -833,7 +845,9 @@ class EngineChannel(
     private fun wipeProfile(profileId: String) {
         val live = sessions.values.firstOrNull { it.config.profileId == profileId }
         if (live != null) return close(live.config.siteId, wipe = true)
+        downloadWipes.wiped(profileId)
         val wipe = {
+            downloadWipes.wiped(profileId)
             deleteDownloadsDir(context, profileId)
             profiles.wipe(profileId)
         }
@@ -891,6 +905,9 @@ class EngineChannel(
      */
     private fun wipeAll() {
         closeAll()
+        // Before the delete, so a kept download still running is refused
+        // rather than written into the emptied tree (DownloadWipes).
+        downloadWipes.wipedAll()
         java.io.File(context.filesDir, "downloads").deleteRecursively()
         try {
             profiles.wipeAll()
