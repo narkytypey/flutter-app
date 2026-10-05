@@ -1301,17 +1301,100 @@ and analyze clean (no Kotlin changed).
     but `WebViewFeature.REQUESTED_WITH_HEADER_ALLOW_LIST` is unsupported on
     WebView 154, so it was tried and reverted. The loopback proxy sees only
     TLS tunnels, so it cannot strip it either. No fix known.
-  - **Copy questions:** `2a`'s Network tab reads "Local filter lists · 42
+  - ~~**Copy questions:** `2a`'s Network tab reads "Local filter lists · 42
     rules matched today" for every site (the canvas's example number,
     hardcoded in `network_tab.dart`); `5b`'s "Sites you open in this workspace
     leave nothing behind when you close the app" shows for every empty
     workspace, keep-storage ones included (the canvas draws it for an
-    Ephemeral one); editing a site opens a form titled "Add site".
+    Ephemeral one); editing a site opens a form titled "Add site".~~
+    **✅ User's rulings 2026-10-05:** editing a saved site shows its real
+    count, "Local filter lists · N rules matched today" ("1 rule"), N being
+    that site's trackers and ads blocks in Today's in-memory tally
+    (`BlockedTally.rulesMatched`); a new site and a throwaway show "Local
+    filter lists" alone. `5b`'s sentence shows only for a wipe-on-exit
+    workspace; a keep-storage one shows "Nothing here yet" alone. An edited
+    site's form is titled with its name (its host if the name is blank); a new
+    site, and a throwaway being saved (`savesAsNew`), read "Add site".
+    `flutter analyze` clean, `flutter test` 1036/1036. Not seen on a device.
   - The dashboard's search field has no accessibility label (its hint is not
     exposed).
 - **Not run:** panic (it wipes the test vault; last seen 2026-10-04), and
   `TorSpikeTest` (Gradle uninstalls the app after an instrumentation run,
   which destroys the vault's Keystore key).
+
+## Responsiveness run (2026-10-05, same branch)
+
+The whole suite was run with a temporary `test/flutter_test_config.dart` (not
+committed) that loads the bundled Figtree and IBM Plex Mono, so text measures
+as on a phone, and sets every test's screen: 320x568 at 1.0, 360x640 at 1.3
+and 2.0, 412x915 at 2.0, 915x412 at 1.0. **No layout overflowed in any of
+them**; every failure was a test finding nothing because, at a larger scale,
+what it looks for is scrolled out of a lazy list. The 25 test files that set
+their own size took no part. Then the emulator was checked at font scale 2.0,
+at 360x640 dp with 1.3, and in landscape.
+
+- **Fixed, each with a test that fails without it, seen on the emulator:**
+  - **PIN screens in landscape hid their dots**: the keypad took the height
+    and the dots sat below the fold of a short scroll region. User's ruling:
+    in landscape the message and dots are on the left and the keypad on the
+    right (`PinLayout`, used by the lock screen, setup's PIN step and the
+    decoy PIN / Change PIN screen); portrait is unchanged.
+  - **Tall sheets ran up under the status bar** in landscape and on short
+    screens (`6c`, ☰, `6a`, `7c`, `10c`): every `isScrollControlled` sheet now
+    sets `useSafeArea: true`.
+  - **Monograms were clipped to one letter** at large text scales ("W" for
+    "Wm"): `Monogram` scales its letters down to fit its square.
+  - **`2a`'s tab labels broke mid-word** at 2.0 ("Networ / k"): one line,
+    scaled down to fit, with 4 px between tabs.
+  - **Counts of 1 read plural** (user's ruling: singular for 1, as `9c`'s "1
+    minute"): `6c`'s "1 request", `9b`'s "1 session still open", "1 try
+    left", `3c`'s "1 session destroyed", Today's "request blocked across 1
+    site". `9b`'s headline lines are centred when they wrap.
+  - Gates: `flutter analyze` clean, `flutter test` 1051/1051, debug APK built
+    (no Kotlin changed).
+- **Seen fine:** every other screen checked (`8a`, the container's bars, ☰,
+  `6c`, the dashboard, Settings, `2a` Network) at 2.0 and at 360x640; the
+  container and dashboard in landscape (the dashboard shows about two rows
+  there, cramped but usable).
+
+## Reload and route change while browsing (2026-10-05, same branch)
+
+User's request and rulings of 2026-10-05, a change to the browser-chrome
+spec's layout C (§6.1 had moved reload into the ☰ menu only):
+
+- **Reload in the pill.** The stop × that shows while a page loads becomes a
+  reload (`AppGlyph.reload`, labelled `Reload`) whenever it does not
+  (`ContainerTopBar.onReload`). Reload is still in ☰ as well.
+- **`6c`'s Proxy row opens the site's form on its Network tab**
+  (`SiteSheet.onProxy`, `ContainerRoute._changeRoute`). Saved with a new
+  route and the same cookie policy, the container reopens in place at the
+  page it shows, unwiped (`reopenInPlace`, as `6c`'s switches); a changed
+  cookie policy goes through `siteSaved` as Edit does (wipe on exit rotates
+  the profile); otherwise nothing reopens. The site keeps its cookies across
+  a route change, as editing its route always has: New identity is the clean
+  start. On a throwaway the row does what `8b`'s "Change proxy settings"
+  does, saving it as a site; that form now reads "Add site" (`savesAsNew`).
+- Tests: the pill's reload and stop (`container_screen_test`), reload acting
+  on the page and the Proxy row's reopen at the page shown, and no reopen
+  when the route is unchanged (`container_route_test`), the row's tap
+  (`site_sheet_test`). `flutter analyze` clean, `flutter test` 1056/1056.
+- **Seen on the emulator:** the ⟳ starts a new document (DevTools
+  `performance.timeOrigin`); on ExD at `?shown=1`, `6c` › Proxy › SOCKS5
+  `10.0.2.2:1080` › Save reopened at `?shown=1` with the pill reading SOCKS5,
+  and a reload went out as `SOCKS5 NAME example.com:443`; switching back to
+  Direct the same way stayed at `?shown=1`. The first reopen rendered from
+  WebView's cache with no request, as a reopened Keep site can.
+- ~~**Found, open (older than this change):** `8c`'s Reconnect only clears the
+  overlay (`clearTunnelDropped`); the page stays as it was, Chromium's error
+  page included, until it is reloaded.~~ **✅ User's ruling 2026-10-05:
+  Reconnect also reloads the page shown** (`ContainerRoute._reconnect`).
+  Test: `container_route_test`'s "8c's Reconnect clears the overlay and
+  reloads the page shown" (fails without it). `flutter test` 1057/1057.
+  Seen on the emulator: PxS live over HTTP `10.0.2.2:8888`, the proxy
+  swapped for one demanding a login, a reload showed `8c` over Chromium's
+  error page; with the plain proxy back, Reconnect cleared `8c`, the proxy
+  logged `CONNECT postman-echo.com:443`, and postman-echo's reply was back
+  on the page.
 
 ## Working on this repo
 
