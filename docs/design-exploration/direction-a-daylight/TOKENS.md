@@ -41,7 +41,7 @@ Surface steps (measured): light card vs page **1.17:1**, page vs tonal
 
 | Role | Light | Dark | Purpose | Replaces `C.*` |
 |---|---|---|---|---|
-| `accent` ("spruce" / jade) | `#1D6B57` | `#7FC8A9` | Live state marks (8 dp dot, switch on, step bar, Today bar fill) and the **one** affirmative filled action per screen. | `jade`, `jadeCode` |
+| `accent` ("spruce" / jade) | `#1D6B57` | `#7FC8A9` | Live state marks (8 dp dot, switch on, step bar, the shield when protections are on) and the **one** affirmative filled action per screen. | `jade`, `jadeCode` |
 | `onAccent` | `#FFFFFF` | `#0B2A20` | Label/knob on an accent fill. | `bg` (as label colour) |
 | `onAccentContainer` | `#0D3A2D` | `#BFEBD8` | Text and icons on `accentContainer`. | `monogramText` (open) |
 | `danger` | `#B3261E` | `#F2A49A` | Panic, wipe, refused headlines: text, outline, icon. Never a large fill. | `danger` |
@@ -109,7 +109,7 @@ for completeness with a 1.0 bar.
 | L filled PIN dot (ink) on page | `#1A1D1B` | `#EBEEE8` | 14.51:1 | 3.0:1 | pass |
 | L idle dot (outline) on card | `#6E7570` | `#FFFFFF` | 4.73:1 | 3.0:1 | pass |
 | L bar track vs card (Today bars) | `#D9DED6` | `#FFFFFF` | 1.37:1 | 1.0:1 | pass |
-| L bar fill (accent) vs track | `#1D6B57` | `#D9DED6` | 4.67:1 | 3.0:1 | pass |
+| L Today bar fill (ink2) vs track | `#4A514C` | `#D9DED6` | 5.97:1 | 3.0:1 | pass |
 | L permission bar fill (warning) vs track | `#8F5B00` | `#D9DED6` | 4.19:1 | 3.0:1 | pass |
 | L card vs page | `#FFFFFF` | `#EBEEE8` | 1.17:1 | 1.15:1 | pass |
 | L page vs tonal | `#EBEEE8` | `#D9DED6` | 1.17:1 | 1.15:1 | pass |
@@ -142,7 +142,7 @@ for completeness with a 1.0 bar.
 | D warning dot on tonal | `#E3B262` | `#2B302D` | 6.91:1 | 3.0:1 | pass |
 | D danger mark on card | `#F2A49A` | `#1E2220` | 8.09:1 | 3.0:1 | pass |
 | D filled PIN dot (ink) on page | `#E4E8E4` | `#101311` | 15.10:1 | 3.0:1 | pass |
-| D bar fill (accent) vs track | `#7FC8A9` | `#2B302D` | 6.87:1 | 3.0:1 | pass |
+| D Today bar fill (ink2) vs track | `#B4BBB6` | `#2B302D` | 6.86:1 | 3.0:1 | pass |
 | D card vs page | `#1E2220` | `#101311` | 1.16:1 | 1.15:1 | pass |
 | D tonal vs card | `#2B302D` | `#1E2220` | 1.20:1 | 1.15:1 | pass |
 | D reader ink on reader page | `#EDE7DC` | `#12100D` | 15.43:1 | 4.5:1 | pass |
@@ -152,6 +152,9 @@ for completeness with a 1.0 bar.
 | L marker 5 grey on card | `#5E6661` | `#FFFFFF` | 5.92:1 | 3.0:1 | pass |
 | L keypad key vs page | `#FFFFFF` | `#EBEEE8` | 1.17:1 | 1.0:1 | pass |
 | D keypad key vs page | `#1E2220` | `#101311` | 1.16:1 | 1.0:1 | pass |
+
+Today's category bars are filled with `ink2`, not the accent: a count is
+data, not live state, and an accent bar chart would read as a score.
 
 Notes on pairs that are deliberately *not* held to 3:1:
 

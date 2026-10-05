@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 108 108" width="108" height="108" role="img" aria-label="Container">
+  <!-- Single colour (Android 13 themed icon layer): same geometry as
+       app-icon.svg's foreground, inside the 66 dp safe circle. The system
+       tints it; the jewel is a solid dot. -->
+  <g fill="none" stroke="#000000" stroke-width="6">
+    <rect x="29" y="29" width="50" height="50" rx="15"/>
+    <path d="M29 45.7H79"/>
+  </g>
+  <circle cx="54" cy="62.3" r="8.3" fill="#000000"/>
+</svg>

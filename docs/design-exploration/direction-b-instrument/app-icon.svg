@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 108 108" width="108" height="108" role="img" aria-label="Container">
+  <!-- Android adaptive icon, 108 × 108 dp.
+       Background layer: full-bleed warm ink with a faint top light.
+       Foreground layer: the case, inside the central 72 × 72 safe zone and
+       within the 66 dp circle (its farthest corner is 32.1 dp from centre,
+       stroke included). -->
+  <defs>
+    <radialGradient id="bgl" cx="50%" cy="30%" r="75%">
+      <stop offset="0" stop-color="#22201D"/>
+      <stop offset="1" stop-color="#121110"/>
+    </radialGradient>
+  </defs>
+  <g id="background">
+    <rect width="108" height="108" fill="url(#bgl)"/>
+  </g>
+  <g id="foreground">
+    <g fill="none" stroke="#EDEAE4" stroke-width="6">
+      <rect x="29" y="29" width="50" height="50" rx="15"/>
+      <path d="M29 45.7H79"/>
+    </g>
+    <circle cx="54" cy="62.3" r="8.3" fill="#7FC8A9"/>
+  </g>
+</svg>

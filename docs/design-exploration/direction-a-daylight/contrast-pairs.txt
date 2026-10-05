@@ -35,7 +35,7 @@ L focus ring (accent) on page|#1D6B57|#EBEEE8|3
 L filled PIN dot (ink) on page|#1A1D1B|#EBEEE8|3
 L idle dot (outline) on card|#6E7570|#FFFFFF|3
 L bar track vs card (Today bars)|#D9DED6|#FFFFFF|1
-L bar fill (accent) vs track|#1D6B57|#D9DED6|3
+L Today bar fill (ink2) vs track|#4A514C|#D9DED6|3
 L permission bar fill (warning) vs track|#8F5B00|#D9DED6|3
 # LIGHT — surface steps (>= 1.15)
 L card vs page|#FFFFFF|#EBEEE8|1.15
@@ -71,7 +71,7 @@ D warning dot on card|#E3B262|#1E2220|3
 D warning dot on tonal|#E3B262|#2B302D|3
 D danger mark on card|#F2A49A|#1E2220|3
 D filled PIN dot (ink) on page|#E4E8E4|#101311|3
-D bar fill (accent) vs track|#7FC8A9|#2B302D|3
+D Today bar fill (ink2) vs track|#B4BBB6|#2B302D|3
 # DARK — surface steps (>= 1.15)
 D card vs page|#1E2220|#101311|1.15
 D tonal vs card|#2B302D|#1E2220|1.15

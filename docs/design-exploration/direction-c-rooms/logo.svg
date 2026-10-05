@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128" role="img" aria-label="Container">
+  <!-- A room (the container) with its door: a site in its own box. -->
+  <rect x="12" y="12" width="104" height="104" rx="30" fill="#C7E2D1" stroke="#1E1B16" stroke-width="12"/>
+  <path d="M46 110 V70 a18 18 0 0 1 36 0 V110 Z" fill="#1E1B16"/>
+  <circle cx="72" cy="90" r="3.5" fill="#C7E2D1"/>
+</svg>

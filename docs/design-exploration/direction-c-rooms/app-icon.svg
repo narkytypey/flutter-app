@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 108 108" width="108" height="108" role="img" aria-label="Container">
+  <!-- Adaptive icon. Background layer: full-bleed paper. Foreground: the room,
+       inside the 72x72 safe zone and within the 66 dp circle (centre 54,54; the
+       room's corners reach radius 30.4 thanks to its 13 dp corner radius). -->
+  <g id="background"><rect width="108" height="108" fill="#F2EBE0"/></g>
+  <g id="foreground">
+    <rect x="32" y="32" width="44" height="44" rx="13" fill="#C7E2D1" stroke="#1E1B16" stroke-width="5"/>
+    <path d="M46.5 73.5 V57 a7.5 7.5 0 0 1 15 0 V73.5 Z" fill="#1E1B16"/>
+    <circle cx="58" cy="65.5" r="1.5" fill="#C7E2D1"/>
+  </g>
+</svg>
