@@ -172,7 +172,7 @@ void main() {
     final other = VaultStore(crypto, File('${dir.path}/meta.bin'));
 
     await Future.wait([
-      store.saveGate(AttemptGate(failures: 3)),
+      store.saveGate(const AttemptGate(failures: 3)),
       other.saveAutoLock(AutoLockPolicy.fifteenMinutes),
       store.provision(pin: '222222', vault: VaultId.b),
     ]);
