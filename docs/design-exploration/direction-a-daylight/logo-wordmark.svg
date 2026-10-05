@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 48" width="220" height="48" role="img" aria-label="Container">
+  <!-- Mark + "Container". The word is set in Atkinson Hyperlegible Next SemiBold (OFL), bundled with the app; outline it before use outside the app. -->
+  <rect x="6" y="9" width="36" height="9" rx="3.5" fill="#2F8F74"/>
+  <path fill="#1D6B57" fill-rule="evenodd" d="M14 21H34A5 5 0 0 1 39 26V37A5 5 0 0 1 34 42H14A5 5 0 0 1 9 37V26A5 5 0 0 1 14 21ZM20 26.5A2 2 0 0 0 18 28.5A2 2 0 0 0 20 30.5H28A2 2 0 0 0 30 28.5A2 2 0 0 0 28 26.5Z"/>
+  <text x="54" y="34.5" font-family="'Atkinson Hyperlegible Next', system-ui, sans-serif" font-weight="600" font-size="27" letter-spacing="-0.3" fill="#1A1D1B">Container</text>
+</svg>

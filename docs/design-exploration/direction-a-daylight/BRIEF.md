@@ -199,3 +199,19 @@ CSS, so the stored strings are untouched). Questions found while drawing:
 4. **1a and 1c** were never built; their mocks use the canvas's strings
    (`Personal ▼`, `PROXY`/`TEMP`/`LOCK`, `Open · now`, `Add site`, `LIVE`,
    `SAVED`, `WORKSPACE`, `page preview`) and are labelled as canvas mocks.
+
+## Logo files
+
+- `logo.svg` — primary mark, 48-unit grid: lid `#2F8F74` over body
+  `#1D6B57`, slot cut through (even-odd), no strokes. Rendered at 24, 48 and
+  128 px (and on the dark page) and checked: at 24 px it still reads as lid +
+  box + slot.
+- `logo-wordmark.svg` — mark + "Container" set in Atkinson Hyperlegible Next
+  SemiBold (`<text>`; the font is the app's bundled UI face — outline it
+  before using the file outside the app).
+- `logo-monochrome.svg` — one colour on transparent, 108-unit adaptive grid,
+  for the Android 13 themed icon.
+- `app-icon.svg` — adaptive launcher icon, `viewBox 0 0 108 108`: full-bleed
+  spruce background group, white body + pale-jade lid foreground scaled 1.25
+  about the centre, furthest corner 30.5 units from the centre, so inside the
+  66 dp circle (radius 33) that survives every mask.

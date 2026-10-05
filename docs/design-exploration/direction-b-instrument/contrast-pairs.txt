@@ -1,0 +1,71 @@
+# Direction B — Instrument. label|fg|bg|min. Run: python3 ../tools/contrast.py --table contrast-pairs.txt
+# --- text-1 on every surface
+text-1 on ink|#EDEAE4|#121110|4.5
+text-1 on surface-group|#EDEAE4|#22201D|4.5
+text-1 on surface-sheet|#EDEAE4|#302D29|4.5
+text-1 on surface-raised|#EDEAE4|#403C37|4.5
+text-1 on danger-wash|#EDEAE4|#2C201D|4.5
+# --- text-2 on every surface
+text-2 on ink|#CBC4B9|#121110|4.5
+text-2 on surface-group|#CBC4B9|#22201D|4.5
+text-2 on surface-sheet|#CBC4B9|#302D29|4.5
+text-2 on surface-raised|#CBC4B9|#403C37|4.5
+text-2 on danger-wash (8c body)|#CBC4B9|#2C201D|4.5
+# --- text-3 (meta, captions) — never placed on surface-raised
+text-3 on ink|#A8A095|#121110|4.5
+text-3 on surface-group|#A8A095|#22201D|4.5
+text-3 on surface-sheet|#A8A095|#302D29|4.5
+# --- jade (live light, affirmative text)
+jade text on ink (Save, New workspace)|#7FC8A9|#121110|4.5
+jade text on surface-group|#7FC8A9|#22201D|4.5
+jade text on surface-sheet (6c Edit)|#7FC8A9|#302D29|4.5
+on-jade label on jade fill|#121110|#7FC8A9|4.5
+# --- danger
+danger text on ink|#EE8D79|#121110|4.5
+danger text on surface-group|#EE8D79|#22201D|4.5
+danger text on surface-sheet|#EE8D79|#302D29|4.5
+danger text on surface-raised (7b Remove site)|#EE8D79|#403C37|4.5
+danger text on danger-wash|#EE8D79|#2C201D|4.5
+# --- amber (opening light, JS badge)
+amber on ink|#E0B266|#121110|4.5
+amber on surface-group|#E0B266|#22201D|4.5
+# --- code
+code on surface-group|#D9CFB8|#22201D|4.5
+# --- reader 6b
+reader-title on reader-bg|#EFE8DC|#15120E|4.5
+reader-body on reader-bg|#D3CBBE|#15120E|4.5
+reader-muted on reader-bg (host, label)|#A39A8C|#15120E|4.5
+reader-soft-title on reader-bg (soft)|#D3CBBE|#15120E|4.5
+reader-soft-body on reader-bg (soft)|#A39A8C|#15120E|4.5
+# --- switch-on: on-switch knob on track, track vs surface
+switch on: knob ink on track text-1|#121110|#EDEAE4|3
+switch on: track text-1 vs ink|#EDEAE4|#121110|3
+switch on: track text-1 vs sheet|#EDEAE4|#302D29|3
+# --- non-text marks (>= 3:1)
+edge (switch-off outline, input border, empty PIN dot, idle light) vs ink|#958D82|#121110|3
+edge vs surface-group|#958D82|#22201D|3
+edge vs surface-sheet|#958D82|#302D29|3
+edge vs surface-raised|#958D82|#403C37|3
+switch off: knob text-3 vs ink (track is unfilled)|#A8A095|#121110|3
+switch off: knob text-3 vs sheet|#A8A095|#302D29|3
+PIN dot filled text-1 vs ink|#EDEAE4|#121110|3
+PIN dot error ring danger vs ink|#EE8D79|#121110|3
+live light jade vs ink|#7FC8A9|#121110|3
+live light jade vs surface-group (in the pill)|#7FC8A9|#22201D|3
+opening light amber vs surface-group|#E0B266|#22201D|3
+focus ring text-1 vs ink|#EDEAE4|#121110|3
+icon text-2 vs ink|#CBC4B9|#121110|3
+icon text-2 vs surface-sheet|#CBC4B9|#302D29|3
+panic outline danger vs ink|#EE8D79|#121110|3
+neutral button fill raised vs ink (container edge)|#403C37|#121110|1.15
+# --- surfaces, neighbour steps (>= 1.15:1)
+surface-group vs ink|#22201D|#121110|1.15
+surface-sheet vs surface-group|#302D29|#22201D|1.15
+surface-raised vs surface-sheet|#403C37|#302D29|1.15
+surface-sheet vs ink|#302D29|#121110|1.15
+# --- workspace markers (data, meaningful graphics, >= 3:1)
+marker 0 brass vs ink|#C9B48A|#121110|3
+marker 1 steel vs ink|#8FA5C8|#121110|3
+marker 2 amber vs ink|#E0B266|#121110|3
+marker 3 mauve vs ink|#C89BB4|#121110|3
+marker 4 stone vs ink|#A8A095|#121110|3
