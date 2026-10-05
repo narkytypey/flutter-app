@@ -66,10 +66,10 @@ git checkout -b design-exploration-restyle        # phases 0-7
 git checkout -b restyle-implementation            # phase 8, cut from the above
 ```
 
-Commit to the branch you are on, constantly. **Never merge to `main`, never
-open a pull request.** Push both branches to `origin` when they have content
-so I can see them in the morning; if a push fails, keep working locally and
-note it in `PROGRESS.md`.
+Commit to the branch you are on, constantly, and **push every commit to
+`origin` immediately** — see "You are probably a scheduled cloud fire"
+below; an unpushed commit may as well not exist. **Never merge to `main`,
+never open a pull request.**
 
 ## Where everything goes
 
@@ -128,6 +128,36 @@ at a limit; the branch does not. So:
 5. **Never commit a tree that does not compile.** During phase 8 especially:
    if you are mid-refactor when you sense the end, finish the file you are
    in, get `flutter analyze` clean, commit, then stop.
+
+## You are probably a scheduled cloud fire
+
+This run is scheduled to fire four times during one night (roughly 01:05,
+03:00, 05:05 and 07:00 Europe/Istanbul). **Each fire is a brand-new, isolated
+cloud session with a fresh git checkout and zero memory of the others.**
+Nothing on disk survives between fires. Only what you pushed to `origin`
+does. Therefore:
+
+- **Push after every single commit**, immediately:
+  `git add -A && git commit -m "..." && git pull --rebase origin <branch> &&
+  git push origin <branch>`. The `--rebase` is not optional: a sibling fire
+  may have pushed while you worked.
+- **On startup, fetch before you read anything:** `git fetch --all`, then
+  check out the branch `PROGRESS.md`'s `## Branch` line names and
+  `git reset --hard origin/<branch>` onto the remote tip. Your local
+  checkout is empty of the run's history; the remote is the truth.
+- **A sibling fire may still be running.** `PROGRESS.md` must carry a
+  `## Heartbeat` line holding a UTC timestamp and a short session tag you
+  generate at startup. Refresh it every time you touch the ledger. On
+  startup, after fetching: if the heartbeat is **less than 40 minutes old
+  and carries a different tag**, another fire is live — do not duplicate its
+  work. Either take a clearly independent chunk further down the queue and
+  say so in the ledger, or, if nothing is safely independent, append a
+  one-line note to `PROGRESS.md` saying you stood down, push it, and finish.
+- **If a push is rejected**, rebase and retry. If it still fails after two
+  attempts, write the reason into `PROGRESS.md`, push that, and continue
+  working — but know the work may be lost, so prefer small commits.
+- **There is no emulator and no device**, and the Android toolchain may not
+  be present at all. See the gates in phase 8.
 
 ## Phase 1 — Research (web)
 
@@ -393,6 +423,26 @@ never compile the Kotlin in `android/`** — `flutter build apk --debug` is the
 only check that catches a Kotlin error, and this repo has shipped
 never-compiled Kotlin to a commit before because of exactly that. Flutter
 and Gradle commands may need the Bash sandbox disabled.
+
+**The toolchain may not exist here.** Before phase 8's first task, run
+`flutter --version` and `flutter doctor -v` and write what you find into
+`PROGRESS.md` under `## Toolchain`. Then:
+
+- **No Flutter at all** — do not write app code blind. Stop phase 8, say so
+  plainly in `PROGRESS.md`, and spend the remaining budget on phase 9 and on
+  making the plans good enough for me to execute locally in the morning.
+  Unverifiable code is worth less to me than a sharp plan.
+- **Flutter but no Android SDK** (likely: `flutter build apk` needs Gradle
+  and the SDK) — run `analyze` and `test` as your gates, and record
+  `flutter build apk --debug` as **NOT RUN — no Android SDK in this
+  environment**. Do not guess at its result, and because of that, **change
+  nothing under `android/`** at all; leave any Kotlin or manifest work in
+  the plan as a task for me.
+- **Full toolchain** — run all three gates as written.
+
+Whatever you find, every record you write must state which gates actually
+ran and which did not. A missing gate recorded honestly is fine; a missing
+gate implied to have passed is not.
 
 Record the real numbers. **Never write "tests pass" without the count you
 actually saw.** If a gate fails and you cannot fix it, revert to the last
