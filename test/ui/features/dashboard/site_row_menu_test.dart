@@ -15,8 +15,6 @@ void main() {
           monogram: 'Fr',
           name: 'Forum',
           subtitle: 'forum.example.com · ephemeral',
-          ephemeralWorkspaceName: 'Ephemeral',
-          duplicateTargetName: 'Work',
           onAction: onAction ?? (_) {},
           onCancel: onCancel ?? () {},
         ),
@@ -30,10 +28,7 @@ void main() {
     expect(find.text('Forum'), findsOneWidget);
     expect(find.text('forum.example.com · ephemeral'), findsOneWidget);
     expect(find.text('Open'), findsOneWidget);
-    expect(find.text('Open in Ephemeral'), findsOneWidget);
     expect(find.text('Edit settings'), findsOneWidget);
-    expect(find.text('Duplicate into Work'), findsOneWidget);
-    expect(find.text('Require PIN to open'), findsOneWidget);
     expect(find.text("Wipe this site's data"), findsOneWidget);
     expect(find.text('Remove site'), findsOneWidget);
     expect(find.text('Cancel'), findsOneWidget);
@@ -56,7 +51,7 @@ void main() {
 
     expect(identical(wipeGroup, openGroup), isFalse);
     expect(wipeGroup.children.length, 2);
-    expect(openGroup.children.length, 5);
+    expect(openGroup.children.length, 2);
   });
 
   testWidgets('Remove site is the only row drawn in danger colour',
@@ -77,24 +72,13 @@ void main() {
     );
   });
 
-  testWidgets('workspace names come from the parameters, not hardcoded',
-      (tester) async {
-    await tester.pumpWidget(MaterialApp(
-      home: Scaffold(
-        body: SiteRowMenu(
-          monogram: 'Rd',
-          name: 'Reader',
-          subtitle: 'reader.example.com · Personal',
-          ephemeralWorkspaceName: 'Throwaway',
-          duplicateTargetName: 'Research',
-          onAction: (_) {},
-          onCancel: () {},
-        ),
-      ),
-    ));
+  testWidgets('the rows whose actions are unbuilt are not shown', (tester) async {
+    // User's ruling, 2026-10-05: hidden until built, not drawn as dead rows.
+    await tester.pumpWidget(host());
 
-    expect(find.text('Open in Throwaway'), findsOneWidget);
-    expect(find.text('Duplicate into Research'), findsOneWidget);
+    expect(find.textContaining('Open in'), findsNothing);
+    expect(find.textContaining('Duplicate into'), findsNothing);
+    expect(find.text('Require PIN to open'), findsNothing);
   });
 
   testWidgets('every row reports its action and Cancel is separate',
@@ -106,20 +90,14 @@ void main() {
     );
 
     await tester.tap(find.text('Open'));
-    await tester.tap(find.text('Open in Ephemeral'));
     await tester.tap(find.text('Edit settings'));
-    await tester.tap(find.text('Duplicate into Work'));
-    await tester.tap(find.text('Require PIN to open'));
     await tester.tap(find.text("Wipe this site's data"));
     await tester.tap(find.text('Remove site'));
     await tester.tap(find.text('Cancel'));
 
     expect(seen, [
       SiteRowAction.open,
-      SiteRowAction.openEphemeral,
       SiteRowAction.editSettings,
-      SiteRowAction.duplicate,
-      SiteRowAction.requirePin,
       SiteRowAction.wipeData,
       SiteRowAction.removeSite,
     ]);

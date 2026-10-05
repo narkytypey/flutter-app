@@ -7,12 +7,14 @@ import '../../../core/widgets/pill_button.dart';
 import '../../../core/widgets/sheet.dart';
 
 /// What a long-press on a dashboard row can do. Spec `7b`.
+///
+/// The spec also draws "Open in Ephemeral", "Duplicate into Work" and
+/// "Require PIN to open". None is built, so none is shown (user's ruling,
+/// 2026-10-05: hidden until built, not drawn as rows that do nothing). Each
+/// comes back with its action.
 enum SiteRowAction {
   open,
-  openEphemeral,
   editSettings,
-  duplicate,
-  requirePin,
   wipeData,
   removeSite,
 }
@@ -30,8 +32,6 @@ class SiteRowMenu extends StatelessWidget {
     required this.monogram,
     required this.name,
     required this.subtitle,
-    required this.ephemeralWorkspaceName,
-    required this.duplicateTargetName,
     required this.onAction,
     required this.onCancel,
   });
@@ -39,11 +39,6 @@ class SiteRowMenu extends StatelessWidget {
   final String monogram;
   final String name;
   final String subtitle;
-
-  /// Named workspaces, not fixed strings — the spec shows "Open in Ephemeral"
-  /// and "Duplicate into Work" because those are what the user called them.
-  final String ephemeralWorkspaceName;
-  final String duplicateTargetName;
 
   final ValueChanged<SiteRowAction> onAction;
   final VoidCallback onCancel;
@@ -97,20 +92,8 @@ class SiteRowMenu extends StatelessWidget {
                   children: [
                     SheetRow(label: 'Open', onTap: () => onAction(SiteRowAction.open)),
                     SheetRow(
-                      label: 'Open in $ephemeralWorkspaceName',
-                      onTap: () => onAction(SiteRowAction.openEphemeral),
-                    ),
-                    SheetRow(
                       label: 'Edit settings',
                       onTap: () => onAction(SiteRowAction.editSettings),
-                    ),
-                    SheetRow(
-                      label: 'Duplicate into $duplicateTargetName',
-                      onTap: () => onAction(SiteRowAction.duplicate),
-                    ),
-                    SheetRow(
-                      label: 'Require PIN to open',
-                      onTap: () => onAction(SiteRowAction.requirePin),
                     ),
                   ],
                 ),

@@ -26,8 +26,6 @@ Future<void> showSiteRowMenu(BuildContext context, WidgetRef ref, String siteId)
       monogram: site.monogram,
       name: site.name,
       subtitle: site.url,
-      ephemeralWorkspaceName: 'Ephemeral',
-      duplicateTargetName: 'Work',
       onCancel: () => Navigator.pop(context),
       onAction: (action) async {
         Navigator.pop(context);
@@ -76,8 +74,6 @@ Future<void> showSiteRowMenu(BuildContext context, WidgetRef ref, String siteId)
           );
           sitesChangedIn(scope);
         }
-        // openEphemeral, duplicate, requirePin: Known Gap, see Plan 6's
-        // Known gaps. None has a target workspace or PIN flow built yet.
       },
     ),
   );

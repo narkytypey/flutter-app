@@ -111,8 +111,6 @@ void main() {
         monogram: 'Fo',
         name: _longName,
         subtitle: 'https://$_onion/some/very/long/path',
-        ephemeralWorkspaceName: 'Ephemeral',
-        duplicateTargetName: 'Work',
         onAction: (_) {},
         onCancel: () {},
       ),
