@@ -103,6 +103,10 @@ class SettingsScreen extends StatelessWidget {
                   SettingRow(
                     title: 'Unlock with biometrics',
                     subtitle: 'PIN always available as fallback',
+                    // The whole row toggles, not only the switch.
+                    onTap: biometricsAvailable
+                        ? () => onChanged('biometrics', !biometrics)
+                        : null,
                     trailing: AppToggle(
                       value: biometrics,
                       onChanged: biometricsAvailable
@@ -169,6 +173,7 @@ class SettingsScreen extends StatelessWidget {
                   SettingRow(
                     title: 'Trigger by flipping face down',
                     subtitle: 'Uses the accelerometer',
+                    onTap: () => onChanged('panicOnFlip', !panicOnFlip),
                     trailing: AppToggle(
                       value: panicOnFlip,
                       onChanged: (v) => onChanged('panicOnFlip', v),

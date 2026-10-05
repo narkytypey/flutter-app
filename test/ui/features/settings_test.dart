@@ -130,6 +130,43 @@ void main() {
     expect(tapped, 'resyncDecoy');
   });
 
+  testWidgets('a tap on a switch row\'s text toggles it, as the switch does',
+      (tester) async {
+    final changes = <(String, bool)>[];
+    tester.view.physicalSize = const Size(500, 1600);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    Widget screen({required bool available}) => MaterialApp(
+          home: SettingsScreen(
+            biometrics: false,
+            biometricsAvailable: available,
+            autoLockLabel: 'After 1 min',
+            decoyEnabled: false,
+            decoySiteCount: 0,
+            hideFromSwitcher: true,
+            panicOnFlip: false,
+            onPanicLabel: 'Wipe + lock',
+            searchEngineName: 'DuckDuckGo',
+            securityLevelName: 'Standard',
+            onChanged: (key, value) => changes.add((key, value)),
+            onTap: (_) {},
+            onBack: () {},
+          ),
+        );
+    await tester.pumpWidget(screen(available: true));
+
+    await tester.tap(find.text('Trigger by flipping face down'));
+    await tester.tap(find.text('Unlock with biometrics'));
+    expect(changes, [('panicOnFlip', true), ('biometrics', true)]);
+
+    // Biometrics the device cannot use stays inert, row and switch alike.
+    changes.clear();
+    await tester.pumpWidget(screen(available: false));
+    await tester.tap(find.text('Unlock with biometrics'));
+    expect(changes, isEmpty);
+  });
+
   testWidgets('the browsing section follows manage and names the engine', (tester) async {
     var tapped = '';
     tester.view.physicalSize = const Size(500, 1600);
