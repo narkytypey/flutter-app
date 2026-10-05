@@ -19,11 +19,12 @@ for any later fire that has to finish one. Read this whole file first.
 
 - **Copy.** Every string is verbatim from the inventory (which is the code's
   copy, itself transcribed from the canvas file and approved specs). You may
-  change how copy is *set* — size, weight, colour, and letter case through
-  CSS `text-transform` only: the HTML text node is exactly the inventory's
-  string, never retyped. (So an uppercase stored string such as a section
-  label can be *shown* in small caps via `font-variant`, but its text node
-  stays uppercase.) Never invent a
+  change how copy is *set* — size, weight, colour and **letter case** (the
+  overnight prompt allows case). Do case changes with CSS (`text-transform`,
+  or a `.sentence` class: `text-transform:lowercase` + `::first-letter`
+  uppercase) so the HTML text node stays exactly the inventory's string —
+  that is what makes the copy auditable. Words, punctuation and order never
+  change. Never invent a
   string. If a screen seems to need one, write the question into your
   `BRIEF.md` under "Copy questions" and use the nearest existing string.
 - **Structure and flow.** Same screens, same elements in the same order, same
