@@ -470,4 +470,93 @@ void main() {
     expect(tester.takeException(), isNull);
     expect(saves, isEmpty);
   });
+
+  group("the form's title (user's ruling 2026-10-05)", () {
+    const forum = Site(
+      id: 'st-forum', workspaceId: 'ws-personal', name: 'Forum', monogram: 'Fr',
+      url: 'https://forum.example.com', profileId: 'p',
+    );
+
+    Future<void> pumpWith(WidgetTester tester, Site? initial, {bool savesAsNew = false}) {
+      addTearDown(tester.view.reset);
+      tester.view.physicalSize = const Size(428, 1400);
+      tester.view.devicePixelRatio = 1;
+      return tester.pumpWidget(MaterialApp(
+        home: AddSiteScreen(
+          initial: initial,
+          workspaces: _workspaces,
+          savesAsNew: savesAsNew,
+          onSave: (_) {},
+        ),
+      ));
+    }
+
+    testWidgets('a new site reads Add site', (tester) async {
+      await pumpWith(tester, null);
+      expect(find.text('Add site'), findsOneWidget);
+    });
+
+    testWidgets('an edited site reads its name', (tester) async {
+      await pumpWith(tester, forum);
+      expect(find.text('Add site'), findsNothing);
+      // The title, and NAME's field on Basics.
+      expect(find.text('Forum'), findsNWidgets(2));
+    });
+
+    testWidgets('an edited site with a blank name reads its host', (tester) async {
+      await pumpWith(tester, forum.copyWith(name: ' '));
+      expect(find.text('forum.example.com'), findsOneWidget);
+    });
+
+    testWidgets('a throwaway saved as a site reads Add site', (tester) async {
+      await pumpWith(tester, forum, savesAsNew: true);
+      expect(find.text('Add site'), findsOneWidget);
+    });
+
+    testWidgets('a long name ellipsizes instead of overflowing', (tester) async {
+      await pumpWith(tester, forum.copyWith(name: 'A very long site name ' * 6));
+      expect(tester.takeException(), isNull);
+    });
+  });
+
+  group("Block trackers and ads' count (user's ruling 2026-10-05)", () {
+    Future<void> network(WidgetTester tester, {Site? initial, int? rules}) async {
+      addTearDown(tester.view.reset);
+      tester.view.physicalSize = const Size(428, 1400);
+      tester.view.devicePixelRatio = 1;
+      await tester.pumpWidget(MaterialApp(
+        home: AddSiteScreen(
+          initial: initial,
+          workspaces: _workspaces,
+          rulesMatchedToday: rules,
+          onSave: (_) {},
+        ),
+      ));
+      await tester.tap(find.text('Network'));
+      await tester.pump();
+    }
+
+    const forum = Site(
+      id: 'st-forum', workspaceId: 'ws-personal', name: 'Forum', monogram: 'Fr',
+      url: 'https://forum.example.com', profileId: 'p',
+    );
+
+    testWidgets('a new site shows no count', (tester) async {
+      await network(tester);
+      expect(find.text('Local filter lists'), findsOneWidget);
+      expect(find.textContaining('rules matched'), findsNothing);
+    });
+
+    testWidgets("an edited site shows today's real count", (tester) async {
+      await network(tester, initial: forum, rules: 7);
+      expect(find.text('Local filter lists · 7 rules matched today'), findsOneWidget);
+    });
+
+    testWidgets('one match reads rule, zero reads rules', (tester) async {
+      await network(tester, initial: forum, rules: 1);
+      expect(find.text('Local filter lists · 1 rule matched today'), findsOneWidget);
+      await network(tester, initial: forum, rules: 0);
+      expect(find.text('Local filter lists · 0 rules matched today'), findsOneWidget);
+    });
+  });
 }

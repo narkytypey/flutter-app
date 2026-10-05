@@ -865,6 +865,8 @@ void main() {
 
       await tester.tap(find.text('Change proxy settings'));
       await tester.pumpAndSettle();
+      // It adds a site, so it reads as adding one.
+      expect(find.text('Add site'), findsOneWidget);
       await tester.tap(find.byKey(const Key('proxy-enabled')));
       await tester.pump();
       engine.openedAsThrowaway.clear();

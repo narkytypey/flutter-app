@@ -34,4 +34,15 @@ void main() {
     final forum = tally.sites.firstWhere((s) => s.name == 'Forum');
     expect(forum.count, 10);
   });
+
+  test("a site's rules matched accumulate by id; an unknown site has 0", () {
+    final recorder = BlockedTallyRecorder();
+    recorder.recordRulesMatched('s1', 4);
+    recorder.recordRulesMatched('s1', 2);
+    recorder.recordRulesMatched('s1', 0);
+
+    final tally = recorder.snapshot();
+    expect(tally.rulesMatched('s1'), 6);
+    expect(tally.rulesMatched('s2'), 0);
+  });
 }

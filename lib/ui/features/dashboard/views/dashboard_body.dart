@@ -61,7 +61,7 @@ class DashboardBody extends StatelessWidget {
   }
 
   Widget _list() {
-    if (view.isEmpty) return const EmptyWorkspace();
+    if (view.isEmpty) return EmptyWorkspace(wipesOnExit: view.wipesOnExit);
     return ListView(
       padding: const EdgeInsets.only(top: 6),
       children: [

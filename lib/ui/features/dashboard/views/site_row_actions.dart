@@ -7,6 +7,7 @@ import '../../container/view_models/open_containers.dart' show openContainersPro
 import '../../container/view_models/providers.dart' show containerEngineProvider;
 import '../../container/views/container_route.dart' show showContainer;
 import '../../search/view_models/providers.dart' show sitesChangedIn;
+import '../view_models/blocked_tally_controller.dart' show blockedTallyProvider;
 import '../view_models/providers.dart';
 import 'site_row_menu.dart';
 import 'wipe_site_sheet.dart';
@@ -42,6 +43,7 @@ Future<void> showSiteRowMenu(BuildContext context, WidgetRef ref, String siteId)
             builder: (formContext) => AddSiteScreen(
               initial: site,
               workspaces: workspaces,
+              rulesMatchedToday: scope.read(blockedTallyProvider).rulesMatched(site.id),
               // A change of route or cookie policy closes the site's open
               // container (tabs spec §5.7). From here it is in the
               // background, so it stays closed until it is next opened.

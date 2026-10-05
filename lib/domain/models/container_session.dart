@@ -23,8 +23,9 @@ class ContainerSession {
   final SessionPhase phase;
   final DateTime? lastActiveAt;
 
-  /// Rules matched in this session. Feeds spec `2a`'s "42 rules matched today"
-  /// and the blocked tally.
+  /// Requests blocked in this session, every category. Feeds the blocked
+  /// tally, whose trackers and ads per site are `2a`'s "N rules matched
+  /// today".
   final int blockedCount;
 
   /// Cumulative blocks for this session, broken down by [BlockedCategory].

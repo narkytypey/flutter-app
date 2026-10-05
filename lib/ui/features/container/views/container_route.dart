@@ -442,6 +442,9 @@ class _ContainerRouteState extends ConsumerState<ContainerRoute> {
         initial: throwaway ? _throwawayAsSite(viewed) : viewed.site,
         workspaces: workspaces,
         initialTab: 1,
+        savesAsNew: throwaway,
+        rulesMatchedToday:
+            throwaway ? null : ref.read(blockedTallyProvider).rulesMatched(siteId),
         onSave: (updated) async {
           var reopened = false;
           if (throwaway) {
@@ -480,6 +483,7 @@ class _ContainerRouteState extends ConsumerState<ContainerRoute> {
       builder: (formContext) => AddSiteScreen(
         initial: viewed.site,
         workspaces: workspaces,
+        rulesMatchedToday: ref.read(blockedTallyProvider).rulesMatched(viewed.siteId),
         onSave: (updated) async {
           await sites.upsert(updated);
           await registry.siteSaved(updated);
@@ -506,6 +510,7 @@ class _ContainerRouteState extends ConsumerState<ContainerRoute> {
       builder: (formContext) => AddSiteScreen(
         initial: _throwawayAsSite(viewed),
         workspaces: workspaces,
+        savesAsNew: true,
         onSave: (site) async {
           await _keepAsSite(site);
           if (formContext.mounted) Navigator.pop(formContext);
