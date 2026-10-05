@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:container/ui/core/tokens.dart';
 import 'package:container/ui/core/widgets/dashed_box.dart';
 import 'package:container/ui/core/widgets/monogram.dart';
 import 'package:container/ui/core/widgets/pill_button.dart';
+import 'package:container/ui/core/widgets/setting_row.dart';
 import 'package:container/ui/core/widgets/status_rail.dart';
 
 Future<void> _pump(WidgetTester tester, Widget child) {
@@ -13,6 +15,27 @@ Future<void> _pump(WidgetTester tester, Widget child) {
 }
 
 void main() {
+  testWidgets("a setting row's value ends at the row's right edge, as the canvas draws it",
+      (tester) async {
+    // It started mid-row, after the title's half (seen on the emulator
+    // 2026-10-05).
+    await tester.pumpWidget(const MaterialApp(
+      home: Scaffold(
+        body: SizedBox(width: 360, child: SettingRow(title: 'Auto-lock', value: 'After 1 min')),
+      ),
+    ));
+
+    final row = tester.getRect(find.byType(SettingRow));
+    final box = tester.getRect(find.text('After 1 min'));
+    final paragraph = tester.renderObject<RenderParagraph>(find.text('After 1 min'));
+    // Where the glyphs end: the box's right, less the empty space an
+    // end-aligned paragraph leaves on its left... or none, start-aligned.
+    final glyphsRight = paragraph.textAlign == TextAlign.end
+        ? box.right
+        : box.left + paragraph.textSize.width;
+    expect(glyphsRight, row.right);
+  });
+
   testWidgets('a live rail is jade, an idle rail is a hairline', (tester) async {
     await _pump(tester, const Row(children: [StatusRail(live: true), StatusRail(live: false)]));
 
