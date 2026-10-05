@@ -48,8 +48,20 @@ class LoopbackProxy(
 
     fun start(): LoopbackProxy {
         Thread({
+            // A failing accept (out of file descriptors, say) fails again at
+            // once: without a pause this loop would spin a core until it
+            // recovered. Each failure in a row doubles the pause, up to 1 s.
+            var backoff = 0L
             while (!server.isClosed) {
-                val client = runCatching { server.accept() }.getOrNull() ?: continue
+                val client = try {
+                    server.accept()
+                } catch (_: Exception) {
+                    if (server.isClosed) break
+                    backoff = nextAcceptBackoff(backoff)
+                    try { Thread.sleep(backoff) } catch (_: InterruptedException) { break }
+                    continue
+                }
+                backoff = 0L
                 runCatching { workers.execute { handle(client) } }.onFailure { runCatching { client.close() } }
             }
         }, "loopback-proxy-accept").apply { isDaemon = true }.start()
@@ -187,6 +199,10 @@ class LoopbackProxy(
     }
 
     companion object {
+        /** The pause after a failed accept, given the last one (0 after a success): 50 ms doubling to 1 s. */
+        internal fun nextAcceptBackoff(previous: Long): Long =
+            if (previous <= 0L) 50L else minOf(previous * 2, 1_000L)
+
         private const val BACKLOG = 64
         private const val HEAD_TIMEOUT_MS = 30_000
         private const val BUFFER_BYTES = 16 * 1024

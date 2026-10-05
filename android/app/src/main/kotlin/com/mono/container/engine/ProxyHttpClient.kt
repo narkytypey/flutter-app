@@ -16,16 +16,37 @@ object ProxyHttpClient {
         requestHeaders: Map<String, String>,
     ): FetchedResponse {
         val connected = Router.connect(route, host, port)
-        connected.soTimeout = 15_000
-        val socket = startTls(connected, host, port, secure)
-        val out = socket.getOutputStream()
-        out.write("$method $path HTTP/1.1\r\n".toByteArray(Charsets.US_ASCII))
-        out.write("Host: ${hostHeader(host, port, secure)}\r\n".toByteArray(Charsets.US_ASCII))
-        requestHeaders.forEach { (key, value) -> out.write("$key: $value\r\n".toByteArray(Charsets.US_ASCII)) }
-        out.write("Connection: close\r\n\r\n".toByteArray(Charsets.US_ASCII))
-        out.flush()
-        val input = socket.getInputStream()
-        val parts = readLine(input).split(' ', limit = 3)
+        // Until the response head is read, a failure would otherwise leave the
+        // socket (and the proxy's tunnel behind it) open: whatever is open by
+        // then is closed before the error goes on. Closing the TLS socket
+        // closes the one under it (autoClose).
+        var socket: java.net.Socket = connected
+        try {
+            connected.soTimeout = 15_000
+            socket = startTls(connected, host, port, secure)
+            val out = socket.getOutputStream()
+            out.write("$method $path HTTP/1.1\r\n".toByteArray(Charsets.US_ASCII))
+            out.write("Host: ${hostHeader(host, port, secure)}\r\n".toByteArray(Charsets.US_ASCII))
+            requestHeaders.forEach { (key, value) -> out.write("$key: $value\r\n".toByteArray(Charsets.US_ASCII)) }
+            out.write("Connection: close\r\n\r\n".toByteArray(Charsets.US_ASCII))
+            out.flush()
+            return readResponse(socket.getInputStream())
+        } catch (error: Throwable) {
+            runCatching { socket.close() }
+            runCatching { connected.close() }
+            throw error
+        }
+    }
+
+    /**
+     * Reads a response head from [input] and frames its body. Lines are capped
+     * at [MAX_HTTP_LINE] and the head at [MAX_HTTP_HEAD] ([HttpHeadReader]).
+     * End of stream before the status line reads as a 502 with no fields, as
+     * it always has.
+     */
+    internal fun readResponse(input: InputStream): FetchedResponse {
+        val head = HttpHeadReader(input)
+        val parts = (head.readLine() ?: "").split(' ', limit = 3)
         val status = parts.getOrNull(1)?.toIntOrNull() ?: 502
         val reason = parts.getOrNull(2) ?: "OK"
         // Header names are case-insensitive (RFC 9110 §5.1): every reader —
@@ -33,7 +54,7 @@ object ProxyHttpClient {
         // names up in this map, so it is the one place that has to know.
         val headers = java.util.TreeMap<String, String>(String.CASE_INSENSITIVE_ORDER)
         while (true) {
-            val line = readLine(input)
+            val line = head.readLine() ?: break
             if (line.isEmpty()) break
             val separator = line.indexOf(':')
             if (separator > 0) headers[line.substring(0, separator).trim()] = line.substring(separator + 1).trim()
@@ -100,16 +121,6 @@ object ProxyHttpClient {
         tls.startHandshake()
         return tls
     }
-
-    private fun readLine(input: InputStream): String {
-        val line = StringBuilder()
-        while (true) {
-            val byte = input.read()
-            if (byte == -1 || byte == '\n'.code) break
-            if (byte != '\r'.code) line.append(byte.toChar())
-        }
-        return line.toString()
-    }
 }
 
 /**
@@ -136,6 +147,7 @@ class ChunkedBody(private val input: java.io.InputStream) : java.io.InputStream(
         if (remaining == 0L) {
             remaining = nextChunkSize()
             if (remaining == 0L) {
+                trailer = HttpHeadReader(input)
                 while (readLine().isNotEmpty()) { /* trailer fields are not used */ }
                 finished = true
                 return -1
@@ -158,13 +170,14 @@ class ChunkedBody(private val input: java.io.InputStream) : java.io.InputStream(
         return size.toLong(16)
     }
 
-    private fun readLine(): String {
-        val line = StringBuilder()
-        while (true) {
-            val byte = input.read()
-            if (byte == -1) throw java.io.EOFException("chunked body ended before its last chunk")
-            if (byte == '\n'.code) return line.toString()
-            if (byte != '\r'.code) line.append(byte.toChar())
-        }
-    }
+    /**
+     * One framing line, capped at [MAX_HTTP_LINE]. The trailer section shares
+     * one [MAX_HTTP_HEAD] budget ([trailer]); a size line or a chunk's CRLF
+     * gets a reader of its own, so a long body of many chunks is never refused
+     * for its framing adding up.
+     */
+    private fun readLine(): String =
+        (trailer ?: HttpHeadReader(input)).readLineOrThrow("chunked body")
+
+    private var trailer: HttpHeadReader? = null
 }

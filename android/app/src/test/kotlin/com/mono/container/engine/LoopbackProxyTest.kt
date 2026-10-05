@@ -711,4 +711,10 @@ class LoopbackProxyTest {
             }
         }
     }
+
+    @Test fun `a failing accept backs off from 50 ms, doubling, to at most 1 s`() {
+        val pauses = generateSequence(LoopbackProxy.nextAcceptBackoff(0L)) { LoopbackProxy.nextAcceptBackoff(it) }
+            .take(8).toList()
+        assertEquals(listOf(50L, 100L, 200L, 400L, 800L, 1_000L, 1_000L, 1_000L), pauses)
+    }
 }

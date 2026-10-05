@@ -100,10 +100,19 @@ object Router {
  * Resolves a site's live route consistently for pages and downloads. A Tor
  * site's is Tor's state now, read without waiting (spec §4.3): ready, or
  * refused.
+ *
+ * Only an upstream proxy (socks5, http) is probed. A direct site may still
+ * carry a proxy host and port from before it was switched to direct, and
+ * probing those would open a connection of the app's own to a proxy the site
+ * no longer uses; any other mode is refused by [Router.resolve] without one.
  */
-fun SiteConfig.currentRoute(): Route =
-    if (proxyMode == "tor") Router.resolve(this, Tor.runtime?.isReady == true, Tor.socketPath)
-    else Router.resolve(this, ProxyProbe.reachable(proxyHost ?: "", proxyPort ?: -1))
+fun SiteConfig.currentRoute(): Route = currentRoute(ProxyProbe::reachable)
+
+internal fun SiteConfig.currentRoute(probe: (String, Int) -> Boolean): Route = when (proxyMode) {
+    "tor" -> Router.resolve(this, Tor.runtime?.isReady == true, Tor.socketPath)
+    "socks5", "http" -> Router.resolve(this, probe(proxyHost ?: "", proxyPort ?: -1))
+    else -> Router.resolve(this, false)
+}
 
 /**
  * The route `open` decides (P2 spec §1.4). Every site's traffic reaches its
