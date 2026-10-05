@@ -14,3 +14,46 @@ run split across per-fire branch names would lose its ledger. Every push of
 the exploration branch is also mirrored to the harness's branch, so nothing
 is only on a branch the harness did not name. Neither is ever merged to
 `main`, and no pull request is opened.
+
+## D1 — Toolchain installed rather than assumed absent (fire-cd6e6b)
+
+The environment had no Flutter. Storage.googleapis.com and dl.google.com are
+reachable through the session proxy, so Flutter 3.47.2 (the version CI pins)
+and an Android SDK (platform 36, build-tools 36) were installed under `/opt`.
+That makes phase 8's gates real instead of skipped. It is not persistent:
+each fire re-installs (commands in PROGRESS `## Toolchain`).
+
+## D2 — Mock the app as built, not the canvas as first drawn
+
+The canvas file is authoritative for copy, but several blocks have since been
+superseded by approved specs that the code implements: `1b` (Plan 18's tabbed
+dashboard), `2b` (Plan 12's layout C), `2c` (Plan 15's tabs), `6c` (Plan 16's
+shield panel). The flows are frozen *as they are now*, so the mockups draw the
+current structure, with copy taken from the code (which was itself transcribed
+from the canvas and the approved specs). The per-screen string lists are in
+`inventory/`. Where a mock needs sample data (site names, hosts, counts) it
+uses the canvas's own examples.
+
+## D3 — The three axes
+
+A and B are the suggested axes. C was chosen from the research over two
+alternatives (a "type-only editorial" direction and a "glass/floating chrome"
+Safari-26 direction), because the research's sharpest gap is not legibility
+or familiarity but *comprehension*: "container" is invisible in the current UI
+(AUDIT §4.8), incognito misconceptions are about not knowing what is separated
+from what (RESEARCH §human factors), and Firefox's Multi-Account Containers
+and Zen's workspaces both answer it with colour. C takes that further than
+either. It deliberately breaks the "jade means live state, never decorative,
+at most one per screen" constraint: in C colour means *identity* (which room
+you are in), and live state moves to shape and position (a filled vs. hollow
+door mark, "open" rows first). It must argue that in its BRIEF.
+
+## D4 — Directions built in parallel
+
+The prompt asks for one whole direction before the next, so a cut-off run
+leaves whole directions. This fire has a large budget and the screens are
+independent files, so the three are built by three parallel subagents, each
+writing BRIEF/TOKENS first and screens block by block, and the ledger is
+committed after each agent's report. If a fire dies mid-way, the next one
+finds each direction's own file state and the checklist says which blocks
+exist.

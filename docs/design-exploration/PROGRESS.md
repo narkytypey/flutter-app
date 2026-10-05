@@ -31,9 +31,20 @@ No Android SDK yet; `flutter build apk --debug` not attempted.
 
 ## Directions (one-line theses)
 
-- A — (to be written before phase 3 builds start)
-- B —
-- C —
+- **A — Daylight** (`direction-a-daylight`): a browser a Chrome user already
+  trusts — follows the system light/dark setting, Chrome's grammar and sizes
+  (56 dp bar, 40 dp pill, 48 dp targets, 16 sp body), Atkinson Hyperlegible
+  Next, grouped rounded surfaces; privacy machinery present but quiet.
+- **B — Instrument** (`direction-b-instrument`): keep the dark technical
+  self-image and execute it properly — warm near-black, a real IBM Plex Sans /
+  Plex Mono hierarchy, every text tone AA, fewer and clearer surfaces, jade
+  still the one live colour, 48 dp targets.
+- **C — Rooms** (`direction-c-rooms`): make isolation *visible* — every site
+  is a coloured room; its colour frames the browser chrome while you are
+  inside it, so "which container am I in" is answered at a glance (and a
+  throwaway, uncoloured, looks different from a saved site). Warm paper and
+  ink, Figtree large and round, tinted cards instead of hairlines. Breaks
+  "jade = the one colour" explicitly (argued in DECISIONS D3).
 
 ## Checklist
 
