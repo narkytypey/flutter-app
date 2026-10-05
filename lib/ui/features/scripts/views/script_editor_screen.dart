@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../../../../domain/models/user_script.dart';
@@ -47,7 +49,9 @@ class ScriptEditorScreen extends StatefulWidget {
   final String initialCode;
   final bool initialRunAtDocumentStart;
   final List<ScriptSiteChip> appliedSites;
-  final ValueChanged<ScriptEditorResult> onSave;
+  /// Save is ignored while a returned future is still running, so a double
+  /// tap writes (and pops) once.
+  final FutureOr<void> Function(ScriptEditorResult result) onSave;
   final void Function(String siteId) onRemoveSite;
 
   /// Null once every site in the vault is on the script: "+ Add site" is then
@@ -70,13 +74,23 @@ class _ScriptEditorScreenState extends State<ScriptEditorScreen> {
     super.dispose();
   }
 
-  void _save() {
-    widget.onSave(ScriptEditorResult(
+  bool _saving = false;
+
+  Future<void> _save() async {
+    if (_saving) return;
+    _saving = true;
+    try {
+      await _submit();
+    } finally {
+      _saving = false;
+    }
+  }
+
+  FutureOr<void> _submit() => widget.onSave(ScriptEditorResult(
       kind: _kind,
       code: _codeController.text,
       runAtDocumentStart: _runAtDocumentStart,
     ));
-  }
 
   @override
   Widget build(BuildContext context) {

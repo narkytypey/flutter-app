@@ -45,6 +45,9 @@ class _Engine extends FakeContainerEngine {
   int opens = 0;
   Completer<void>? gate;
 
+  /// Thrown by [open] when set: an engine that fails outright.
+  Object? openError;
+
   @override
   Future<ContainerSession> open(
     Site site, {
@@ -55,6 +58,7 @@ class _Engine extends FakeContainerEngine {
     opens++;
     final waitFor = gate;
     if (waitFor != null) await waitFor.future;
+    if (openError case final error?) throw error;
     return super.open(site, extras: extras, throwaway: throwaway, initialUrl: initialUrl);
   }
 }
@@ -168,14 +172,18 @@ Future<AppDatabase> _database() async {
 SessionOpen _open(AppDatabase database) =>
     SessionOpen(vault: VaultId.a, database: database, dataKey: Uint8List(32));
 
-Future<_Harness> _harness({bool opensLive = true}) async {
+Future<_Harness> _harness({
+  bool opensLive = true,
+  Future<EngineExtras> Function(Site site)? extras,
+}) async {
   final engine = _Engine(opensLive: opensLive);
   final sites = _Sites();
   final clock = _Clock();
   final database = await _database();
   final container = ProviderContainer(overrides: [
     containerEngineProvider.overrideWithValue(engine),
-    engineExtrasBuilderProvider.overrideWithValue((site) async => EngineExtras.none),
+    engineExtrasBuilderProvider
+        .overrideWithValue(extras ?? (site) async => EngineExtras.none),
     siteRepositoryProvider.overrideWithValue(sites),
     sessionProvider.overrideWith(() => _Session(_open(database))),
     tabsClockProvider.overrideWithValue(() => clock.now),
@@ -206,6 +214,26 @@ void main() {
     expect(opened.openReturned, isTrue);
     expect(opened.viewedPageId, 's1-p1');
     expect(opened.pages.single.pageId, 's1-p1');
+  });
+
+  test('an open that throws shows 8b instead of spinning, and closes the site', () async {
+    final h = await _harness();
+    h.engine.openError = StateError('engine gone');
+
+    await h.registry.view(_site('s1'));
+
+    final container = h.state.byId('s1')!;
+    expect(container.refusal?.failure, RouteFailure.misconfigured);
+    expect(h.engine.closed, contains('s1'));
+  });
+
+  test('extras that cannot be read show 8b, and nothing is opened', () async {
+    final h = await _harness(extras: (site) async => throw StateError('no db'));
+
+    await h.registry.view(_site('s1'));
+
+    expect(h.state.byId('s1')!.refusal?.failure, RouteFailure.misconfigured);
+    expect(h.engine.opens, 0);
   });
 
   test('2. view of a listed container shows it without opening it again', () async {

@@ -44,6 +44,7 @@ import 'package:container/ui/features/dashboard/view_models/blocked_tally_contro
 import 'package:container/ui/features/dashboard/view_models/providers.dart'
     show databaseProvider, openSiteIdsProvider, siteRepositoryProvider, workspacesProvider;
 import 'package:container/ui/features/container/views/opening_screen.dart';
+import 'package:container/ui/features/in_page/views/held_download_sheet.dart';
 import 'package:container/ui/features/in_page/views/permission_request_sheet.dart';
 import 'package:container/ui/features/in_page/views/proxy_unreachable_screen.dart';
 import 'package:container/ui/features/in_page/views/reader_screen.dart';
@@ -1013,6 +1014,49 @@ void main() {
 
     expect(engine.resolvedDownloads.single.requestId, 'req-1');
     expect(engine.resolvedDownloads.single.decision, DownloadDecision.keepInContainer);
+  });
+
+  testWidgets('a held-download sheet dismissed without a choice discards the download',
+      (tester) async {
+    final engine = FakeContainerEngine();
+    await _pump(tester, engine, _site());
+    await tester.pumpAndSettle();
+
+    engine.emitDownload(const HeldDownloadEvent(
+      siteId: 's1', pageId: 's1-p1', requestId: 'req-1',
+      download: HeldDownload(
+        fileName: 'notes.pdf', sizeBytes: 1024,
+        sourceHost: 'forum.example.com', kindLabel: 'PDF',
+      ),
+    ));
+    await tester.pumpAndSettle();
+    expect(find.byType(HeldDownloadSheet), findsOneWidget);
+
+    Navigator.of(tester.element(find.byType(HeldDownloadSheet))).pop();
+    await tester.pumpAndSettle();
+
+    expect(engine.resolvedDownloads.single.requestId, 'req-1');
+    expect(engine.resolvedDownloads.single.decision, DownloadDecision.discard);
+  });
+
+  testWidgets('a permission sheet dismissed without a choice keeps it blocked',
+      (tester) async {
+    final engine = FakeContainerEngine();
+    await _pump(tester, engine, _site());
+    await tester.pumpAndSettle();
+
+    engine.emitPermissionRequest(const PendingPermissionRequest(
+      siteId: 's1', pageId: 's1-p1', host: 'forum.example.com',
+      kind: PermissionKind.camera, requestId: 'r1',
+    ));
+    await tester.pumpAndSettle();
+    expect(find.byType(PermissionRequestSheet), findsOneWidget);
+
+    // System back pops the sheet without any of its buttons.
+    Navigator.of(tester.element(find.byType(PermissionRequestSheet))).pop();
+    await tester.pumpAndSettle();
+
+    expect(engine.resolvedPermissions, {'r1': PermissionDecision.keepBlocked});
   });
 
   testWidgets('a download_result event shows the matching snackbar for each outcome', (tester) async {

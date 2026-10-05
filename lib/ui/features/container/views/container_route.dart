@@ -11,12 +11,14 @@ import '../../../../domain/models/container_session.dart';
 import '../../../../domain/models/destination.dart';
 import '../../../../domain/models/engine_events.dart';
 import '../../../../domain/models/find_result.dart';
+import '../../../../domain/models/held_download.dart' show DownloadDecision;
 import '../../../../domain/models/monogram_suggestion.dart';
 import '../../../../domain/models/route_display.dart';
 import '../../../../domain/models/open_container.dart';
 import '../../../../domain/models/open_step.dart';
 import '../../../../domain/models/relative_age.dart';
 import '../../../../domain/models/route_decision.dart' show refusalMessage;
+import '../../../../domain/models/permissions.dart' show PermissionDecision;
 import '../../../../domain/models/permissions_in_use.dart';
 import '../../../../domain/models/search_engine.dart';
 import '../../../../domain/models/security_level.dart';
@@ -217,37 +219,57 @@ class _ContainerRouteState extends ConsumerState<ContainerRoute> {
     });
   }
 
-  Future<void> _showPermissionSheet(PendingPermissionRequest request) {
+  /// A sheet that leaves without a decision (back, a drag down, or its route
+  /// going) is answered "keep blocked", so the native ask never hangs.
+  Future<void> _showPermissionSheet(PendingPermissionRequest request) async {
     final engine = _engine;
-    return showModalBottomSheet<void>(
+    var decided = false;
+    await showModalBottomSheet<void>(
       context: context,
       backgroundColor: Colors.transparent,
       isDismissible: false,
+      isScrollControlled: true,
       builder: (sheetContext) => PermissionRequestSheet(
         host: request.host,
         kind: request.kind,
         onDecision: (decision) {
+          if (decided) return;
+          decided = true;
           Navigator.pop(sheetContext);
           engine.resolvePermission(request.requestId, decision);
         },
       ),
     );
+    if (!decided) {
+      decided = true;
+      engine.resolvePermission(request.requestId, PermissionDecision.keepBlocked);
+    }
   }
 
-  Future<void> _showDownloadSheet(HeldDownloadEvent event) {
+  /// A sheet dismissed without a decision discards the held download, so it
+  /// is never left waiting natively.
+  Future<void> _showDownloadSheet(HeldDownloadEvent event) async {
     final engine = _engine;
     _myDownloadRequestIds.add(event.requestId);
-    return showModalBottomSheet<void>(
+    var decided = false;
+    await showModalBottomSheet<void>(
       context: context,
       backgroundColor: Colors.transparent,
+      isScrollControlled: true,
       builder: (sheetContext) => HeldDownloadSheet(
         download: event.download,
         onDecision: (decision) {
+          if (decided) return;
+          decided = true;
           Navigator.pop(sheetContext);
           engine.resolveDownload(event.requestId, decision);
         },
       ),
     );
+    if (!decided) {
+      decided = true;
+      engine.resolveDownload(event.requestId, DownloadDecision.discard);
+    }
   }
 
   /// Shown only while this route is up, as before tabs.
@@ -421,14 +443,24 @@ class _ContainerRouteState extends ConsumerState<ContainerRoute> {
         workspaces: workspaces,
         initialTab: 1,
         onSave: (updated) async {
+          var reopened = false;
           if (throwaway) {
+            // `saveThrowaway` → `siteSaved` reopens a saved throwaway itself
+            // when it is still listed as a site (no refusal) and its route
+            // changed, maybe on a rotated profile: a second reopen here would
+            // replace that open. Mirrors that decision, so it opens once.
+            final now = _state.byId(siteId);
+            reopened = now != null &&
+                now.refusal == null &&
+                routeOrCookiePolicyChanged(
+                    now.opened.copyWith(cookiePolicy: updated.cookiePolicy), updated);
             await _keepAsSite(updated);
           } else {
             await sites.upsert(updated);
             sitesChangedIn(_providers);
           }
           if (formContext.mounted) Navigator.pop(formContext);
-          await registry.reopen(siteId, updated);
+          if (!reopened) await registry.reopen(siteId, updated);
         },
       ),
     ));

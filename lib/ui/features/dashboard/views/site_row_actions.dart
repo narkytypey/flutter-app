@@ -5,6 +5,7 @@ import '../../../../data/services/site_wipe.dart';
 import '../../add_site/views/add_site_screen.dart';
 import '../../container/view_models/open_containers.dart' show openContainersProvider;
 import '../../container/view_models/providers.dart' show containerEngineProvider;
+import '../../container/views/container_route.dart' show showContainer;
 import '../../search/view_models/providers.dart' show sitesChangedIn;
 import '../view_models/providers.dart';
 import 'site_row_menu.dart';
@@ -30,11 +31,17 @@ Future<void> showSiteRowMenu(BuildContext context, WidgetRef ref, String siteId)
       onCancel: () => Navigator.pop(context),
       onAction: (action) async {
         Navigator.pop(context);
-        if (action == SiteRowAction.editSettings) {
+        if (action == SiteRowAction.open) {
+          // As a row's tap opens it (`SitesTab._openSite`): the visit
+          // recorded, then the one host route.
+          if (!context.mounted) return;
+          openSite(ref, site.id);
+          showContainer(context, ref, site);
+        } else if (action == SiteRowAction.editSettings) {
           final workspaces = await scope.read(workspacesProvider.future);
           if (!context.mounted) return;
           await Navigator.push(context, MaterialPageRoute(
-            builder: (_) => AddSiteScreen(
+            builder: (formContext) => AddSiteScreen(
               initial: site,
               workspaces: workspaces,
               // A change of route or cookie policy closes the site's open
@@ -44,8 +51,7 @@ Future<void> showSiteRowMenu(BuildContext context, WidgetRef ref, String siteId)
                 await scope.read(siteRepositoryProvider).upsert(updated);
                 await scope.read(openContainersProvider.notifier).siteSaved(updated);
                 sitesChangedIn(scope);
-                if (!context.mounted) return;
-                Navigator.pop(context);
+                if (formContext.mounted) Navigator.pop(formContext);
               },
             ),
           ));

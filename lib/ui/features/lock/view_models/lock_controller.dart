@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 
 /// How many of the six PIN digits have been typed so far.
@@ -17,13 +19,21 @@ class LockPinEntry {
 class LockController extends ChangeNotifier {
   LockController({required this.onSubmit});
 
-  final ValueChanged<String> onSubmit;
+  /// May return a future: until it completes, every key is ignored, so a
+  /// second six digits typed while the first are still being checked never
+  /// reaches [onSubmit] (each submit is one attempt against the gate).
+  final FutureOr<void> Function(String pin) onSubmit;
 
   String _digits = '';
+  bool _busy = false;
+
+  /// True while a submitted PIN's future has not completed.
+  bool get busy => _busy;
 
   LockPinEntry get value => LockPinEntry(filled: _digits.length);
 
   void onKey(String key) {
+    if (_busy) return;
     if (key == '⌫') {
       if (_digits.isEmpty) return;
       _digits = _digits.substring(0, _digits.length - 1);
@@ -37,7 +47,11 @@ class LockController extends ChangeNotifier {
     if (_digits.length == 6) {
       final pin = _digits;
       reset();
-      onSubmit(pin);
+      final result = onSubmit(pin);
+      if (result is Future<void>) {
+        _busy = true;
+        result.whenComplete(() => _busy = false);
+      }
     }
   }
 

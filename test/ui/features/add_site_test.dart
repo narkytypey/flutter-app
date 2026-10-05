@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:container/domain/models/proxy_route.dart';
@@ -14,7 +16,7 @@ const _workspaces = [
 ];
 
 Future<void> _pump(WidgetTester tester,
-    {ValueChanged<Site>? onSave, String? initialWorkspaceId,
+    {FutureOr<void> Function(Site site)? onSave, String? initialWorkspaceId,
     ProxyRoute defaultRoute = ProxyRoute.direct, Site? initial}) {
   addTearDown(tester.view.reset);
   tester.view.physicalSize = const Size(428, 1400);
@@ -354,5 +356,45 @@ void main() {
       expect(find.text('10.0.2.2'), findsNothing);
       expect(find.text('Separate login per site'), findsNothing, reason: 'the proxy is off');
     });
+  });
+
+  testWidgets('a second Save while the first is still saving is ignored', (tester) async {
+    final saves = <Site>[];
+    final pending = Completer<void>();
+    await _pump(tester, onSave: (site) {
+      saves.add(site);
+      return pending.future;
+    });
+    await tester.enterText(find.byKey(const Key('add-site-address')), 'forum.example.com');
+    await tester.pump();
+
+    await tester.tap(find.text('Save'));
+    await tester.tap(find.text('Save'));
+    await tester.pump();
+    expect(saves, hasLength(1));
+
+    pending.complete();
+    await tester.pump();
+    await tester.tap(find.text('Save'));
+    await tester.pump();
+    expect(saves, hasLength(2), reason: 'Save works again once the first is done');
+  });
+
+  testWidgets('a form with no workspaces opens without crashing and does not save',
+      (tester) async {
+    final saves = <Site>[];
+    addTearDown(tester.view.reset);
+    tester.view.physicalSize = const Size(428, 1400);
+    tester.view.devicePixelRatio = 1;
+    await tester.pumpWidget(MaterialApp(
+      home: AddSiteScreen(workspaces: const [], onSave: saves.add),
+    ));
+    await tester.enterText(find.byKey(const Key('add-site-address')), 'forum.example.com');
+    await tester.pump();
+    await tester.tap(find.text('Save'));
+    await tester.pump();
+
+    expect(tester.takeException(), isNull);
+    expect(saves, isEmpty);
   });
 }

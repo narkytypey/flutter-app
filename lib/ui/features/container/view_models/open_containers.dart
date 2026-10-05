@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart' show debugPrint;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../data/services/app_database.dart' show newProfileId;
@@ -458,17 +459,27 @@ class OpenContainers extends Notifier<OpenContainersState> {
     if (first == null) return;
     // Read before opening, and a failure here stops the open: a site is never
     // opened without the lists and scripts its vault says it gets.
-    final extras = await ref.read(engineExtrasBuilderProvider)(first.opened);
-    if (superseded()) return;
-    final container = state.byId(siteId);
-    if (container == null) return;
     final engine = _engine;
-    final session = await engine.open(
-      container.opened,
-      extras: extras,
-      throwaway: container.throwaway,
-      initialUrl: container.initialUrl,
-    );
+    final OpenContainer container;
+    final ContainerSession session;
+    try {
+      final extras = await ref.read(engineExtrasBuilderProvider)(first.opened);
+      if (superseded()) return;
+      final now = state.byId(siteId);
+      if (now == null) return;
+      container = now;
+      session = await engine.open(
+        container.opened,
+        extras: extras,
+        throwaway: container.throwaway,
+        initialUrl: container.initialUrl,
+      );
+    } catch (error, stack) {
+      // Without this `8a` spun forever over an unhandled error.
+      debugPrint('open of $siteId failed: $error\n$stack');
+      if (!superseded()) await _openFailed(siteId);
+      return;
+    }
     if (superseded()) return;
     if (state.byId(siteId) == null) {
       // Dropped while the open ran: a session nobody holds must not stay open.
@@ -607,6 +618,38 @@ class OpenContainers extends Notifier<OpenContainersState> {
     if (container.throwaway) return;
     if (state.viewedSiteId != siteId) _drop(siteId);
     await _engine.close(siteId);
+  }
+
+  /// The open itself threw (the lists and scripts could not be read, or the
+  /// engine failed): shown as `8b`, as [_refused] shows a refusal with no
+  /// failure named, and closed the same way, so nothing is left half open.
+  Future<void> _openFailed(String siteId) async {
+    final container = state.byId(siteId);
+    if (container == null) return;
+    _refusing.add(siteId);
+    final token = _opens[siteId];
+    DateTime? lastWorked = container.workedAt;
+    if (!container.throwaway) {
+      try {
+        lastWorked = await ref.read(siteRepositoryProvider).lastWorked(siteId);
+      } catch (_) {
+        lastWorked = null;
+      }
+    }
+    if (!identical(_opens[siteId], token) || state.byId(siteId) == null) return;
+    _update(
+      siteId,
+      (c) => c.copyWith(
+        refusal: Refusal(failure: RouteFailure.misconfigured, lastWorked: lastWorked),
+      ),
+    );
+    if (container.throwaway) return;
+    if (state.viewedSiteId != siteId) _drop(siteId);
+    try {
+      await _engine.close(siteId);
+    } catch (error) {
+      debugPrint('close of $siteId after a failed open failed: $error');
+    }
   }
 
   void _drop(String siteId) {

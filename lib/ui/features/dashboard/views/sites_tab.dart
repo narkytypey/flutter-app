@@ -165,7 +165,9 @@ class _SitesTabState extends ConsumerState<SitesTab> {
   Future<void> _addSite(String? workspaceId) async {
     final workspaces = await ref.read(workspacesProvider.future);
     final route = await ref.read(defaultRouteProvider.future);
-    if (!mounted) return;
+    // A vault always has a workspace (`ensureWorkspace`); a form with none
+    // could never save.
+    if (!mounted || workspaces.isEmpty) return;
     await Navigator.push(context, MaterialPageRoute<void>(
       builder: (formContext) => AddSiteScreen(
         workspaces: workspaces,

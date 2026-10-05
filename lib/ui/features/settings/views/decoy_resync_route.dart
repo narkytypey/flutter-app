@@ -60,6 +60,8 @@ class _DecoyResyncRouteState extends ConsumerState<DecoyResyncRoute> {
       filled: _pin.value.filled,
       error: _error,
       onKey: (key) {
+        // A PIN is still being checked: LockController ignores keys.
+        if (_pin.busy) return;
         if (_error) setState(() => _error = false);
         _pin.onKey(key);
       },
