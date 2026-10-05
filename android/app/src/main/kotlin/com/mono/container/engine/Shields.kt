@@ -11,7 +11,18 @@ import android.webkit.WebView
  */
 internal const val WEB_RTC_BLOCK_JS =
     "delete window.RTCPeerConnection;" +
-    "delete window.webkitRTCPeerConnection;"
+    "delete window.webkitRTCPeerConnection;" +
+    // A same-origin child frame has its own constructors, and whether a
+    // document-start script runs in a frame's initial about:blank document is
+    // not promised. So a frame's window is stripped as the page first reaches
+    // it through `contentWindow`/`contentDocument`. `window.frames[i]` cannot
+    // be hooked, so this narrows the gap; it is not proven closed on a device.
+    "(function(){var s=function(w){try{if(w){delete w.RTCPeerConnection;delete w.webkitRTCPeerConnection;}}catch(e){}};" +
+    "[window.HTMLIFrameElement,window.HTMLFrameElement,window.HTMLObjectElement].forEach(function(C){" +
+    "if(!C)return;var P=C.prototype;['contentWindow','contentDocument'].forEach(function(k){" +
+    "var d=Object.getOwnPropertyDescriptor(P,k);if(!d||!d.get||!d.configurable)return;" +
+    "Object.defineProperty(P,k,{configurable:true,enumerable:d.enumerable,get:function(){" +
+    "var v=d.get.call(this);s(k==='contentWindow'?v:(v&&v.defaultView));return v;}});});});})();"
 
 /**
  * Built-in Tor spec §10 (accepted leak a2): a Tor page's dns-prefetch hints

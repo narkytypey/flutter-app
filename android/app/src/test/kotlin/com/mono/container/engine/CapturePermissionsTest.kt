@@ -44,4 +44,11 @@ class CapturePermissionsTest {
         assertTrue(WEB_RTC_BLOCK_JS.contains("delete window.webkitRTCPeerConnection"))
         assertFalse(WEB_RTC_BLOCK_JS.contains("getUserMedia"))
     }
+
+    @Test fun `block WebRTC also strips a child frame's window as the page reaches it`() {
+        assertTrue(WEB_RTC_BLOCK_JS.contains("HTMLIFrameElement"))
+        assertTrue(WEB_RTC_BLOCK_JS.contains("'contentWindow','contentDocument'"))
+        // The hook keeps the platform's own getter: it never replaces a frame.
+        assertTrue(WEB_RTC_BLOCK_JS.contains("d.get.call(this)"))
+    }
 }
