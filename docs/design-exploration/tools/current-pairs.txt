@@ -1,0 +1,42 @@
+textPrimary on bg|#E8E9E7|#0F1113
+textPrimary on sheet|#E8E9E7|#141719
+textSecondary on bg|#D7DCDA|#0F1113
+textSecondary on button (PillButton neutral)|#D7DCDA|#1C2124
+textTertiary on bg (rowTitleIdle)|#B9BFBD|#0F1113
+textMuted on bg (bodyMuted, values)|#8A918F|#0F1113
+textMuted on sheet|#8A918F|#141719
+textMuted on surface|#8A918F|#15181B
+textFaint on bg (meta, sectionLabel, subtitles)|#6E7573|#0F1113
+textFaint on sheet|#6E7573|#141719
+textFaint on surface|#6E7573|#15181B
+textFaint on footer|#6E7573|#111417
+textDim on bg (metaIdle)|#5F6664|#0F1113
+textDim on button (disabled pill label)|#5F6664|#1C2124
+textDisabled on bg|#4A5150|#0F1113
+tabInactive on footer|#767D7B|#111417
+pillText on button (address pill host)|#A9B0AE|#1C2124
+pillText on surface|#A9B0AE|#15181B
+monogramText on monogramOpen|#C7CECC|#20252A
+textMuted on raised (idle monogram)|#8A918F|#181B1E
+jade on bg (sectionLabelLive, live text)|#7FC8A9|#0F1113
+jadeCode on surface (code)|#9FD8C0|#15181B
+bg on jade (primary pill label)|#0F1113|#7FC8A9
+danger on bg|#D66A5A|#0F1113
+danger on surface (SheetRow danger)|#D66A5A|#15181B
+danger on dangerSurface|#D66A5A|#241C1D
+dangerMuted on bg (pill sublabel)|#8A6A62|#0F1113
+warning on bg|#D6A45B|#0F1113
+readerBody on bgReader|#CFC8BC|#12100D
+readerMuted on bgReader|#8A857C|#12100D
+readerHost on bgReader|#7C776E|#12100D
+# non-text (WCAG 1.4.11, 3:1)
+icon on bg (non-text)|#9AA1A0|#0F1113|3
+chevron on bg (non-text)|#7E8583|#0F1113|3
+trackOff toggle vs bg (non-text)|#232729|#0F1113|3
+knobOff vs trackOff (non-text)|#4A5150|#232729|3
+pinEmpty dot vs bg (non-text)|#3A403E|#0F1113|3
+idleDot vs bg (non-text)|#3E4644|#0F1113|3
+StatusRail idle line09 vs bg (non-text)|#FFFFFF17|#0F1113|3
+keypad key surface vs bg (non-text)|#15181B|#0F1113|3
+hairline line06 vs bg (decorative)|#FFFFFF0F|#0F1113|3
+jade toggle on vs bg (non-text)|#7FC8A9|#0F1113|3

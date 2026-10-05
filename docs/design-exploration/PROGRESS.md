@@ -21,8 +21,13 @@ Phase 1: run the web research (market share, majors, privacy peers, craft outlie
 ## Toolchain
 
 Checked 2026-10-05T22:03Z by fire-cd6e6b: `flutter` is not on PATH, no
-`ANDROID_HOME`/`ANDROID_SDK_ROOT`, Java present (`/usr/bin/java`). Phase 8
-will try to install the Flutter SDK before deciding; see below once tried.
+`ANDROID_HOME`/`ANDROID_SDK_ROOT`, Java present (`/usr/bin/java`).
+Installed Flutter 3.47.2 (the version `.github/workflows/dart.yml` pins) from
+storage.googleapis.com into `/opt/fl/flutter` (not persistent: a later fire
+must re-download it, ~4 min:
+`curl -sSfL https://storage.googleapis.com/flutter_infra_release/releases/stable/linux/flutter_linux_3.47.2-stable.tar.xz | tar xJ -C /opt/fl`).
+Baseline on `main` @ d0edb1c: `flutter analyze` clean, `flutter test` **1057/1057**.
+No Android SDK yet; `flutter build apk --debug` not attempted.
 
 ## Directions (one-line theses)
 
