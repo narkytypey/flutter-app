@@ -64,15 +64,19 @@ class AppearanceTab extends StatelessWidget {
           onChanged: onForceDarkChanged,
         ),
         const SizedBox(height: 18),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Expanded(
-              child: Text('Open in reader mode', style: ui(size: 14, color: C.textPrimary)),
-            ),
-            const SizedBox(width: 12),
-            _switch(value: openInReader, onChanged: onOpenInReaderChanged),
-          ],
+        _rowTap(
+          value: openInReader,
+          onChanged: onOpenInReaderChanged,
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Expanded(
+                child: Text('Open in reader mode', style: ui(size: 14, color: C.textPrimary)),
+              ),
+              const SizedBox(width: 12),
+              _switch(value: openInReader, onChanged: onOpenInReaderChanged),
+            ],
+          ),
         ),
         const SizedBox(height: 18),
         Row(
@@ -134,21 +138,38 @@ class AppearanceTab extends StatelessWidget {
     required bool value,
     required ValueChanged<bool> onChanged,
   }) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(title, style: ui(size: 14, color: C.textPrimary)),
-              const SizedBox(height: 3),
-              Text(subtitle, style: ui(size: 11, color: C.textFaint)),
-            ],
+    return _rowTap(
+      value: value,
+      onChanged: onChanged,
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(title, style: ui(size: 14, color: C.textPrimary)),
+                const SizedBox(height: 3),
+                Text(subtitle, style: ui(size: 11, color: C.textFaint)),
+              ],
+            ),
           ),
-        ),
-        _switch(value: value, onChanged: onChanged),
-      ],
+          _switch(value: value, onChanged: onChanged),
+        ],
+      ),
+    );
+  }
+
+  /// A tap anywhere on a switch's row toggles it, not only on the switch.
+  Widget _rowTap({
+    required bool value,
+    required ValueChanged<bool> onChanged,
+    required Widget child,
+  }) {
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: () => onChanged(!value),
+      child: child,
     );
   }
 

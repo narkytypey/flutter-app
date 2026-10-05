@@ -83,7 +83,7 @@ class PrivacyTab extends StatelessWidget {
   }
 
   Widget _bareRow(String title, bool value, ValueChanged<bool> onChanged) {
-    return Container(
+    return _rowTap(value, onChanged, Container(
       padding: const EdgeInsets.symmetric(vertical: 14),
       decoration: const BoxDecoration(border: Border(top: BorderSide(color: C.line06))),
       child: Row(
@@ -93,7 +93,7 @@ class PrivacyTab extends StatelessWidget {
           _switch(value: value, onChanged: onChanged),
         ],
       ),
-    );
+    ));
   }
 
   Widget _detailedRow({
@@ -102,7 +102,7 @@ class PrivacyTab extends StatelessWidget {
     required bool value,
     required ValueChanged<bool> onChanged,
   }) {
-    return Container(
+    return _rowTap(value, onChanged, Container(
       padding: const EdgeInsets.symmetric(vertical: 14),
       decoration: const BoxDecoration(border: Border(top: BorderSide(color: C.line06))),
       child: Row(
@@ -121,6 +121,15 @@ class PrivacyTab extends StatelessWidget {
           _switch(value: value, onChanged: onChanged),
         ],
       ),
+    ));
+  }
+
+  /// A tap anywhere on a switch's row toggles it, not only on the switch.
+  Widget _rowTap(bool value, ValueChanged<bool> onChanged, Widget child) {
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: () => onChanged(!value),
+      child: child,
     );
   }
 

@@ -27,47 +27,53 @@ class FormToggleRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(title, style: ui(size: 14, color: C.textPrimary)),
-              if (subtitle != null) ...[
-                const SizedBox(height: 3),
-                Text(subtitle!, style: ui(size: 11, color: C.textFaint)),
+    // A tap anywhere on the row toggles it, not only on the switch; an inert
+    // switch's row does nothing.
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: onChanged == null ? null : () => onChanged!(!value),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(title, style: ui(size: 14, color: C.textPrimary)),
+                if (subtitle != null) ...[
+                  const SizedBox(height: 3),
+                  Text(subtitle!, style: ui(size: 11, color: C.textFaint)),
+                ],
               ],
-            ],
+            ),
           ),
-        ),
-        GestureDetector(
-          key: switchKey,
-          onTap: onChanged == null ? null : () => onChanged!(!value),
-          child: Opacity(
-            opacity: onChanged == null ? 0.4 : 1,
-            child: Container(
-              width: 44,
-              height: 26,
-              padding: const EdgeInsets.symmetric(horizontal: 3),
-              alignment: value ? Alignment.centerRight : Alignment.centerLeft,
-              decoration: BoxDecoration(
-                color: value ? C.jade : C.trackOff,
-                borderRadius: BorderRadius.circular(20),
-              ),
+          GestureDetector(
+            key: switchKey,
+            onTap: onChanged == null ? null : () => onChanged!(!value),
+            child: Opacity(
+              opacity: onChanged == null ? 0.4 : 1,
               child: Container(
-                width: 20,
-                height: 20,
+                width: 44,
+                height: 26,
+                padding: const EdgeInsets.symmetric(horizontal: 3),
+                alignment: value ? Alignment.centerRight : Alignment.centerLeft,
                 decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: value ? C.bg : C.knobOff,
+                  color: value ? C.jade : C.trackOff,
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Container(
+                  width: 20,
+                  height: 20,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: value ? C.bg : C.knobOff,
+                  ),
                 ),
               ),
             ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 }

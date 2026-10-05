@@ -149,6 +149,53 @@ void main() {
     expect(saved?.workspaceId, 'ws-5');
   });
 
+  testWidgets("a tap on a switch row's label toggles it, on every tab", (tester) async {
+    // Only the switch itself toggled (seen on the emulator 2026-10-05).
+    Site? saved;
+    await _pump(tester, onSave: (s) => saved = s);
+    await tester.enterText(find.byKey(const Key('add-site-address')), 'https://forum.example.com');
+    await tester.enterText(find.byKey(const Key('add-site-name')), 'Forum');
+
+    Future<void> tapLabels(String tab, List<String> labels) async {
+      await tester.tap(find.text(tab));
+      await tester.pumpAndSettle();
+      for (final label in labels) {
+        await tester.ensureVisible(find.text(label));
+        await tester.tap(find.text(label));
+        await tester.pump();
+      }
+    }
+
+    await tapLabels('Network', ['Route through proxy', 'Block WebRTC', 'Block trackers and ads']);
+    await tapLabels('Privacy', [
+      'Camera',
+      'Microphone',
+      'Location',
+      'Clipboard',
+      'Anti-fingerprinting',
+      'Ask for PIN before opening',
+      'Show in decoy vault',
+    ]);
+    await tapLabels('Appearance', ['Force dark mode', 'Open in reader mode']);
+
+    await tester.tap(find.text('Save'));
+    await tester.pump();
+
+    expect(saved, isNotNull);
+    expect(saved!.proxyMode, isNot(ProxyMode.direct));
+    expect(saved!.blockWebRtc, isFalse);
+    expect(saved!.blockTrackers, isFalse);
+    expect(saved!.allowCamera, isTrue);
+    expect(saved!.allowMicrophone, isTrue);
+    expect(saved!.allowLocation, isTrue);
+    expect(saved!.allowClipboard, isTrue);
+    expect(saved!.antiFingerprinting, isFalse);
+    expect(saved!.requirePin, isTrue);
+    expect(saved!.showInDecoy, isTrue);
+    expect(saved!.forceDark, isFalse);
+    expect(saved!.openInReader, isTrue);
+  });
+
   testWidgets('saving builds a Site with the entered fields and shield defaults',
       (tester) async {
     Site? saved;

@@ -97,6 +97,11 @@ void main() {
       final row = _row(tester, 'Block WebRTC');
       expect(row.value, isTrue);
       expect(row.onChanged, isNull);
+
+      // A tap on its label leaves it on, too.
+      await tester.tap(find.text('Block WebRTC'));
+      await tester.pump();
+      expect(_row(tester, 'Block WebRTC').value, isTrue);
     });
 
     // Spec 5.3, plan D7.

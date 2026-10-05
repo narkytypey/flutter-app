@@ -94,6 +94,22 @@ void main() {
     expect(result!.showInDecoy, isTrue);
   });
 
+  testWidgets("a tap on a toggle row's label toggles it", (tester) async {
+    // Only the switch itself toggled (seen on the emulator 2026-10-05).
+    WorkspaceFormResult? result;
+    await tester.pumpWidget(host(onSave: (r) => result = r, initialName: 'X'));
+
+    for (final label in ['Ask for PIN to enter', 'Show in decoy vault']) {
+      await tester.ensureVisible(find.text(label));
+      await tester.tap(find.text(label));
+      await tester.pump();
+    }
+    await tester.tap(find.text('Save'));
+
+    expect(result!.requirePin, isTrue);
+    expect(result!.showInDecoy, isTrue);
+  });
+
   testWidgets('the × closes without saving', (tester) async {
     var saves = 0;
     var closes = 0;
