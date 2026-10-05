@@ -33,6 +33,22 @@ void main() {
     expect(advanced, 1);
   });
 
+  testWidgets("step 2's decoy switch also toggles from its label", (tester) async {
+    // Only the switch itself toggled (seen on the emulator 2026-10-02).
+    final seen = <bool>[];
+    await tester.pumpWidget(MaterialApp(
+      home: SetupDecoyScreen(
+        enabled: false,
+        onToggle: seen.add,
+        onContinue: () {},
+        onSkip: () {},
+      ),
+    ));
+
+    await tester.tap(find.text('Set up a decoy PIN'));
+    expect(seen, [true]);
+  });
+
   testWidgets('step 2 explains the decoy once, in plain words', (tester) async {
     await tester.pumpWidget(MaterialApp(
       home: SetupDecoyScreen(

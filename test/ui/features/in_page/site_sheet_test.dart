@@ -18,6 +18,8 @@ void main() {
     String securityLevelValue = 'Standard · default',
     VoidCallback? onSecurityLevel,
     Map<BlockedCategory, int> categoryCounts = const {},
+    int blockedCount = 164,
+    VoidCallback? onProxy,
     bool blockWebRtc = true,
     bool lockWebRtc = false,
     bool blockTrackers = true,
@@ -35,8 +37,9 @@ void main() {
           name: 'Forum',
           subtitle: 'forum.example.com · Personal',
           proxyDescriptor: 'SOCKS5 · 127.0.0.1:9050',
+          onProxy: onProxy ?? () {},
           cookiesDescriptor: 'Wipe on exit',
-          blockedCount: 164,
+          blockedCount: blockedCount,
           forceDark: forceDark,
           desktopView: desktopView,
           onEdit: onEdit ?? () {},
@@ -58,6 +61,21 @@ void main() {
       ),
     );
   }
+
+  // User's ruling 2026-10-05: the route can change while browsing.
+  testWidgets('a tap on the Proxy row reports it', (tester) async {
+    var taps = 0;
+    await tester.pumpWidget(host(onProxy: () => taps++));
+    await tester.tap(find.text('Proxy'));
+    await tester.tap(find.text('SOCKS5 · 127.0.0.1:9050'));
+    expect(taps, 2);
+  });
+
+  // User's ruling 2026-10-05: one request reads singular.
+  testWidgets('one blocked request reads "1 request"', (tester) async {
+    await tester.pumpWidget(host(blockedCount: 1));
+    expect(find.text('1 request'), findsOneWidget);
+  });
 
   // Built-in Tor spec 5.4.
   testWidgets('a locked Block WebRTC is drawn on and inert', (tester) async {
@@ -127,6 +145,45 @@ void main() {
 
     expect(forceDarkSeen, isFalse); // was on, tapped once -> off
     expect(desktopViewSeen, isTrue); // was off, tapped once -> on
+  });
+
+  testWidgets("a tap on a switch row's label toggles it", (tester) async {
+    // Only the switch itself toggled (seen on the emulator 2026-10-05).
+    final seen = <String, bool>{};
+    await tester.pumpWidget(host(
+      onBlockWebRtcChanged: (v) => seen['webrtc'] = v,
+      onBlockTrackersChanged: (v) => seen['trackers'] = v,
+      onAntiFingerprintingChanged: (v) => seen['fingerprinting'] = v,
+      onForceDarkChanged: (v) => seen['dark'] = v,
+      onDesktopViewChanged: (v) => seen['desktop'] = v,
+    ));
+
+    for (final label in [
+      'Block WebRTC',
+      'Block trackers and ads',
+      'Anti-fingerprinting',
+      'Force dark mode',
+      'Desktop view',
+    ]) {
+      await tester.ensureVisible(find.text(label));
+      await tester.tap(find.text(label));
+    }
+
+    expect(seen, {
+      'webrtc': false,
+      'trackers': false,
+      'fingerprinting': false,
+      'dark': false,
+      'desktop': true,
+    });
+  });
+
+  testWidgets("a locked Block WebRTC's label does nothing", (tester) async {
+    await tester.pumpWidget(host(blockWebRtc: true, lockWebRtc: true));
+    await tester.ensureVisible(find.text('Block WebRTC'));
+    await tester.tap(find.text('Block WebRTC'));
+    await tester.pump();
+    expect(tester.takeException(), isNull);
   });
 
   testWidgets('Close and wipe reports a tap', (tester) async {

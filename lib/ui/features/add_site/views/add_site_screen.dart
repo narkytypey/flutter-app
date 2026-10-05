@@ -28,6 +28,8 @@ class AddSiteScreen extends StatefulWidget {
     this.initialTab = 0,
     this.initialWorkspaceId,
     this.defaultRoute = ProxyRoute.direct,
+    this.rulesMatchedToday,
+    this.savesAsNew = false,
   });
 
   final Site? initial;
@@ -47,6 +49,14 @@ class AddSiteScreen extends StatefulWidget {
   /// Where a new site's Network tab starts (spec §6): the vault's default
   /// route. An edited site shows its own.
   final ProxyRoute defaultRoute;
+
+  /// A saved site's filter-list blocks today, for the Network tab's
+  /// `Block trackers and ads`; null shows no count (a new site, a throwaway).
+  final int? rulesMatchedToday;
+
+  /// True when [initial] is a throwaway being saved as a site: the form adds
+  /// one, so it reads `Add site`.
+  final bool savesAsNew;
 
   @override
   State<AddSiteScreen> createState() => _AddSiteScreenState();
@@ -79,6 +89,14 @@ class _AddSiteScreenState extends State<AddSiteScreen> {
 
   /// The keyboard is up on ADDRESS when a new site's form opens (spec §6).
   final _addressFocus = FocusNode();
+
+  /// `Add site`, or the edited site's stored name; its host if that is blank.
+  String _title() {
+    final site = widget.initial;
+    if (site == null || widget.savesAsNew) return 'Add site';
+    if (site.name.trim().isNotEmpty) return site.name;
+    return Uri.tryParse(site.url)?.host ?? site.url;
+  }
 
   String _startWorkspace() {
     for (final workspace in widget.workspaces) {
@@ -210,7 +228,19 @@ class _AddSiteScreenState extends State<AddSiteScreen> {
                     size: 24,
                     iconSize: 20,
                   ),
-                  Text('Add site', style: ui(size: 15, weight: 600, color: C.textPrimary)),
+                  // An edited site's form is titled with its name (user's
+                  // ruling 2026-10-05); only a new site's reads `Add site`.
+                  Flexible(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 12),
+                      child: Text(
+                        _title(),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: ui(size: 15, weight: 600, color: C.textPrimary),
+                      ),
+                    ),
+                  ),
                   // Dimmed and inert, like an inert toggle, while the address
                   // is not one the engine would load.
                   ListenableBuilder(
@@ -254,13 +284,20 @@ class _AddSiteScreenState extends State<AddSiteScreen> {
     return GestureDetector(
       onTap: () => setState(() => _tabIndex = index),
       child: Container(
-        padding: const EdgeInsets.fromLTRB(0, 11, 0, 10),
+        padding: const EdgeInsets.fromLTRB(4, 11, 4, 10),
         decoration: BoxDecoration(
           border: Border(bottom: BorderSide(color: active ? C.jade : Colors.transparent, width: 2)),
         ),
         alignment: Alignment.center,
-        child: Text(_tabs[index],
-            style: ui(size: 12.5, weight: 500, color: active ? C.textPrimary : C.tabInactive)),
+        // One line, shrunk to fit at a large text scale rather than broken
+        // mid-word ("Networ / k").
+        child: FittedBox(
+          fit: BoxFit.scaleDown,
+          child: Text(_tabs[index],
+              maxLines: 1,
+              softWrap: false,
+              style: ui(size: 12.5, weight: 500, color: active ? C.textPrimary : C.tabInactive)),
+        ),
       ),
     );
   }
@@ -293,6 +330,7 @@ class _AddSiteScreenState extends State<AddSiteScreen> {
           onBlockWebRtcChanged: (v) => setState(() => _blockWebRtc = v),
           blockTrackers: _blockTrackers,
           onBlockTrackersChanged: (v) => setState(() => _blockTrackers = v),
+          rulesMatchedToday: widget.rulesMatchedToday,
         ),
       2 => PrivacyTab(
           allowCamera: _allowCamera,

@@ -20,6 +20,7 @@ import '../../../../domain/models/relative_age.dart';
 import '../../../../domain/models/route_decision.dart' show refusalMessage;
 import '../../../../domain/models/permissions.dart' show PermissionDecision;
 import '../../../../domain/models/permissions_in_use.dart';
+import '../../../../domain/models/proxy_route.dart';
 import '../../../../domain/models/search_engine.dart';
 import '../../../../domain/models/security_level.dart';
 import '../../../../domain/models/site.dart';
@@ -229,6 +230,8 @@ class _ContainerRouteState extends ConsumerState<ContainerRoute> {
       backgroundColor: Colors.transparent,
       isDismissible: false,
       isScrollControlled: true,
+      // Kept below the status bar on a short screen or in landscape.
+      useSafeArea: true,
       builder: (sheetContext) => PermissionRequestSheet(
         host: request.host,
         kind: request.kind,
@@ -256,6 +259,8 @@ class _ContainerRouteState extends ConsumerState<ContainerRoute> {
       context: context,
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
+      // Kept below the status bar on a short screen or in landscape.
+      useSafeArea: true,
       builder: (sheetContext) => HeldDownloadSheet(
         download: event.download,
         onDecision: (decision) {
@@ -311,6 +316,8 @@ class _ContainerRouteState extends ConsumerState<ContainerRoute> {
       backgroundColor: Colors.transparent,
       // `6c` scrolls, and may be taller than the default 9/16 of the screen.
       isScrollControlled: true,
+      // Kept below the status bar on a short screen or in landscape.
+      useSafeArea: true,
       builder: (sheetContext) => Consumer(
         builder: (_, ref, __) {
           final now = ref.watch(openContainersProvider).byId(siteId);
@@ -355,6 +362,16 @@ class _ContainerRouteState extends ConsumerState<ContainerRoute> {
                 _saveAsSite();
               } else {
                 _editSite();
+              }
+            },
+            onProxy: () {
+              Navigator.pop(sheetContext);
+              if (throwaway) {
+                // A throwaway has no form of its own: as `8b`'s, it is saved
+                // as a site.
+                _changeProxySettings();
+              } else {
+                _changeRoute();
               }
             },
             onForceDarkChanged: (value) => save(site.copyWith(forceDark: value)),
@@ -424,6 +441,50 @@ class _ContainerRouteState extends ConsumerState<ContainerRoute> {
     );
   }
 
+  /// `8c`'s Reconnect: the overlay goes, and the page shown reloads (user's
+  /// ruling 2026-10-05), so it does not stay on what the dropped tunnel left
+  /// it showing, such as Chromium's error page.
+  void _reconnect(String siteId) {
+    _registry.clearTunnelDropped(siteId);
+    final pageId = _state.byId(siteId)?.viewedPageId;
+    if (pageId != null) unawaited(_engine.reload(pageId));
+  }
+
+  /// `6c`'s Proxy row on a saved site (user's ruling 2026-10-05): the site's
+  /// form, on its Network tab. A new route reopens the container in place at
+  /// the page it shows, on that route and unwiped, as `6c`'s switches do. A
+  /// changed cookie policy goes through [OpenContainers.siteSaved] as Edit's
+  /// does, since moving to wipe on exit rotates the profile; anything else
+  /// waits for the next open.
+  Future<void> _changeRoute() async {
+    final workspaces = await ref.read(workspacesProvider.future);
+    if (!mounted) return;
+    final viewed = _state.viewed;
+    if (viewed == null || viewed.throwaway) return;
+    final registry = _registry;
+    final sites = ref.read(siteRepositoryProvider);
+    final before = viewed.opened;
+    await Navigator.push(context, MaterialPageRoute<void>(
+      builder: (formContext) => AddSiteScreen(
+        initial: viewed.site,
+        workspaces: workspaces,
+        initialTab: 1,
+        rulesMatchedToday: ref.read(blockedTallyProvider).rulesMatched(viewed.siteId),
+        onSave: (updated) async {
+          await sites.upsert(updated);
+          sitesChangedIn(_providers);
+          if (formContext.mounted) Navigator.pop(formContext);
+          if (updated.cookiePolicy == before.cookiePolicy &&
+              ProxyRoute.of(updated) != ProxyRoute.of(before)) {
+            await registry.reopenInPlace(updated);
+          } else {
+            await registry.siteSaved(updated);
+          }
+        },
+      ),
+    ));
+  }
+
   /// `8b`'s "Change proxy settings": the site's form, on its Network tab.
   /// Saving writes the site — or saves a throwaway as one, as Edit does — and
   /// opens it again in place, as saved. Leaving the form without saving comes
@@ -442,6 +503,9 @@ class _ContainerRouteState extends ConsumerState<ContainerRoute> {
         initial: throwaway ? _throwawayAsSite(viewed) : viewed.site,
         workspaces: workspaces,
         initialTab: 1,
+        savesAsNew: throwaway,
+        rulesMatchedToday:
+            throwaway ? null : ref.read(blockedTallyProvider).rulesMatched(siteId),
         onSave: (updated) async {
           var reopened = false;
           if (throwaway) {
@@ -480,6 +544,7 @@ class _ContainerRouteState extends ConsumerState<ContainerRoute> {
       builder: (formContext) => AddSiteScreen(
         initial: viewed.site,
         workspaces: workspaces,
+        rulesMatchedToday: ref.read(blockedTallyProvider).rulesMatched(viewed.siteId),
         onSave: (updated) async {
           await sites.upsert(updated);
           await registry.siteSaved(updated);
@@ -506,6 +571,7 @@ class _ContainerRouteState extends ConsumerState<ContainerRoute> {
       builder: (formContext) => AddSiteScreen(
         initial: _throwawayAsSite(viewed),
         workspaces: workspaces,
+        savesAsNew: true,
         onSave: (site) async {
           await _keepAsSite(site);
           if (formContext.mounted) Navigator.pop(formContext);
@@ -855,7 +921,7 @@ class _ContainerRouteState extends ConsumerState<ContainerRoute> {
         TunnelDroppedScreen(
           host: opened.host,
           droppedAgoLabel: 'just now',
-          onReconnect: () => _registry.clearTunnelDropped(siteId),
+          onReconnect: () => _reconnect(siteId),
           onCloseAndWipe: () => _closeAndWipe(siteId),
         ),
       // The checklist covers the page rather than replacing it. The native

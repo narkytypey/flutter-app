@@ -286,23 +286,28 @@ class _WorkspaceFormScreenState extends State<WorkspaceFormScreen> {
     required bool value,
     required ValueChanged<bool> onChanged,
   }) {
-    return Padding(
-      padding: const EdgeInsets.only(top: 16),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(title, style: ui(size: 14, color: C.textPrimary)),
-                const SizedBox(height: 3),
-                Text(subtitle, style: ui(size: 11, color: C.textFaint)),
-              ],
+    // A tap anywhere on the row toggles it, not only on the switch.
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: () => onChanged(!value),
+      child: Padding(
+        padding: const EdgeInsets.only(top: 16),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(title, style: ui(size: 14, color: C.textPrimary)),
+                  const SizedBox(height: 3),
+                  Text(subtitle, style: ui(size: 11, color: C.textFaint)),
+                ],
+              ),
             ),
-          ),
-          AppToggle(value: value, onChanged: onChanged),
-        ],
+            AppToggle(value: value, onChanged: onChanged),
+          ],
+        ),
       ),
     );
   }

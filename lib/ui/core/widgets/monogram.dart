@@ -31,12 +31,22 @@ class Monogram extends StatelessWidget {
         color: open ? C.monogramOpen : C.raised,
         borderRadius: BorderRadius.circular(radius),
       ),
-      child: Text(
-        text,
-        style: ui(
-          size: fontSize,
-          weight: 600,
-          color: open ? C.monogramText : C.textMuted,
+      // Grows with the text scale until it fills the square, then stops:
+      // at a large scale two letters would otherwise be clipped to one.
+      child: Padding(
+        padding: EdgeInsets.all(size * 0.12),
+        child: FittedBox(
+          fit: BoxFit.scaleDown,
+          child: Text(
+            text,
+            maxLines: 1,
+            softWrap: false,
+            style: ui(
+              size: fontSize,
+              weight: 600,
+              color: open ? C.monogramText : C.textMuted,
+            ),
+          ),
         ),
       ),
     );

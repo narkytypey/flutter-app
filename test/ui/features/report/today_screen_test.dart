@@ -73,4 +73,14 @@ void main() {
     expect(find.text('Today'), findsOneWidget);
     expect(findIconTap('Back'), findsNothing);
   });
+
+  // User's ruling 2026-10-05: one request and one site read singular.
+  testWidgets('one request on one site reads singular', (tester) async {
+    const one = BlockedTally(
+      categories: [CategoryTally(category: BlockedCategory.trackers, count: 1)],
+      sites: [SiteTally(monogram: 'Fr', name: 'Forum', count: 1)],
+    );
+    await tester.pumpWidget(MaterialApp(home: TodayScreen(tally: one, onBack: () {})));
+    expect(find.text('request blocked across 1 site'), findsOneWidget);
+  });
 }

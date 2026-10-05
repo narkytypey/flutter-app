@@ -43,7 +43,8 @@ class PanicScreen extends StatelessWidget {
               Text('Everything closed', style: ui(size: 18, weight: 600)),
               const SizedBox(height: 10),
               Text(
-                '${report.sessionsDestroyed} sessions destroyed, temporary '
+                '${report.sessionsDestroyed} '
+                '${report.sessionsDestroyed == 1 ? 'session' : 'sessions'} destroyed, temporary '
                 'storage wiped, app locked.',
                 textAlign: TextAlign.center,
                 style: ui(size: 13, color: C.textMuted, height: 1.6),

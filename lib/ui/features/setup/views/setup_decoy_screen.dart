@@ -58,20 +58,26 @@ class SetupDecoyScreen extends StatelessWidget {
                       clipBehavior: Clip.antiAlias,
                       child: Column(
                         children: [
-                          ColoredBox(
-                            color: C.surface,
-                            child: Padding(
-                              padding: const EdgeInsets.all(14),
-                              child: Row(
-                                mainAxisAlignment:
-                                    MainAxisAlignment.spaceBetween,
-                                children: [
-                                  Expanded(
-                                    child: Text('Set up a decoy PIN', style: T.body),
-                                  ),
-                                  const SizedBox(width: 12),
-                                  AppToggle(value: enabled, onChanged: onToggle),
-                                ],
+                          // A tap anywhere on the row toggles it, not only
+                          // on the switch.
+                          GestureDetector(
+                            behavior: HitTestBehavior.opaque,
+                            onTap: () => onToggle(!enabled),
+                            child: ColoredBox(
+                              color: C.surface,
+                              child: Padding(
+                                padding: const EdgeInsets.all(14),
+                                child: Row(
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Expanded(
+                                      child: Text('Set up a decoy PIN', style: T.body),
+                                    ),
+                                    const SizedBox(width: 12),
+                                    AppToggle(value: enabled, onChanged: onToggle),
+                                  ],
+                                ),
                               ),
                             ),
                           ),

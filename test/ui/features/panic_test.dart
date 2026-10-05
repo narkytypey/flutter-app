@@ -46,4 +46,15 @@ void main() {
     expect(find.textContaining('Are you sure'), findsNothing);
     expect(find.text('Unlock'), findsOneWidget);
   });
+
+  // User's ruling 2026-10-05: one session reads singular.
+  testWidgets('one destroyed session reads "1 session destroyed"', (tester) async {
+    await tester.pumpWidget(MaterialApp(
+      home: PanicScreen(report: const PanicReport(sessionsDestroyed: 1), onUnlock: () {}),
+    ));
+    expect(
+      find.text('1 session destroyed, temporary storage wiped, app locked.'),
+      findsOneWidget,
+    );
+  });
 }

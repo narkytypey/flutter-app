@@ -143,6 +143,24 @@ void main() {
     );
   });
 
+  // The sentence is only true of a wipe-on-exit workspace (user's ruling
+  // 2026-10-05).
+  testWidgets('an empty workspace that keeps storage shows only its title', (tester) async {
+    await _pump(
+      tester,
+      DashboardView.from(
+        workspace: const Workspace(
+            id: 'ws', name: 'Personal', markerIndex: 0, storageRule: StorageRule.keep),
+        sites: const [],
+        openSiteIds: const {},
+        now: _now,
+      ),
+    );
+
+    expect(find.text('Nothing here yet'), findsOneWidget);
+    expect(find.textContaining('leave nothing behind'), findsNothing);
+  });
+
   testWidgets("a cover takes the list's place: the search field's suggestions", (tester) async {
     await _pump(tester, _personal(), cover: const Text('suggestions'));
 

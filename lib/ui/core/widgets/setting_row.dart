@@ -54,7 +54,10 @@ class SettingRow extends StatelessWidget {
               if (trailing != null) trailing!,
               if (value != null) ...[
                 const SizedBox(width: 12),
+                // Tight, so the end-aligned value sits at the row's right edge
+                // (the canvas's space-between); loose, it began mid-row.
                 Flexible(
+                  fit: FlexFit.tight,
                   child: Text(value!,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,

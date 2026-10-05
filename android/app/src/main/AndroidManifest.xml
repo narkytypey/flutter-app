@@ -14,11 +14,15 @@
     <uses-feature android:name="android.hardware.microphone" android:required="false"/>
     <!-- usesCleartextTraffic: the address bar and the site form accept
          http:// (user's ruling 2026-10-02: allow them). Without it, targetSdk
-         28+ makes WebView refuse every http:// page before a request leaves. -->
+         28+ makes WebView refuse every http:// page before a request leaves.
+         theme: a page's WebView is made on the application's context, whose
+         theme decides whether "Force dark mode" can darken it; see
+         values/styles.xml. -->
     <application
         android:label="Container"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher"
+        android:theme="@style/NormalTheme"
         android:usesCleartextTraffic="true">
         <activity
             android:name=".MainActivity"

@@ -67,6 +67,23 @@ void main() {
     expect(tally.sites.single.count, 8);
   });
 
+  // `2a`'s "N rules matched today" counts filter-list blocks only.
+  test("a site's rules matched count trackers and ads, not fingerprinting or asks", () async {
+    final engine = FakeContainerEngine();
+    final site = _site('s1');
+    final container = _container(engine, (id) async => id == 's1' ? site : null);
+
+    await engine.open(site);
+    engine.addBlocked('s1', BlockedCategory.trackers, 5);
+    await _settle();
+    engine.addBlocked('s1', BlockedCategory.ads, 2);
+    engine.addBlocked('s1', BlockedCategory.fingerprinting, 9);
+    engine.addBlocked('s1', BlockedCategory.permissionAsks, 1);
+    await _settle();
+
+    expect(container.read(blockedTallyProvider).rulesMatched('s1'), 7);
+  });
+
   // A session whose site is not in the open vault belongs to the other one.
   // Counting it would be an aggregate across both vaults.
   test("a session whose site is not in this vault is not counted at all", () async {

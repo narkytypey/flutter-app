@@ -5,9 +5,7 @@ import '../../../../domain/models/site.dart';
 import 'form_toggle_row.dart';
 import 'route_fields.dart';
 
-/// Spec `2a`, Network tab. `blockedCount` has no live source in this task's
-/// interface (no engine seam is in scope here), so its copy uses the spec's own
-/// example value rather than inventing a parameter nothing feeds yet.
+/// Spec `2a`, Network tab.
 class NetworkTab extends StatelessWidget {
   const NetworkTab({
     super.key,
@@ -25,6 +23,7 @@ class NetworkTab extends StatelessWidget {
     required this.onBlockWebRtcChanged,
     required this.blockTrackers,
     required this.onBlockTrackersChanged,
+    this.rulesMatchedToday,
   });
 
   final bool proxyEnabled;
@@ -41,6 +40,11 @@ class NetworkTab extends StatelessWidget {
   final ValueChanged<bool> onBlockWebRtcChanged;
   final bool blockTrackers;
   final ValueChanged<bool> onBlockTrackersChanged;
+
+  /// The site's filter-list blocks since the app started, from Today's
+  /// in-memory tally; null for a new site, whose subtitle then has no count
+  /// (user's ruling 2026-10-05: the canvas's 42 was an example).
+  final int? rulesMatchedToday;
 
   @override
   Widget build(BuildContext context) {
@@ -71,7 +75,11 @@ class NetworkTab extends StatelessWidget {
         const SizedBox(height: 14),
         FormToggleRow(
           title: 'Block trackers and ads',
-          subtitle: 'Local filter lists · 42 rules matched today',
+          subtitle: switch (rulesMatchedToday) {
+            null => 'Local filter lists',
+            1 => 'Local filter lists · 1 rule matched today',
+            final n => 'Local filter lists · $n rules matched today',
+          },
           value: blockTrackers,
           onChanged: onBlockTrackersChanged,
         ),

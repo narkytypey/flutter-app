@@ -202,9 +202,21 @@ void main() {
     await tester.tap(_icon('Panic'));
 
     expect(_calls, ['site details', 'panic']);
-    // 2b's ‹ and ⟳ have left the top bar.
+    // 2b's ‹ glyph and ⟳ text have left the top bar; reload is a drawn icon.
     expect(find.text('‹'), findsNothing);
     expect(find.text('⟳'), findsNothing);
+  });
+
+  // User's ruling 2026-10-05: reload takes stop's place in the pill.
+  testWidgets('reload sits before the shield while the page is idle', (tester) async {
+    await tester.pumpWidget(_app(_screen(navigation: _nav())));
+    expect(tester.getCenter(_icon('Reload')).dx,
+        lessThan(tester.getCenter(_icon('Site details')).dx));
+    await tester.tap(_icon('Reload'));
+    expect(_calls, ['reload']);
+
+    await tester.pumpWidget(_app(_screen(navigation: _nav(loading: true, progress: 30))));
+    expect(_icon('Reload'), findsNothing);
   });
 
   testWidgets('stop sits before the shield only while the page loads', (tester) async {
@@ -300,6 +312,24 @@ void main() {
       expect(find.byType(SwitcherSheet), findsNothing, reason: call);
       expect(_calls.last, call);
     }
+  });
+
+  // 2026-10-05's responsiveness run: in landscape the menu is taller than the
+  // screen, and ran up under the status bar.
+  testWidgets('in landscape the ☰ menu stays below the status bar', (tester) async {
+    tester.view.physicalSize = const Size(915 * 3, 412 * 3);
+    tester.view.devicePixelRatio = 3;
+    tester.view.padding = const FakeViewPadding(top: 24 * 3);
+    addTearDown(tester.view.reset);
+    await tester.pumpWidget(_app(_screen()));
+    await tester.tap(_icon('Menu'));
+    await tester.pumpAndSettle();
+
+    final sheet = find.descendant(
+      of: find.byType(BrowserMenuSheet),
+      matching: find.byKey(const Key('sheet-surface')),
+    );
+    expect(tester.getRect(sheet).top, greaterThanOrEqualTo(24));
   });
 
   testWidgets('the ☰ menu names this site, and closes itself before each action it reports', (tester) async {

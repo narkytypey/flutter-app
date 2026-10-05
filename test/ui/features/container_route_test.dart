@@ -865,6 +865,8 @@ void main() {
 
       await tester.tap(find.text('Change proxy settings'));
       await tester.pumpAndSettle();
+      // It adds a site, so it reads as adding one.
+      expect(find.text('Add site'), findsOneWidget);
       await tester.tap(find.byKey(const Key('proxy-enabled')));
       await tester.pump();
       engine.openedAsThrowaway.clear();
@@ -964,6 +966,28 @@ void main() {
     await tester.pump();
     await tester.pump();
     expect(find.text('Tunnel dropped'), findsOneWidget);
+  });
+
+  // User's ruling 2026-10-05: Reconnect reloads, so the page does not stay
+  // on whatever the dropped tunnel left it showing (Chromium's error page).
+  testWidgets("8c's Reconnect clears the overlay and reloads the page shown", (tester) async {
+    final engine = FakeContainerEngine();
+    await _pump(tester, engine, _site());
+    await tester.pumpAndSettle();
+    final pageId = _tabs(tester).viewed!.viewedPageId!;
+    engine.emitTunnelDropped(TunnelDroppedEvent(
+      siteId: 's1', host: 'forum.example.com', droppedAt: DateTime(2026, 10, 5),
+    ));
+    await tester.pump();
+    await tester.pump();
+    await tester.pump();
+    expect(engine.reloaded, isEmpty);
+
+    await tester.tap(find.text('Reconnect'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Tunnel dropped'), findsNothing);
+    expect(engine.reloaded, [pageId]);
   });
 
   testWidgets('tapping reader mode with a real article pushes ReaderScreen', (tester) async {
@@ -1294,6 +1318,18 @@ void main() {
     expect(engine.wentBack, ['s1-p1']);
     expect(engine.wentForward, ['s1-p1']);
     expect(engine.stopped, ['s1-p1']);
+  });
+
+  testWidgets("the pill's reload reloads this container's page", (tester) async {
+    final engine = FakeContainerEngine();
+    await _pump(tester, engine, _site());
+    await tester.pumpAndSettle();
+    engine.emitNavigation(const NavigationState(
+      siteId: 's1', pageId: 's1-p1', url: 'https://forum.example.com/t/9',
+    ));
+    await tester.pumpAndSettle();
+    await tester.tap(_icon('Reload'));
+    expect(engine.reloaded, ['s1-p1']);
   });
 
   testWidgets('system back goes back in the page first, then leaves the container', (tester) async {
@@ -2180,6 +2216,51 @@ void main() {
         expect(_tabs(tester).viewedSiteId, 's1');
       });
     }
+
+    // User's ruling 2026-10-05: the route can change while browsing, from
+    // 6c's Proxy row.
+    testWidgets("6c's Proxy row opens the form on Network; a new route reopens "
+        'the container in place on it, unwiped, at the page shown', (tester) async {
+      final engine = FakeContainerEngine();
+      final site = _site().copyWith(
+          proxyMode: ProxyMode.socks5, proxyHost: '127.0.0.1', proxyPort: 9050);
+      final sites = await pumpOpen(tester, engine, site);
+
+      await openSiteSheet(tester);
+      await tester.tap(find.text('Proxy'));
+      await tester.pumpAndSettle();
+      expect(find.byType(AddSiteScreen), findsOneWidget);
+      expect(find.byKey(const Key('proxy-enabled')), findsOneWidget);
+
+      await tester.tap(find.byKey(const Key('proxy-enabled'))); // proxy off: direct
+      await tester.pump();
+      await tester.tap(find.text('Save'));
+      await settleReopen(tester);
+
+      expect(sites.upserts.single.proxyMode, ProxyMode.direct);
+      expect(engine.closedWith['s1'], isFalse);
+      expect(engine.wiped, isEmpty);
+      expect(engine.openedSites['s1']!.proxyMode, ProxyMode.direct);
+      expect(engine.openedInitialUrls['s1'], shownOf(site));
+      expect(find.byType(AddSiteScreen), findsNothing);
+      expect(_tabs(tester).viewedSiteId, 's1');
+    });
+
+    testWidgets("6c's Proxy row saved with the route unchanged does not reopen",
+        (tester) async {
+      final engine = FakeContainerEngine();
+      final sites = await pumpOpen(tester, engine, _site());
+      engine.openedSites.clear();
+
+      await openSiteSheet(tester);
+      await tester.tap(find.text('Proxy'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Save'));
+      await settleReopen(tester);
+
+      expect(sites.upserts, hasLength(1));
+      expect(engine.openedSites, isEmpty);
+    });
 
     testWidgets("a throwaway's switch writes no row and reopens it as a throwaway, unwiped",
         (tester) async {

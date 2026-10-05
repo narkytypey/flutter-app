@@ -28,10 +28,20 @@ class SiteTally {
 /// `fromMap`, and no repository anywhere in this plan. A table for it would
 /// be exactly the persistence the spec forbids, so none is written.
 class BlockedTally {
-  const BlockedTally({required this.categories, required this.sites});
+  const BlockedTally({
+    required this.categories,
+    required this.sites,
+    this.rulesMatchedBySite = const {},
+  });
 
   final List<CategoryTally> categories;
   final List<SiteTally> sites;
+
+  /// Each site's filter-list blocks (trackers and ads), by site id: `2a`'s
+  /// "N rules matched today".
+  final Map<String, int> rulesMatchedBySite;
+
+  int rulesMatched(String siteId) => rulesMatchedBySite[siteId] ?? 0;
 
   int get total => categories.fold(0, (sum, c) => sum + c.count);
   int get siteCount => sites.length;

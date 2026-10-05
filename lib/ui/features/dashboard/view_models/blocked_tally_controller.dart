@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../domain/models/blocked_tally.dart';
 import '../../../../domain/models/container_session.dart';
+import '../../../../domain/models/filter_list.dart' show FilterListCategory;
 import '../../../../domain/models/site.dart';
 import '../../../../domain/services/blocked_tally_recorder.dart';
 import '../../container/view_models/providers.dart' show containerEngineProvider;
@@ -80,6 +81,11 @@ class BlockedTallyController extends Notifier<BlockedTally> {
         monogram: site.monogram,
         name: site.name,
         count: deltas.values.fold(0, (a, b) => a + b),
+      );
+      _recorder.recordRulesMatched(
+        site.id,
+        [for (final c in FilterListCategory.values) deltas[c.blockedCategory] ?? 0]
+            .fold(0, (a, b) => a + b),
       );
     }
     state = _recorder.snapshot();

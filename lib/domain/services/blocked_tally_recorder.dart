@@ -8,6 +8,7 @@ import '../models/blocked_tally.dart';
 class BlockedTallyRecorder {
   final _categories = <BlockedCategory, int>{};
   final _sites = <String, _SiteCount>{};
+  final _rulesMatched = <String, int>{};
 
   void recordCategory(BlockedCategory category, int delta) {
     if (delta <= 0) return;
@@ -29,6 +30,12 @@ class BlockedTallyRecorder {
     );
   }
 
+  /// [delta] more of [siteId]'s requests blocked by a filter-list rule.
+  void recordRulesMatched(String siteId, int delta) {
+    if (delta <= 0) return;
+    _rulesMatched[siteId] = (_rulesMatched[siteId] ?? 0) + delta;
+  }
+
   BlockedTally snapshot() => BlockedTally(
         categories: [
           for (final entry in _categories.entries)
@@ -38,6 +45,7 @@ class BlockedTallyRecorder {
           for (final entry in _sites.values)
             SiteTally(monogram: entry.monogram, name: entry.name, count: entry.count),
         ],
+        rulesMatchedBySite: Map.unmodifiable(_rulesMatched),
       );
 }
 

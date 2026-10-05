@@ -7,9 +7,10 @@ import '../../../core/widgets/icon_tap.dart';
 import 'panic_square.dart';
 
 /// Browser-chrome spec §6.1's top bar (layout C). Keeps `2b`'s 12/8 padding,
-/// 34px pill, 6px dot and 32px panic square; `2b`'s ‹ and ⟳ are gone — back
-/// is on the bottom bar, reload in the ☰ menu. The pill ends in the shield,
-/// which opens `6c`, and while the page loads a stop × sits just before it.
+/// 34px pill, 6px dot and 32px panic square; `2b`'s ‹ is gone — back is on
+/// the bottom bar. The pill ends in the shield, which opens `6c`; just before
+/// it sits a stop × while the page loads, and a reload otherwise (user's
+/// ruling 2026-10-05; reload is also in the ☰ menu).
 /// A tap anywhere else on the pill starts typing an address (§6.2). Panic is
 /// always here, never behind a menu.
 class ContainerTopBar extends StatelessWidget {
@@ -21,6 +22,7 @@ class ContainerTopBar extends StatelessWidget {
     required this.loading,
     required this.onEditAddress,
     required this.onStop,
+    required this.onReload,
     required this.onSiteDetails,
     required this.onPanic,
   });
@@ -36,12 +38,13 @@ class ContainerTopBar extends StatelessWidget {
   /// Jade while the tunnel is up; amber while the container is still opening.
   final bool live;
 
-  /// Shows the stop ×.
+  /// Shows the stop × in place of reload.
   final bool loading;
 
   /// The pill, outside its stop and shield: typing an address.
   final VoidCallback onEditAddress;
   final VoidCallback onStop;
+  final VoidCallback onReload;
 
   /// The shield: `6c`.
   final VoidCallback onSiteDetails;
@@ -98,6 +101,14 @@ class ContainerTopBar extends StatelessWidget {
                         glyph: AppGlyph.stop,
                         label: 'Stop',
                         onTap: onStop,
+                        size: 28,
+                        iconSize: 14,
+                      )
+                    else
+                      IconTap(
+                        glyph: AppGlyph.reload,
+                        label: 'Reload',
+                        onTap: onReload,
                         size: 28,
                         iconSize: 14,
                       ),
