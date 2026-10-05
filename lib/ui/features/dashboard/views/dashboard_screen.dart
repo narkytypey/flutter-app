@@ -33,7 +33,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
       onPopInvokedWithResult: (didPop, _) {
         if (!didPop && _tab != DashboardTab.sites) setState(() => _tab = DashboardTab.sites);
       },
-      child: ColoredBox(
+      // A Material, not a ColoredBox: the tab bar sits outside every tab's
+      // Scaffold, and text with no Material above it is drawn in
+      // MaterialApp's error style (a yellow double underline).
+      child: Material(
         color: C.bg,
         child: Column(
           children: [

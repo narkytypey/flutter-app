@@ -27,6 +27,19 @@ void main() {
     }
   });
 
+  testWidgets('the tab labels are not drawn in the no-Material error style', (tester) async {
+    await pumpDashboard(tester);
+
+    // Outside a Material, text inherits MaterialApp's error style: a yellow
+    // double underline (seen on the emulator 2026-10-05).
+    for (final label in ['Sites', 'Today', 'Settings']) {
+      final text = tester.widget<RichText>(find.descendant(
+          of: find.byType(DashboardTabBar),
+          matching: find.byWidgetPredicate((w) => w is RichText && w.text.toPlainText() == label)));
+      expect(text.text.style?.decoration, isNot(TextDecoration.underline), reason: label);
+    }
+  });
+
   testWidgets('each tab shows its screen, with no back icon', (tester) async {
     await pumpDashboard(tester);
 
