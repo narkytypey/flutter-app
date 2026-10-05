@@ -1219,10 +1219,22 @@ with zero `e:` lines.
   **Copy caveat:** that `8b` uses `RouteFailure.misconfigured` ("This site has
   no proxy configured"), the nearest existing string; accurate copy for "the
   open failed" is a design question.
-- **Left open:** `wipeSavedSite`'s two writes are not one transaction;
-  WebRTC blocking via an `about:blank` iframe is unverified on a device;
-  `basics_tab.dart`'s workspace chips clip with 4+ workspaces (no exception);
-  the row menu's `Ephemeral`/`Work` labels are still hardcoded.
+- **Follow-up the same day** (`294b087`..`560d600`): a tap on the text of
+  "Trigger by flipping face down" or "Unlock with biometrics" toggles it (only
+  the switch did); `2a`'s workspace chips scroll sideways with four or more
+  (up to three still share the row); Block WebRTC also strips a same-origin
+  child frame's window when the page reaches it through
+  `contentWindow`/`contentDocument` (checked under jsdom only;
+  `window.frames[i]` cannot be hooked, so the gap is narrowed, not closed); a
+  site whose address is itself a file goes live on its download instead of
+  staying on `8a` (`goesLiveOnDownload`). Gates: `flutter analyze` clean,
+  `flutter test` 1010/1010, Kotlin JVM 368/368, APK with zero `e:` lines.
+  None of it seen on a device.
+- **Left open:** `wipeSavedSite`'s two writes are not one transaction (a
+  crash between them leaves only a stale "Last worked"; not worth a new
+  repository method); the WebRTC frame hook needs a device check; the row
+  menu's `Ephemeral`/`Work` labels are still hardcoded (their actions are
+  unbuilt, and which workspaces they name is a design question).
 
 ## Working on this repo
 
