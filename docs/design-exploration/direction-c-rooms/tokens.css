@@ -1,0 +1,96 @@
+/* Direction C — Rooms. Same values as TOKENS.md.
+   Paper (light) is the default; Ink (dark) under [data-theme="dark"].
+   Text sizes multiply by --scale (the system font scale); nothing else does. */
+:root {
+  --scale: 1;
+  /* surfaces */
+  --page: #F2EBE0; --box: #FFFCF6; --sheet: #FBF7EF; --sunken: #E4DCCD;
+  /* ink */
+  --ink: #1E1B16; --ink2: #4A453C; --ink3: #635C50; --on-ink: #F2EBE0;
+  --hairline: rgba(30,27,22,.10); --divider: rgba(30,27,22,.18);
+  --scrim: rgba(30,27,22,.40);
+  --hatch: rgba(30,27,22,.10);
+  /* danger */
+  --danger: #B0362A; --danger-tint: #F7E0DA;
+  /* focus */
+  --focus: #2C6AA3;
+  /* rooms: wall / tint / room ink */
+  --fern-wall: #2F7A55; --fern-tint: #C7E2D1; --fern-ink: #1E5A3C;
+  --lake-wall: #2C6AA3; --lake-tint: #CFDDF0; --lake-ink: #1E4D7A;
+  --ochre-wall: #8E6410; --ochre-tint: #EEDAB0; --ochre-ink: #6A4A08;
+  --plum-wall: #8A4C82; --plum-tint: #ECD6E8; --plum-ink: #683862;
+  --graphite-wall: #55595F; --graphite-tint: #DADDDE; --graphite-ink: #3F4247;
+  --on-wall: #FFFCF6;
+  /* reader */
+  --reader-bg: #F8F2E6; --reader-title: #1E1B16; --reader-body: #2E2A23;
+  --reader-soft-title: #3A352D; --reader-soft-body: #4F493F; --reader-host: #635C50;
+  /* elevation */
+  --shadow-box: 0 1px 2px rgba(30,27,22,.06);
+  --shadow-sheet: 0 -8px 32px rgba(30,27,22,.18);
+  /* space */
+  --s1: 4px; --s2: 8px; --s3: 12px; --s4: 16px; --s5: 20px; --s6: 24px; --s7: 32px; --s8: 40px; --s9: 56px;
+  /* radii */
+  --r-xs: 8px; --r-s: 12px; --r-m: 16px; --r-l: 20px; --r-xl: 28px; --r-full: 999px;
+  /* borders */
+  --wall-w: 3px; --pill-wall-w: 2px; --outline-w: 2px;
+  /* motion */
+  --ease-std: cubic-bezier(.2,0,0,1);
+  --ease-emph: cubic-bezier(.05,.7,.1,1);
+  --dur-fast: 150ms; --dur-std: 250ms; --dur-door: 320ms; --dur-wall: 420ms;
+  /* fonts */
+  --ui: "Figtree", system-ui, sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, monospace;
+  /* touch */
+  --target: 48px;
+}
+[data-theme="dark"] {
+  --page: #1A1815; --box: #37332D; --sheet: #2E2A25; --sunken: #0A0908;
+  --ink: #F2EDE3; --ink2: #CEC7B9; --ink3: #ABA394; --on-ink: #1A1815;
+  --hairline: rgba(242,237,227,.12); --divider: rgba(242,237,227,.20);
+  --scrim: rgba(0,0,0,.55);
+  --hatch: rgba(242,237,227,.10);
+  --danger: #F0897A; --danger-tint: #3B201C;
+  --focus: #7FB0E3;
+  --fern-wall: #6DC59A; --fern-tint: #192B22; --fern-ink: #A8E3C5;
+  --lake-wall: #7FB0E3; --lake-tint: #1C2938; --lake-ink: #B5D3F2;
+  --ochre-wall: #D9AE5C; --ochre-tint: #2F2716; --ochre-ink: #EDD29E;
+  --plum-wall: #D79BCC; --plum-tint: #34222E; --plum-ink: #EBC6E3;
+  --graphite-wall: #A9AEB5; --graphite-tint: #25282B; --graphite-ink: #D3D6DB;
+  --on-wall: #1A1815;
+  --reader-bg: #171512; --reader-title: #EFE8DB; --reader-body: #D8D0C2;
+  --reader-soft-title: #CFC7B8; --reader-soft-body: #B3AB9D; --reader-host: #ABA394;
+  --shadow-box: none; --shadow-sheet: none;
+}
+/* A room sets the four colours its children use. */
+.room-fern     { --wall: var(--fern-wall);     --tint: var(--fern-tint);     --room-ink: var(--fern-ink); }
+.room-lake     { --wall: var(--lake-wall);     --tint: var(--lake-tint);     --room-ink: var(--lake-ink); }
+.room-ochre    { --wall: var(--ochre-wall);    --tint: var(--ochre-tint);    --room-ink: var(--ochre-ink); }
+.room-plum     { --wall: var(--plum-wall);     --tint: var(--plum-tint);     --room-ink: var(--plum-ink); }
+.room-graphite { --wall: var(--graphite-wall); --tint: var(--graphite-tint); --room-ink: var(--graphite-ink); }
+/* A throwaway has no room: dashed ink3 wall, hatch instead of tint. */
+.room-none { --wall: var(--ink3); --tint: var(--page); --room-ink: var(--ink); }
+
+/* Type roles (T.*). Sizes in px = sp at 1.0, times --scale. */
+.t-display  { font: 700 calc(44px*var(--scale))/1.09 var(--ui); letter-spacing: -.02em; }
+.t-step     { font: 700 calc(30px*var(--scale))/1.2 var(--ui); letter-spacing: -.01em; }
+.t-screen   { font: 700 calc(28px*var(--scale))/1.21 var(--ui); letter-spacing: -.01em; }
+.t-sheet    { font: 700 calc(22px*var(--scale))/1.27 var(--ui); letter-spacing: -.005em; }
+.t-appbar   { font: 650 calc(18px*var(--scale))/1.33 var(--ui); }
+.t-row      { font: 650 calc(17px*var(--scale))/1.29 var(--ui); }
+.t-row-idle { font: 600 calc(17px*var(--scale))/1.29 var(--ui); }
+.t-body     { font: 400 calc(16px*var(--scale))/1.5 var(--ui); }
+.t-muted    { font: 400 calc(15px*var(--scale))/1.47 var(--ui); color: var(--ink2); }
+.t-meta     { font: 500 calc(13px*var(--scale))/1.38 var(--ui); color: var(--ink3); letter-spacing: .005em; }
+.t-label    { font: 700 calc(15px*var(--scale))/1.33 var(--ui); color: var(--ink2); }
+.t-summary  { font: 650 calc(15px*var(--scale))/1.33 var(--ui); }
+.t-badge    { font: 700 calc(12px*var(--scale))/1.33 var(--ui); letter-spacing: .04em; }
+.t-code     { font: 400 calc(14px*var(--scale))/1.57 var(--mono); }
+.t-value    { font: 500 calc(14px*var(--scale))/1.43 var(--mono); color: var(--ink2); }
+.t-address  { font: 600 calc(16px*var(--scale))/1.375 var(--ui); }
+.t-button   { font: 650 calc(16px*var(--scale))/1.25 var(--ui); }
+.t-chip     { font: 650 calc(15px*var(--scale))/1.33 var(--ui); }
+.t-digit    { font: 500 calc(28px*var(--scale))/1.14 var(--ui); }
+
+/* Case is styling; the text node stays the inventory's string. */
+.sentence { text-transform: lowercase; }
+.sentence::first-letter { text-transform: uppercase; }

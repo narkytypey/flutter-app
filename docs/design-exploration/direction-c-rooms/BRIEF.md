@@ -146,7 +146,7 @@ replaced by three narrower rules, each enforceable:
    flat. This passes for colour-blind users, which jade-vs-grey never did
    (the idle dot was 1.95:1).
 3. **The single affirmative action is the one solid ink pill** on a screen
-   (ink on paper 15.9:1; paper on ink in dark 15.1:1). Every other button is
+   (ink on paper 14.49:1; the label on it 14.49:1 in Paper and 15.18:1 in Ink). Every other button is
    an outlined pill. Ink is never used for anything else that is filled and
    pill-shaped, so "the solid one is the one to press" is unmistakable, and
    it is colour-independent. Selection marks (checks, radios, switch on) are
