@@ -4,6 +4,7 @@ import '../../../core/tokens.dart';
 import '../../../core/typography.dart';
 import '../../../core/widgets/pin_dots.dart';
 import '../../../core/widgets/pin_keypad.dart';
+import '../../../core/widgets/pin_layout.dart';
 
 /// Verifies the decoy PIN before `SettingsController.resyncDecoyVault` runs.
 ///
@@ -37,25 +38,21 @@ class DecoyResyncPinScreen extends StatelessWidget {
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 28),
-          child: Column(
-            children: [
-              Expanded(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text(title, style: ui(size: 14, color: C.textMuted)),
-                    const SizedBox(height: 26),
-                    PinDots(filled: filled, error: error),
-                    if (error) ...[
-                      const SizedBox(height: 20),
-                      Text('Wrong PIN', style: ui(size: 14, color: C.danger)),
-                    ],
-                  ],
-                ),
-              ),
-              PinKeypad(onKey: onKey),
-              const SizedBox(height: 20),
-            ],
+          child: PinLayout(
+            message: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(title, style: ui(size: 14, color: C.textMuted)),
+                const SizedBox(height: 26),
+                PinDots(filled: filled, error: error),
+                if (error) ...[
+                  const SizedBox(height: 20),
+                  Text('Wrong PIN', style: ui(size: 14, color: C.danger)),
+                ],
+              ],
+            ),
+            keypad: PinKeypad(onKey: onKey),
+            bottom: const SizedBox(height: 20),
           ),
         ),
       ),

@@ -23,13 +23,14 @@ LockBody _body(
   LockMood mood, {
   int triesLeft = 5,
   int filled = 0,
+  int openSessions = 3,
   bool biometricAvailable = false,
   VoidCallback onBiometric = _defaultOnBiometric,
 }) => LockBody(
       mood: mood,
       filled: filled,
       triesLeft: triesLeft,
-      openSessions: 3,
+      openSessions: openSessions,
       secondsUntilLock: 40,
       onKey: (_) {},
       onBiometric: onBiometric,
@@ -77,6 +78,18 @@ void main() {
 
     expect(find.text('Welcome back'), findsOneWidget);
     expect(find.text('3 sessions still open · locks in 40s'), findsOneWidget);
+  });
+
+  // User's ruling 2026-10-05: one try reads singular.
+  testWidgets('one try left reads "1 try left"', (tester) async {
+    await _pump(tester, _body(LockMood.wrong, triesLeft: 1));
+    expect(find.text('Wrong PIN · 1 try left'), findsOneWidget);
+  });
+
+  // User's ruling 2026-10-05: one session reads singular.
+  testWidgets('one open session reads "1 session still open"', (tester) async {
+    await _pump(tester, _body(LockMood.welcomeBack, openSessions: 1));
+    expect(find.text('1 session still open · locks in 40s'), findsOneWidget);
   });
 
   testWidgets('returning after the timer explains what was destroyed',

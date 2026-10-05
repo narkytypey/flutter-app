@@ -229,6 +229,8 @@ class _ContainerRouteState extends ConsumerState<ContainerRoute> {
       backgroundColor: Colors.transparent,
       isDismissible: false,
       isScrollControlled: true,
+      // Kept below the status bar on a short screen or in landscape.
+      useSafeArea: true,
       builder: (sheetContext) => PermissionRequestSheet(
         host: request.host,
         kind: request.kind,
@@ -256,6 +258,8 @@ class _ContainerRouteState extends ConsumerState<ContainerRoute> {
       context: context,
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
+      // Kept below the status bar on a short screen or in landscape.
+      useSafeArea: true,
       builder: (sheetContext) => HeldDownloadSheet(
         download: event.download,
         onDecision: (decision) {
@@ -311,6 +315,8 @@ class _ContainerRouteState extends ConsumerState<ContainerRoute> {
       backgroundColor: Colors.transparent,
       // `6c` scrolls, and may be taller than the default 9/16 of the screen.
       isScrollControlled: true,
+      // Kept below the status bar on a short screen or in landscape.
+      useSafeArea: true,
       builder: (sheetContext) => Consumer(
         builder: (_, ref, __) {
           final now = ref.watch(openContainersProvider).byId(siteId);

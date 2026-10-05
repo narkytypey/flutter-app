@@ -297,6 +297,8 @@ class _ContainerScreenState extends State<ContainerScreen> {
       backgroundColor: Colors.transparent,
       // Taller than a modal sheet's default cap of 9/16 of a small phone.
       isScrollControlled: true,
+      // Kept below the status bar on a short screen or in landscape.
+      useSafeArea: true,
       builder: (sheetContext) {
         VoidCallback closing(VoidCallback action) => () {
               Navigator.pop(sheetContext);

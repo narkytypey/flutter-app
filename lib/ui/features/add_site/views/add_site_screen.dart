@@ -284,13 +284,20 @@ class _AddSiteScreenState extends State<AddSiteScreen> {
     return GestureDetector(
       onTap: () => setState(() => _tabIndex = index),
       child: Container(
-        padding: const EdgeInsets.fromLTRB(0, 11, 0, 10),
+        padding: const EdgeInsets.fromLTRB(4, 11, 4, 10),
         decoration: BoxDecoration(
           border: Border(bottom: BorderSide(color: active ? C.jade : Colors.transparent, width: 2)),
         ),
         alignment: Alignment.center,
-        child: Text(_tabs[index],
-            style: ui(size: 12.5, weight: 500, color: active ? C.textPrimary : C.tabInactive)),
+        // One line, shrunk to fit at a large text scale rather than broken
+        // mid-word ("Networ / k").
+        child: FittedBox(
+          fit: BoxFit.scaleDown,
+          child: Text(_tabs[index],
+              maxLines: 1,
+              softWrap: false,
+              style: ui(size: 12.5, weight: 500, color: active ? C.textPrimary : C.tabInactive)),
+        ),
       ),
     );
   }

@@ -59,7 +59,9 @@ class TodayScreen extends StatelessWidget {
                       children: [
                         Text('${tally.total}', style: ui(size: 34, weight: 600, letterSpacing: -0.68)),
                         const SizedBox(height: 8),
-                        Text('requests blocked across ${tally.siteCount} sites',
+                        Text(
+                            '${tally.total == 1 ? 'request' : 'requests'} blocked across '
+                            '${tally.siteCount} ${tally.siteCount == 1 ? 'site' : 'sites'}',
                             style: ui(size: 13.5, color: C.textMuted)),
                       ],
                     ),

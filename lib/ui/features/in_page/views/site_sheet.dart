@@ -150,7 +150,7 @@ class SiteSheet extends StatelessWidget {
                 ),
                 _SheetInfoRow(
                   label: 'Blocked here',
-                  value: '$blockedCount requests',
+                  value: '$blockedCount ${blockedCount == 1 ? 'request' : 'requests'}',
                   showDivider: categories.isEmpty,
                 ),
                 if (categories.isNotEmpty)

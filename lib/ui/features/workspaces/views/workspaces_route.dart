@@ -37,6 +37,8 @@ class WorkspacesRoute extends ConsumerWidget {
     showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
+      // Kept below the status bar on a short screen or in landscape.
+      useSafeArea: true,
       backgroundColor: Colors.transparent,
       builder: (sheetContext) => Padding(
         padding: EdgeInsets.only(bottom: MediaQuery.of(sheetContext).viewInsets.bottom),

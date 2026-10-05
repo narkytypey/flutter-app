@@ -302,6 +302,24 @@ void main() {
     }
   });
 
+  // 2026-10-05's responsiveness run: in landscape the menu is taller than the
+  // screen, and ran up under the status bar.
+  testWidgets('in landscape the ☰ menu stays below the status bar', (tester) async {
+    tester.view.physicalSize = const Size(915 * 3, 412 * 3);
+    tester.view.devicePixelRatio = 3;
+    tester.view.padding = const FakeViewPadding(top: 24 * 3);
+    addTearDown(tester.view.reset);
+    await tester.pumpWidget(_app(_screen()));
+    await tester.tap(_icon('Menu'));
+    await tester.pumpAndSettle();
+
+    final sheet = find.descendant(
+      of: find.byType(BrowserMenuSheet),
+      matching: find.byKey(const Key('sheet-surface')),
+    );
+    expect(tester.getRect(sheet).top, greaterThanOrEqualTo(24));
+  });
+
   testWidgets('the ☰ menu names this site, and closes itself before each action it reports', (tester) async {
     await tester.pumpWidget(_app(_screen()));
     await tester.tap(_icon('Menu'));

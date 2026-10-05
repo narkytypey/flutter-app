@@ -5,9 +5,9 @@ import '../../../../domain/models/lock_state.dart';
 import '../../../core/icons.dart';
 import '../../../core/tokens.dart';
 import '../../../core/typography.dart';
-import '../../../core/widgets/centered_scroll.dart';
 import '../../../core/widgets/pin_dots.dart';
 import '../../../core/widgets/pin_keypad.dart';
+import '../../../core/widgets/pin_layout.dart';
 
 /// The four states of the lock screen: `3a`, `4c`, `9b`, `9c`.
 ///
@@ -57,26 +57,20 @@ class LockBody extends StatelessWidget {
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 28),
-          child: Column(
-            children: [
-              Expanded(
-                child: CenteredScroll(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      _mark(),
-                      const SizedBox(height: 26),
-                      ..._headline(),
-                      const SizedBox(height: 26),
-                      PinDots(filled: filled, error: _wrong),
-                      ..._footnote(),
-                    ],
-                  ),
-                ),
-              ),
-              PinKeypad(onKey: onKey),
-              if (_showBiometric) _biometric(),
-            ],
+          child: PinLayout(
+            message: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                _mark(),
+                const SizedBox(height: 26),
+                ..._headline(),
+                const SizedBox(height: 26),
+                PinDots(filled: filled, error: _wrong),
+                ..._footnote(),
+              ],
+            ),
+            keypad: PinKeypad(onKey: onKey),
+            bottom: _showBiometric ? _biometric() : null,
           ),
         ),
       ),
@@ -96,19 +90,28 @@ class LockBody extends StatelessWidget {
         child: AppIcon(AppGlyph.vault, size: 20, color: _wrong ? C.danger : C.jade),
       );
 
+  // Centred, so a line that wraps at a large text scale stays centred too.
   List<Widget> _headline() => switch (mood) {
         LockMood.wrong => [
-            Text('Wrong PIN · $triesLeft tries left',
+            Text('Wrong PIN · $triesLeft ${triesLeft == 1 ? 'try' : 'tries'} left',
+                textAlign: TextAlign.center,
                 style: ui(size: 14, color: C.danger)),
           ],
         LockMood.welcomeBack => [
-            Text('Welcome back', style: ui(size: 15, color: C.textSecondary)),
+            Text('Welcome back',
+                textAlign: TextAlign.center,
+                style: ui(size: 15, color: C.textSecondary)),
             const SizedBox(height: 8),
-            Text('$openSessions sessions still open · locks in ${secondsUntilLock}s',
+            Text(
+                '$openSessions ${openSessions == 1 ? 'session' : 'sessions'} still open '
+                '· locks in ${secondsUntilLock}s',
+                textAlign: TextAlign.center,
                 style: ui(size: 12.5, color: C.textFaint)),
           ],
         LockMood.normal || LockMood.afterTimeout => [
-            Text('Enter your PIN', style: ui(size: 14, color: C.textMuted)),
+            Text('Enter your PIN',
+                textAlign: TextAlign.center,
+                style: ui(size: 14, color: C.textMuted)),
           ],
       };
 
