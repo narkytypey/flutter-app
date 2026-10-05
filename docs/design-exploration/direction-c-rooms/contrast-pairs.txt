@@ -1,0 +1,207 @@
+# ---- light ----
+light: ink text on paper|#1E1B16|#F2EBE0|4.5
+light: ink text on box|#1E1B16|#FFFCF6|4.5
+light: ink text on sheet|#1E1B16|#FBF7EF|4.5
+light: ink text on sunken|#1E1B16|#E4DCCD|4.5
+light: ink2 text on paper|#4A453C|#F2EBE0|4.5
+light: ink2 text on box|#4A453C|#FFFCF6|4.5
+light: ink2 text on sheet|#4A453C|#FBF7EF|4.5
+light: ink2 text on sunken|#4A453C|#E4DCCD|4.5
+light: ink3 text on paper|#635C50|#F2EBE0|4.5
+light: ink3 text on box|#635C50|#FFFCF6|4.5
+light: ink3 text on sheet|#635C50|#FBF7EF|4.5
+light: ink3 text on sunken|#635C50|#E4DCCD|4.5
+light: ink text on fern tint|#1E1B16|#C7E2D1|4.5
+light: ink2 text on fern tint|#4A453C|#C7E2D1|4.5
+light: ink3 text on fern tint|#635C50|#C7E2D1|4.5
+light: fern ink text on fern tint|#1E5A3C|#C7E2D1|4.5
+light: fern ink text on box|#1E5A3C|#FFFCF6|4.5
+light: monogram letters on fern wall|#FFFCF6|#2F7A55|4.5
+light: fern wall (frame) vs paper|#2F7A55|#F2EBE0|3
+light: fern wall (frame) vs box|#2F7A55|#FFFCF6|3
+light: fern wall (frame) vs fern tint|#2F7A55|#C7E2D1|3
+light: fern wall vs sheet|#2F7A55|#FBF7EF|3
+light: ink text on lake tint|#1E1B16|#CFDDF0|4.5
+light: ink2 text on lake tint|#4A453C|#CFDDF0|4.5
+light: ink3 text on lake tint|#635C50|#CFDDF0|4.5
+light: lake ink text on lake tint|#1E4D7A|#CFDDF0|4.5
+light: lake ink text on box|#1E4D7A|#FFFCF6|4.5
+light: monogram letters on lake wall|#FFFCF6|#2C6AA3|4.5
+light: lake wall (frame) vs paper|#2C6AA3|#F2EBE0|3
+light: lake wall (frame) vs box|#2C6AA3|#FFFCF6|3
+light: lake wall (frame) vs lake tint|#2C6AA3|#CFDDF0|3
+light: lake wall vs sheet|#2C6AA3|#FBF7EF|3
+light: ink text on ochre tint|#1E1B16|#EEDAB0|4.5
+light: ink2 text on ochre tint|#4A453C|#EEDAB0|4.5
+light: ink3 text on ochre tint|#635C50|#EEDAB0|4.5
+light: ochre ink text on ochre tint|#6A4A08|#EEDAB0|4.5
+light: ochre ink text on box|#6A4A08|#FFFCF6|4.5
+light: monogram letters on ochre wall|#FFFCF6|#8E6410|4.5
+light: ochre wall (frame) vs paper|#8E6410|#F2EBE0|3
+light: ochre wall (frame) vs box|#8E6410|#FFFCF6|3
+light: ochre wall (frame) vs ochre tint|#8E6410|#EEDAB0|3
+light: ochre wall vs sheet|#8E6410|#FBF7EF|3
+light: ink text on plum tint|#1E1B16|#ECD6E8|4.5
+light: ink2 text on plum tint|#4A453C|#ECD6E8|4.5
+light: ink3 text on plum tint|#635C50|#ECD6E8|4.5
+light: plum ink text on plum tint|#683862|#ECD6E8|4.5
+light: plum ink text on box|#683862|#FFFCF6|4.5
+light: monogram letters on plum wall|#FFFCF6|#8A4C82|4.5
+light: plum wall (frame) vs paper|#8A4C82|#F2EBE0|3
+light: plum wall (frame) vs box|#8A4C82|#FFFCF6|3
+light: plum wall (frame) vs plum tint|#8A4C82|#ECD6E8|3
+light: plum wall vs sheet|#8A4C82|#FBF7EF|3
+light: ink text on graphite tint|#1E1B16|#DADDDE|4.5
+light: ink2 text on graphite tint|#4A453C|#DADDDE|4.5
+light: ink3 text on graphite tint|#635C50|#DADDDE|4.5
+light: graphite ink text on graphite tint|#3F4247|#DADDDE|4.5
+light: graphite ink text on box|#3F4247|#FFFCF6|4.5
+light: monogram letters on graphite wall|#FFFCF6|#55595F|4.5
+light: graphite wall (frame) vs paper|#55595F|#F2EBE0|3
+light: graphite wall (frame) vs box|#55595F|#FFFCF6|3
+light: graphite wall (frame) vs graphite tint|#55595F|#DADDDE|3
+light: graphite wall vs sheet|#55595F|#FBF7EF|3
+light: danger text on paper|#B0362A|#F2EBE0|4.5
+light: danger text on box|#B0362A|#FFFCF6|4.5
+light: danger text on sheet|#B0362A|#FBF7EF|4.5
+light: danger text on dangerTint|#B0362A|#F7E0DA|4.5
+light: primary pill label on ink|#F2EBE0|#1E1B16|4.5
+light: primary pill fill vs paper|#1E1B16|#F2EBE0|3
+light: primary pill fill vs box|#1E1B16|#FFFCF6|3
+light: outline / off switch / empty PIN dot / hollow door (ink3) vs paper|#635C50|#F2EBE0|3
+light: outline / off switch / empty PIN dot / hollow door (ink3) vs box|#635C50|#FFFCF6|3
+light: outline / off switch / empty PIN dot / hollow door (ink3) vs sheet|#635C50|#FBF7EF|3
+light: switch on: knob vs ink track|#FFFCF6|#1E1B16|3
+light: switch off: ink3 knob vs box track|#635C50|#FFFCF6|3
+light: filled door / filled PIN dot (ink) vs box|#1E1B16|#FFFCF6|3
+light: danger outline vs paper|#B0362A|#F2EBE0|3
+# ---- dark ----
+dark: ink text on paper|#F2EDE3|#1A1815|4.5
+dark: ink text on box|#F2EDE3|#37332D|4.5
+dark: ink text on sheet|#F2EDE3|#2E2A25|4.5
+dark: ink text on sunken|#F2EDE3|#0A0908|4.5
+dark: ink2 text on paper|#CEC7B9|#1A1815|4.5
+dark: ink2 text on box|#CEC7B9|#37332D|4.5
+dark: ink2 text on sheet|#CEC7B9|#2E2A25|4.5
+dark: ink2 text on sunken|#CEC7B9|#0A0908|4.5
+dark: ink3 text on paper|#ABA394|#1A1815|4.5
+dark: ink3 text on box|#ABA394|#37332D|4.5
+dark: ink3 text on sheet|#ABA394|#2E2A25|4.5
+dark: ink3 text on sunken|#ABA394|#0A0908|4.5
+dark: ink text on fern tint|#F2EDE3|#192B22|4.5
+dark: ink2 text on fern tint|#CEC7B9|#192B22|4.5
+dark: ink3 text on fern tint|#ABA394|#192B22|4.5
+dark: fern ink text on fern tint|#A8E3C5|#192B22|4.5
+dark: fern ink text on box|#A8E3C5|#37332D|4.5
+dark: monogram letters on fern wall|#1A1815|#6DC59A|4.5
+dark: fern wall (frame) vs paper|#6DC59A|#1A1815|3
+dark: fern wall (frame) vs box|#6DC59A|#37332D|3
+dark: fern wall (frame) vs fern tint|#6DC59A|#192B22|3
+dark: fern wall vs sheet|#6DC59A|#2E2A25|3
+dark: ink text on lake tint|#F2EDE3|#1C2938|4.5
+dark: ink2 text on lake tint|#CEC7B9|#1C2938|4.5
+dark: ink3 text on lake tint|#ABA394|#1C2938|4.5
+dark: lake ink text on lake tint|#B5D3F2|#1C2938|4.5
+dark: lake ink text on box|#B5D3F2|#37332D|4.5
+dark: monogram letters on lake wall|#1A1815|#7FB0E3|4.5
+dark: lake wall (frame) vs paper|#7FB0E3|#1A1815|3
+dark: lake wall (frame) vs box|#7FB0E3|#37332D|3
+dark: lake wall (frame) vs lake tint|#7FB0E3|#1C2938|3
+dark: lake wall vs sheet|#7FB0E3|#2E2A25|3
+dark: ink text on ochre tint|#F2EDE3|#2F2716|4.5
+dark: ink2 text on ochre tint|#CEC7B9|#2F2716|4.5
+dark: ink3 text on ochre tint|#ABA394|#2F2716|4.5
+dark: ochre ink text on ochre tint|#EDD29E|#2F2716|4.5
+dark: ochre ink text on box|#EDD29E|#37332D|4.5
+dark: monogram letters on ochre wall|#1A1815|#D9AE5C|4.5
+dark: ochre wall (frame) vs paper|#D9AE5C|#1A1815|3
+dark: ochre wall (frame) vs box|#D9AE5C|#37332D|3
+dark: ochre wall (frame) vs ochre tint|#D9AE5C|#2F2716|3
+dark: ochre wall vs sheet|#D9AE5C|#2E2A25|3
+dark: ink text on plum tint|#F2EDE3|#34222E|4.5
+dark: ink2 text on plum tint|#CEC7B9|#34222E|4.5
+dark: ink3 text on plum tint|#ABA394|#34222E|4.5
+dark: plum ink text on plum tint|#EBC6E3|#34222E|4.5
+dark: plum ink text on box|#EBC6E3|#37332D|4.5
+dark: monogram letters on plum wall|#1A1815|#D79BCC|4.5
+dark: plum wall (frame) vs paper|#D79BCC|#1A1815|3
+dark: plum wall (frame) vs box|#D79BCC|#37332D|3
+dark: plum wall (frame) vs plum tint|#D79BCC|#34222E|3
+dark: plum wall vs sheet|#D79BCC|#2E2A25|3
+dark: ink text on graphite tint|#F2EDE3|#25282B|4.5
+dark: ink2 text on graphite tint|#CEC7B9|#25282B|4.5
+dark: ink3 text on graphite tint|#ABA394|#25282B|4.5
+dark: graphite ink text on graphite tint|#D3D6DB|#25282B|4.5
+dark: graphite ink text on box|#D3D6DB|#37332D|4.5
+dark: monogram letters on graphite wall|#1A1815|#A9AEB5|4.5
+dark: graphite wall (frame) vs paper|#A9AEB5|#1A1815|3
+dark: graphite wall (frame) vs box|#A9AEB5|#37332D|3
+dark: graphite wall (frame) vs graphite tint|#A9AEB5|#25282B|3
+dark: graphite wall vs sheet|#A9AEB5|#2E2A25|3
+dark: danger text on paper|#F0897A|#1A1815|4.5
+dark: danger text on box|#F0897A|#37332D|4.5
+dark: danger text on sheet|#F0897A|#2E2A25|4.5
+dark: danger text on dangerTint|#F0897A|#3B201C|4.5
+dark: primary pill label on ink|#1A1815|#F2EDE3|4.5
+dark: primary pill fill vs paper|#F2EDE3|#1A1815|3
+dark: primary pill fill vs box|#F2EDE3|#37332D|3
+dark: outline / off switch / empty PIN dot / hollow door (ink3) vs paper|#ABA394|#1A1815|3
+dark: outline / off switch / empty PIN dot / hollow door (ink3) vs box|#ABA394|#37332D|3
+dark: outline / off switch / empty PIN dot / hollow door (ink3) vs sheet|#ABA394|#2E2A25|3
+dark: switch on: knob vs ink track|#37332D|#F2EDE3|3
+dark: switch off: ink3 knob vs box track|#ABA394|#37332D|3
+dark: filled door / filled PIN dot (ink) vs box|#F2EDE3|#37332D|3
+dark: danger outline vs paper|#F0897A|#1A1815|3
+# ---- light: surface separation (implication 4, target 1.15) ----
+light: box vs paper|#FFFCF6|#F2EBE0|1.15
+light: sheet vs scrimmed page (paper under 40% ink)|#FBF7EF|#F2EBE0|1.0
+light: sunken vs paper|#E4DCCD|#F2EBE0|1.1
+light: fern tint (room) vs paper|#C7E2D1|#F2EBE0|1.15
+light: box (site card) vs fern tint|#FFFCF6|#C7E2D1|1.15
+light: lake tint (room) vs paper|#CFDDF0|#F2EBE0|1.15
+light: box (site card) vs lake tint|#FFFCF6|#CFDDF0|1.15
+light: ochre tint (room) vs paper|#EEDAB0|#F2EBE0|1.15
+light: box (site card) vs ochre tint|#FFFCF6|#EEDAB0|1.15
+light: plum tint (room) vs paper|#ECD6E8|#F2EBE0|1.15
+light: box (site card) vs plum tint|#FFFCF6|#ECD6E8|1.15
+light: graphite tint (room) vs paper|#DADDDE|#F2EBE0|1.15
+light: box (site card) vs graphite tint|#FFFCF6|#DADDDE|1.15
+# ---- dark: surface separation (implication 4, target 1.15) ----
+dark: box vs paper|#37332D|#1A1815|1.15
+dark: sheet vs scrimmed page (paper under 40% ink)|#2E2A25|#1A1815|1.0
+dark: sunken vs paper|#0A0908|#1A1815|1.1
+dark: fern tint (room) vs paper|#192B22|#1A1815|1.15
+dark: box (site card) vs fern tint|#37332D|#192B22|1.15
+dark: lake tint (room) vs paper|#1C2938|#1A1815|1.15
+dark: box (site card) vs lake tint|#37332D|#1C2938|1.15
+dark: ochre tint (room) vs paper|#2F2716|#1A1815|1.15
+dark: box (site card) vs ochre tint|#37332D|#2F2716|1.15
+dark: plum tint (room) vs paper|#34222E|#1A1815|1.15
+dark: box (site card) vs plum tint|#37332D|#34222E|1.15
+dark: graphite tint (room) vs paper|#25282B|#1A1815|1.15
+dark: box (site card) vs graphite tint|#37332D|#25282B|1.15
+light: reader title on reader bg|#1E1B16|#F8F2E6|4.5
+light: reader body on reader bg|#2E2A23|#F8F2E6|4.5
+light: reader softTitle on reader bg|#3A352D|#F8F2E6|4.5
+light: reader softBody on reader bg|#4F493F|#F8F2E6|4.5
+light: reader host on reader bg|#635C50|#F8F2E6|4.5
+dark: reader title on reader bg|#EFE8DB|#171512|4.5
+dark: reader body on reader bg|#D8D0C2|#171512|4.5
+dark: reader softTitle on reader bg|#CFC7B8|#171512|4.5
+dark: reader softBody on reader bg|#B3AB9D|#171512|4.5
+dark: reader host on reader bg|#ABA394|#171512|4.5
+# ---- throwaway hatch, Tor, scrim (composites measured as the darkest hatch stripe) ----
+light: ink text on throwaway hatch stripe (ink 10% over paper)|#1E1B16|#DFD8CD|4.5
+light: ink3 text on throwaway hatch stripe|#635C50|#DFD8CD|4.5
+light: throwaway dashed outline (ink3) vs hatch stripe|#635C50|#DFD8CD|3
+dark: ink text on throwaway hatch stripe (paper 10% over page)|#F2EDE3|#2F2C28|4.5
+dark: ink3 text on throwaway hatch stripe|#ABA394|#2F2C28|4.5
+dark: throwaway dashed outline (ink3) vs hatch stripe|#ABA394|#2F2C28|3
+light: Tor inner wall (ink) vs fern tint|#1E1B16|#C7E2D1|3
+dark: Tor inner wall (ink) vs fern tint|#F2EDE3|#192B22|3
+light: danger outline vs box|#B0362A|#FFFCF6|3
+dark: danger outline vs box|#F0897A|#37332D|3
+light: danger text on box|#B0362A|#FFFCF6|4.5
+dark: danger text on box|#F0897A|#37332D|4.5
+light: focus ring (lake wall) vs paper|#2C6AA3|#F2EBE0|3
+dark: focus ring (lake wall) vs paper|#7FB0E3|#1A1815|3

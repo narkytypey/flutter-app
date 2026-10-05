@@ -1,0 +1,87 @@
+# LIGHT — text (>= 4.5)
+L ink on page|#1A1D1B|#EBEEE8|4.5
+L ink on card|#1A1D1B|#FFFFFF|4.5
+L ink on tonal|#1A1D1B|#D9DED6|4.5
+L ink-2 on page|#4A514C|#EBEEE8|4.5
+L ink-2 on card|#4A514C|#FFFFFF|4.5
+L ink-2 on tonal|#4A514C|#D9DED6|4.5
+L accent text on card|#1D6B57|#FFFFFF|4.5
+L accent text on page|#1D6B57|#EBEEE8|4.5
+L on-accent on accent (primary button)|#FFFFFF|#1D6B57|4.5
+L on-accent-container on accent-container|#0D3A2D|#D3EBE0|4.5
+L ink on accent-container (selected chip)|#1A1D1B|#D3EBE0|4.5
+L danger text on card|#B3261E|#FFFFFF|4.5
+L danger text on page|#B3261E|#EBEEE8|4.5
+L on-danger-container on danger-container|#8C1D18|#FCEBE8|4.5
+L ink on danger-container|#1A1D1B|#FCEBE8|4.5
+L warning text on card|#8F5B00|#FFFFFF|4.5
+L code (accent) on code surface|#1D6B57|#EBEEE8|4.5
+L reader body on reader page|#2B2620|#F6F1E7|4.5
+L reader muted on reader page|#5E564B|#F6F1E7|4.5
+L white on danger (panic confirm fill)|#FFFFFF|#B3261E|4.5
+# LIGHT — non-text (>= 3)
+L outline (field border, off switch, empty PIN dot) on card|#6E7570|#FFFFFF|3
+L outline on page|#6E7570|#EBEEE8|3
+L outline on tonal|#6E7570|#D9DED6|3
+L icon (ink-2) on page|#4A514C|#EBEEE8|3
+L accent mark (live dot, on switch) on card|#1D6B57|#FFFFFF|3
+L accent mark on page|#1D6B57|#EBEEE8|3
+L on-switch knob vs accent track|#FFFFFF|#1D6B57|3
+L off-switch knob (outline) vs card|#6E7570|#FFFFFF|3
+L warning dot (opening) on card|#8F5B00|#FFFFFF|3
+L warning dot on tonal pill|#8F5B00|#D9DED6|3
+L danger mark on card|#B3261E|#FFFFFF|3
+L focus ring (accent) on page|#1D6B57|#EBEEE8|3
+L filled PIN dot (ink) on page|#1A1D1B|#EBEEE8|3
+L idle dot (outline) on card|#6E7570|#FFFFFF|3
+L bar track vs card (Today bars)|#D9DED6|#FFFFFF|1
+L bar fill (accent) vs track|#1D6B57|#D9DED6|3
+L permission bar fill (warning) vs track|#8F5B00|#D9DED6|3
+# LIGHT — surface steps (>= 1.15)
+L card vs page|#FFFFFF|#EBEEE8|1.15
+L page vs tonal|#EBEEE8|#D9DED6|1.15
+# DARK — text (>= 4.5)
+D ink on page|#E4E8E4|#101311|4.5
+D ink on card|#E4E8E4|#1E2220|4.5
+D ink on tonal|#E4E8E4|#2B302D|4.5
+D ink-2 on page|#B4BBB6|#101311|4.5
+D ink-2 on card|#B4BBB6|#1E2220|4.5
+D ink-2 on tonal|#B4BBB6|#2B302D|4.5
+D accent text on card|#7FC8A9|#1E2220|4.5
+D accent text on page|#7FC8A9|#101311|4.5
+D on-accent on accent (primary button)|#0B2A20|#7FC8A9|4.5
+D on-accent-container on accent-container|#BFEBD8|#1F4A3C|4.5
+D ink on accent-container|#E4E8E4|#1F4A3C|4.5
+D danger text on card|#F2A49A|#1E2220|4.5
+D danger text on page|#F2A49A|#101311|4.5
+D on-danger-container on danger-container|#F7C9C2|#3A201D|4.5
+D ink on danger-container|#E4E8E4|#3A201D|4.5
+D warning text on card|#E3B262|#1E2220|4.5
+D code (accent) on code surface|#7FC8A9|#2B302D|4.5
+D on-danger on danger fill|#3A0B07|#F2A49A|4.5
+# DARK — non-text (>= 3)
+D outline on card|#8A928D|#1E2220|3
+D outline on page|#8A928D|#101311|3
+D outline on tonal|#8A928D|#2B302D|3
+D icon (ink-2) on page|#B4BBB6|#101311|3
+D accent mark on card|#7FC8A9|#1E2220|3
+D accent mark on page|#7FC8A9|#101311|3
+D on-switch knob vs accent track|#0B2A20|#7FC8A9|3
+D warning dot on card|#E3B262|#1E2220|3
+D warning dot on tonal|#E3B262|#2B302D|3
+D danger mark on card|#F2A49A|#1E2220|3
+D filled PIN dot (ink) on page|#E4E8E4|#101311|3
+D bar fill (accent) vs track|#7FC8A9|#2B302D|3
+# DARK — surface steps (>= 1.15)
+D card vs page|#1E2220|#101311|1.15
+D tonal vs card|#2B302D|#1E2220|1.15
+# READER (6b)
+D reader ink on reader page|#EDE7DC|#12100D|4.5
+D reader ink-2 on reader page|#B3AC9F|#12100D|4.5
+# Markers (workspace dots; ring is outline, fill also checked)
+L marker 2 blue on card|#3D5F8F|#FFFFFF|3
+L marker 4 plum on card|#8A4F72|#FFFFFF|3
+L marker 5 grey on card|#5E6661|#FFFFFF|3
+# Keypad key fill vs page (affordance only; digit carries it)
+L keypad key vs page|#FFFFFF|#EBEEE8|1
+D keypad key vs page|#1E2220|#101311|1
