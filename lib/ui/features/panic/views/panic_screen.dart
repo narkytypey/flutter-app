@@ -4,6 +4,7 @@ import '../../../../domain/services/panic_service.dart';
 import '../../../core/icons.dart';
 import '../../../core/tokens.dart';
 import '../../../core/typography.dart';
+import '../../../core/widgets/centered_scroll.dart';
 import '../../../core/widgets/pill_button.dart';
 
 class PanicScreen extends StatelessWidget {
@@ -23,7 +24,7 @@ class PanicScreen extends StatelessWidget {
     return Scaffold(
       backgroundColor: C.bgPanic,
       body: SafeArea(
-        child: Padding(
+        child: CenteredScroll(
           padding: const EdgeInsets.symmetric(horizontal: 34),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
@@ -66,8 +67,11 @@ class PanicScreen extends StatelessWidget {
                           child: Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              Text(label,
-                                  style: ui(size: 11.5, color: C.textMuted)),
+                              Expanded(
+                                child: Text(label,
+                                    style: ui(size: 11.5, color: C.textMuted)),
+                              ),
+                              const SizedBox(width: 12),
                               Text(state,
                                   style: ui(
                                       size: 11.5, weight: 500, color: C.jade)),

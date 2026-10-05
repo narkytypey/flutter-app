@@ -65,20 +65,23 @@ class FilterListSection extends StatelessWidget {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(list.name, style: ui(size: 14, color: C.textPrimary)),
-                      const SizedBox(height: 3),
-                      Text(
-                        list.enabled
-                            ? '${formatRuleCount(list.ruleCount)} rules · ${updatedAgoLabel(now, list.updatedAt)}'
-                            : '${formatRuleCount(list.ruleCount)} rules · off',
-                        style: ui(size: 11.5, color: C.textFaint),
-                      ),
-                    ],
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(list.name, style: ui(size: 14, color: C.textPrimary)),
+                        const SizedBox(height: 3),
+                        Text(
+                          list.enabled
+                              ? '${formatRuleCount(list.ruleCount)} rules · ${updatedAgoLabel(now, list.updatedAt)}'
+                              : '${formatRuleCount(list.ruleCount)} rules · off',
+                          style: ui(size: 11.5, color: C.textFaint),
+                        ),
+                      ],
+                    ),
                   ),
+                  const SizedBox(width: 12),
                   AppToggle(
                       value: list.enabled, onChanged: (_) => onToggle(list.id)),
                 ],

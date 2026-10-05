@@ -49,9 +49,17 @@ class ReaderScreen extends StatelessWidget {
                     iconSize: 18,
                     color: C.readerMuted,
                   ),
-                  Text(
-                    article.readingLabel,
-                    style: ui(size: 11.5, weight: 500, letterSpacing: 0.69, color: C.readerMuted),
+                  Expanded(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 12),
+                      child: Text(
+                        article.readingLabel,
+                        textAlign: TextAlign.center,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: ui(size: 11.5, weight: 500, letterSpacing: 0.69, color: C.readerMuted),
+                      ),
+                    ),
                   ),
                   Row(
                     children: [

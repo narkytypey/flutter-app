@@ -38,11 +38,13 @@ class ThrowawaySaveBar extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 10),
-          PillButton(
-            label: 'Save as a site',
-            height: 32,
-            padding: const EdgeInsets.symmetric(horizontal: 14),
-            onTap: onSave,
+          Flexible(
+            child: PillButton(
+              label: 'Save as a site',
+              height: 32,
+              padding: const EdgeInsets.symmetric(horizontal: 14),
+              onTap: onSave,
+            ),
           ),
           const SizedBox(width: 2),
           // Not in spec §7's list; the user's ruling of 2026-10-02.

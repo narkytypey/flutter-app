@@ -82,13 +82,19 @@ class SwitcherSheet extends StatelessWidget {
                               color: C.jade,
                             ),
                           ),
-                          Text(
-                            workspaceName.toUpperCase(),
-                            style: ui(
-                              size: 10,
-                              weight: 500,
-                              letterSpacing: 0.6,
-                              color: C.textFaint,
+                          const SizedBox(width: 12),
+                          Flexible(
+                            child: Text(
+                              workspaceName.toUpperCase(),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              textAlign: TextAlign.end,
+                              style: ui(
+                                size: 10,
+                                weight: 500,
+                                letterSpacing: 0.6,
+                                color: C.textFaint,
+                              ),
                             ),
                           ),
                         ],

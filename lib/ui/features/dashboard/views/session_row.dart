@@ -45,6 +45,8 @@ class SessionRow extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(entry.name,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                           style: live ? T.rowTitle : T.rowTitleIdle),
                       const SizedBox(height: 3),
                       Text(

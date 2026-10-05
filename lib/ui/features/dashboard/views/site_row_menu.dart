@@ -50,83 +50,92 @@ class SiteRowMenu extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-            decoration: BoxDecoration(
-              color: C.barTrack,
-              borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: Colors.white.withValues(alpha: 0.09)),
-            ),
-            child: Row(
-              children: [
-                Monogram(monogram),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(name, style: T.rowTitle),
-                      const SizedBox(height: 3),
-                      Text(subtitle, style: ui(size: 11, color: C.textFaint)),
-                    ],
+    // Taller than a modal sheet may be on a short phone: scroll, not overflow.
+    return SingleChildScrollView(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+              decoration: BoxDecoration(
+                color: C.barTrack,
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: Colors.white.withValues(alpha: 0.09)),
+              ),
+              child: Row(
+                children: [
+                  Monogram(monogram),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(name, style: T.rowTitle, maxLines: 1, overflow: TextOverflow.ellipsis),
+                        const SizedBox(height: 3),
+                        Text(
+                          subtitle,
+                          style: ui(size: 11, color: C.textFaint),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
+                    ),
                   ),
+                ],
+              ),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 10, 16, 20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                SheetGroup(
+                  children: [
+                    SheetRow(label: 'Open', onTap: () => onAction(SiteRowAction.open)),
+                    SheetRow(
+                      label: 'Open in $ephemeralWorkspaceName',
+                      onTap: () => onAction(SiteRowAction.openEphemeral),
+                    ),
+                    SheetRow(
+                      label: 'Edit settings',
+                      onTap: () => onAction(SiteRowAction.editSettings),
+                    ),
+                    SheetRow(
+                      label: 'Duplicate into $duplicateTargetName',
+                      onTap: () => onAction(SiteRowAction.duplicate),
+                    ),
+                    SheetRow(
+                      label: 'Require PIN to open',
+                      onTap: () => onAction(SiteRowAction.requirePin),
+                    ),
+                  ],
                 ),
+                const SizedBox(height: 10),
+                SheetGroup(
+                  children: [
+                    SheetRow(
+                      label: "Wipe this site's data",
+                      labelColor: C.textSecondary,
+                      onTap: () => onAction(SiteRowAction.wipeData),
+                    ),
+                    SheetRow(
+                      label: 'Remove site',
+                      labelColor: C.danger,
+                      onTap: () => onAction(SiteRowAction.removeSite),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 10),
+                PillButton(label: 'Cancel', height: 50, onTap: onCancel),
               ],
             ),
           ),
-        ),
-        Padding(
-          padding: const EdgeInsets.fromLTRB(16, 10, 16, 20),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              SheetGroup(children: [
-                SheetRow(
-                  label: 'Open',
-                  onTap: () => onAction(SiteRowAction.open),
-                ),
-                SheetRow(
-                  label: 'Open in $ephemeralWorkspaceName',
-                  onTap: () => onAction(SiteRowAction.openEphemeral),
-                ),
-                SheetRow(
-                  label: 'Edit settings',
-                  onTap: () => onAction(SiteRowAction.editSettings),
-                ),
-                SheetRow(
-                  label: 'Duplicate into $duplicateTargetName',
-                  onTap: () => onAction(SiteRowAction.duplicate),
-                ),
-                SheetRow(
-                  label: 'Require PIN to open',
-                  onTap: () => onAction(SiteRowAction.requirePin),
-                ),
-              ]),
-              const SizedBox(height: 10),
-              SheetGroup(children: [
-                SheetRow(
-                  label: "Wipe this site's data",
-                  labelColor: C.textSecondary,
-                  onTap: () => onAction(SiteRowAction.wipeData),
-                ),
-                SheetRow(
-                  label: 'Remove site',
-                  labelColor: C.danger,
-                  onTap: () => onAction(SiteRowAction.removeSite),
-                ),
-              ]),
-              const SizedBox(height: 10),
-              PillButton(label: 'Cancel', height: 50, onTap: onCancel),
-            ],
-          ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 }

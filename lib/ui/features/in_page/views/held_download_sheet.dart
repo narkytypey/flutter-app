@@ -50,7 +50,10 @@ class HeldDownloadSheet extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(download.fileName, style: ui(size: 13.5, color: C.textPrimary)),
+                    Text(download.fileName,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: ui(size: 13.5, color: C.textPrimary)),
                     const SizedBox(height: 3),
                     Text(
                       // The spec has no copy for an unknown size, so the

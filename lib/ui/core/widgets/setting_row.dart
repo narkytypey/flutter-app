@@ -52,11 +52,18 @@ class SettingRow extends StatelessWidget {
                 ),
               ),
               if (trailing != null) trailing!,
-              if (value != null)
-                Text(value!,
-                    style: monoValue
-                        ? mono(size: 12, color: C.textMuted)
-                        : ui(size: 12.5, color: C.textMuted)),
+              if (value != null) ...[
+                const SizedBox(width: 12),
+                Flexible(
+                  child: Text(value!,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      textAlign: TextAlign.end,
+                      style: monoValue
+                          ? mono(size: 12, color: C.textMuted)
+                          : ui(size: 12.5, color: C.textMuted)),
+                ),
+              ],
               if (trailing == null && value == null && onTap != null)
                 const AppIcon(AppGlyph.forward, size: 16, color: C.textFaint),
             ],

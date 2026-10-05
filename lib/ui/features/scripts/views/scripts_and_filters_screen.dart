@@ -69,7 +69,14 @@ class ScriptsAndFiltersScreen extends StatelessWidget {
                     iconSize: 18,
                   ),
                   const SizedBox(width: 10),
-                  Text('Scripts and filters', style: T.screenTitle),
+                  Expanded(
+                    child: Text(
+                      'Scripts and filters',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: T.screenTitle,
+                    ),
+                  ),
                 ],
               ),
             ),

@@ -24,6 +24,9 @@ class PinKeypad extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // A short phone (under 640 high) gets slightly shorter keys, so the
+    // screen's message and dots keep room above the keypad.
+    final compact = MediaQuery.sizeOf(context).height < 640;
     return Center(
       child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 280),
@@ -31,9 +34,9 @@ class PinKeypad extends StatelessWidget {
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
           crossAxisCount: 3,
-          mainAxisSpacing: 14,
+          mainAxisSpacing: compact ? 8 : 14,
           crossAxisSpacing: 14,
-          childAspectRatio: 280 / 3 / 64,
+          childAspectRatio: 280 / 3 / (compact ? 52 : 64),
           children: [
             for (final key in _keys)
               Material(

@@ -4,6 +4,7 @@ import '../../../../domain/models/route_failure_copy.dart';
 import '../../../core/icons.dart';
 import '../../../core/tokens.dart';
 import '../../../core/typography.dart';
+import '../../../core/widgets/centered_scroll.dart';
 import '../../../core/widgets/pill_button.dart';
 
 /// Spec `8b` — no silent fallback, the risky option spelled out. This is the
@@ -49,7 +50,7 @@ class ProxyUnreachableScreen extends StatelessWidget {
           children: [
             _TunnelHeader(host: host),
             Expanded(
-              child: Padding(
+              child: CenteredScroll(
                 padding: const EdgeInsets.symmetric(horizontal: 30),
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
@@ -190,7 +191,16 @@ class _InfoRow extends StatelessWidget {
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         Text(label, style: ui(size: 12, color: C.textFaint)),
-        Text(value, style: ui(size: 12, color: C.textSecondary)),
+        const SizedBox(width: 12),
+        Flexible(
+          child: Text(
+            value,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            textAlign: TextAlign.end,
+            style: ui(size: 12, color: C.textSecondary),
+          ),
+        ),
       ],
     );
   }

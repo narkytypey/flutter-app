@@ -100,7 +100,18 @@ class _ScriptEditorScreenState extends State<ScriptEditorScreen> {
                     size: 20,
                     iconSize: 18,
                   ),
-                  Text(widget.title, style: ui(size: 15, weight: 600)),
+                  Expanded(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 12),
+                      child: Text(
+                        widget.title,
+                        textAlign: TextAlign.center,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: ui(size: 15, weight: 600),
+                      ),
+                    ),
+                  ),
                   GestureDetector(
                     onTap: _save,
                     child: Text('Save',
@@ -147,8 +158,12 @@ class _ScriptEditorScreenState extends State<ScriptEditorScreen> {
                             child: Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
-                                Text(site.name,
-                                    style: ui(size: 12.5, color: C.textSecondary)),
+                                Flexible(
+                                  child: Text(site.name,
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: ui(size: 12.5, color: C.textSecondary)),
+                                ),
                                 const SizedBox(width: 6),
                                 Semantics(
                                   label: 'Remove',

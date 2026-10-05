@@ -158,16 +158,26 @@ class _SiteRow extends StatelessWidget {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Row(
+          Expanded(
+            child: Row(
             children: [
               // `open: false` is Monogram's idle treatment — `C.raised` on
               // `C.textMuted` — which is what `5c` draws for a site that is
               // being reported on rather than running.
               Monogram(site.monogram, size: 32, radius: 9, fontSize: 12.5, open: false),
               const SizedBox(width: 11),
-              Text(site.name, style: ui(size: 14, color: C.textSecondary)),
+              Expanded(
+                child: Text(
+                  site.name,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: ui(size: 14, color: C.textSecondary),
+                ),
+              ),
             ],
+            ),
           ),
+          const SizedBox(width: 12),
           Text('${site.count}', style: ui(size: 12.5, weight: 500, color: C.textMuted)),
         ],
       ),

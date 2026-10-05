@@ -86,7 +86,12 @@ class FindBar extends StatelessWidget {
                       ),
                       if (count != null) ...[
                         const SizedBox(width: 8),
-                        Text(count, style: mono(size: 10.5, color: C.textMuted)),
+                        Flexible(
+                          child: Text(count,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: mono(size: 10.5, color: C.textMuted)),
+                        ),
                       ],
                     ],
                   ),

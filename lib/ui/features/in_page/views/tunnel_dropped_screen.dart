@@ -54,7 +54,14 @@ class TunnelDroppedScreen extends StatelessWidget {
                             decoration: const BoxDecoration(color: C.danger, shape: BoxShape.circle),
                           ),
                           const SizedBox(width: 7),
-                          Text(host, style: ui(size: 11.5, color: C.textTertiary)),
+                          Flexible(
+                            child: Text(
+                              host,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: ui(size: 11.5, color: C.textTertiary),
+                            ),
+                          ),
                         ],
                       ),
                     ),

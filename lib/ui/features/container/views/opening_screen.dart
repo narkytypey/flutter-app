@@ -65,8 +65,12 @@ class OpeningBody extends StatelessWidget {
                             ),
                           ),
                           const SizedBox(width: 7),
-                          Text(host,
-                              style: ui(size: 11.5, color: C.pillText)),
+                          Expanded(
+                            child: Text(host,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: ui(size: 11.5, color: C.pillText)),
+                          ),
                         ],
                       ),
                     ),
@@ -95,7 +99,7 @@ class OpeningBody extends StatelessWidget {
             ),
             Expanded(
               child: Center(
-                child: Padding(
+                child: SingleChildScrollView(
                   padding: const EdgeInsets.symmetric(horizontal: 34),
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
@@ -143,7 +147,9 @@ class _StepRow extends StatelessWidget {
       children: [
         _StepMarker(step.state),
         const SizedBox(width: 11),
-        Text(step.label, style: ui(size: 13.5, color: _labelColor(step.state))),
+        Flexible(
+          child: Text(step.label, style: ui(size: 13.5, color: _labelColor(step.state))),
+        ),
       ],
     );
   }

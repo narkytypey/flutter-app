@@ -94,7 +94,18 @@ class _WorkspaceFormScreenState extends State<WorkspaceFormScreen> {
                     size: 24,
                     iconSize: 20,
                   ),
-                  Text(widget.title, style: ui(size: 15, weight: 600)),
+                  Expanded(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 12),
+                      child: Text(
+                        widget.title,
+                        textAlign: TextAlign.center,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: ui(size: 15, weight: 600),
+                      ),
+                    ),
+                  ),
                   GestureDetector(
                     onTap: _save,
                     child: Text('Save',
@@ -223,18 +234,21 @@ class _WorkspaceFormScreenState extends State<WorkspaceFormScreen> {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(title,
-                    style: ui(
-                        size: 13.5,
-                        color: selected ? C.textPrimary : C.textTertiary)),
-                const SizedBox(height: 3),
-                Text(subtitle, style: ui(size: 11, color: C.textFaint)),
-              ],
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(title,
+                      style: ui(
+                          size: 13.5,
+                          color: selected ? C.textPrimary : C.textTertiary)),
+                  const SizedBox(height: 3),
+                  Text(subtitle, style: ui(size: 11, color: C.textFaint)),
+                ],
+              ),
             ),
+            const SizedBox(width: 12),
             Container(
               width: 16,
               height: 16,

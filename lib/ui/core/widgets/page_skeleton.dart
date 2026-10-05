@@ -34,7 +34,9 @@ class PageSkeleton extends StatelessWidget {
 
     return Opacity(
       opacity: opacity,
-      child: Padding(
+      // Decoration only: in a short space it is cut off, never overflows.
+      child: SingleChildScrollView(
+        physics: const NeverScrollableScrollPhysics(),
         padding: const EdgeInsets.all(20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,

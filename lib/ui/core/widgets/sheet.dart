@@ -15,6 +15,7 @@ class BottomSheetSurface extends StatelessWidget {
     required this.children,
     this.padding = const EdgeInsets.fromLTRB(20, 22, 20, 20),
     this.showHandle = false,
+    this.scrolls = true,
   });
 
   final List<Widget> children;
@@ -24,6 +25,12 @@ class BottomSheetSurface extends StatelessWidget {
   /// sheets in this plan do not. Off by default so every existing call site
   /// is unaffected.
   final bool showHandle;
+
+  /// The children scroll when they are taller than the sheet may be (a short
+  /// phone, the keyboard up, a large text scale), instead of overflowing. A
+  /// sheet that lays out its own scrolling region in a [Flexible] passes
+  /// false.
+  final bool scrolls;
 
   @override
   Widget build(BuildContext context) {
@@ -64,7 +71,18 @@ class BottomSheetSurface extends StatelessWidget {
                 ),
               ),
             ),
-          ...children,
+          if (scrolls)
+            Flexible(
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: children,
+                ),
+              ),
+            )
+          else
+            ...children,
         ],
       ),
     );

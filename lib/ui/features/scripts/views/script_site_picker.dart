@@ -22,6 +22,7 @@ class ScriptSitePicker extends StatelessWidget {
   Widget build(BuildContext context) {
     return BottomSheetSurface(
       showHandle: true,
+      scrolls: false,
       padding: const EdgeInsets.fromLTRB(0, 10, 0, 16),
       children: [
         Flexible(

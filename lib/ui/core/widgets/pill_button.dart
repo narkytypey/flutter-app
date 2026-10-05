@@ -63,17 +63,23 @@ class PillButton extends StatelessWidget {
         onTap: onTap,
         borderRadius: r,
         child: Container(
-          height: height,
+          // A minimum, not a fixed height: a large text scale grows the pill
+          // instead of overflowing its label and sublabel.
+          constraints: BoxConstraints(minHeight: height),
           padding: padding,
           decoration: BoxDecoration(borderRadius: r, border: border),
           alignment: Alignment.center,
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text(label, style: ui(size: 14.5, weight: weight, color: labelColor)),
+              Text(label,
+                  textAlign: TextAlign.center,
+                  style: ui(size: 14.5, weight: weight, color: labelColor)),
               if (sublabel != null) ...[
                 const SizedBox(height: 1),
-                Text(sublabel!, style: ui(size: 10.5, color: C.dangerMuted)),
+                Text(sublabel!,
+                    textAlign: TextAlign.center,
+                    style: ui(size: 10.5, color: C.dangerMuted)),
               ],
             ],
           ),

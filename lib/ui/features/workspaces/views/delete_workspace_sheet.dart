@@ -125,9 +125,13 @@ class _DeleteWorkspaceSheetState extends State<DeleteWorkspaceSheet> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(label, style: ui(size: 13, color: C.textTertiary)),
-          Text(value,
-              style: ui(size: 13, color: muted ? C.textMuted : C.textPrimary)),
+          Expanded(child: Text(label, style: ui(size: 13, color: C.textTertiary))),
+          const SizedBox(width: 12),
+          Flexible(
+            child: Text(value,
+                textAlign: TextAlign.end,
+                style: ui(size: 13, color: muted ? C.textMuted : C.textPrimary)),
+          ),
         ],
       ),
     );

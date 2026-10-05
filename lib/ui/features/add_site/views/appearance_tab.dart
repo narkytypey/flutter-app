@@ -67,7 +67,10 @@ class AppearanceTab extends StatelessWidget {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text('Open in reader mode', style: ui(size: 14, color: C.textPrimary)),
+            Expanded(
+              child: Text('Open in reader mode', style: ui(size: 14, color: C.textPrimary)),
+            ),
+            const SizedBox(width: 12),
             _switch(value: openInReader, onChanged: onOpenInReaderChanged),
           ],
         ),
@@ -75,7 +78,7 @@ class AppearanceTab extends StatelessWidget {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text('Page zoom', style: ui(size: 14, color: C.textPrimary)),
+            Expanded(child: Text('Page zoom', style: ui(size: 14, color: C.textPrimary))),
             Text('$pageZoom%', style: ui(size: 12, weight: 500, color: C.jade)),
           ],
         ),

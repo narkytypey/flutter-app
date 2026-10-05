@@ -4,6 +4,7 @@ import '../../../core/icons.dart';
 import '../../../core/tokens.dart';
 import '../../../core/typography.dart';
 import '../../../core/widgets/app_toggle.dart';
+import '../../../core/widgets/centered_scroll.dart';
 import '../../../core/widgets/pill_button.dart';
 import '../../../core/widgets/step_progress.dart';
 
@@ -35,7 +36,8 @@ class SetupDecoyScreen extends StatelessWidget {
             children: [
               const StepProgress(step: 2),
               Expanded(
-                child: Column(
+                child: CenteredScroll(
+                  child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -64,7 +66,10 @@ class SetupDecoyScreen extends StatelessWidget {
                                 mainAxisAlignment:
                                     MainAxisAlignment.spaceBetween,
                                 children: [
-                                  Text('Set up a decoy PIN', style: T.body),
+                                  Expanded(
+                                    child: Text('Set up a decoy PIN', style: T.body),
+                                  ),
+                                  const SizedBox(width: 12),
                                   AppToggle(value: enabled, onChanged: onToggle),
                                 ],
                               ),
@@ -79,16 +84,18 @@ class SetupDecoyScreen extends StatelessWidget {
                                 mainAxisAlignment:
                                     MainAxisAlignment.spaceBetween,
                                 children: [
-                                  Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Text('Sites to show', style: T.body),
-                                      const SizedBox(height: 3),
-                                      Text('Pick after setup',
-                                          style: ui(
-                                              size: 11.5, color: C.textFaint)),
-                                    ],
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text('Sites to show', style: T.body),
+                                        const SizedBox(height: 3),
+                                        Text('Pick after setup',
+                                            style: ui(
+                                                size: 11.5, color: C.textFaint)),
+                                      ],
+                                    ),
                                   ),
                                   const AppIcon(AppGlyph.forward, size: 16, color: C.textFaint),
                                 ],
@@ -99,6 +106,7 @@ class SetupDecoyScreen extends StatelessWidget {
                       ),
                     ),
                   ],
+                  ),
                 ),
               ),
               Padding(

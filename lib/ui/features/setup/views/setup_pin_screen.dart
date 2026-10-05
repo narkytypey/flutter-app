@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../core/tokens.dart';
 import '../../../core/typography.dart';
+import '../../../core/widgets/centered_scroll.dart';
 import '../../../core/widgets/pin_dots.dart';
 import '../../../core/widgets/pin_keypad.dart';
 import '../../../core/widgets/step_progress.dart';
@@ -46,7 +47,8 @@ class SetupPinScreen extends StatelessWidget {
             children: [
               if (showProgress) const StepProgress(step: 1),
               Expanded(
-                child: Column(
+                child: CenteredScroll(
+                  child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -65,6 +67,7 @@ class SetupPinScreen extends StatelessWidget {
                       Text(notice!, style: ui(size: 14, color: C.danger)),
                     ],
                   ],
+                  ),
                 ),
               ),
               PinKeypad(onKey: onKey),

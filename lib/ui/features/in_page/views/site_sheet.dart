@@ -98,6 +98,7 @@ class SiteSheet extends StatelessWidget {
     ];
     return BottomSheetSurface(
       showHandle: true,
+      scrolls: false,
       padding: const EdgeInsets.fromLTRB(0, 10, 0, 18),
       children: [
         Flexible(
@@ -120,9 +121,15 @@ class SiteSheet extends StatelessWidget {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text(name, style: ui(size: 15.5, weight: 600)),
+                              Text(name,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: ui(size: 15.5, weight: 600)),
                               const SizedBox(height: 3),
-                              Text(subtitle, style: ui(size: 11.5, color: C.textFaint)),
+                              Text(subtitle,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: ui(size: 11.5, color: C.textFaint)),
                             ],
                           ),
                         ),

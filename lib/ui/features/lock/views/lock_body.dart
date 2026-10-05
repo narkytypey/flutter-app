@@ -5,6 +5,7 @@ import '../../../../domain/models/lock_state.dart';
 import '../../../core/icons.dart';
 import '../../../core/tokens.dart';
 import '../../../core/typography.dart';
+import '../../../core/widgets/centered_scroll.dart';
 import '../../../core/widgets/pin_dots.dart';
 import '../../../core/widgets/pin_keypad.dart';
 
@@ -59,16 +60,18 @@ class LockBody extends StatelessWidget {
           child: Column(
             children: [
               Expanded(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    _mark(),
-                    const SizedBox(height: 26),
-                    ..._headline(),
-                    const SizedBox(height: 26),
-                    PinDots(filled: filled, error: _wrong),
-                    ..._footnote(),
-                  ],
+                child: CenteredScroll(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      _mark(),
+                      const SizedBox(height: 26),
+                      ..._headline(),
+                      const SizedBox(height: 26),
+                      PinDots(filled: filled, error: _wrong),
+                      ..._footnote(),
+                    ],
+                  ),
                 ),
               ),
               PinKeypad(onKey: onKey),
