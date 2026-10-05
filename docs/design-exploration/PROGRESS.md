@@ -8,7 +8,7 @@ Phases 0–2 done. Phase 3 (three directions) building in parallel subagents.
 
 ## Heartbeat
 
-2026-10-05T22:05Z · fire-cd6e6b
+2026-10-05T22:14Z · fire-cd6e6b
 
 ## Branch
 
@@ -129,5 +129,7 @@ No Android SDK yet; `flutter build apk --debug` not attempted.
 - [ ] One-page rationale
 
 ## Log
+
+- 22:14Z fire-cd6e6b: phases 1–2 committed; three direction agents launched in parallel (A daylight, B instrument, C rooms) per DIRECTION-BRIEF.md.
 
 - 2026-10-05T22:05Z fire-cd6e6b: started, first fire (no exploration branch on origin).
