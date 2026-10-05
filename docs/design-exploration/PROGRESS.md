@@ -4,7 +4,7 @@ Read this first. It is the only thing that carries across a restart.
 
 ## Where I got to
 
-Phase 0 done; phase 1 starting. (Updated as the run goes.)
+Phases 0–2 done. Phase 3 (three directions) building in parallel subagents.
 
 ## Heartbeat
 
@@ -16,7 +16,7 @@ design-exploration-restyle
 
 ## Next action
 
-Phase 1: run the web research (market share, majors, privacy peers, craft outliers, human factors) and write RESEARCH.md.
+Phase 3: check each direction folder's files against the checklist; build whatever is missing (BRIEF, TOKENS, logos, screens blocks in the mandated order).
 
 ## Toolchain
 
@@ -54,26 +54,26 @@ No Android SDK yet; `flutter build apk --debug` not attempted.
 - [x] Commit and push
 
 ### Phase 1 — Research (RESEARCH.md)
-- [ ] Market share 2026, two or more sources; where the user arrives from
-- [ ] Majors: Chrome Android, Safari iOS, Samsung Internet, Edge, Firefox, Opera
-- [ ] Privacy peers: Brave, DuckDuckGo, Tor Browser, Mullvad Browser, Cromite, Vivaldi, Orion
-- [ ] Craft outliers: Arc/Dia, Zen, Proton, Mullvad VPN, Signal, Tailscale, 1Password, Obsidian
-- [ ] Human factors: M3 expressive, iOS HIG, WCAG 2.1 AA, font-scale data
-- [ ] Human factors: intimidating privacy tools, trustworthy security UI, incognito misconceptions
-- [ ] "What this means for Container": 8–15 falsifiable implications
-- [ ] RESEARCH.md committed
+- [x] Market share 2026, two or more sources; where the user arrives from
+- [x] Majors: Chrome Android, Safari iOS, Samsung Internet, Edge, Firefox, Opera
+- [x] Privacy peers: Brave, DuckDuckGo, Tor Browser, Mullvad Browser, Cromite, Vivaldi, Orion
+- [x] Craft outliers: Arc/Dia, Zen, Proton, Mullvad VPN, Signal, Tailscale, 1Password, Obsidian
+- [x] Human factors: M3 expressive, iOS HIG, WCAG 2.1 AA, font-scale data
+- [x] Human factors: intimidating privacy tools, trustworthy security UI, incognito misconceptions
+- [x] "What this means for Container": 8–15 falsifiable implications
+- [x] RESEARCH.md committed
 
 ### Phase 2 — Audit (AUDIT.md)
-- [ ] Colour token inventory and usage
-- [ ] Type scale inventory
-- [ ] Spacing, radii, density, tap targets, icon set
-- [ ] WCAG contrast of real pairings, AA failures listed
-- [ ] Strengths vs majors; failures for the bounced user
-- [ ] Blast radius: files reading C.* / T.*, tests asserting colours/sizes/glyphs
-- [ ] AUDIT.md committed
+- [x] Colour token inventory and usage
+- [x] Type scale inventory
+- [x] Spacing, radii, density, tap targets, icon set
+- [x] WCAG contrast of real pairings, AA failures listed
+- [x] Strengths vs majors; failures for the bounced user
+- [x] Blast radius: files reading C.* / T.*, tests asserting colours/sizes/glyphs
+- [x] AUDIT.md committed
 
 ### Phase 3 — Three directions
-- [ ] Theses written into this file
+- [x] Theses written into this file
 - Direction A
   - [ ] BRIEF.md
   - [ ] TOKENS.md + tokens.css (contrast measured)
