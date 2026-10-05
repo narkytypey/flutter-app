@@ -1246,6 +1246,17 @@ with zero `e:` lines.
   has no values for them; each comes back with its action. The menu shows
   Open, Edit settings, then the wipe group. `flutter analyze` clean, `flutter
   test` 1012/1012 (no Kotlin changed). Not seen on a device.
+- **Two fixes ported from local branches before merging to `main`
+  (2026-10-05).** `fix-pinch-zoom`'s pinch zoom (`Page.kt`: built-in zoom on,
+  its +/- buttons hidden; seen on a physical phone) and `fix-unlock-hardening`'s
+  "after a panic, a PIN is refused like a wrong one" (with `meta.bin` gone,
+  `unlock` threw, so `3c`'s lock screen did nothing on a PIN; it now checks
+  against `VaultStore.unopenableSlots()` in memory and writes nothing),
+  merged into this branch's queued `_unlock`. That branch's other two commits
+  (atomic `meta.bin`, one PIN check at a time) were superseded by `6744d77`
+  and `c1d96d8`. Gates: `flutter analyze` clean, `flutter test` 1016/1016,
+  Kotlin JVM 368/368 (49 JUnit XML files), `flutter build apk --debug`
+  succeeding.
 
 ## Working on this repo
 
