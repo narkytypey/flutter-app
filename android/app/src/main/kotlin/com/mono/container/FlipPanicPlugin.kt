@@ -43,7 +43,8 @@ class FlipPanicPlugin(context: Context, private val channel: MethodChannel) :
         }
     }
 
-    private fun stop() {
+    /** Also called when the Flutter engine is cleaned up (`MainActivity`). */
+    fun stop() {
         sensors?.unregisterListener(this)
         detector = null
     }

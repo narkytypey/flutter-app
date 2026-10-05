@@ -2,15 +2,12 @@ package com.mono.container
 
 import android.os.Handler
 import android.os.Looper
-import android.security.keystore.KeyGenParameterSpec
-import android.security.keystore.KeyProperties
 import io.flutter.plugin.common.MethodCall
 import io.flutter.plugin.common.MethodChannel
 import java.security.KeyStore
 import java.security.SecureRandom
 import java.util.concurrent.Executors
 import javax.crypto.Cipher
-import javax.crypto.KeyGenerator
 import javax.crypto.spec.GCMParameterSpec
 import javax.crypto.spec.SecretKeySpec
 import org.bouncycastle.crypto.generators.Argon2BytesGenerator
@@ -71,31 +68,13 @@ class CryptoCore {
     }
 
     /**
-     * A device-bound Keystore key that encrypts both slots at rest, so the
-     * stored blobs are useless lifted off the phone.
+     * Deletes the `container.device` Keystore alias if one exists. Nothing in
+     * this app creates that key any more: an earlier `deviceKey()` meant to
+     * encrypt the slots at rest with it was never called, and could not have
+     * worked (a Keystore key's `encoded` is null, so it fell back to an
+     * all-zero key). The slots are protected by the PIN-derived KEK alone.
+     * Panic still calls this, so an install that ever made the alias loses it.
      */
-    fun deviceKey(): SecretKeySpec {
-        val store = KeyStore.getInstance(KEYSTORE).apply { load(null) }
-        val existing = store.getKey(DEVICE_KEY_ALIAS, null)
-        if (existing == null) {
-            KeyGenerator.getInstance(KeyProperties.KEY_ALGORITHM_AES, KEYSTORE).apply {
-                init(
-                    KeyGenParameterSpec.Builder(
-                        DEVICE_KEY_ALIAS,
-                        KeyProperties.PURPOSE_ENCRYPT or KeyProperties.PURPOSE_DECRYPT,
-                    )
-                        .setBlockModes(KeyProperties.BLOCK_MODE_GCM)
-                        .setEncryptionPaddings(KeyProperties.ENCRYPTION_PADDING_NONE)
-                        .setRandomizedEncryptionRequired(true)
-                        .build()
-                )
-                generateKey()
-            }
-        }
-        val key = store.getKey(DEVICE_KEY_ALIAS, null)
-        return SecretKeySpec(key.encoded ?: ByteArray(32), "AES")
-    }
-
     fun destroyDeviceKey() {
         val store = KeyStore.getInstance(KEYSTORE).apply { load(null) }
         if (store.containsAlias(DEVICE_KEY_ALIAS)) store.deleteEntry(DEVICE_KEY_ALIAS)
@@ -115,10 +94,20 @@ class CryptoCore {
 class CryptoPlugin(private val core: CryptoCore = CryptoCore()) :
     MethodChannel.MethodCallHandler {
 
-    private val workers = Executors.newSingleThreadExecutor()
+    private val workers = Executors.newSingleThreadExecutor { task ->
+        Thread(task, "crypto").apply { isDaemon = true }
+    }
     private val main = Handler(Looper.getMainLooper())
 
+    /**
+     * Ends the worker thread once queued calls finish. One plugin is made per
+     * Flutter engine, and a single-thread executor's thread never times out,
+     * so without this every engine the Activity outlives left one behind.
+     */
+    fun shutdown() = workers.shutdown()
+
     override fun onMethodCall(call: MethodCall, result: MethodChannel.Result) {
+        if (workers.isShutdown) return result.error("crypto", "engine detached", null)
         workers.execute {
             val reply: Result<Any?> = runCatching {
                 when (call.method) {

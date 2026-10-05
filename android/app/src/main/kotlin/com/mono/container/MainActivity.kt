@@ -37,8 +37,10 @@ class MainActivity : FlutterFragmentActivity() {
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
 
+        val crypto = CryptoPlugin()
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, CryptoPlugin.CHANNEL)
-            .setMethodCallHandler(CryptoPlugin())
+            .setMethodCallHandler(crypto)
+        this.crypto = crypto
 
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, SecureWindowPlugin.CHANNEL)
             .setMethodCallHandler(SecureWindowPlugin(this))
@@ -47,7 +49,9 @@ class MainActivity : FlutterFragmentActivity() {
             .setMethodCallHandler(BiometricPlugin(this))
 
         val flip = MethodChannel(flutterEngine.dartExecutor.binaryMessenger, FlipPanicPlugin.CHANNEL)
-        flip.setMethodCallHandler(FlipPanicPlugin(applicationContext, flip))
+        val flipPanic = FlipPanicPlugin(applicationContext, flip)
+        flip.setMethodCallHandler(flipPanic)
+        this.flipPanic = flipPanic
 
         val profiles = ProfileManager(
             PendingDeletions(java.io.File(applicationContext.filesDir, "pending-profile-deletions")),
@@ -83,6 +87,8 @@ class MainActivity : FlutterFragmentActivity() {
     }
 
     private var engine: EngineChannel? = null
+    private var crypto: CryptoPlugin? = null
+    private var flipPanic: FlipPanicPlugin? = null
 
     // Registered before the Activity starts, as the API requires. The engine
     // reads what is held itself, so the result's map is not passed on.
@@ -106,6 +112,12 @@ class MainActivity : FlutterFragmentActivity() {
     override fun cleanUpFlutterEngine(flutterEngine: FlutterEngine) {
         engine?.detach()
         engine = null
+        // The accelerometer listener holds this engine's channel; a sensor
+        // registered with the system outlives the engine unless stopped.
+        flipPanic?.stop()
+        flipPanic = null
+        crypto?.shutdown()
+        crypto = null
         systemDialog = null
         super.cleanUpFlutterEngine(flutterEngine)
     }
