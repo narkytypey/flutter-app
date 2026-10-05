@@ -198,8 +198,22 @@ class SessionController extends Notifier<Session> {
   void dismissPanicReport() =>
       state = const SessionLocked(mood: LockMood.normal, gate: AttemptGate());
 
-  Future<void> unlock(String pin) async {
+  /// The tail of the unlock queue: every [unlock] runs after the one before
+  /// it has finished, so two overlapping attempts can never both read the
+  /// same attempt gate and record one failure between them.
+  Future<void> _unlockQueue = Future<void>.value();
+
+  Future<void> unlock(String pin) {
+    final run = _unlockQueue.then((_) => _unlock(pin));
+    _unlockQueue = run.then<void>((_) {}, onError: (Object _) {});
+    return run;
+  }
+
+  Future<void> _unlock(String pin) async {
     final previous = state;
+    // An earlier attempt in the queue already opened a vault (or panic ran):
+    // there is nothing left for this PIN to decide.
+    if (previous is! SessionLocked) return;
     final currentGate = await _vaultStore.gate();
     final slots = await _vaultStore.slots();
     final outcome = await _unlocker.attempt(
@@ -226,22 +240,24 @@ class SessionController extends Notifier<Session> {
         );
       case Rejected(:final gate):
         await _vaultStore.saveGate(gate);
+        // The failure is counted, but a late rejection must never take an
+        // open vault (or a panic report) back to the lock screen.
+        if (state is! SessionLocked) return;
         state = SessionLocked(
           mood: LockMood.wrong,
           gate: gate,
           openSessionCount: _openCount(),
-          biometricVault: previous is SessionLocked ? previous.biometricVault : null,
-          biometricWrappedKey:
-              previous is SessionLocked ? previous.biometricWrappedKey : null,
+          biometricVault: previous.biometricVault,
+          biometricWrappedKey: previous.biometricWrappedKey,
         );
       case Throttled():
+        if (state is! SessionLocked) return;
         state = SessionLocked(
           mood: LockMood.wrong,
           gate: currentGate,
           openSessionCount: _openCount(),
-          biometricVault: previous is SessionLocked ? previous.biometricVault : null,
-          biometricWrappedKey:
-              previous is SessionLocked ? previous.biometricWrappedKey : null,
+          biometricVault: previous.biometricVault,
+          biometricWrappedKey: previous.biometricWrappedKey,
         );
     }
   }

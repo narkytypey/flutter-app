@@ -181,6 +181,33 @@ void main() {
     expect(session.gate.triesLeft, 4);
   });
 
+  test('two overlapping wrong PINs each cost an attempt', () async {
+    await vaultStore.provision(pin: '111111', vault: VaultId.a);
+    await vaultStore.provisionUnopenable(VaultId.b);
+    final container = buildContainer(
+        SessionLocked(mood: LockMood.normal, gate: await vaultStore.gate()));
+    final notifier = container.read(sessionProvider.notifier);
+
+    await Future.wait([notifier.unlock('999999'), notifier.unlock('888888')]);
+
+    final session = container.read(sessionProvider) as SessionLocked;
+    expect(session.gate.triesLeft, 3);
+    expect((await vaultStore.gate()).triesLeft, 3);
+  });
+
+  test('a wrong PIN overlapping a right one never relocks the open vault',
+      () async {
+    await vaultStore.provision(pin: '111111', vault: VaultId.a);
+    await vaultStore.provisionUnopenable(VaultId.b);
+    final container = buildContainer(
+        SessionLocked(mood: LockMood.normal, gate: await vaultStore.gate()));
+    final notifier = container.read(sessionProvider.notifier);
+
+    await Future.wait([notifier.unlock('111111'), notifier.unlock('999999')]);
+
+    expect(container.read(sessionProvider), isA<SessionOpen>());
+  });
+
   // A saved site and a throwaway, opened through the registry as the host
   // route does, so the lock sees containers that really are open.
   Future<void> openTwo(ProviderContainer container) async {

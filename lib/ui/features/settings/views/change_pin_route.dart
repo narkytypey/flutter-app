@@ -129,6 +129,8 @@ class _ChangePinRouteState extends ConsumerState<ChangePinRoute> {
             filled: _currentEntry.value.filled,
             error: _wrong,
             onKey: (key) {
+              // A PIN is still being checked: LockController ignores keys.
+              if (_currentEntry.busy) return;
               if (_wrong) setState(() => _wrong = false);
               _currentEntry.onKey(key);
             },
