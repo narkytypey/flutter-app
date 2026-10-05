@@ -27,7 +27,14 @@ storage.googleapis.com into `/opt/fl/flutter` (not persistent: a later fire
 must re-download it, ~4 min:
 `curl -sSfL https://storage.googleapis.com/flutter_infra_release/releases/stable/linux/flutter_linux_3.47.2-stable.tar.xz | tar xJ -C /opt/fl`).
 Baseline on `main` @ d0edb1c: `flutter analyze` clean, `flutter test` **1057/1057**.
-No Android SDK yet; `flutter build apk --debug` not attempted.
+Android SDK installed under `/opt/android` (cmdline-tools from
+dl.google.com, then `sdkmanager "platform-tools" "platforms;android-36"
+"build-tools;36.0.0"`; Gradle fetched NDK/CMake itself) and
+`flutter config --android-sdk /opt/android`. Baseline
+`flutter build apk --debug` on `main` @ d0edb1c: **built, zero `e:` lines**
+(Gradle 315 s cold). So phase 8 has the **full toolchain**: all three gates run.
+A later fire must reinstall all of it (~10 min); set
+`PATH=/opt/fl/flutter/bin:$PATH ANDROID_HOME=/opt/android`.
 
 ## Directions (one-line theses)
 
