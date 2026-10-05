@@ -621,8 +621,8 @@ class OpenContainers extends Notifier<OpenContainersState> {
   }
 
   /// The open itself threw (the lists and scripts could not be read, or the
-  /// engine failed): shown as `8b`, as [_refused] shows a refusal with no
-  /// failure named, and closed the same way, so nothing is left half open.
+  /// engine failed): shown as `8b` with [RouteFailure.openFailed], and closed
+  /// as [_refused] closes a refusal, so nothing is left half open.
   Future<void> _openFailed(String siteId) async {
     final container = state.byId(siteId);
     if (container == null) return;
@@ -640,7 +640,7 @@ class OpenContainers extends Notifier<OpenContainersState> {
     _update(
       siteId,
       (c) => c.copyWith(
-        refusal: Refusal(failure: RouteFailure.misconfigured, lastWorked: lastWorked),
+        refusal: Refusal(failure: RouteFailure.openFailed, lastWorked: lastWorked),
       ),
     );
     if (container.throwaway) return;

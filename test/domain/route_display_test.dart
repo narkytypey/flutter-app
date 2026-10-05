@@ -36,10 +36,14 @@ void main() {
   });
 
   // Spec §5.6.
-  test('an onion address is never offered without the tunnel; any other is', () {
+  test('an onion address is never offered without the tunnel; a proxied one is', () {
     expect(canOpenWithoutTunnel(_site(ProxyMode.tor, url: 'http://abc.onion/')), isFalse);
     expect(canOpenWithoutTunnel(_site(ProxyMode.tor)), isTrue);
     expect(canOpenWithoutTunnel(_site(ProxyMode.socks5, host: 'h', port: 1)), isTrue);
+  });
+
+  test('a direct site has no tunnel to open without', () {
+    expect(canOpenWithoutTunnel(_site(ProxyMode.direct)), isFalse);
   });
 
   // Spec §5.4.

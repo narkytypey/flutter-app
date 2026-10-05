@@ -36,6 +36,9 @@ String proxyFailureHeadline(RouteFailure failure) {
 /// [RouteFailure.unsupported] has its own sentence, approved with its headline
 /// in the P2 spec (§3.3): nothing is wrong with the tunnel, so the generic
 /// sentence would mislead, and the remedy is on the phone.
+///
+/// [RouteFailure.openFailed] has its own sentence too (user's ruling,
+/// 2026-10-05, with its headline): no tunnel was tried, so it names none.
 String? proxyFailureDetail(
   RouteFailure failure, {
   required String siteName,
@@ -50,6 +53,10 @@ String? proxyFailureDetail(
   }
   if (failure == RouteFailure.unsupported) {
     return 'Update Android System WebView to open proxied sites.';
+  }
+  if (failure == RouteFailure.openFailed) {
+    return 'Something went wrong before the page loaded. '
+        'The page was not loaded, so no request left your device.';
   }
 
   final cause = failure == RouteFailure.proxyUnreachable

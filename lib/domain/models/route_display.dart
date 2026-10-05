@@ -32,8 +32,10 @@ String tunnelDescriptor(Site site) {
 }
 
 /// Whether `8b` offers "Open without the tunnel" (spec §5.6): never for an
-/// onion address, which cannot go direct and would leak its name.
-bool canOpenWithoutTunnel(Site site) => !isOnionHost(site.host);
+/// onion address, which cannot go direct and would leak its name, and never
+/// for a direct site, which has no tunnel to leave (a failed open).
+bool canOpenWithoutTunnel(Site site) =>
+    site.proxyMode != ProxyMode.direct && !isOnionHost(site.host);
 
 /// Spec §5.4: on Tor, Block WebRTC is always on, and its switch inert.
 bool webRtcLocked(ProxyMode mode) => mode == ProxyMode.tor;

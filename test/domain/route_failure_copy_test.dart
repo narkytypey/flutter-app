@@ -28,7 +28,11 @@ void main() {
 
   test('every failure with a tunnel names the site and ends on the same reassurance', () {
     for (final failure in RouteFailure.values) {
-      if (failure == RouteFailure.misconfigured || failure == RouteFailure.unsupported) continue;
+      if (failure == RouteFailure.misconfigured ||
+          failure == RouteFailure.unsupported ||
+          failure == RouteFailure.openFailed) {
+        continue;
+      }
       final detail = proxyFailureDetail(failure, siteName: 'Forum', tunnelDescriptor: 'the tunnel');
       expect(detail, contains('Forum'));
       expect(detail, endsWith('The page was not loaded, so no request left your device.'));
@@ -41,6 +45,16 @@ void main() {
     expect(
       proxyFailureDetail(RouteFailure.unsupported, siteName: 'Forum', tunnelDescriptor: 'the tunnel'),
       'Update Android System WebView to open proxied sites.',
+    );
+  });
+
+  test('a failed open says so, in the approved words, and names no tunnel', () {
+    // User's ruling, 2026-10-05: the app's own failure, not the network's.
+    expect(proxyFailureHeadline(RouteFailure.openFailed), 'This site could not be opened');
+    expect(
+      proxyFailureDetail(RouteFailure.openFailed, siteName: 'Forum', tunnelDescriptor: 'the tunnel'),
+      'Something went wrong before the page loaded. '
+      'The page was not loaded, so no request left your device.',
     );
   });
 

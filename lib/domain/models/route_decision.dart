@@ -22,6 +22,11 @@ enum RouteFailure {
   /// Built-in Tor is off, failed, stalled or was let go of (built-in Tor
   /// spec §4.3). Never direct.
   torFailed,
+
+  /// The open itself threw (the vault's lists and scripts could not be read,
+  /// or the engine failed): the app's own failure, not the network's. Dart
+  /// only; Kotlin never names it.
+  openFailed,
 }
 
 sealed class RouteDecision {
@@ -82,4 +87,5 @@ String refusalMessage(RouteFailure failure) => switch (failure) {
       RouteFailure.unsupported => 'This phone cannot route sites through a proxy',
       RouteFailure.proxyLoginRejected => 'The proxy rejected the login',
       RouteFailure.torFailed => 'Tor did not connect',
+      RouteFailure.openFailed => 'This site could not be opened',
     };

@@ -223,7 +223,7 @@ void main() {
     await h.registry.view(_site('s1'));
 
     final container = h.state.byId('s1')!;
-    expect(container.refusal?.failure, RouteFailure.misconfigured);
+    expect(container.refusal?.failure, RouteFailure.openFailed);
     expect(h.engine.closed, contains('s1'));
   });
 
@@ -232,7 +232,7 @@ void main() {
 
     await h.registry.view(_site('s1'));
 
-    expect(h.state.byId('s1')!.refusal?.failure, RouteFailure.misconfigured);
+    expect(h.state.byId('s1')!.refusal?.failure, RouteFailure.openFailed);
     expect(h.engine.opens, 0);
   });
 
