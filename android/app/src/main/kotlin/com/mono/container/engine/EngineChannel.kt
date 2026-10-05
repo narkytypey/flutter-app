@@ -330,6 +330,9 @@ class EngineChannel(
             "fileName" to fileName, "sizeBytes" to sizeBytes,
             "sourceHost" to hostOf(session.config), "kindLabel" to kindLabel, "requestId" to requestId,
         ))
+        // A site whose address is itself a file: its first load became this
+        // download, and no page load will ever finish to report it live.
+        if (goesLiveOnDownload(session.phase)) markLive(session.config.siteId)
         return requestId
     }
 
@@ -1059,3 +1062,10 @@ fun parseReaderJson(json: String): Map<String, Any?>? = runCatching {
         "minutesToRead" to obj.getInt("minutesToRead"),
     )
 }.getOrNull()
+
+/**
+ * Whether a download makes a session live. Only an opening one: its first
+ * load turned into the download (the address was a file), so `onPageFinished`
+ * never comes. The tunnel just carried the download, so the site is reachable.
+ */
+internal fun goesLiveOnDownload(phase: String): Boolean = phase == Session.PHASE_OPENING
