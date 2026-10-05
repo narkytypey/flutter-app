@@ -1,0 +1,87 @@
+/* Direction B — Instrument. Dark only. Every value here is in TOKENS.md with
+   its measured contrast. Font sizes are multiplied by --scale (set by
+   screens.html from ?scale=); nothing else scales. */
+
+:root {
+  --scale: 1;
+
+  /* ── Surfaces: four tones, each ≥ 1.16:1 from its neighbour ── */
+  --ink: #121110;             /* C.bg — the page */
+  --surface-group: #22201D;   /* C.surface — grouped rows, pill, inputs, keys */
+  --surface-sheet: #302D29;   /* C.sheet — bottom sheets */
+  --surface-raised: #403C37;  /* C.selected / C.button — chips, buttons, groups inside sheets */
+
+  /* ── Text: three tones, all ≥ 4.5:1 where they may sit ── */
+  --text-1: #EDEAE4;          /* titles, names, values that matter */
+  --text-2: #CBC4B9;          /* secondary text, explanations, icons */
+  --text-3: #A8A095;          /* meta, captions — never on --surface-raised */
+
+  /* ── State ── */
+  --jade: #7FC8A9;            /* live, or the one affirmative action */
+  --on-jade: #121110;
+  --danger: #EE8D79;          /* text and outline only */
+  --danger-wash: #2C201D;     /* small tinted panel (8c), never a screen */
+  --amber: #E0B266;           /* opening light; JS badge */
+  --code: #D9CFB8;            /* code text (C.jadeCode retired) */
+
+  /* ── Lines: two alphas + one solid edge ── */
+  --line-soft: rgba(237, 234, 228, 0.08); /* inside a group */
+  --line: rgba(237, 234, 228, 0.14);      /* group outline, section rule */
+  --edge: #958D82;            /* ≥ 3:1 — switch-off, inputs, empty dots, idle light */
+  --focus: #EDEAE4;
+
+  /* ── Reader (6b) ── */
+  --reader-bg: #15120E;
+  --reader-title: #EFE8DC;
+  --reader-body: #D3CBBE;
+  --reader-muted: #A39A8C;
+
+  /* ── Workspace markers (data) ── */
+  --marker-0: #C9B48A; --marker-1: #8FA5C8; --marker-2: #E0B266;
+  --marker-3: #C89BB4; --marker-4: #A8A095;
+
+  /* ── Type ── */
+  --sans: 'IBM Plex Sans', system-ui, sans-serif;
+  --mono: 'IBM Plex Mono', ui-monospace, monospace;
+  --fs-display: calc(40px * var(--scale));
+  --fs-step: calc(26px * var(--scale));
+  --fs-screen: calc(22px * var(--scale));
+  --fs-sheet: calc(20px * var(--scale));
+  --fs-appbar: calc(18px * var(--scale));
+  --fs-keypad: calc(28px * var(--scale));
+  --fs-row: calc(16px * var(--scale));
+  --fs-body: calc(16px * var(--scale));
+  --fs-label: calc(16px * var(--scale));   /* button labels */
+  --fs-readout: calc(15px * var(--scale)); /* the pill's host */
+  --fs-muted: calc(15px * var(--scale));
+  --fs-sub: calc(14px * var(--scale));     /* row subtitles, values */
+  --fs-section: calc(14px * var(--scale));
+  --fs-meta: calc(13px * var(--scale));
+  --fs-code: calc(13px * var(--scale));
+  --fs-caption: calc(12px * var(--scale)); /* the floor: badges, tab labels */
+  --fs-r-title: calc(26px * var(--scale));
+  --fs-r-body: calc(17px * var(--scale));
+
+  /* ── Space (4-based) ── */
+  --s1: 4px; --s2: 8px; --s3: 12px; --s4: 16px; --s5: 20px;
+  --s6: 24px; --s8: 32px; --s12: 48px;
+
+  /* ── Radii ── */
+  --r-xs: 6px;    /* badges */
+  --r-sm: 10px;   /* monograms, small chips */
+  --r-md: 14px;   /* inputs, buttons-in-rows */
+  --r-lg: 18px;   /* groups, cards */
+  --r-xl: 28px;   /* sheet top corners */
+  --r-full: 999px;
+
+  /* ── Targets ── */
+  --target: 48px;
+
+  /* ── Elevation ── */
+  --shadow-sheet: 0 -12px 40px rgba(0, 0, 0, 0.55);
+
+  /* ── Motion ── */
+  --ease-effect: cubic-bezier(0.2, 0, 0, 1);   /* no overshoot */
+  --dur-effect: 150ms;
+  --dur-moment: 320ms;
+}
