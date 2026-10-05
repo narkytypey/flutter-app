@@ -71,20 +71,16 @@ object HttpConnectTunnel {
      * Reads the status line and drains the header block, leaving the stream
      * positioned at the first byte of tunnel payload. The body of a CONNECT
      * response is empty by definition, so there is nothing else to consume.
+     *
+     * End of stream before the blank line is an [java.io.EOFException], never
+     * a status: a proxy that answers `200` and hangs up has opened no tunnel,
+     * and treating it as one would hand back a dead socket as a success. Lines
+     * are capped at [MAX_HTTP_LINE] and the head at [MAX_HTTP_HEAD].
      */
-    private fun readStatus(input: InputStream): Int {
-        val statusLine = readLine(input)
-        while (readLine(input).isNotEmpty()) { /* drain headers */ }
+    internal fun readStatus(input: InputStream): Int {
+        val head = HttpHeadReader(input)
+        val statusLine = head.readLineOrThrow("the proxy's CONNECT answer")
+        while (head.readLineOrThrow("the proxy's CONNECT answer").isNotEmpty()) { /* drain headers */ }
         return statusLine.split(' ', limit = 3).getOrNull(1)?.toIntOrNull() ?: 502
-    }
-
-    private fun readLine(input: InputStream): String {
-        val line = StringBuilder()
-        while (true) {
-            val byte = input.read()
-            if (byte == -1 || byte == '\n'.code) break
-            if (byte != '\r'.code) line.append(byte.toChar())
-        }
-        return line.toString()
     }
 }

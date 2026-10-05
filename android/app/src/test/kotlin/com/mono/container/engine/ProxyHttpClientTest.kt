@@ -129,4 +129,36 @@ class ProxyHttpClientTest {
             assertEquals(null, response.headers["Content-Length"])
         }
     }
+
+    /** A failed TLS handshake used to leave the connected socket open. */
+    @Test fun `a fetch that fails after connecting closes its socket`() {
+        ServerSocket(0).use { server ->
+            val closedByClient = ArrayBlockingQueue<Boolean>(1)
+            Thread {
+                runCatching {
+                    server.accept().use { client ->
+                        client.soTimeout = 5_000
+                        // Not TLS: the client's handshake fails on this.
+                        client.getOutputStream().apply { write("HTTP/1.1 200 OK\r\n\r\n".toByteArray()); flush() }
+                        val closed = try {
+                            val buffer = ByteArray(4096)
+                            while (client.getInputStream().read(buffer) != -1) { /* the ClientHello */ }
+                            true
+                        } catch (_: java.net.SocketTimeoutException) {
+                            false
+                        } catch (_: java.io.IOException) {
+                            true // reset: closed too
+                        }
+                        closedByClient.offer(closed)
+                    }
+                }
+            }.apply { isDaemon = true }.start()
+            try {
+                ProxyHttpClient.fetch(Route.Direct, "127.0.0.1", server.localPort, true, "GET", "/", emptyMap())
+                org.junit.Assert.fail("a TLS handshake against plain http must fail")
+            } catch (_: java.io.IOException) {
+            }
+            assertEquals(true, closedByClient.poll(10, java.util.concurrent.TimeUnit.SECONDS))
+        }
+    }
 }

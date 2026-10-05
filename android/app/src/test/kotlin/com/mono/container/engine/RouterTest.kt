@@ -314,4 +314,29 @@ class RouterTest {
         val config = config(mode = "direct").copy(proxyLogin = ProxyLogin("alice", "s3cret"), proxyLoginPerSite = true)
         assertEquals(Route.Direct, Router.resolve(config, proxyReachable = true))
     }
+
+    @Test fun `currentRoute never probes for a direct site, even with a leftover proxy`() {
+        val probed = mutableListOf<String>()
+        val route = config(mode = "direct", host = "10.0.2.2", port = 8888)
+            .currentRoute { host, port -> probed += "$host:$port"; true }
+        assertEquals(Route.Direct, route)
+        assertTrue(probed.isEmpty())
+    }
+
+    @Test fun `currentRoute never probes for an unknown mode, and refuses it`() {
+        val probed = mutableListOf<String>()
+        val route = config(mode = "ftp").currentRoute { host, port -> probed += "$host:$port"; true }
+        assertEquals(Route.Refused(RouteFailure.MISCONFIGURED), route)
+        assertTrue(probed.isEmpty())
+    }
+
+    @Test fun `currentRoute probes the proxy of a socks5 or http site`() {
+        for (mode in listOf("socks5", "http")) {
+            val probed = mutableListOf<String>()
+            val reachable = config(mode = mode).currentRoute { host, port -> probed += "$host:$port"; true }
+            assertTrue(reachable is Route.Proxy)
+            assertEquals(listOf("127.0.0.1:9050"), probed)
+            assertEquals(Route.Refused(RouteFailure.PROXY_UNREACHABLE), config(mode = mode).currentRoute { _, _ -> false })
+        }
+    }
 }

@@ -14,8 +14,9 @@ interface PageEvents {
     /** Every finished main-frame load; the engine moves an opening session live. */
     fun loaded(page: Page)
 
-    /** A live permission ask; returns its request id. */
-    fun ask(page: Page, pending: PendingPermission): String
+    /** A live permission ask; returns its request id, or null when it was
+     *  answered at once (keep blocked) and must not be stored. */
+    fun ask(page: Page, pending: PendingPermission): String?
 
     /** A held download; returns its request id. [sizeBytes] is null when the
      *  size is unknown — see [heldDownloadSize]. */
@@ -235,11 +236,16 @@ class Page(
      * on the platform thread. `null` when nothing article-shaped was found. */
     fun extractArticle(onResult: (Map<String, Any?>?) -> Unit) {
         if (closed) return onResult(null)
+        // A page closed mid-script never runs this callback: [close] answers
+        // it null instead, and a late answer after that is dropped.
+        val reply = readerReplies.add(onResult)
         webView.evaluateJavascript(READER_JS) { raw ->
             val json = raw?.takeIf { it != "null" }
-            onResult(json?.let(::parseReaderJson))
+            reply.answer(json?.let(::parseReaderJson))
         }
     }
+
+    private val readerReplies = PendingReplies<Map<String, Any?>>()
 
     /**
      * Ends this page without letting its last requests escape ([Teardown]):
@@ -254,6 +260,7 @@ class Page(
         if (closed) return
         closed = true
         closing.set(true)
+        readerReplies.cancelAll()
         clearCacheOnDestroy = clearCache
         onDestroyed = onDone
         webView.stopLoading()
@@ -263,6 +270,7 @@ class Page(
     }
 
     private fun destroy() {
+        readerReplies.cancelAll()
         if (clearCacheOnDestroy) webView.clearCache(true)
         (webView.parent as? ViewGroup)?.removeView(webView)
         context.baseContext = appContext

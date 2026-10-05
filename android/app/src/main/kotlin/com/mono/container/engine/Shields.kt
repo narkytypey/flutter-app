@@ -81,11 +81,15 @@ object Shields {
      * flag is off but which asks anyway gets [onAsk] instead of an
      * unconditional deny — Plan 6 hands the decision to `PermissionRequestSheet`
      * (`6a`) rather than the platform refusing on the user's behalf.
+     *
+     * [onAsk] returns the ask's request id, or null when it answered the ask
+     * itself (a closing page, "keep blocked"): then nothing is stored, since a
+     * stored entry would later be answered a second time.
      */
     fun chromeClientFor(
         config: SiteConfig,
         session: Session,
-        onAsk: (PendingPermission) -> String,
+        onAsk: (PendingPermission) -> String?,
         onProgress: (Int) -> Unit = {},
         onTitle: (String?) -> Unit = {},
         /** `onCreateWindow` (tabs spec §3.1). True when the message was handled. */
@@ -126,7 +130,7 @@ object Shields {
             }
             val requestId = onAsk(PendingPermission.Hardware(
                 requestId = "", request = request, toAsk = toAsk, granted = granted,
-            ))
+            )) ?: return
             session.pendingPermissions[requestId] =
                 PendingPermission.Hardware(requestId, request, toAsk, granted)
         }
@@ -139,6 +143,7 @@ object Shields {
                 return
             }
             val requestId = onAsk(PendingPermission.Geolocation(requestId = "", origin = origin, callback = callback))
+                ?: return
             session.pendingPermissions[requestId] =
                 PendingPermission.Geolocation(requestId, origin, callback)
         }
