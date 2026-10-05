@@ -26,10 +26,13 @@ class WorkspacesRoute extends ConsumerWidget {
   }
 
   Future<void> _delete(BuildContext context, WidgetRef ref, String id) async {
+    // The delete closes live WebViews first, which can outlast this route:
+    // `ref` would be disposed by then, the container is not.
+    final scope = ProviderScope.containerOf(context, listen: false);
     final workspace = await _workspaceById(ref, id);
     if (workspace == null) return;
-    final sites = await ref.read(siteRepositoryProvider).inWorkspace(id);
-    final bytes = await ref.read(workspaceStorageServiceProvider).bytesFor(id);
+    final sites = await scope.read(siteRepositoryProvider).inWorkspace(id);
+    final bytes = await scope.read(workspaceStorageServiceProvider).bytesFor(id);
     if (!context.mounted) return;
     showModalBottomSheet<void>(
       context: context,
@@ -44,8 +47,8 @@ class WorkspacesRoute extends ConsumerWidget {
           onCancel: () => Navigator.pop(sheetContext),
           onDelete: () async {
             Navigator.pop(sheetContext);
-            await ref.read(workspaceActionsProvider).delete(workspace);
-            workspacesChanged(ref, deletedId: workspace.id);
+            await scope.read(workspaceActionsProvider).delete(workspace);
+            workspacesChangedIn(scope, deletedId: workspace.id);
           },
         ),
       ),
@@ -64,7 +67,7 @@ Future<Workspace?> _workspaceById(WidgetRef ref, String id) async {
 /// the dashboard's `+` chip (dashboard spec §4.2).
 void createWorkspace(BuildContext context, WidgetRef ref) {
   Navigator.push(context, MaterialPageRoute(
-    builder: (_) => WorkspaceFormScreen(
+    builder: (formContext) => WorkspaceFormScreen(
       title: 'New workspace',
       initialName: '',
       initialMarkerIndex: 0,
@@ -74,7 +77,7 @@ void createWorkspace(BuildContext context, WidgetRef ref) {
       onSave: (result) async {
         await ref.read(workspaceActionsProvider).create(result);
         workspacesChanged(ref);
-        if (context.mounted) Navigator.pop(context);
+        if (formContext.mounted) Navigator.pop(formContext);
       },
       onClose: () => Navigator.pop(context),
     ),
@@ -89,7 +92,7 @@ Future<void> editWorkspace(BuildContext context, WidgetRef ref, String id) async
   final workspace = await _workspaceById(ref, id);
   if (workspace == null || !context.mounted) return;
   Navigator.push(context, MaterialPageRoute(
-    builder: (_) => WorkspaceFormScreen(
+    builder: (formContext) => WorkspaceFormScreen(
       title: workspace.name,
       initialName: workspace.name,
       initialMarkerIndex: workspace.markerIndex,
@@ -99,7 +102,7 @@ Future<void> editWorkspace(BuildContext context, WidgetRef ref, String id) async
       onSave: (result) async {
         await ref.read(workspaceActionsProvider).update(workspace, result);
         workspacesChanged(ref);
-        if (context.mounted) Navigator.pop(context);
+        if (formContext.mounted) Navigator.pop(formContext);
       },
       onClose: () => Navigator.pop(context),
     ),

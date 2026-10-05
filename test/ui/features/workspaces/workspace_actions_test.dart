@@ -115,6 +115,25 @@ void main() {
     expect(ordered.calls[docs + 1], 'wipe profile-docs');
     expect(ordered.calls, hasLength(4));
   });
+
+  // Deleting the last workspace left the add-site form with nothing to put a
+  // site in (`workspaces.first` threw).
+  test('deleting the last workspace leaves a fresh Personal one', () async {
+    final ensuring = WorkspaceActions(
+      workspaces: SqliteWorkspaceRepository(database),
+      sites: SqliteSiteRepository(database),
+      engine: engine,
+      storage: FakeWorkspaceStorageService(const {}),
+      ensureOneWorkspace: () => ensureWorkspace(database),
+    );
+
+    await ensuring.delete(personal);
+    await ensuring.delete(work);
+
+    final all = await SqliteWorkspaceRepository(database).all();
+    expect(all.map((w) => w.name), ['Personal']);
+    expect(all.single.id, isNot('ws-personal'));
+  });
 }
 
 /// Records close and wipe in one list, so a test can see their order.

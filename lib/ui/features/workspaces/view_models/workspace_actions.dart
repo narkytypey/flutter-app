@@ -14,7 +14,13 @@ class WorkspaceActions {
     required this.sites,
     required this.engine,
     required this.storage,
+    this.ensureOneWorkspace,
   });
+
+  /// Run after a delete: a vault always keeps one workspace
+  /// (`ensureWorkspace`), so deleting the last one never leaves forms with
+  /// nothing to put a site in.
+  final Future<void> Function()? ensureOneWorkspace;
 
   final WorkspaceRepository workspaces;
   final SiteRepository sites;
@@ -76,5 +82,6 @@ class WorkspaceActions {
       await engine.wipe(site.profileId);
     }
     await workspaces.delete(workspace.id);
+    await ensureOneWorkspace?.call();
   }
 }

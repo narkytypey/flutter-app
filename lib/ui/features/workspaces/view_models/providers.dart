@@ -1,10 +1,12 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../data/services/app_database.dart' show ensureWorkspace;
 import '../../../../domain/services/workspace_storage_service.dart';
 import '../../container/view_models/providers.dart' show containerEngineProvider;
 import '../../dashboard/view_models/providers.dart'
     show
         activeWorkspaceIdProvider,
+        databaseProvider,
         siteRepositoryProvider,
         workspaceRepositoryProvider,
         workspacesProvider;
@@ -18,12 +20,16 @@ import 'workspace_actions.dart';
 final workspaceStorageServiceProvider =
     Provider<WorkspaceStorageService>((ref) => FakeWorkspaceStorageService());
 
-final workspaceActionsProvider = Provider<WorkspaceActions>((ref) => WorkspaceActions(
-      workspaces: ref.watch(workspaceRepositoryProvider),
-      sites: ref.watch(siteRepositoryProvider),
-      engine: ref.watch(containerEngineProvider),
-      storage: ref.watch(workspaceStorageServiceProvider),
-    ));
+final workspaceActionsProvider = Provider<WorkspaceActions>((ref) {
+  final database = ref.watch(databaseProvider);
+  return WorkspaceActions(
+    workspaces: ref.watch(workspaceRepositoryProvider),
+    sites: ref.watch(siteRepositoryProvider),
+    engine: ref.watch(containerEngineProvider),
+    storage: ref.watch(workspaceStorageServiceProvider),
+    ensureOneWorkspace: () => ensureWorkspace(database),
+  );
+});
 
 final workspaceListItemsProvider = FutureProvider<List<WorkspaceListItem>>((ref) async {
   await ref.watch(workspacesProvider.future);
@@ -40,4 +46,15 @@ void workspacesChanged(WidgetRef ref, {String? deletedId}) {
   ref.invalidate(workspacesProvider);
   ref.invalidate(allSitesProvider);
   ref.invalidate(decoySiteCountProvider);
+}
+
+/// [workspacesChanged] for a caller that can outlive its widget (a delete
+/// that closes live containers first). Keep the two in step.
+void workspacesChangedIn(ProviderContainer container, {String? deletedId}) {
+  if (deletedId != null && container.read(activeWorkspaceIdProvider) == deletedId) {
+    container.read(activeWorkspaceIdProvider.notifier).state = null;
+  }
+  container.invalidate(workspacesProvider);
+  container.invalidate(allSitesProvider);
+  container.invalidate(decoySiteCountProvider);
 }

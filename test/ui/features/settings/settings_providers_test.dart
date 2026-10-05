@@ -10,6 +10,7 @@ import 'package:container/data/services/app_database.dart';
 import 'package:container/domain/models/site.dart';
 import 'package:container/domain/models/vault.dart';
 import 'package:container/domain/models/workspace.dart';
+import 'package:container/ui/features/search/view_models/providers.dart' show sitesChangedIn;
 import 'package:container/ui/features/settings/view_models/providers.dart';
 import 'package:container/ui/features/shell/view_models/session_controller.dart';
 
@@ -51,6 +52,20 @@ void main() {
         id: 's2', workspaceId: 'ws', name: 'Bank', monogram: 'Bk',
         url: 'https://bank.example.com', profileId: newProfileId(),
         showInDecoy: false));
+
+    expect(await container.read(decoySiteCountProvider.future), 1);
+  });
+
+  test('a site change refreshes the decoy site count', () async {
+    await SqliteWorkspaceRepository(db).upsert(const Workspace(
+        id: 'ws', name: 'Personal', markerIndex: 0, storageRule: StorageRule.keep));
+    expect(await container.read(decoySiteCountProvider.future), 0);
+
+    await SqliteSiteRepository(db).upsert(Site(
+        id: 's1', workspaceId: 'ws', name: 'News', monogram: 'Nw',
+        url: 'https://news.example.com', profileId: newProfileId(),
+        showInDecoy: true));
+    sitesChangedIn(container);
 
     expect(await container.read(decoySiteCountProvider.future), 1);
   });
