@@ -1179,6 +1179,51 @@ Found, open (none fixed here):
   its download sheet closes (the page never goes live), and its switcher does
   not open from there.
 
+## Whole-codebase review (2026-10-05, branch `second/tender-mccarthy-sad3qc`)
+
+A scheduled run reviewed all of `lib/` and the Kotlin layer, then fixed what it
+found. **None of it is verified on a device** (no emulator in that session).
+Gates on the merged tree: `flutter analyze` clean, `flutter test` 1008/1008,
+Kotlin JVM 365/365 (48 JUnit XML files, `--rerun`), `flutter build apk --debug`
+with zero `e:` lines.
+
+- **Layout overflows** (`1bd3b24`). At 320x568, and at a 1.3 text scale,
+  sheets, PIN screens, `4a`, `8b`, `3c` and many rows overflowed. Every
+  `BottomSheetSurface` now scrolls its children (`scrolls: false` for a sheet
+  with its own `Flexible` region: `6c`, the script site picker); the PIN and
+  centred screens use `CenteredScroll`; the keypad is a little shorter under
+  640 px high; long hosts and names ellipsize; `PillButton`'s height is a
+  minimum. `test/ui/small_screen_layout_test.dart` guards the worst cases.
+  Test fonts are much wider than Figtree, so a sweep (a temporary
+  `test/flutter_test_config.dart` setting every test's view to 320x568)
+  overstates real overflows; it found 0 after the fix at 1.0 and 1.3.
+- **Data layer:** re-sync rescues decoy-owned sites from an unflagged
+  workspace's cascade and wipes the profiles of removed decoy sites; the decoy
+  store closes in a `finally`; `meta.bin` is written to a temp file and
+  renamed, with its read-modify-writes queued; panic's three key steps each
+  run even if one throws; `triesLeft` is 0 once the lockout repeats; scripts
+  save through `upsertRow`; unknown engine events decode safely.
+- **Kotlin:** a kept download cannot land or open after its site's wipe or
+  panic (`DownloadWipes`); HTTP heads and chunk lines are bounded
+  (`HttpHead.kt`); failed fetches close their sockets; the loopback accept
+  loop backs off; a direct site is never probed; CONNECT EOF before the blank
+  line fails; reader extraction always replies; MediaStore saves use
+  `IS_PENDING`; per-engine plugins are released; the unused all-zero
+  `CryptoCore.deviceKey()` is gone.
+- **UI logic:** one PIN submit at a time and `unlock` serialised (overlapping
+  wrong PINs counted once before); dismissing `6a`/`7c` answers "keep
+  blocked"/discard natively; Save runs once in `2a`, `10b`, `10e`; deleting the
+  last workspace leaves a fresh Personal one (`2a` crashed); the row menu's
+  Open works; `8b`'s form reopens a throwaway once; the decoy site count
+  refreshes; a throwing open shows `8b` instead of spinning on `8a`.
+  **Copy caveat:** that `8b` uses `RouteFailure.misconfigured` ("This site has
+  no proxy configured"), the nearest existing string; accurate copy for "the
+  open failed" is a design question.
+- **Left open:** `wipeSavedSite`'s two writes are not one transaction;
+  WebRTC blocking via an `about:blank` iframe is unverified on a device;
+  `basics_tab.dart`'s workspace chips clip with 4+ workspaces (no exception);
+  the row menu's `Ephemeral`/`Work` labels are still hardcoded.
+
 ## Working on this repo
 
 - ~~No git repo initialized yet, and Flutter isn't installed on this machine as
