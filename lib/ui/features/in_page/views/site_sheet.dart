@@ -160,16 +160,21 @@ class SiteSheet extends StatelessWidget {
                     ),
                     child: _CategoryRows(categories),
                   ),
+                // A tap anywhere on a switch row toggles it, not only on the
+                // switch; a locked switch's row does nothing.
                 _SheetInfoRow(
                   label: 'Block WebRTC',
+                  onTap: _toggle(blockWebRtc, onBlockWebRtcChanged),
                   trailing: AppToggle(value: blockWebRtc, onChanged: onBlockWebRtcChanged),
                 ),
                 _SheetInfoRow(
                   label: 'Block trackers and ads',
+                  onTap: _toggle(blockTrackers, onBlockTrackersChanged),
                   trailing: AppToggle(value: blockTrackers, onChanged: onBlockTrackersChanged),
                 ),
                 _SheetInfoRow(
                   label: 'Anti-fingerprinting',
+                  onTap: _toggle(antiFingerprinting, onAntiFingerprintingChanged),
                   trailing: AppToggle(
                     value: antiFingerprinting,
                     onChanged: onAntiFingerprintingChanged,
@@ -177,10 +182,12 @@ class SiteSheet extends StatelessWidget {
                 ),
                 _SheetInfoRow(
                   label: 'Force dark mode',
+                  onTap: _toggle(forceDark, onForceDarkChanged),
                   trailing: AppToggle(value: forceDark, onChanged: onForceDarkChanged),
                 ),
                 _SheetInfoRow(
                   label: 'Desktop view',
+                  onTap: _toggle(desktopView, onDesktopViewChanged),
                   trailing: AppToggle(value: desktopView, onChanged: onDesktopViewChanged),
                   showDivider: permissions.isNotEmpty,
                 ),
@@ -209,6 +216,9 @@ class SiteSheet extends StatelessWidget {
 
   /// A stored grant reads `Allowed` and changes only through Edit; a
   /// while-open grant offers `Revoke`, in a neutral colour (spec §3).
+  static VoidCallback? _toggle(bool value, ValueChanged<bool>? onChanged) =>
+      onChanged == null ? null : () => onChanged(!value);
+
   Widget _permissionTrailing(PermissionInUse p) {
     if (!p.whileOpen) {
       return Text('Allowed', style: ui(size: 12.5, color: C.textMuted));

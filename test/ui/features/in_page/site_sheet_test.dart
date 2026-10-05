@@ -129,6 +129,45 @@ void main() {
     expect(desktopViewSeen, isTrue); // was off, tapped once -> on
   });
 
+  testWidgets("a tap on a switch row's label toggles it", (tester) async {
+    // Only the switch itself toggled (seen on the emulator 2026-10-05).
+    final seen = <String, bool>{};
+    await tester.pumpWidget(host(
+      onBlockWebRtcChanged: (v) => seen['webrtc'] = v,
+      onBlockTrackersChanged: (v) => seen['trackers'] = v,
+      onAntiFingerprintingChanged: (v) => seen['fingerprinting'] = v,
+      onForceDarkChanged: (v) => seen['dark'] = v,
+      onDesktopViewChanged: (v) => seen['desktop'] = v,
+    ));
+
+    for (final label in [
+      'Block WebRTC',
+      'Block trackers and ads',
+      'Anti-fingerprinting',
+      'Force dark mode',
+      'Desktop view',
+    ]) {
+      await tester.ensureVisible(find.text(label));
+      await tester.tap(find.text(label));
+    }
+
+    expect(seen, {
+      'webrtc': false,
+      'trackers': false,
+      'fingerprinting': false,
+      'dark': false,
+      'desktop': true,
+    });
+  });
+
+  testWidgets("a locked Block WebRTC's label does nothing", (tester) async {
+    await tester.pumpWidget(host(blockWebRtc: true, lockWebRtc: true));
+    await tester.ensureVisible(find.text('Block WebRTC'));
+    await tester.tap(find.text('Block WebRTC'));
+    await tester.pump();
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('Close and wipe reports a tap', (tester) async {
     var wiped = 0;
     await tester.pumpWidget(host(onCloseAndWipe: () => wiped++));
