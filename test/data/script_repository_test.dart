@@ -191,4 +191,42 @@ void main() {
     final lists = await upgraded.db.query('filter_lists');
     expect(lists.single['name'], 'Trackers and ads');
   });
+
+  // The save's foreign key failed on a site removed since the editor loaded,
+  // and the whole transaction, script edit included, was lost.
+  test('a since-deleted site is dropped instead of aborting the save',
+      () async {
+    await seedSites(['st-a', 'st-b']);
+    final repo = SqliteScriptRepository(database);
+    const script = UserScript(
+      id: 'sc', name: 'Hide', kind: ScriptKind.css, code: 'a{}',
+      runAtDocumentStart: false, enabled: true, appliedSiteIds: ['st-a', 'st-b']);
+    await repo.upsert(script);
+    await SqliteSiteRepository(database).delete('st-b');
+
+    await repo.upsert(const UserScript(
+      id: 'sc', name: 'Hide more', kind: ScriptKind.css, code: 'b{}',
+      runAtDocumentStart: false, enabled: true, appliedSiteIds: ['st-a', 'st-b']));
+
+    final saved = (await repo.byId('sc'))!;
+    expect(saved.name, 'Hide more');
+    expect(saved.appliedSiteIds, ['st-a']);
+  });
+
+  // REPLACE deleted and re-inserted the row, moving an edited script to the
+  // end of the library.
+  test('an edited script keeps its place in the library', () async {
+    final repo = SqliteScriptRepository(database);
+    for (final id in ['sc-1', 'sc-2']) {
+      await repo.upsert(UserScript(
+        id: id, name: id, kind: ScriptKind.js, code: '', runAtDocumentStart: false,
+        enabled: true, appliedSiteIds: const []));
+    }
+
+    await repo.upsert(const UserScript(
+      id: 'sc-1', name: 'renamed', kind: ScriptKind.js, code: '',
+      runAtDocumentStart: false, enabled: false, appliedSiteIds: []));
+
+    expect((await repo.all()).map((s) => s.name), ['renamed', 'sc-2']);
+  });
 }
