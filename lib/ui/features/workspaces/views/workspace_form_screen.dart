@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../../../../domain/models/workspace.dart';
@@ -45,7 +47,9 @@ class WorkspaceFormScreen extends StatefulWidget {
   final StorageRule initialStorageRule;
   final bool initialRequirePin;
   final bool initialShowInDecoy;
-  final ValueChanged<WorkspaceFormResult> onSave;
+  /// Save is ignored while a returned future is still running, so a double
+  /// tap writes (and pops) once.
+  final FutureOr<void> Function(WorkspaceFormResult result) onSave;
   final VoidCallback onClose;
 
   @override
@@ -65,15 +69,25 @@ class _WorkspaceFormScreenState extends State<WorkspaceFormScreen> {
     super.dispose();
   }
 
-  void _save() {
-    widget.onSave(WorkspaceFormResult(
+  bool _saving = false;
+
+  Future<void> _save() async {
+    if (_saving) return;
+    _saving = true;
+    try {
+      await _submit();
+    } finally {
+      _saving = false;
+    }
+  }
+
+  FutureOr<void> _submit() => widget.onSave(WorkspaceFormResult(
       name: _nameController.text,
       markerIndex: _markerIndex,
       storageRule: _storageRule,
       requirePin: _requirePin,
       showInDecoy: _showInDecoy,
     ));
-  }
 
   @override
   Widget build(BuildContext context) {

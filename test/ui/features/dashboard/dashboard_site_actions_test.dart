@@ -6,6 +6,7 @@ import 'package:container/domain/models/engine_extras.dart';
 import 'package:container/ui/core/widgets/status_rail.dart';
 import 'package:container/ui/features/add_site/views/add_site_screen.dart';
 import 'package:container/ui/features/container/view_models/open_containers.dart';
+import 'package:container/ui/features/container/views/container_route.dart' show ContainerRoute;
 import 'package:container/ui/features/container/view_models/providers.dart'
     show containerEngineProvider, engineExtrasBuilderProvider;
 import 'package:container/ui/features/dashboard/view_models/dashboard_view.dart';
@@ -130,6 +131,18 @@ Future<void> _menuAction(WidgetTester tester, String label) async {
 }
 
 void main() {
+  // The row menu's Open did nothing: it was never handled.
+  testWidgets('Open shows the site as a row tap does', (tester) async {
+    final events = <String>[];
+    final container = await _pump(tester, _Engine(events), _Sites(events));
+    expect(container.read(openContainersProvider).viewedSiteId, isNull);
+
+    await _menuAction(tester, 'Open');
+
+    expect(container.read(openContainersProvider).viewedSiteId, 'st-forum');
+    expect(find.byType(ContainerRoute), findsOneWidget);
+  });
+
   // Deleting the row alone left the site's WebView profile — its logins and
   // stored data — and its kept downloads on disk, and its session running.
   testWidgets('Remove site closes and wipes the site before deleting its row', (tester) async {

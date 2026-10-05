@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../../../../domain/models/monogram_suggestion.dart';
@@ -30,7 +32,9 @@ class AddSiteScreen extends StatefulWidget {
 
   final Site? initial;
   final List<Workspace> workspaces;
-  final ValueChanged<Site> onSave;
+  /// Save is ignored while a returned future is still running, so a double
+  /// tap writes (and pops) once.
+  final FutureOr<void> Function(Site site) onSave;
 
   /// The tab the form opens on: 0 Basics, 1 Network, 2 Privacy, 3 Appearance.
   /// `8b`'s "Change proxy settings" opens on Network.
@@ -80,7 +84,8 @@ class _AddSiteScreenState extends State<AddSiteScreen> {
     for (final workspace in widget.workspaces) {
       if (workspace.id == widget.initialWorkspaceId) return workspace.id;
     }
-    return widget.workspaces.first.id;
+    // A vault always has a workspace (`ensureWorkspace`); never crash if not.
+    return widget.workspaces.isEmpty ? '' : widget.workspaces.first.id;
   }
   late bool _blockWebRtc = widget.initial?.blockWebRtc ?? true;
   late bool _blockTrackers = widget.initial?.blockTrackers ?? true;
@@ -142,10 +147,20 @@ class _AddSiteScreenState extends State<AddSiteScreen> {
   /// The address Save writes, or null while the field holds no web address.
   String? get _address => siteAddress(_urlController.text);
 
-  void _save() {
+  bool _saving = false;
+
+  Future<void> _save() async {
     final address = _address;
-    if (address == null) return;
-    widget.onSave(buildSite(
+    if (address == null || _saving || _workspaceId.isEmpty) return;
+    _saving = true;
+    try {
+      await _submit(address);
+    } finally {
+      if (mounted) _saving = false;
+    }
+  }
+
+  FutureOr<void> _submit(String address) => widget.onSave(buildSite(
       initial: widget.initial,
       url: address,
       name: _nameController.text,
@@ -174,7 +189,6 @@ class _AddSiteScreenState extends State<AddSiteScreen> {
       customCss: _cssController.text,
       customJs: _jsController.text,
     ));
-  }
 
   @override
   Widget build(BuildContext context) {
