@@ -79,14 +79,30 @@ class BasicsTab extends StatelessWidget {
         const SizedBox(height: 18),
         Text('WORKSPACE', style: _label),
         const SizedBox(height: 7),
-        Row(
-          children: [
-            for (final workspace in workspaces) ...[
-              if (workspace != workspaces.first) const SizedBox(width: 8),
-              Expanded(child: _workspaceChip(workspace)),
+        // Up to three share the row as the spec draws them; more scroll
+        // sideways at their own width, so no name is clipped.
+        if (workspaces.length <= 3)
+          Row(
+            children: [
+              for (final workspace in workspaces) ...[
+                if (workspace != workspaces.first) const SizedBox(width: 8),
+                Expanded(child: _workspaceChip(workspace)),
+              ],
             ],
-          ],
-        ),
+          )
+        else
+          SingleChildScrollView(
+            key: const Key('workspace-chips-scroll'),
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              children: [
+                for (final workspace in workspaces) ...[
+                  if (workspace != workspaces.first) const SizedBox(width: 8),
+                  _workspaceChip(workspace, scrolls: true),
+                ],
+              ],
+            ),
+          ),
         const SizedBox(height: 18),
         Text('COOKIES', style: _label),
         const SizedBox(height: 7),
@@ -135,19 +151,23 @@ class BasicsTab extends StatelessWidget {
         ),
       );
 
-  Widget _workspaceChip(Workspace workspace) {
+  Widget _workspaceChip(Workspace workspace, {bool scrolls = false}) {
     final selected = workspace.id == workspaceId;
     return GestureDetector(
       onTap: () => onWorkspaceChanged(workspace.id),
       child: Container(
         height: 40,
         alignment: Alignment.center,
+        padding: scrolls ? const EdgeInsets.symmetric(horizontal: 16) : null,
+        constraints: scrolls ? const BoxConstraints(minWidth: 72, maxWidth: 220) : null,
         decoration: BoxDecoration(
           color: selected ? C.selected : null,
           borderRadius: BorderRadius.circular(11),
           border: Border.all(color: selected ? C.line10 : C.line07),
         ),
         child: Text(workspace.name,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
             style: ui(size: 13, color: selected ? C.textPrimary : C.tabInactive)),
       ),
     );

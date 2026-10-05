@@ -123,6 +123,32 @@ void main() {
     expect(find.text('CUSTOM JS'), findsOneWidget);
   });
 
+  testWidgets('more than three workspaces scroll sideways, each name whole',
+      (tester) async {
+    addTearDown(tester.view.reset);
+    tester.view.physicalSize = const Size(360, 1400);
+    tester.view.devicePixelRatio = 1;
+    final many = [
+      for (var i = 0; i < 6; i++)
+        Workspace(
+            id: 'ws-$i', name: 'Workspace $i', markerIndex: i % 5, storageRule: StorageRule.keep),
+    ];
+    Site? saved;
+    await tester.pumpWidget(MaterialApp(
+      home: AddSiteScreen(workspaces: many, onSave: (site) => saved = site),
+    ));
+
+    expect(find.byKey(const Key('workspace-chips-scroll')), findsOneWidget);
+    expect(tester.takeException(), isNull);
+    await tester.enterText(find.byKey(const Key('add-site-address')), 'example.com');
+    await tester.ensureVisible(find.text('Workspace 5'));
+    await tester.tap(find.text('Workspace 5'));
+    await tester.pump();
+    await tester.tap(find.text('Save'));
+    await tester.pump();
+    expect(saved?.workspaceId, 'ws-5');
+  });
+
   testWidgets('saving builds a Site with the entered fields and shield defaults',
       (tester) async {
     Site? saved;
