@@ -191,12 +191,12 @@ dark: reader softTitle on reader bg|#CFC7B8|#171512|4.5
 dark: reader softBody on reader bg|#B3AB9D|#171512|4.5
 dark: reader host on reader bg|#ABA394|#171512|4.5
 # ---- throwaway hatch, Tor, scrim (composites measured as the darkest hatch stripe) ----
-light: ink text on throwaway hatch stripe (ink 10% over paper)|#1E1B16|#DFD8CD|4.5
-light: ink3 text on throwaway hatch stripe|#635C50|#DFD8CD|4.5
-light: throwaway dashed outline (ink3) vs hatch stripe|#635C50|#DFD8CD|3
-dark: ink text on throwaway hatch stripe (paper 10% over page)|#F2EDE3|#2F2C28|4.5
-dark: ink3 text on throwaway hatch stripe|#ABA394|#2F2C28|4.5
-dark: throwaway dashed outline (ink3) vs hatch stripe|#ABA394|#2F2C28|3
+light: ink text on throwaway hatch stripe (ink 10% over paper)|#1E1B16|#DCD6CB|4.5
+light: ink3 text on throwaway hatch stripe|#635C50|#DCD6CB|4.5
+light: throwaway dashed outline (ink3) vs hatch stripe|#635C50|#DCD6CB|3
+dark: ink text on throwaway hatch stripe (paper 10% over page)|#F2EDE3|#302E2A|4.5
+dark: ink3 text on throwaway hatch stripe|#ABA394|#302E2A|4.5
+dark: throwaway dashed outline (ink3) vs hatch stripe|#ABA394|#302E2A|3
 light: Tor inner wall (ink) vs fern tint|#1E1B16|#C7E2D1|3
 dark: Tor inner wall (ink) vs fern tint|#F2EDE3|#192B22|3
 light: danger outline vs box|#B0362A|#FFFCF6|3

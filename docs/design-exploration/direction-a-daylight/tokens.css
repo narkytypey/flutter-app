@@ -1,0 +1,98 @@
+/* Daylight — design tokens. Light on :root / .theme-light, dark on .theme-dark.
+   In the app the theme follows the system setting; there is no toggle.
+   Font sizes are rem so screens.html can scale every text size (and only text)
+   with html{font-size:calc(16px * var(--scale))}. 1rem = 16sp at scale 1.0. */
+
+:root, .theme-light {
+  color-scheme: light;
+  /* surfaces */
+  --page: #EBEEE8;
+  --card: #FFFFFF;
+  --tonal: #D9DED6;
+  --accent-container: #D3EBE0;
+  /* content */
+  --ink: #1A1D1B;
+  --ink2: #4A514C;
+  --outline: #6E7570;
+  --outline-variant: #CDD3CB;
+  --ink-disabled: #8D938E;
+  --scrim: rgba(26, 29, 27, .40);
+  /* state */
+  --accent: #1D6B57;
+  --on-accent: #FFFFFF;
+  --on-accent-container: #0D3A2D;
+  --danger: #B3261E;
+  --danger-container: #FCEBE8;
+  --on-danger-container: #8C1D18;
+  --on-danger: #FFFFFF;
+  --warning: #8F5B00;
+  /* reader */
+  --reader-page: #F6F1E7;
+  --reader-ink: #2B2620;
+  --reader-ink2: #5E564B;
+  /* workspace markers (site data, not theme) */
+  --m0: #1D6B57; --m1: #3D5F8F; --m2: #8F5B00; --m3: #8A4F72; --m4: #5E6661;
+  --sheet-shadow: 0 -2px 12px rgba(26, 29, 27, .12);
+}
+
+.theme-dark {
+  color-scheme: dark;
+  --page: #101311;
+  --card: #1E2220;
+  --tonal: #2B302D;
+  --accent-container: #1F4A3C;
+  --ink: #E4E8E4;
+  --ink2: #B4BBB6;
+  --outline: #8A928D;
+  --outline-variant: #3A403C;
+  --ink-disabled: #6A716C;
+  --scrim: rgba(0, 0, 0, .55);
+  --accent: #7FC8A9;
+  --on-accent: #0B2A20;
+  --on-accent-container: #BFEBD8;
+  --danger: #F2A49A;
+  --danger-container: #3A201D;
+  --on-danger-container: #F7C9C2;
+  --on-danger: #3A0B07;
+  --warning: #E3B262;
+  --reader-page: #12100D;
+  --reader-ink: #EDE7DC;
+  --reader-ink2: #B3AC9F;
+  --m0: #7FC8A9; --m1: #8FA5C8; --m2: #D6A45B; --m3: #C89BB4; --m4: #8A918F;
+  --sheet-shadow: none;
+}
+
+:root {
+  /* type families */
+  --font-ui: 'Atkinson Hyperlegible Next', system-ui, sans-serif;
+  --font-mono: 'Atkinson Hyperlegible Mono', ui-monospace, monospace;
+  /* type scale (rem = sp at scale 1.0) */
+  --fs-display: 2.75rem;   /* 44 */
+  --fs-step: 1.625rem;     /* 26 */
+  --fs-screen: 1.375rem;   /* 22 */
+  --fs-sheet: 1.25rem;     /* 20 */
+  --fs-row: 1rem;          /* 16 */
+  --fs-body: 1rem;         /* 16 */
+  --fs-address: 1rem;      /* 16 */
+  --fs-button: 1rem;       /* 16 */
+  --fs-meta: .875rem;      /* 14 */
+  --fs-label: .875rem;     /* 14 */
+  --fs-value: .875rem;     /* 14 */
+  --fs-code: .875rem;      /* 14 */
+  --fs-bar: .8125rem;      /* 13 */
+  --fs-badge: .8125rem;    /* 13 */
+  --fs-caption: .8125rem;  /* 13 — smallest */
+  --fs-keypad: 1.75rem;    /* 28 */
+  --fs-mono-gram: 1rem;    /* 16 */
+  /* spacing (dp) */
+  --s1: 4px; --s2: 8px; --s3: 12px; --s4: 16px; --s5: 20px; --s6: 24px;
+  --s8: 32px; --s10: 40px; --s12: 48px;
+  /* radii */
+  --r-xs: 8px; --r-sm: 12px; --r-md: 16px; --r-lg: 24px; --r-xl: 28px; --r-full: 999px;
+  /* targets */
+  --target: 48px;
+  /* motion */
+  --ease-effects: cubic-bezier(.2, 0, 0, 1);
+  --ease-emphasised: cubic-bezier(.05, .7, .1, 1);
+  --dur-fast: 150ms; --dur-default: 250ms; --dur-slow: 400ms;
+}
