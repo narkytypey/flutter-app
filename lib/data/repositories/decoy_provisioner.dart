@@ -64,9 +64,16 @@ Future<int> provisionDecoy({
 /// unchanged site's accumulated decoy browsing state each time. A fresh
 /// `profileId` is only minted for a site with no existing decoy-side row.
 ///
-/// Returns the number of sites newly added this call (not the total
-/// flagged count).
-Future<int> resyncDecoy({
+/// A decoy-original site inside a sync-owned workspace that is about to be
+/// removed (its real-vault workspace was unflagged) is first moved into a
+/// fresh decoy-original workspace of the same name, marker and storage rule,
+/// so the `ON DELETE CASCADE` from `sites.workspace_id` cannot take it.
+///
+/// Returns the number of sites newly added this call (not the total flagged
+/// count) and the `profileId` of every decoy site row it removed, whose
+/// WebView profiles and kept downloads the caller must wipe: a removed row
+/// leaves nothing pointing at them.
+Future<DecoyResyncResult> resyncDecoy({
   required AppDatabase from,
   required AppDatabase into,
 }) async {
@@ -120,10 +127,38 @@ Future<int> resyncDecoy({
     await _mergeSameNamed(into, workspace, realIds: realIds);
   }
 
+  final removedProfileIds = <String>[];
+
   for (final decoyWorkspace in await targetWorkspaces.all()) {
     if (ownedWorkspaceIds.contains(decoyWorkspace.id) &&
         !flaggedWorkspaceIds.contains(decoyWorkspace.id)) {
-      // Cascades that workspace's sites too — sites.workspace_id
+      final inside = await targetSites.inWorkspace(decoyWorkspace.id);
+      final decoyOwned =
+          inside.where((s) => !ownedSiteIds.contains(s.id)).toList();
+      if (decoyOwned.isNotEmpty) {
+        // Never a real-vault id, so later syncs count it as decoy-original
+        // (and [_mergeSameNamed] folds it back in if the workspace is
+        // flagged again).
+        final rescue = Workspace(
+          id: newProfileId(),
+          name: decoyWorkspace.name,
+          markerIndex: decoyWorkspace.markerIndex,
+          storageRule: decoyWorkspace.storageRule,
+          requirePin: decoyWorkspace.requirePin,
+          sortIndex: decoyWorkspace.sortIndex,
+        );
+        await targetWorkspaces.upsert(rescue);
+        for (final site in decoyOwned) {
+          await into.db.update('sites', {'workspace_id': rescue.id},
+              where: 'id = ?', whereArgs: [site.id]);
+        }
+      }
+      for (final site in inside) {
+        if (ownedSiteIds.contains(site.id)) {
+          removedProfileIds.add(site.profileId);
+        }
+      }
+      // Cascades the sync-owned sites left in it — sites.workspace_id
       // REFERENCES workspaces(id) ON DELETE CASCADE, foreign_keys is ON.
       await targetWorkspaces.delete(decoyWorkspace.id);
     }
@@ -134,11 +169,22 @@ Future<int> resyncDecoy({
       if (ownedSiteIds.contains(decoySite.id) &&
           !flaggedSiteIds.contains(decoySite.id)) {
         await targetSites.delete(decoySite.id);
+        removedProfileIds.add(decoySite.profileId);
       }
     }
   }
 
-  return added;
+  return DecoyResyncResult(
+      added: added, removedProfileIds: removedProfileIds);
+}
+
+/// What [resyncDecoy] did: how many sites it newly added, and the
+/// `profileId`s of the decoy site rows it removed.
+class DecoyResyncResult {
+  const DecoyResyncResult({required this.added, required this.removedProfileIds});
+
+  final int added;
+  final List<String> removedProfileIds;
 }
 
 /// Folds any decoy-original workspace named like [synced] into it, so the

@@ -140,4 +140,45 @@ void main() {
 
     expect(await store.autoLock(), AutoLockPolicy.fifteenMinutes);
   });
+
+  // meta.bin was truncated and rewritten in place: a crash mid-write lost
+  // both vaults' wrapped keys.
+  test('writes through a temp file renamed over meta.bin', () async {
+    await store.provision(pin: '111111', vault: VaultId.a);
+    await store.provision(pin: '222222', vault: VaultId.b);
+    await File('${dir.path}/meta.bin.tmp').writeAsString('{"half');
+
+    await store.saveAutoLock(AutoLockPolicy.fiveMinutes);
+
+    expect(File('${dir.path}/meta.bin.tmp').existsSync(), isFalse);
+    expect(await store.autoLock(), AutoLockPolicy.fiveMinutes);
+    expect((await store.slots()).length, 2);
+  });
+
+  test('destroy also removes a temp file a crash left behind', () async {
+    await store.provision(pin: '111111', vault: VaultId.a);
+    await File('${dir.path}/meta.bin.tmp').writeAsString('{"a":{}}');
+
+    await store.destroy();
+
+    expect(File('${dir.path}/meta.bin').existsSync(), isFalse);
+    expect(File('${dir.path}/meta.bin.tmp').existsSync(), isFalse);
+  });
+
+  // Each read the file, changed its own key and wrote it back, so the last
+  // write dropped the others' changes.
+  test('concurrent read-modify-writes all land', () async {
+    await store.provision(pin: '111111', vault: VaultId.a);
+    final other = VaultStore(crypto, File('${dir.path}/meta.bin'));
+
+    await Future.wait([
+      store.saveGate(const AttemptGate(failures: 3)),
+      other.saveAutoLock(AutoLockPolicy.fifteenMinutes),
+      store.provision(pin: '222222', vault: VaultId.b),
+    ]);
+
+    expect((await store.gate()).failures, 3);
+    expect(await store.autoLock(), AutoLockPolicy.fifteenMinutes);
+    expect((await store.slots()).length, 2);
+  });
 }

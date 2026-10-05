@@ -1,5 +1,3 @@
-import 'package:sqflite_sqlcipher/sqflite.dart';
-
 import '../../domain/models/user_script.dart';
 import '../../domain/repositories/script_repository.dart';
 import '../services/app_database.dart';
@@ -30,7 +28,9 @@ class SqliteScriptRepository implements ScriptRepository {
   @override
   Future<void> upsert(UserScript script) async {
     await _database.db.transaction((txn) async {
-      await txn.insert(
+      // In place, not REPLACE: script_sites cascades from scripts.
+      await upsertRow(
+        txn,
         'scripts',
         {
           'id': script.id,
@@ -40,11 +40,22 @@ class SqliteScriptRepository implements ScriptRepository {
           'run_at_document_start': script.runAtDocumentStart ? 1 : 0,
           'enabled': script.enabled ? 1 : 0,
         },
-        conflictAlgorithm: ConflictAlgorithm.replace,
       );
       await txn
           .delete('script_sites', where: 'script_id = ?', whereArgs: [script.id]);
-      for (final siteId in script.appliedSiteIds) {
+      // A site removed since the editor loaded would fail the foreign key
+      // and abort the whole save; it is dropped instead.
+      final wanted = script.appliedSiteIds.toSet();
+      final existing = wanted.isEmpty
+          ? const <String>{}
+          : {
+              for (final row in await txn.query('sites',
+                  columns: ['id'],
+                  where: 'id IN (${List.filled(wanted.length, '?').join(', ')})',
+                  whereArgs: wanted.toList()))
+                row['id']! as String,
+            };
+      for (final siteId in script.appliedSiteIds.where(existing.contains).toSet()) {
         await txn
             .insert('script_sites', {'script_id': script.id, 'site_id': siteId});
       }

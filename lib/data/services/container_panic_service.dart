@@ -52,9 +52,20 @@ class ContainerPanicService implements PanicService {
     }
     await _bestEffort(_engine.wipeAll);
 
-    await _closeDatabase();
-    await _destroyVaults();
-    await _destroyBiometricKeys();
+    // Each key step runs even if one before it threw: a store that would not
+    // close must not leave the key file, or a biometric key, behind. The
+    // first error is rethrown once all three have been attempted.
+    Object? firstError;
+    StackTrace? firstStack;
+    for (final step in [_closeDatabase, _destroyVaults, _destroyBiometricKeys]) {
+      try {
+        await step();
+      } catch (error, stack) {
+        firstError ??= error;
+        firstStack ??= stack;
+      }
+    }
+    if (firstError != null) Error.throwWithStackTrace(firstError, firstStack!);
 
     return PanicReport(sessionsDestroyed: live.length);
   }

@@ -14,10 +14,9 @@ class AttemptGate {
   static const maxTries = 5;
   static const penalty = Duration(seconds: 30);
 
-  int get triesLeft {
-    final left = maxTries - (failures % maxTries);
-    return left == maxTries && failures > 0 ? 0 : left;
-  }
+  /// None left once [maxTries] is reached: from then on [recordFailure]
+  /// re-locks on every failure, so there is no budget to count down again.
+  int get triesLeft => failures >= maxTries ? 0 : maxTries - failures;
 
   bool lockedAt(DateTime now) {
     final until = lockedUntil;

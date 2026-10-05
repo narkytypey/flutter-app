@@ -43,6 +43,18 @@ void main() {
     expect(gate.remainingAt(later), const Duration(seconds: 30));
   });
 
+  // It read 5 - (6 % 5) = 4 tries left, while the very next failure re-locks.
+  test('no tries are left after the lockout, however many failures follow',
+      () {
+    var gate = const AttemptGate();
+    for (var i = 0; i < 12; i++) {
+      gate = gate.recordFailure(t0);
+      if (gate.failures >= AttemptGate.maxTries) {
+        expect(gate.triesLeft, 0, reason: 'after ${gate.failures} failures');
+      }
+    }
+  });
+
   test('a success clears everything', () {
     var gate = const AttemptGate();
     for (var i = 0; i < 5; i++) {

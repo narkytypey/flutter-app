@@ -20,11 +20,13 @@ import 'container_engine.dart';
 const _method = MethodChannel('com.mono.container/engine');
 const _events = EventChannel('com.mono.container/sessions');
 
+/// A phase this build does not know is refused, never live: a page must not
+/// be shown as trusted on a guess.
 SessionPhase _phase(String name) => switch (name) {
       'opening' => SessionPhase.opening,
+      'live' => SessionPhase.live,
       'background' => SessionPhase.background,
-      'refused' => SessionPhase.refused,
-      _ => SessionPhase.live,
+      _ => SessionPhase.refused,
     };
 
 RouteFailure? _failure(String? name) => switch (name) {
@@ -47,12 +49,13 @@ BlockedCategory? _category(String name) => switch (name) {
       _ => null,
     };
 
-PermissionKind _kind(String name) => switch (name) {
+PermissionKind? _kind(String name) => switch (name) {
+      'camera' => PermissionKind.camera,
       'microphone' => PermissionKind.microphone,
       'location' => PermissionKind.location,
       'clipboard' => PermissionKind.clipboard,
-      _ => PermissionKind.camera,
-};
+      _ => null,
+    };
 
 DownloadOutcome _downloadOutcome(String name) => switch (name) {
       'saved' => DownloadOutcome.saved,
@@ -103,15 +106,21 @@ List<ContainerSession> sessionsFromEvent(Map<Object?, Object?> event) =>
         .map((e) => _sessionFrom(e! as Map<Object?, Object?>))
         .toList();
 
-/// Exposed for testing — decodes a `type: "permission_request"` event.
-PendingPermissionRequest permissionRequestFromEvent(Map<Object?, Object?> event) =>
-    PendingPermissionRequest(
-      siteId: event['siteId']! as String,
-      pageId: event['pageId']! as String,
-      host: event['host']! as String,
-      kind: _kind(event['kind']! as String),
-      requestId: event['requestId']! as String,
-    );
+/// Exposed for testing — decodes a `type: "permission_request"` event, or
+/// null for a kind this build does not know. That ask is never shown under
+/// another kind's name (it used to read as camera); the listener answers it
+/// "keep blocked".
+PendingPermissionRequest? permissionRequestFromEvent(Map<Object?, Object?> event) {
+  final kind = _kind(event['kind']! as String);
+  if (kind == null) return null;
+  return PendingPermissionRequest(
+    siteId: event['siteId']! as String,
+    pageId: event['pageId']! as String,
+    host: event['host']! as String,
+    kind: kind,
+    requestId: event['requestId']! as String,
+  );
+}
 
 /// Exposed for testing — decodes a `type: "download"` event.
 HeldDownloadEvent downloadFromEvent(Map<Object?, Object?> event) => HeldDownloadEvent(
@@ -172,29 +181,40 @@ PageOpened pageOpenedFromEvent(Map<Object?, Object?> event) => PageOpened(
 
 class ChannelContainerEngine implements ContainerEngine {
   ChannelContainerEngine() {
-    _events.receiveBroadcastStream().listen((event) {
-      final map = event as Map<Object?, Object?>;
-      switch (map['type']) {
-        case 'permission_request':
-          _permissionController.add(permissionRequestFromEvent(map));
-        case 'download':
-          _downloadController.add(downloadFromEvent(map));
-        case 'download_result':
-          _downloadResultController.add(downloadResultFromEvent(map));
-        case 'tunnel_dropped':
-          _tunnelDroppedController.add(tunnelDroppedFromEvent(map));
-        case 'navigation':
-          _navigationController.add(navigationFromEvent(map));
-        case 'find_result':
-          _findController.add(findResultFromEvent(map));
-        case 'tor_progress':
-          _torProgressController.add(torProgressFromEvent(map));
-        case 'page_opened':
-          _pageOpenedController.add(pageOpenedFromEvent(map));
-        default:
-          _sessionsController.add(sessionsFromEvent(map));
-      }
-    });
+    _events.receiveBroadcastStream().listen(_onEvent,
+        // A platform-side error on the stream is dropped: an unhandled one
+        // would crash the app, and the next event carries the state again.
+        onError: (Object _) {});
+  }
+
+  void _onEvent(Object? event) {
+    final map = event as Map<Object?, Object?>;
+    switch (map['type']) {
+      case 'permission_request':
+        final request = permissionRequestFromEvent(map);
+        if (request != null) {
+          _permissionController.add(request);
+        } else {
+          resolvePermission(map['requestId']! as String, PermissionDecision.keepBlocked)
+              .catchError((Object _) {});
+        }
+      case 'download':
+        _downloadController.add(downloadFromEvent(map));
+      case 'download_result':
+        _downloadResultController.add(downloadResultFromEvent(map));
+      case 'tunnel_dropped':
+        _tunnelDroppedController.add(tunnelDroppedFromEvent(map));
+      case 'navigation':
+        _navigationController.add(navigationFromEvent(map));
+      case 'find_result':
+        _findController.add(findResultFromEvent(map));
+      case 'tor_progress':
+        _torProgressController.add(torProgressFromEvent(map));
+      case 'page_opened':
+        _pageOpenedController.add(pageOpenedFromEvent(map));
+      default:
+        _sessionsController.add(sessionsFromEvent(map));
+    }
   }
 
   final _sessionsController = StreamController<List<ContainerSession>>.broadcast();

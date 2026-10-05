@@ -1,5 +1,6 @@
 import 'package:container/data/services/container_engine_channel.dart';
 import 'package:container/domain/models/blocked_tally.dart';
+import 'package:container/domain/models/container_session.dart';
 import 'package:container/domain/models/engine_events.dart';
 import 'package:container/domain/models/engine_extras.dart';
 import 'package:container/domain/models/open_page.dart';
@@ -144,7 +145,7 @@ void main() {
       'type': 'download', 'siteId': 's1', 'pageId': 'pg-5', 'fileName': 'a.pdf',
       'sizeBytes': 1, 'sourceHost': 'a.example', 'kindLabel': 'PDF', 'requestId': 'r2',
     });
-    expect([navigation.pageId, find.pageId, permission.pageId, download.pageId],
+    expect([navigation.pageId, find.pageId, permission!.pageId, download.pageId],
         ['pg-2', 'pg-3', 'pg-4', 'pg-5']);
   });
 
@@ -162,7 +163,7 @@ void main() {
       'requestId': 'r1',
     };
     final request = permissionRequestFromEvent(event);
-    expect(request.host, 'meet.example.com');
+    expect(request!.host, 'meet.example.com');
     expect(request.kind, PermissionKind.camera);
   });
 
@@ -257,6 +258,28 @@ void main() {
     expect(sessions.single.failure, RouteFailure.torFailed);
   });
 
+  // An unknown phase decoded as live, showing a page as trusted on a guess.
+  test('a phase this build does not know decodes as refused', () {
+    final sessions = sessionsFromEvent(<Object?, Object?>{
+      'type': 'sessions',
+      'sessions': [
+        {'siteId': 's1', 'phase': 'suspended'},
+        {'siteId': 's2', 'phase': 'live'},
+      ],
+    });
+    expect(sessions.map((s) => s.phase), [SessionPhase.refused, SessionPhase.live]);
+  });
+
+  // An unknown kind decoded as camera, asking for the wrong permission.
+  test('a permission kind this build does not know decodes as nothing', () {
+    expect(
+        permissionRequestFromEvent(<Object?, Object?>{
+          'type': 'permission_request', 'siteId': 's1', 'pageId': 'pg-1',
+          'host': 'a.example', 'kind': 'midi', 'requestId': 'r1',
+        }),
+        isNull);
+  });
+
   group('over the channels', () {
     const methods = MethodChannel('com.mono.container/engine');
     const events = EventChannel('com.mono.container/sessions');
@@ -265,6 +288,46 @@ void main() {
     tearDown(() {
       messenger.setMockMethodCallHandler(methods, null);
       messenger.setMockStreamHandler(events, null);
+    });
+
+    test('an ask of an unknown kind is answered keep blocked, never shown',
+        () async {
+      messenger.setMockStreamHandler(events, MockStreamHandler.inline(onListen: (_, sink) {
+        sink.success(<String, Object?>{
+          'type': 'permission_request', 'siteId': 's1', 'pageId': 'pg-1',
+          'host': 'a.example', 'kind': 'midi', 'requestId': 'r9',
+        });
+        sink.success(<String, Object?>{
+          'type': 'permission_request', 'siteId': 's1', 'pageId': 'pg-1',
+          'host': 'a.example', 'kind': 'location', 'requestId': 'r10',
+        });
+      }));
+      final calls = <MethodCall>[];
+      messenger.setMockMethodCallHandler(methods, (call) async {
+        calls.add(call);
+        return null;
+      });
+      final engine = ChannelContainerEngine();
+
+      final shown = await engine.permissionRequests().first;
+      await pumpEventQueue();
+
+      expect(shown.requestId, 'r10');
+      expect(calls.single.method, 'resolvePermission');
+      expect(calls.single.arguments, {'requestId': 'r9', 'decision': 'keepBlocked'});
+    });
+
+    // The listener had no onError, so an error on the stream was unhandled.
+    test('an error on the event stream does not stop later events', () async {
+      messenger.setMockStreamHandler(events, MockStreamHandler.inline(onListen: (_, sink) {
+        sink.error(code: 'engine', message: 'boom');
+        sink.success(<String, Object?>{
+          'type': 'page_opened', 'siteId': 's1', 'pageId': 'pg-2', 'openerPageId': null,
+        });
+      }));
+      final engine = ChannelContainerEngine();
+
+      expect((await engine.pageOpened().first).pageId, 'pg-2');
     });
 
     // Every event type the listener did not know fell through to the

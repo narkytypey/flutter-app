@@ -43,12 +43,10 @@ class VaultStore {
     );
   }
 
-  Future<void> saveGate(AttemptGate gate) async {
-    final data = await _read();
-    data['failures'] = gate.failures;
-    data['lockedUntil'] = gate.lockedUntil?.millisecondsSinceEpoch;
-    await _write(data);
-  }
+  Future<void> saveGate(AttemptGate gate) => _update((data) {
+        data['failures'] = gate.failures;
+        data['lockedUntil'] = gate.lockedUntil?.millisecondsSinceEpoch;
+      });
 
   /// Settings' Auto-lock, one choice for both vaults (user's ruling,
   /// 2026-10-01). It lives here, outside either vault, because the lock screen
@@ -60,11 +58,8 @@ class VaultStore {
     return AutoLockPolicy.fromStored((await _read())['autoLock'] as String?);
   }
 
-  Future<void> saveAutoLock(AutoLockPolicy policy) async {
-    final data = await _read();
-    data['autoLock'] = policy.stored;
-    await _write(data);
-  }
+  Future<void> saveAutoLock(AutoLockPolicy policy) =>
+      _update((data) => data['autoLock'] = policy.stored);
 
   /// Creates [vault]'s slot and returns its new data key.
   Future<Uint8List> provision({
@@ -76,12 +71,10 @@ class VaultStore {
     final kek = await _crypto.deriveKek(pin, salt);
     final wrapped = await _crypto.wrap(kek, dataKey);
 
-    final data = await _read();
-    data[vault.name] = {
-      'salt': base64Encode(salt),
-      'wrapped': base64Encode(wrapped),
-    };
-    await _write(data);
+    await _update((data) => data[vault.name] = {
+          'salt': base64Encode(salt),
+          'wrapped': base64Encode(wrapped),
+        });
     return dataKey;
   }
 
@@ -97,12 +90,10 @@ class VaultStore {
     final kek = await _crypto.deriveKek(pin, salt);
     final wrapped = await _crypto.wrap(kek, dataKey);
 
-    final data = await _read();
-    data[vault.name] = {
-      'salt': base64Encode(salt),
-      'wrapped': base64Encode(wrapped),
-    };
-    await _write(data);
+    await _update((data) => data[vault.name] = {
+          'salt': base64Encode(salt),
+          'wrapped': base64Encode(wrapped),
+        });
   }
 
   /// Fills [vault]'s slot with a real slot whose PIN is generated, used once
@@ -114,12 +105,18 @@ class VaultStore {
   }
 
   Future<void> destroy() async {
-    if (await _file.exists()) {
-      // Overwrite before unlinking; the file is small and this costs nothing.
-      final length = await _file.length();
-      await _file.writeAsBytes(await _crypto.randomBytes(length), flush: true);
-      await _file.delete();
-    }
+    await _serialized(() async {
+      // A temp file a crash left mid-write holds a copy of the slots too.
+      for (final file in [_file, _temp]) {
+        if (await file.exists()) {
+          // Overwrite before unlinking; the file is small and this costs
+          // nothing.
+          final length = await file.length();
+          await file.writeAsBytes(await _crypto.randomBytes(length), flush: true);
+          await file.delete();
+        }
+      }
+    });
     await _crypto.destroyDeviceKey();
   }
 
@@ -133,6 +130,39 @@ class VaultStore {
     return jsonDecode(await _file.readAsString()) as Map<String, Object?>;
   }
 
-  Future<void> _write(Map<String, Object?> data) =>
-      _file.writeAsString(jsonEncode(data), flush: true);
+  /// Written beside [_file], then renamed over it: rename within one
+  /// directory is atomic, so a crash mid-write leaves the old file whole
+  /// instead of a truncated one that has lost both vaults' wrapped keys.
+  File get _temp => File('${_file.path}.tmp');
+
+  Future<void> _write(Map<String, Object?> data) async {
+    final temp = _temp;
+    await temp.writeAsString(jsonEncode(data), flush: true);
+    await temp.rename(_file.path);
+  }
+
+  /// A read-modify-write of the file, run one at a time per file so two
+  /// concurrent callers (the attempt gate, Auto-lock, a re-wrap) cannot each
+  /// read the old contents and have the second write drop the first's change.
+  Future<void> _update(void Function(Map<String, Object?> data) change) =>
+      _serialized(() async {
+        final data = await _read();
+        change(data);
+        await _write(data);
+      });
+
+  /// Per file path, not per instance: the store is `const` and more than one
+  /// instance may point at the same file.
+  static final _queues = <String, Future<void>>{};
+
+  Future<T> _serialized<T>(Future<T> Function() body) {
+    final key = _file.absolute.path;
+    final result = (_queues[key] ?? Future<void>.value()).then((_) => body());
+    late final Future<void> tail;
+    tail = result.then<void>((_) {}, onError: (Object _) {}).whenComplete(() {
+      if (identical(_queues[key], tail)) _queues.remove(key);
+    });
+    _queues[key] = tail;
+    return result;
+  }
 }
