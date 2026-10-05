@@ -1216,9 +1216,14 @@ with zero `e:` lines.
   last workspace leaves a fresh Personal one (`2a` crashed); the row menu's
   Open works; `8b`'s form reopens a throwaway once; the decoy site count
   refreshes; a throwing open shows `8b` instead of spinning on `8a`.
-  **Copy caveat:** that `8b` uses `RouteFailure.misconfigured` ("This site has
+  ~~**Copy caveat:** that `8b` uses `RouteFailure.misconfigured` ("This site has
   no proxy configured"), the nearest existing string; accurate copy for "the
-  open failed" is a design question.
+  open failed" is a design question.~~ **✅ User's ruling 2026-10-05:** it is
+  `RouteFailure.openFailed` (Dart only; Kotlin never names it), headline "This
+  site could not be opened", detail "Something went wrong before the page
+  loaded. The page was not loaded, so no request left your device." `8b` no
+  longer offers "Open without the tunnel" for a direct site
+  (`canOpenWithoutTunnel`), which only a failed open could show it for.
 - **Follow-up the same day** (`294b087`..`560d600`): a tap on the text of
   "Trigger by flipping face down" or "Unlock with biometrics" toggles it (only
   the switch did); `2a`'s workspace chips scroll sideways with four or more
@@ -1230,11 +1235,17 @@ with zero `e:` lines.
   staying on `8a` (`goesLiveOnDownload`). Gates: `flutter analyze` clean,
   `flutter test` 1010/1010, Kotlin JVM 368/368, APK with zero `e:` lines.
   None of it seen on a device.
-- **Left open:** `wipeSavedSite`'s two writes are not one transaction (a
-  crash between them leaves only a stale "Last worked"; not worth a new
-  repository method); the WebRTC frame hook needs a device check; the row
-  menu's `Ephemeral`/`Work` labels are still hardcoded (their actions are
-  unbuilt, and which workspaces they name is a design question).
+- **Left open:** `wipeSavedSite`'s two writes are not one transaction
+  (**accepted, user's ruling 2026-10-05**: the profile is rotated first, so a
+  crash between them leaves only a stale "Last worked", never an unrotated
+  profile; don't swap their order); the WebRTC frame hook needs a device
+  check.
+- **`7b`'s unbuilt rows are hidden (user's ruling 2026-10-05).** "Open in
+  Ephemeral", "Duplicate into Work" and "Require PIN to open" did nothing and
+  named hardcoded workspaces. They are no longer drawn, and `SiteRowAction`
+  has no values for them; each comes back with its action. The menu shows
+  Open, Edit settings, then the wipe group. `flutter analyze` clean, `flutter
+  test` 1012/1012 (no Kotlin changed). Not seen on a device.
 
 ## Working on this repo
 
