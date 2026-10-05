@@ -62,10 +62,14 @@ final panicServiceProvider = Provider<PanicService>((ref) {
     // PanicService's step 3, "delete the store files", after the keys: a
     // store left behind outlives its key and blocks the next setup.
     destroyVaults: () async {
-      await ref.read(vaultStoreProvider).destroy();
-      final documents = ref.read(documentsDirectoryProvider);
-      for (final vault in VaultId.values) {
-        await deleteVaultStore(vaultDatabasePath(documents, vault));
+      // The stores go even if the key file's destroy throws.
+      try {
+        await ref.read(vaultStoreProvider).destroy();
+      } finally {
+        final documents = ref.read(documentsDirectoryProvider);
+        for (final vault in VaultId.values) {
+          await deleteVaultStore(vaultDatabasePath(documents, vault));
+        }
       }
     },
     // Both vaults' keys, not just the open one's: panic runs from either.

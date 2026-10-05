@@ -114,6 +114,50 @@ void main() {
     expect(vaultsDestroyed, isTrue);
   });
 
+  // closeDatabase threw, and panic stopped with the key file and the
+  // biometric keys still on disk.
+  test('a key step that throws still runs the ones after it, then rethrows',
+      () async {
+    final destroyed = <String>[];
+
+    await expectLater(
+      ContainerPanicService(
+        engine: FakeContainerEngine(),
+        closeDatabase: () async => throw StateError('close failed'),
+        destroyVaults: () async {
+          destroyed.add('vaults');
+          throw StateError('vaults failed');
+        },
+        destroyBiometricKeys: () async => destroyed.add('biometric'),
+      ).trigger(),
+      throwsA(isA<StateError>()
+          .having((e) => e.message, 'message', 'close failed')),
+    );
+
+    expect(destroyed, ['vaults', 'biometric']);
+  });
+
+  test("the stores are deleted even when the key file's destroy throws",
+      () async {
+    TestWidgetsFlutterBinding.ensureInitialized();
+    final dir = await Directory.systemTemp.createTemp('panic-stores-test');
+    addTearDown(() => dir.delete(recursive: true));
+    final store = File(vaultDatabasePath(dir, VaultId.a))..writeAsStringSync('x');
+    final container = ProviderContainer(overrides: [
+      containerEngineProvider.overrideWithValue(FakeContainerEngine()),
+      vaultStoreProvider.overrideWithValue(
+          VaultStore(_DestroyThrows(), File('${dir.path}/meta.bin'))),
+      documentsDirectoryProvider.overrideWithValue(dir),
+      biometricServiceProvider.overrideWithValue(FakeBiometricService()),
+    ]);
+    addTearDown(container.dispose);
+
+    await expectLater(
+        container.read(panicServiceProvider).trigger(), throwsA(anything));
+
+    expect(store.existsSync(), isFalse);
+  });
+
   test('panic on a cold app with nothing open still completes', () async {
     final engine = FakeContainerEngine();
     var destroyed = false;
@@ -166,4 +210,9 @@ class _CloseThrows extends FakeContainerEngine {
   @override
   Future<void> close(String siteId, {bool? wipe}) async =>
       throw PlatformException(code: 'engine', message: 'close failed');
+}
+
+class _DestroyThrows extends FakeCrypto {
+  @override
+  Future<void> destroyDeviceKey() async => throw StateError('keystore');
 }
