@@ -24,24 +24,19 @@ class ThrowawaySaveBar extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.fromLTRB(16, 8, 8, 8),
       decoration: const BoxDecoration(
-        color: C.raised,
-        border: Border(top: BorderSide(color: C.line07)),
+        color: C.surface,
+        border: Border(top: BorderSide(color: C.line)),
       ),
       child: Row(
         children: [
           Expanded(
-            child: Text(
-              'Not saved · wiped when you close it',
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-              style: ui(size: 12, color: C.textMuted),
-            ),
+            child: Text('Not saved · wiped when you close it', style: T.body),
           ),
           const SizedBox(width: 10),
           Flexible(
             child: PillButton(
               label: 'Save as a site',
-              height: 32,
+              height: 48,
               padding: const EdgeInsets.symmetric(horizontal: 14),
               onTap: onSave,
             ),
@@ -53,8 +48,7 @@ class ThrowawaySaveBar extends StatelessWidget {
             glyph: AppGlyph.close,
             label: 'Dismiss',
             onTap: onDismiss,
-            size: 36,
-            iconSize: 16,
+            iconSize: 20,
           ),
         ],
       ),

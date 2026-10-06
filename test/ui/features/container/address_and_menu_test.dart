@@ -93,7 +93,7 @@ void main() {
         find.ancestor(of: find.byType(TextField), matching: find.byType(Container)).first);
     final decoration = pill.decoration! as BoxDecoration;
     expect(decoration.color, C.raised);
-    expect((decoration.border! as Border).top.color, C.line16);
+    expect((decoration.border! as Border).top.color, C.edge);
 
     final field = tester.widget<TextField>(find.byType(TextField));
     expect(field.cursorColor, C.textPrimary);

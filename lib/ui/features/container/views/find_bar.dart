@@ -5,10 +5,12 @@ import '../../../core/icons.dart';
 import '../../../core/tokens.dart';
 import '../../../core/typography.dart';
 import '../../../core/widgets/icon_tap.dart';
+import 'address_edit_bar.dart' show InputFrame;
 import 'panic_square.dart';
 
 /// Browser-chrome spec §6.5: stands in for the top bar while finding in the
-/// page. Panic keeps its place on the right, as on every bar.
+/// page. Panic keeps its place on the right, as on every bar. Restyle v2:
+/// the field is an [InputFrame], the arrows and × 48 dp targets.
 class FindBar extends StatelessWidget {
   const FindBar({
     super.key,
@@ -42,9 +44,11 @@ class FindBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
+      constraints: const BoxConstraints(minHeight: 64),
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: const BoxDecoration(
-        border: Border(bottom: BorderSide(color: C.line07)),
+        color: C.bg,
+        border: Border(bottom: BorderSide(color: C.line)),
       ),
       // Follows the field itself, so the count and the arrows are right on
       // the keystroke, before anything above rebuilds.
@@ -57,14 +61,8 @@ class FindBar extends StatelessWidget {
           return Row(
             children: [
               Expanded(
-                child: Container(
-                  height: 34,
+                child: InputFrame(
                   padding: const EdgeInsets.symmetric(horizontal: 12),
-                  decoration: BoxDecoration(
-                    color: C.raised,
-                    borderRadius: BorderRadius.circular(17),
-                    border: Border.all(color: C.line16),
-                  ),
                   child: Row(
                     children: [
                       Expanded(
@@ -73,14 +71,14 @@ class FindBar extends StatelessWidget {
                           autofocus: true,
                           onChanged: onChanged,
                           cursorColor: C.textPrimary,
-                          style: ui(size: 13, color: C.textPrimary),
+                          style: T.body,
                           textInputAction: TextInputAction.search,
                           autocorrect: false,
                           enableSuggestions: false,
                           enableIMEPersonalizedLearning: false,
                           decoration: InputDecoration.collapsed(
                             hintText: 'Find in page',
-                            hintStyle: ui(size: 13, color: C.textFaint),
+                            hintStyle: T.body.copyWith(color: C.textFaint),
                           ),
                         ),
                       ),
@@ -90,36 +88,32 @@ class FindBar extends StatelessWidget {
                           child: Text(count,
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
-                              style: mono(size: 10.5, color: C.textMuted)),
+                              style: T.value),
                         ),
                       ],
                     ],
                   ),
                 ),
               ),
-              const SizedBox(width: 4),
               IconTap(
                 glyph: AppGlyph.chevronUp,
                 label: 'Previous match',
                 onTap: canStep ? onPrevious : null,
-                size: 32,
-                iconSize: 18,
+                iconSize: 22,
               ),
               IconTap(
                 glyph: AppGlyph.chevronDown,
                 label: 'Next match',
                 onTap: canStep ? onNext : null,
-                size: 32,
-                iconSize: 18,
+                iconSize: 22,
               ),
               IconTap(
                 glyph: AppGlyph.close,
                 label: 'Close find',
                 onTap: onClose,
-                size: 32,
-                iconSize: 16,
+                iconSize: 20,
               ),
-              const SizedBox(width: 4),
+              const SizedBox(width: 8),
               PanicSquare(onTap: onPanic),
             ],
           );

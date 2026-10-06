@@ -113,8 +113,8 @@ void main() {
         .first);
     final decoration = bar.decoration! as BoxDecoration;
     expect(decoration.color, C.footer);
-    expect((decoration.border! as Border).top.color, C.line07);
-    expect(_glyph(tester, AppGlyph.chevronUp).color, C.jade);
+    expect((decoration.border! as Border).top.color, C.line);
+    expect(_glyph(tester, AppGlyph.chevronUp).color, C.textPrimary);
     expect(tester.getSize(find.byWidgetPredicate(
         (w) => w is AppIcon && w.glyph == AppGlyph.chevronUp)), const Size(12, 12));
     expect(find.bySemanticsLabel('Open sessions'), findsOneWidget);
@@ -318,5 +318,55 @@ void main() {
       await tester.tap(findIconTap('Back'));
       expect(calls, ['menu', 'back']);
     });
+  });
+
+  // Restyle v2 §5, §8 `2b` (Plan 21 Task 4).
+  testWidgets("v2: the bottom bar's targets are 48 dp and the bar at least 56", (tester) async {
+    await _pump(
+      tester,
+      ContainerBottomBar(
+        openCount: 2,
+        onBack: () {},
+        onForward: () {},
+        onOpenSwitcher: () {},
+        onMenu: () {},
+      ),
+    );
+
+    for (final label in ['Back', 'Forward', 'Menu']) {
+      expect(tester.getSize(_icon(label)), const Size(48, 48), reason: label);
+    }
+    expect(tester.getSize(find.byKey(const Key('open-sessions-target'))).height,
+        greaterThanOrEqualTo(48));
+    expect(tester.getSize(find.byType(ContainerBottomBar)).height, greaterThanOrEqualTo(56));
+    final count = tester.widget<Text>(find.text('2 OPEN'));
+    expect(count.style!.fontSize, 13);
+    expect(count.style!.fontWeight, FontWeight.w600);
+    expect(count.style!.color, C.textPrimary);
+  });
+
+  testWidgets("v2: the find bar's arrows, × and panic are 48 dp; the field an input",
+      (tester) async {
+    final controller = TextEditingController(text: 'fox');
+    addTearDown(controller.dispose);
+    await _pump(tester,
+        _findBar(controller, const FindResult(siteId: 's1', pageId: 's1-p1', activeMatch: 0, matchCount: 3)));
+    await tester.pump();
+
+    for (final label in ['Previous match', 'Next match', 'Close find', 'Panic']) {
+      expect(tester.getSize(_icon(label)), const Size(48, 48), reason: label);
+    }
+    final frame = tester.widget<Container>(
+        find.ancestor(of: find.byType(TextField), matching: find.byType(Container)).first);
+    final decoration = frame.decoration! as BoxDecoration;
+    expect(decoration.color, C.surface);
+    // Focused (the field takes focus as it is built): 2 dp text-1.
+    expect((decoration.border! as Border).top.color, C.textPrimary);
+    expect((decoration.border! as Border).top.width, 2);
+  });
+
+  testWidgets("v2: the save bar's × is a 48 dp target", (tester) async {
+    await _pump(tester, ThrowawaySaveBar(onSave: () {}, onDismiss: () {}));
+    expect(tester.getSize(find.byKey(const Key('save-bar-dismiss'))), const Size(48, 48));
   });
 }

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../../domain/models/address_suggestion.dart';
+import '../../../core/host_text.dart';
 import '../../../core/icons.dart';
 import '../../../core/tokens.dart';
 import '../../../core/typography.dart';
@@ -45,8 +46,7 @@ class AddressSuggestions extends StatelessWidget {
     }
     children.add(Padding(
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
-      child: Text('Nothing is fetched while you type.',
-          style: mono(size: 10, color: C.textDim)),
+      child: Text('Nothing is fetched while you type.', style: T.metaValue),
     ));
 
     return ColoredBox(
@@ -73,26 +73,27 @@ class _SuggestionRow extends StatelessWidget {
       behavior: HitTestBehavior.opaque,
       onTap: onTap,
       child: Container(
+        constraints: const BoxConstraints(minHeight: 56),
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
         decoration: const BoxDecoration(
-          border: Border(bottom: BorderSide(color: C.line06)),
+          border: Border(bottom: BorderSide(color: C.lineSoft)),
         ),
         child: Row(
           children: [
             if (monogram != null)
-              Monogram(monogram, size: 32, radius: 9, fontSize: 12)
+              Monogram(monogram, size: 40, radius: R.monogram, fontSize: 15)
             else
               Container(
-                width: 32,
-                height: 32,
+                width: 40,
+                height: 40,
                 alignment: Alignment.center,
                 decoration: BoxDecoration(
                   color: C.button,
-                  borderRadius: BorderRadius.circular(9),
+                  borderRadius: BorderRadius.circular(R.monogram),
                 ),
                 child: AppIcon(
                   suggestion.kind == SuggestionKind.address ? AppGlyph.globe : AppGlyph.search,
-                  size: 15,
+                  size: 20,
                 ),
               ),
             const SizedBox(width: 12),
@@ -101,31 +102,26 @@ class _SuggestionRow extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Text(
-                    suggestion.primary,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: ui(size: 13.5, color: C.textPrimary),
-                  ),
-                  const SizedBox(height: 3),
-                  Text(
-                    suggestion.secondary,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: mono(size: 10, color: C.textFaint),
-                  ),
+                  // Restyle v2 §1.6: an address, and the host under every
+                  // row, wrap after their dots and are never cut short.
+                  if (suggestion.kind == SuggestionKind.address)
+                    Text.rich(hostSpan(suggestion.primary), style: T.rowTitle)
+                  else
+                    Text(suggestion.primary, style: T.rowTitle),
+                  const SizedBox(height: 2),
+                  Text.rich(hostSpan(suggestion.secondary), style: T.metaValue),
                 ],
               ),
             ),
-            const SizedBox(width: 10),
+            const SizedBox(width: 12),
             // Narrow, so a long tag wraps onto a second line (`THROWAWAY` /
             // `· SOCKS5`) instead of squeezing the row.
             ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 96),
+              constraints: const BoxConstraints(maxWidth: 112),
               child: Text(
                 suggestion.tag,
                 textAlign: TextAlign.right,
-                style: mono(size: 9.5, color: C.textMuted, height: 1.35),
+                style: T.barBadge,
               ),
             ),
           ],
