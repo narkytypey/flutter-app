@@ -4,11 +4,11 @@ Read this first. It is the only thing that carries across a restart.
 
 ## Where I got to
 
-Phases 0–9 done, and Plan 24 (light variant, after the user's answers in DECISIONS D9). Branch `restyle-implementation` (not merged; no PR). Last gates at f3cf6a4 (Plan 24): analyze clean, flutter test 1151/1151, APK zero e:. Not verified on a device. Look first at docs/design-exploration/RATIONALE.md, then debate/VERDICT.md "Unresolved", then the spec §12.
+Phases 0–9 done, and Plan 24 (light variant, after the user's answers in DECISIONS D9). Branch `restyle-implementation` (not merged; no PR). Last gates at 73a9dd1 (Plan 23 Task 7, pill motion): analyze clean, flutter test 1156/1156, APK zero e:. Not verified on a device. Look first at docs/design-exploration/RATIONALE.md, then debate/VERDICT.md "Unresolved", then the spec §12.
 
 ## Heartbeat
 
-2026-10-06T22:45Z · fire-3e91b7 (optional Plan 23 Task 7)
+2026-10-06T23:20Z · fire-3e91b7 (done) (optional Plan 23 Task 7)
 
 ## Branch
 
@@ -16,7 +16,7 @@ restyle-implementation (phase 8; phases 0–7 are on design-exploration-restyle,
 
 ## Next action
 
-fire-3e91b7 is doing the optional Plan 23 Task 7 (motion). Otherwise awaiting the owner: the six open questions (RATIONALE.md "Your decisions"), a device check of each plan\'s "Device checks", and whether to merge. Optional leftover: Plan 23 Task 7 (motion), not done.
+None queued (Plan 23 Task 7's pill motion done; its unlock half needs a ruling, DECISIONS D10). Awaiting the owner: the six open questions (RATIONALE.md "Your decisions"), a device check of each plan\'s "Device checks", and whether to merge. 
 
 ## Toolchain
 
@@ -129,6 +129,7 @@ A later fire must reinstall all of it (~10 min); set
 - [x] Plan 20: T1 tokens · T2 Plex Sans + scale · T3 glyphs · T4 shared widgets · T5 launcher icon · T6 verify
 - [x] Plan 21: T1 shell/chips/tabs · T2 rows · T3 pill · T4 bars · T5 2c/menu/8a · T6 verify
 - [x] Plan 22: T1 lock · T2 setup · T3 panic · T4 verify
+- [x] Plan 23 T7 (pill motion only; unlock half not built, D10)
 - [x] Plan 23: T1 settings · T2 2a · T3 10a–e · T4 today/reader · T5 sheets/failures · T6 aliases · T8 verify (T7 motion, optional, not done)
 - [x] CLAUDE.md plan rows
 
@@ -140,7 +141,7 @@ A later fire must reinstall all of it (~10 min); set
 
 ## Log
 
-- 2026-10-06T22:45Z fire-3e91b7: Plan 23 Task 7 pill motion committed (D10; unlock half skipped). `flutter analyze` clean, `flutter test` 1156/1156. `flutter build apk --debug` NOT YET RUN to completion: Maven Central answers 429 (rate limit) through this environment's proxy; retrying. No Kotlin changed.
+- 2026-10-06T22:45Z fire-3e91b7: Plan 23 Task 7 pill motion committed (D10; unlock half skipped). `flutter analyze` clean, `flutter test` 1156/1156. `flutter build apk --debug` built, zero `e:` lines (after Maven Central's 429s, through a user-level Gradle init script pointing Central at Google's mirror, `maven-central.storage-download.googleapis.com`; not in the repo). No Kotlin changed. Not verified on a device.
 - 2026-10-06T22:10Z fire-3e91b7: started; nothing queued, run complete and Plan 24 done. Taking the optional Plan 23 Task 7 (motion), view-only.
 
 - 2026-10-06T18:10Z fire-cd6e6b: phase 9 done — B screens.html at 32 blocks with folds (a9bfaca), interaction-study.html, RATIONALE.md. Run complete.

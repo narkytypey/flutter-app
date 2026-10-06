@@ -70,7 +70,9 @@ by `test/ui/features/container/top_bar_motion_test.dart` (5). The unlock
 moment is not built: `AppGate` unmounts the lock screen the frame the vault
 opens, so it would need a shell change on the lock boundary. One expectation
 waits out the cross-fade: `top_bar_v2_test.dart`'s case test settles before
-asserting the old case is gone (its assertions are unchanged).
+asserting the old case is gone (its assertions are unchanged). Gates at
+`73a9dd1`: `flutter analyze` clean, `flutter test` 1156/1156,
+`flutter build apk --debug` zero `e:` lines. **Not verified on a device.**
 
 ### Task 8: Verification and records
 
