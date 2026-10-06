@@ -4,19 +4,19 @@ Read this first. It is the only thing that carries across a restart.
 
 ## Where I got to
 
-Phases 0–7 done (index.html, spec, plans 20–23). Phase 8 on branch `restyle-implementation`.
+Phases 0–7 done. Phase 8: Plan 20 (foundation) done and verified (analyze clean, 1075/1075, APK zero e:). Plan 21 next.
 
 ## Heartbeat
 
-2026-10-06T11:25Z · fire-cd6e6b (resumed)
+2026-10-06T10:55Z · fire-cd6e6b (resumed)
 
 ## Branch
 
-design-exploration-restyle
+restyle-implementation (phase 8; phases 0–7 are on design-exploration-restyle, which this branch contains)
 
 ## Next action
 
-Phase 8: execute Plan 20 (foundation) on `restyle-implementation`, task by task, gates after each.
+Phase 8: execute Plan 21 (dashboard + container chrome) on `restyle-implementation`.
 
 ## Toolchain
 
@@ -126,7 +126,7 @@ A later fire must reinstall all of it (~10 min); set
 ### Phase 8 — Execute (branch restyle-implementation)
 - [x] Toolchain check recorded
 - [x] Cut restyle-implementation
-- [ ] Plan 20: T1 tokens · T2 Plex Sans + scale · T3 glyphs · T4 shared widgets · T5 launcher icon · T6 verify
+- [x] Plan 20: T1 tokens · T2 Plex Sans + scale · T3 glyphs · T4 shared widgets · T5 launcher icon · T6 verify
 - [ ] Plan 21: T1 shell/chips/tabs · T2 rows · T3 pill · T4 bars · T5 2c/menu/8a · T6 verify
 - [ ] Plan 22: T1 lock · T2 setup · T3 panic · T4 verify
 - [ ] Plan 23: T1 settings · T2 2a · T3 10a–e · T4 today/reader · T5 sheets/failures · T6 aliases · T7 motion (opt) · T8 verify
@@ -139,6 +139,8 @@ A later fire must reinstall all of it (~10 min); set
 - [ ] One-page rationale
 
 ## Log
+
+- 10:55Z fire-cd6e6b: Plan 20 done — 1075/1075, analyze clean, APK built (0 e:). Fonts ship unsubset (D8). CLAUDE.md row added.
 
 - 11:25Z fire-cd6e6b: index.html (subagent), plans 20–23 written. Toolchain reinstalled this fire (Flutter 3.47.2 + SDK). Cutting restyle-implementation.
 

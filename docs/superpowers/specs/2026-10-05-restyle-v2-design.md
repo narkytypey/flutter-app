@@ -275,7 +275,7 @@ Mono follows the same ladder, capped at 14 for values in rows.
 - **Row heights (minimum; rows grow with text):** one line 56, two lines 72.
   `SettingRow` min 56; `SessionRow` min 72.
 - **Radii (`R`, new):** 6 badge, 10 monogram/small chip, 14 input/row button,
-  18 group/card, 28 sheet top, full (pill, primary button, switch). Seven
+  18 group/card, 28 sheet top, full (pill, primary button, switch). Six
   values, down from nineteen.
 - **Group:** `C.surface` fill, 1 dp `C.line` outline, radius 18; rows inside
   separated by `C.lineSoft`. A new `Group` widget in `lib/ui/core/widgets/`.

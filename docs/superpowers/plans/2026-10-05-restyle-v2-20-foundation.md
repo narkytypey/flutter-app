@@ -238,7 +238,46 @@ expect(T.value.fontFamily, 'IBMPlexMono'); expect(T.display.fontSize, 40);
 
 ## Verification
 
-(Filled in by the executing session.)
+Executed 2026-10-06 on branch `restyle-implementation` by the overnight run
+(fire cd6e6b), commits `82874b2` (Task 1), `74f4096` (Task 2), `932e27e`
+(Task 3), `f8d3392` (Task 4), `33e38ea` (Task 5) and this one.
+Baseline at `main` `d0edb1c`: analyze clean, `flutter test` 1057/1057.
+
+- `flutter analyze`: **No issues found.**
+- `flutter test`: **1075/1075** (18 new: `tokens_v2_test` 6, `typography_v2_test` 3,
+  `icons_test` +1, `widgets_v2_test` 8).
+- `flutter build apk --debug`: **built, zero `e:` lines** (Gradle 156 s); the
+  APK carries `res/mipmap-anydpi-v26/ic_launcher.xml` and the three
+  `res/drawable/ic_launcher_*.xml`.
+- `test/android_theme_test.dart`, `test/no_glyphs_test.dart`,
+  `test/ui/small_screen_layout_test.dart`, `test/ui/responsive_layout_test.dart`
+  pass unchanged.
+
+**Expectations updated to the spec's new values (and nothing else):**
+`test/app_theme_test.dart` (ink `0xFF121110`; family `IBMPlexSans`;
+`C.handle` `0xFF958D82`, `C.pillText` `0xFFEDEAE4`, `C.dangerPanel`
+`0xFF2C201D`, `C.pinError` `0xFFEE8D79`); `test/ui/core/pin_widgets_test.dart:28`
+(error ring `0xFFEE8D79`); `test/ui/core/icons_test.dart` (the glyph list gains
+restyle v2's eight; `IconTap` default 48); `test/ui/core/primitives_test.dart`
+(the light is a 10 dp dot, idle an edge ring); `test/ui/core/sheet_test.dart`
+(sheet radius 28); `test/ui/features/settings_test.dart:293` (row chevron 18);
+`test/ui/features/container/chrome_bars_test.dart:95` (`IconTap` 48).
+
+**Deviations from the plan text:**
+- Fonts ship **unsubset** (DECISIONS D8: OFL Reserved Font Name "Plex").
+  +553 KB.
+- `T.tabSelected` added beside `T.tab` (the selected tab's 600 weight and
+  text-1), instead of a `weight` argument at the call site.
+- `IconTap` does **not** force a 48 dp minimum: the call sites that pass 28
+  sit in fixed-height bars that Plans 21–23 rebuild; forcing it here would
+  overflow them mid-plan. The default is 48, and each wave raises its sites.
+- `PillButton` enforces a 48 dp minimum height whatever is passed; its default
+  is 52.
+- `StatusRail` gains `opening` as well as `showIdle`.
+- An idle `Monogram` gets a 1 px `C.line` outline: it sits on a group of its
+  own tone.
+
+**Not verified on a device.**
 
 ## Device checks
 
