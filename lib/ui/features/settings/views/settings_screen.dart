@@ -80,7 +80,7 @@ class SettingsScreen extends StatelessWidget {
             Container(
               constraints: const BoxConstraints(minHeight: 64),
               padding: EdgeInsets.fromLTRB(onBack != null ? 4 : 16, 8, 16, 8),
-              decoration: const BoxDecoration(
+              decoration: BoxDecoration(
                 border: Border(bottom: BorderSide(color: C.line)),
               ),
               child: Row(

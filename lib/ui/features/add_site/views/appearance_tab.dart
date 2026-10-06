@@ -36,7 +36,7 @@ class AppearanceTab extends StatelessWidget {
   final TextEditingController cssController;
   final TextEditingController jsController;
 
-  static final _label = T.sectionLabel;
+  static TextStyle get _label => T.sectionLabel;
 
   static const _uaLabels = {
     UserAgentMode.android: 'Android',

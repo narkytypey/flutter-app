@@ -75,7 +75,7 @@ class _SuggestionRow extends StatelessWidget {
       child: Container(
         constraints: const BoxConstraints(minHeight: 56),
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-        decoration: const BoxDecoration(
+        decoration: BoxDecoration(
           border: Border(bottom: BorderSide(color: C.lineSoft)),
         ),
         child: Row(

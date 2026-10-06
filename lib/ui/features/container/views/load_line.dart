@@ -25,7 +25,7 @@ class LoadLine extends StatelessWidget {
           ? FractionallySizedBox(
               alignment: Alignment.centerLeft,
               widthFactor: progress.clamp(0, 100) / 100,
-              child: const ColoredBox(key: Key('load-line'), color: C.textMuted),
+              child: ColoredBox(key: const Key('load-line'), color: C.textMuted),
             )
           : null,
     );

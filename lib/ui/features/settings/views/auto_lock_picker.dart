@@ -31,7 +31,7 @@ class AutoLockPicker extends StatelessWidget {
             child: Container(
               constraints: const BoxConstraints(minHeight: 56),
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-              decoration: const BoxDecoration(
+              decoration: BoxDecoration(
                 border: Border(top: BorderSide(color: C.lineSoft)),
               ),
               child: Row(
@@ -39,7 +39,7 @@ class AutoLockPicker extends StatelessWidget {
                   Expanded(
                     child: Text(policy.label, style: T.body),
                   ),
-                  if (policy == current) const AppIcon(AppGlyph.check, size: 20, color: C.textPrimary),
+                  if (policy == current) AppIcon(AppGlyph.check, size: 20, color: C.textPrimary),
                 ],
               ),
             ),

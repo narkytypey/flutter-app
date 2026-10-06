@@ -72,7 +72,7 @@ class WorkspaceChips extends StatelessWidget {
             ],
           ),
         ),
-        const Hairline(color: C.line),
+        Hairline(color: C.line),
       ],
     );
   }

@@ -15,17 +15,22 @@ class IconTap extends StatelessWidget {
     required this.onTap,
     this.size = 48,
     this.iconSize = 20,
-    this.color = C.icon,
+    Color? color,
     this.background,
     this.radius,
-  });
+  // A private field cannot be a named formal; [color] resolves it.
+  // ignore: prefer_initializing_formals
+  }) : _color = color;
 
   final AppGlyph glyph;
   final String? label;
   final VoidCallback? onTap;
   final double size;
   final double iconSize;
-  final Color color;
+  final Color? _color;
+
+  /// The colour passed, or [C.icon] in the active palette.
+  Color get color => _color ?? C.icon;
   final Color? background;
 
   /// Corner radius; null draws a circle, a 48 dp round target (restyle v2 §5).

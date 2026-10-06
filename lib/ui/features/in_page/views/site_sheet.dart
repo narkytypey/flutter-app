@@ -116,7 +116,7 @@ class SiteSheet extends StatelessWidget {
                   padding: const EdgeInsets.fromLTRB(S.s5, 0, S.s2, S.s3),
                   child: Container(
                     padding: const EdgeInsets.only(bottom: S.s3),
-                    decoration: const BoxDecoration(
+                    decoration: BoxDecoration(
                       border: Border(bottom: BorderSide(color: C.line)),
                     ),
                     child: Row(
@@ -173,7 +173,7 @@ class SiteSheet extends StatelessWidget {
                 ),
                 if (categories.isNotEmpty)
                   Container(
-                    decoration: const BoxDecoration(
+                    decoration: BoxDecoration(
                       border: Border(bottom: BorderSide(color: C.lineSoft)),
                     ),
                     child: _CategoryRows(categories),
@@ -319,7 +319,7 @@ class _SheetInfoRow extends StatelessWidget {
       constraints: const BoxConstraints(minHeight: 56),
       padding: const EdgeInsets.symmetric(horizontal: S.s5, vertical: S.s2),
       decoration: BoxDecoration(
-        border: showDivider ? const Border(bottom: BorderSide(color: C.lineSoft)) : null,
+        border: showDivider ? Border(bottom: BorderSide(color: C.lineSoft)) : null,
       ),
       // On a narrow phone the longer label or value wraps rather than
       // overflowing the row: the sheet scrolls, so a taller row is fine.

@@ -185,7 +185,7 @@ class LockBody extends StatelessWidget {
               mainAxisSize: MainAxisSize.min,
               children: [
                 // The one affirmative action on `9b` when it is offered.
-                const AppIcon(AppGlyph.fingerprint, size: 28, color: C.jade),
+                AppIcon(AppGlyph.fingerprint, size: 28, color: C.jade),
                 const SizedBox(height: S.s2),
                 Text('Use fingerprint', style: T.sub),
               ],

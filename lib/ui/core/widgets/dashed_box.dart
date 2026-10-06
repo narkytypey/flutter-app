@@ -9,12 +9,17 @@ class DashedBox extends StatelessWidget {
     super.key,
     required this.size,
     required this.radius,
-    this.color = C.edge,
-  });
+    Color? color,
+  // A private field cannot be a named formal; [color] resolves it.
+  // ignore: prefer_initializing_formals
+  }) : _color = color;
 
   final double size;
   final double radius;
-  final Color color;
+  final Color? _color;
+
+  /// The colour passed, or [C.edge] in the active palette.
+  Color get color => _color ?? C.edge;
 
   @override
   Widget build(BuildContext context) => CustomPaint(

@@ -58,7 +58,7 @@ class ScriptsAndFiltersScreen extends StatelessWidget {
           children: [
             Container(
               padding: const EdgeInsets.fromLTRB(4, 8, 16, 8),
-              decoration: const BoxDecoration(
+              decoration: BoxDecoration(
                 border: Border(bottom: BorderSide(color: C.line)),
               ),
               child: Row(
@@ -118,7 +118,7 @@ class ScriptsAndFiltersScreen extends StatelessWidget {
                         child: Row(
                           children: [
                             const SizedBox(width: S.s4),
-                            const AppIcon(AppGlyph.plus, size: 18, color: C.jade),
+                            AppIcon(AppGlyph.plus, size: 18, color: C.jade),
                             const SizedBox(width: S.s3),
                             Flexible(
                               child: Text('New script',

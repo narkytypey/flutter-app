@@ -35,7 +35,7 @@ class BasicsTab extends StatelessWidget {
   final CookiePolicy cookiePolicy;
   final ValueChanged<CookiePolicy> onCookiePolicyChanged;
 
-  static final _label = T.sectionLabel;
+  static TextStyle get _label => T.sectionLabel;
 
   @override
   Widget build(BuildContext context) {
@@ -184,7 +184,7 @@ class BasicsTab extends StatelessWidget {
             ? Container(
                 width: 10,
                 height: 10,
-                decoration: const BoxDecoration(shape: BoxShape.circle, color: C.textPrimary),
+                decoration: BoxDecoration(shape: BoxShape.circle, color: C.textPrimary),
               )
             : null,
       );

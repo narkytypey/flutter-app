@@ -40,7 +40,7 @@ class OpeningBody extends StatelessWidget {
             Container(
               constraints: const BoxConstraints(minHeight: 64),
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-              decoration: const BoxDecoration(
+              decoration: BoxDecoration(
                 border: Border(bottom: BorderSide(color: C.line)),
               ),
               child: Row(
@@ -65,7 +65,7 @@ class OpeningBody extends StatelessWidget {
                           Container(
                             width: 8,
                             height: 8,
-                            decoration: const BoxDecoration(
+                            decoration: BoxDecoration(
                               color: C.warning,
                               shape: BoxShape.circle,
                             ),
@@ -171,8 +171,8 @@ class _StepMarker extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return switch (state) {
-      OpenStepState.done => const AppIcon(AppGlyph.check, size: 14, color: C.textMuted),
-      OpenStepState.running => const SizedBox(
+      OpenStepState.done => AppIcon(AppGlyph.check, size: 14, color: C.textMuted),
+      OpenStepState.running => SizedBox(
           width: 14,
           height: 14,
           child: CustomPaint(painter: _RingGapPainter()),
@@ -182,7 +182,7 @@ class _StepMarker extends StatelessWidget {
           height: 14,
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(7),
-            border: const Border.fromBorderSide(BorderSide(color: C.edge, width: 2)),
+            border: Border.fromBorderSide(BorderSide(color: C.edge, width: 2)),
           ),
         ),
     };
@@ -194,12 +194,15 @@ class _StepMarker extends StatelessWidget {
 /// [Canvas.drawArc] because [BoxDecoration] refuses a non-uniform border
 /// colour on a rounded shape.
 class _RingGapPainter extends CustomPainter {
-  const _RingGapPainter();
+  _RingGapPainter() : color = C.warning;
+
+  /// The active palette's warning, so a light/dark switch repaints it.
+  final Color color;
 
   @override
   void paint(Canvas canvas, Size size) {
     final paint = Paint()
-      ..color = C.warning
+      ..color = color
       ..style = PaintingStyle.stroke
       ..strokeWidth = 2;
     final rect = Offset.zero & size;
@@ -209,5 +212,5 @@ class _RingGapPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+  bool shouldRepaint(_RingGapPainter oldDelegate) => oldDelegate.color != color;
 }

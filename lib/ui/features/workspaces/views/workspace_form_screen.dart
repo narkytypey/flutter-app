@@ -101,7 +101,7 @@ class _WorkspaceFormScreenState extends State<WorkspaceFormScreen> {
           children: [
             Container(
               padding: const EdgeInsets.fromLTRB(4, 8, 4, 8),
-              decoration: const BoxDecoration(
+              decoration: BoxDecoration(
                 border: Border(bottom: BorderSide(color: C.line)),
               ),
               child: Row(
@@ -329,7 +329,7 @@ class _MarkerSwatch extends StatelessWidget {
                   borderRadius: BorderRadius.circular(R.badge),
                 ),
                 child: selected
-                    ? const AppIcon(AppGlyph.check, size: 16, color: C.bg)
+                    ? AppIcon(AppGlyph.check, size: 16, color: C.bg)
                     : null,
               ),
             ),
@@ -361,7 +361,7 @@ class _FormRadio extends StatelessWidget {
           ? Container(
               width: 10,
               height: 10,
-              decoration: const BoxDecoration(
+              decoration: BoxDecoration(
                   color: C.textPrimary, shape: BoxShape.circle),
             )
           : null,

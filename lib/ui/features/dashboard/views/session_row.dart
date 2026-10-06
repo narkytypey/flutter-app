@@ -68,7 +68,7 @@ class SessionRow extends StatelessWidget {
                       top: 0,
                       child: live
                           ? DecoratedBox(
-                              decoration: const BoxDecoration(
+                              decoration: BoxDecoration(
                                 color: C.surface,
                                 shape: BoxShape.circle,
                               ),

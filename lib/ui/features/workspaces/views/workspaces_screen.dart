@@ -49,7 +49,7 @@ class WorkspacesScreen extends StatelessWidget {
           children: [
             Container(
               padding: const EdgeInsets.fromLTRB(4, 8, 16, 8),
-              decoration: const BoxDecoration(
+              decoration: BoxDecoration(
                 border: Border(bottom: BorderSide(color: C.line)),
               ),
               child: Row(
@@ -92,7 +92,7 @@ class WorkspacesScreen extends StatelessWidget {
                         child: Row(
                           children: [
                             const SizedBox(width: 16),
-                            const AppIcon(AppGlyph.plus, size: 18, color: C.jade),
+                            AppIcon(AppGlyph.plus, size: 18, color: C.jade),
                             const SizedBox(width: 12),
                             Flexible(
                               child: Text('New workspace',
@@ -153,7 +153,7 @@ class _WorkspaceRow extends StatelessWidget {
               ),
             ),
             const SizedBox(width: 8),
-            const AppIcon(AppGlyph.forward, size: 18, color: C.chevron),
+            AppIcon(AppGlyph.forward, size: 18, color: C.chevron),
           ],
         ),
       ),

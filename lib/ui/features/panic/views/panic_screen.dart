@@ -40,7 +40,7 @@ class PanicScreen extends StatelessWidget {
                   shape: BoxShape.circle,
                   border: Border.all(color: C.danger, width: 1.5),
                 ),
-                child: const AppIcon(AppGlyph.panic, size: 20, color: C.danger),
+                child: AppIcon(AppGlyph.panic, size: 20, color: C.danger),
               ),
               const SizedBox(height: S.s6),
               Text('Everything closed',

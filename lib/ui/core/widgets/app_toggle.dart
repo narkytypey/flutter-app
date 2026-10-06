@@ -37,13 +37,13 @@ class AppToggle extends StatelessWidget {
                   width: 24,
                   height: 24,
                   alignment: Alignment.center,
-                  decoration: const BoxDecoration(color: C.bg, shape: BoxShape.circle),
-                  child: const AppIcon(AppGlyph.check, size: 14, color: C.textPrimary),
+                  decoration: BoxDecoration(color: C.bg, shape: BoxShape.circle),
+                  child: AppIcon(AppGlyph.check, size: 14, color: C.textPrimary),
                 )
               : Container(
                   width: 16,
                   height: 16,
-                  decoration: const BoxDecoration(color: C.knobOff, shape: BoxShape.circle),
+                  decoration: BoxDecoration(color: C.knobOff, shape: BoxShape.circle),
                 ),
         ),
       ),

@@ -268,7 +268,7 @@ class _AddSiteScreenState extends State<AddSiteScreen> {
               ),
             ),
             DecoratedBox(
-              decoration: const BoxDecoration(border: Border(bottom: BorderSide(color: C.line))),
+              decoration: BoxDecoration(border: Border(bottom: BorderSide(color: C.line))),
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
                 child: Row(

@@ -16,7 +16,7 @@ class ContainerApp extends StatelessWidget {
       title: 'Container',
       debugShowCheckedModeBanner: false,
       theme: containerTheme(),
-      home: home ?? const Scaffold(backgroundColor: C.bg),
+      home: home ?? Scaffold(backgroundColor: C.bg),
     );
   }
 }

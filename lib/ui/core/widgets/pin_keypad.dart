@@ -50,7 +50,7 @@ class PinKeypad extends StatelessWidget {
                         ? Semantics(
                             label: 'Delete',
                             button: true,
-                            child: const AppIcon(AppGlyph.backspace, size: 24, color: C.textSecondary),
+                            child: AppIcon(AppGlyph.backspace, size: 24, color: C.textSecondary),
                           )
                         : Text(key, style: T.keypad),
                   ),

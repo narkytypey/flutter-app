@@ -46,7 +46,7 @@ class FindBar extends StatelessWidget {
     return Container(
       constraints: const BoxConstraints(minHeight: 64),
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         color: C.bg,
         border: Border(bottom: BorderSide(color: C.line)),
       ),

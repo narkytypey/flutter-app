@@ -61,7 +61,7 @@ class _SiteRow extends StatelessWidget {
         constraints: const BoxConstraints(minHeight: 72),
         padding: const EdgeInsets.symmetric(vertical: 12),
         decoration: showDivider
-            ? const BoxDecoration(border: Border(bottom: BorderSide(color: C.lineSoft)))
+            ? BoxDecoration(border: Border(bottom: BorderSide(color: C.lineSoft)))
             : null,
         child: Row(
           children: [

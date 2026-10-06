@@ -69,7 +69,7 @@ class _SitesTabState extends ConsumerState<SitesTab> {
             text: text, route: route, saved: saved, workspaces: workspaces, engine: engine);
 
     return dashboard.when(
-      loading: () => const Scaffold(backgroundColor: C.bg),
+      loading: () => Scaffold(backgroundColor: C.bg),
       error: (error, _) => Scaffold(
         backgroundColor: C.bg,
         body: Center(child: Text('$error')),

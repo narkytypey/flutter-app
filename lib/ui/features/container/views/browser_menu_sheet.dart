@@ -72,7 +72,7 @@ class BrowserMenuSheet extends StatelessWidget {
       children: [
         Container(
           padding: const EdgeInsets.fromLTRB(16, 0, 16, 14),
-          decoration: const BoxDecoration(
+          decoration: BoxDecoration(
             border: Border(bottom: BorderSide(color: C.lineSoft)),
           ),
           child: Row(
@@ -131,7 +131,7 @@ Widget _menuRow(String label, VoidCallback onTap, {String? meta}) => SheetRow(
       onTap: onTap,
       trailing: meta != null
           ? Padding(padding: const EdgeInsets.only(left: 12), child: Text(meta, style: T.value))
-          : const AppIcon(AppGlyph.forward, size: 18, color: C.chevron),
+          : AppIcon(AppGlyph.forward, size: 18, color: C.chevron),
     );
 
 class _Tile extends StatelessWidget {

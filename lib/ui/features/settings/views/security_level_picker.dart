@@ -86,7 +86,7 @@ class _LevelRow extends StatelessWidget {
       child: Container(
         constraints: const BoxConstraints(minHeight: 72),
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-        decoration: const BoxDecoration(
+        decoration: BoxDecoration(
           border: Border(top: BorderSide(color: C.lineSoft)),
         ),
         child: Row(
@@ -103,7 +103,7 @@ class _LevelRow extends StatelessWidget {
             ),
             if (checked) ...[
               const SizedBox(width: 12),
-              const AppIcon(AppGlyph.check, size: 20, color: C.textPrimary),
+              AppIcon(AppGlyph.check, size: 20, color: C.textPrimary),
             ],
           ],
         ),

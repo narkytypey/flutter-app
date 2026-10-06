@@ -45,7 +45,7 @@ class TunnelDroppedScreen extends StatelessWidget {
                     Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const AppIcon(AppGlyph.refused, size: 16, color: C.danger),
+                        AppIcon(AppGlyph.refused, size: 16, color: C.danger),
                         const SizedBox(width: S.s3),
                         Expanded(
                           child: Column(

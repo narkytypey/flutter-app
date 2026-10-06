@@ -79,7 +79,7 @@ class _DefaultRouteScreenState extends State<DefaultRouteScreen> {
               Container(
                 constraints: const BoxConstraints(minHeight: 64),
                 padding: const EdgeInsets.fromLTRB(4, 8, 16, 8),
-                decoration: const BoxDecoration(
+                decoration: BoxDecoration(
                   border: Border(bottom: BorderSide(color: C.line)),
                 ),
                 child: Row(
@@ -140,7 +140,7 @@ class DefaultRouteRoute extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final initial = ref.watch(defaultRouteProvider).valueOrNull;
-    if (initial == null) return const Scaffold(backgroundColor: C.bg);
+    if (initial == null) return Scaffold(backgroundColor: C.bg);
     final settings = ref.read(settingsControllerProvider);
     return DefaultRouteScreen(initial: initial, onDone: settings.setDefaultRoute);
   }

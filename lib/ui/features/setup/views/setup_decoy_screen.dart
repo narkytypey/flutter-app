@@ -95,7 +95,7 @@ class SetupDecoyScreen extends StatelessWidget {
                                   ),
                                 ),
                                 const SizedBox(width: S.s3),
-                                const AppIcon(AppGlyph.forward, size: 18, color: C.chevron),
+                                AppIcon(AppGlyph.forward, size: 18, color: C.chevron),
                               ],
                             ),
                           ),

@@ -65,7 +65,7 @@ class ProxyUnreachableScreen extends StatelessWidget {
                         borderRadius: BorderRadius.circular(13),
                         border: Border.all(color: C.danger.withValues(alpha: 0.3)),
                       ),
-                      child: const AppIcon(AppGlyph.refused, size: 20, color: C.danger),
+                      child: AppIcon(AppGlyph.refused, size: 20, color: C.danger),
                     ),
                     const SizedBox(height: S.s4),
                     Text(proxyFailureHeadline(failure), style: T.sheetTitle),
@@ -135,7 +135,7 @@ class TunnelHeader extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: S.s1, vertical: S.s2),
       decoration: rule
-          ? const BoxDecoration(border: Border(bottom: BorderSide(color: C.line)))
+          ? BoxDecoration(border: Border(bottom: BorderSide(color: C.line)))
           : null,
       child: Row(
         children: [
@@ -158,7 +158,7 @@ class TunnelHeader extends StatelessWidget {
                   Container(
                     width: 10,
                     height: 10,
-                    decoration: const BoxDecoration(color: C.danger, shape: BoxShape.circle),
+                    decoration: BoxDecoration(color: C.danger, shape: BoxShape.circle),
                   ),
                   const SizedBox(width: S.s2),
                   Expanded(child: HostText(host, style: T.address)),

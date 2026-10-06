@@ -32,7 +32,7 @@ class SettingRow extends StatelessWidget {
     return InkWell(
       onTap: onTap,
       child: DecoratedBox(
-        decoration: const BoxDecoration(
+        decoration: BoxDecoration(
           border: Border(bottom: BorderSide(color: C.lineSoft)),
         ),
         child: Container(
@@ -70,7 +70,7 @@ class SettingRow extends StatelessWidget {
                 ),
               ],
               if (trailing == null && value == null && onTap != null)
-                const AppIcon(AppGlyph.forward, size: 18, color: C.chevron),
+                AppIcon(AppGlyph.forward, size: 18, color: C.chevron),
             ],
           ),
         ),

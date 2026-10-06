@@ -23,7 +23,7 @@ void main() {
       child: Center(
         child: Wrap(children: [
           for (final glyph in AppGlyph.values) AppIcon(glyph, size: 24),
-          const AppIcon(AppGlyph.back, size: 13, color: C.danger),
+          AppIcon(AppGlyph.back, size: 13, color: C.danger),
         ]),
       ),
     ));
@@ -65,10 +65,10 @@ void main() {
   });
 
   test('the painter repaints only for a new glyph or colour', () {
-    const painter = AppIconPainter(AppGlyph.back, C.icon);
-    expect(painter.shouldRepaint(const AppIconPainter(AppGlyph.back, C.icon)), isFalse);
-    expect(painter.shouldRepaint(const AppIconPainter(AppGlyph.forward, C.icon)), isTrue);
-    expect(painter.shouldRepaint(const AppIconPainter(AppGlyph.back, C.textFaint)), isTrue);
+    final painter = AppIconPainter(AppGlyph.back, C.icon);
+    expect(painter.shouldRepaint(AppIconPainter(AppGlyph.back, C.icon)), isFalse);
+    expect(painter.shouldRepaint(AppIconPainter(AppGlyph.forward, C.icon)), isTrue);
+    expect(painter.shouldRepaint(AppIconPainter(AppGlyph.back, C.textFaint)), isTrue);
   });
 
   testWidgets('an icon button with no tap is dimmed and inert', (tester) async {

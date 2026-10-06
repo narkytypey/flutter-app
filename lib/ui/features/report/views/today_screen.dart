@@ -28,7 +28,7 @@ class TodayScreen extends StatelessWidget {
             Container(
               constraints: const BoxConstraints(minHeight: 64),
               padding: EdgeInsets.fromLTRB(onBack == null ? 16 : 4, 8, 16, 8),
-              decoration: const BoxDecoration(
+              decoration: BoxDecoration(
                 border: Border(bottom: BorderSide(color: C.line)),
               ),
               child: Row(
@@ -59,7 +59,7 @@ class TodayScreen extends StatelessWidget {
                   const SizedBox(height: 24),
                   Container(
                     padding: const EdgeInsets.symmetric(vertical: 20),
-                    decoration: const BoxDecoration(
+                    decoration: BoxDecoration(
                       border: Border(
                         top: BorderSide(color: C.line),
                         bottom: BorderSide(color: C.line),

@@ -26,7 +26,7 @@ class DashboardTabBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return DecoratedBox(
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         color: C.bg,
         border: Border(top: BorderSide(color: C.line)),
       ),

@@ -111,24 +111,24 @@ void main() {
     }
 
     final base = await pumpAndGetPainter(
-      const DashedBox(size: 80, radius: 12, color: C.line),
+      DashedBox(size: 80, radius: 12, color: C.line),
     );
 
     // Identical params: no repaint needed.
     final same = await pumpAndGetPainter(
-      const DashedBox(size: 80, radius: 12, color: C.line),
+      DashedBox(size: 80, radius: 12, color: C.line),
     );
     expect(same.shouldRepaint(base), isFalse);
 
     // Colour changed: must repaint.
     final recoloured = await pumpAndGetPainter(
-      const DashedBox(size: 80, radius: 12, color: C.danger),
+      DashedBox(size: 80, radius: 12, color: C.danger),
     );
     expect(recoloured.shouldRepaint(same), isTrue);
 
     // Radius changed: must also repaint (the dash path depends on it).
     final resized = await pumpAndGetPainter(
-      const DashedBox(size: 80, radius: 24, color: C.danger),
+      DashedBox(size: 80, radius: 24, color: C.danger),
     );
     expect(resized.shouldRepaint(recoloured), isTrue);
   });

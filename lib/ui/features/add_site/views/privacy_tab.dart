@@ -42,7 +42,7 @@ class PrivacyTab extends StatelessWidget {
   final bool showInDecoy;
   final ValueChanged<bool> onShowInDecoyChanged;
 
-  static final _label = T.sectionLabel;
+  static TextStyle get _label => T.sectionLabel;
 
   @override
   Widget build(BuildContext context) {

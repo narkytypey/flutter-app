@@ -102,7 +102,7 @@ class _ScriptEditorScreenState extends State<ScriptEditorScreen> {
           children: [
             Container(
               padding: const EdgeInsets.fromLTRB(4, 8, 4, 8),
-              decoration: const BoxDecoration(
+              decoration: BoxDecoration(
                 border: Border(bottom: BorderSide(color: C.line)),
               ),
               child: Row(
@@ -170,7 +170,7 @@ class _ScriptEditorScreenState extends State<ScriptEditorScreen> {
                                 Semantics(
                                   label: 'Remove',
                                   button: true,
-                                  child: const AppIcon(AppGlyph.close,
+                                  child: AppIcon(AppGlyph.close,
                                       size: 16, color: C.textMuted),
                                 ),
                               ],
@@ -292,7 +292,7 @@ class _ScriptEditorScreenState extends State<ScriptEditorScreen> {
             mainAxisSize: MainAxisSize.min,
             children: [
               if (selected) ...[
-                const AppIcon(AppGlyph.check, size: 16, color: C.textPrimary),
+                AppIcon(AppGlyph.check, size: 16, color: C.textPrimary),
                 const SizedBox(width: 6),
               ],
               Flexible(

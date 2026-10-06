@@ -76,7 +76,7 @@ class _ContainerBottomBarState extends State<ContainerBottomBar> {
       child: Container(
         constraints: const BoxConstraints(minHeight: 56),
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-        decoration: const BoxDecoration(
+        decoration: BoxDecoration(
           color: C.bg,
           border: Border(top: BorderSide(color: C.line)),
         ),
@@ -111,7 +111,7 @@ class _ContainerBottomBarState extends State<ContainerBottomBar> {
                         children: [
                           Text('${widget.openCount} OPEN', style: ContainerBottomBar.openCountStyle),
                           const SizedBox(width: 8),
-                          const AppIcon(AppGlyph.chevronUp, size: 12, color: C.textPrimary),
+                          AppIcon(AppGlyph.chevronUp, size: 12, color: C.textPrimary),
                         ],
                       ),
                     ),

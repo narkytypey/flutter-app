@@ -41,7 +41,7 @@ class BottomSheetSurface extends StatelessWidget {
       decoration: BoxDecoration(
         color: C.sheet,
         borderRadius: const BorderRadius.vertical(top: Radius.circular(R.sheet)),
-        border: const Border(top: BorderSide(color: C.line)),
+        border: Border(top: BorderSide(color: C.line)),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.55),
@@ -103,7 +103,7 @@ class SheetGroup extends StatelessWidget {
     for (var i = 0; i < children.length; i++) {
       rows.add(children[i]);
       if (i != children.length - 1) {
-        rows.add(const Hairline(color: C.lineSoft));
+        rows.add(Hairline(color: C.lineSoft));
       }
     }
 

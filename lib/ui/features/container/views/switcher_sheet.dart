@@ -54,7 +54,7 @@ class SwitcherSheet extends StatelessWidget {
     return DecoratedBox(
       decoration: BoxDecoration(
         color: C.sheet,
-        border: const Border(top: BorderSide(color: C.line)),
+        border: Border(top: BorderSide(color: C.line)),
         borderRadius: const BorderRadius.vertical(top: Radius.circular(R.sheet)),
         boxShadow: [
           BoxShadow(
@@ -166,7 +166,7 @@ class SwitcherSheet extends StatelessWidget {
                                   borderRadius: BorderRadius.circular(R.input),
                                   border: Border.all(color: C.danger, width: 1.5),
                                 ),
-                                child: const AppIcon(
+                                child: AppIcon(
                                   AppGlyph.panic,
                                   size: 22,
                                   color: C.danger,

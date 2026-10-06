@@ -56,8 +56,8 @@ class SetupDefaultsScreen extends StatelessWidget {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   // A check is a fact, not a live state: text-1.
-                                  const Padding(
-                                    padding: EdgeInsets.only(top: 1),
+                                  Padding(
+                                    padding: const EdgeInsets.only(top: 1),
                                     child: AppIcon(AppGlyph.check,
                                         size: 20, color: C.textPrimary),
                                   ),

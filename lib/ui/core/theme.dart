@@ -10,7 +10,7 @@ ThemeData containerTheme() {
     fontFamily: 'IBMPlexSans',
     scaffoldBackgroundColor: C.bg,
     canvasColor: C.bg,
-    colorScheme: const ColorScheme.dark(
+    colorScheme: ColorScheme.dark(
       surface: C.bg,
       onSurface: C.textPrimary,
       primary: C.jade,

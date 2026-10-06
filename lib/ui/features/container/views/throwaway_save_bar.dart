@@ -23,7 +23,7 @@ class ThrowawaySaveBar extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.fromLTRB(16, 8, 8, 8),
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         color: C.surface,
         border: Border(top: BorderSide(color: C.line)),
       ),

@@ -38,7 +38,7 @@ class DashboardFooter extends StatelessWidget {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        const Hairline(color: C.line),
+        Hairline(color: C.line),
         ColoredBox(
           color: C.bg,
           child: Padding(

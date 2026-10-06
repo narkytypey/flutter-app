@@ -51,7 +51,7 @@ class FormSegment extends StatelessWidget {
               mainAxisSize: MainAxisSize.min,
               children: [
                 if (selected)
-                  const AppIcon(AppGlyph.check, size: 16, color: C.textPrimary)
+                  AppIcon(AppGlyph.check, size: 16, color: C.textPrimary)
                 else
                   const SizedBox(width: 16),
                 const SizedBox(width: 4),

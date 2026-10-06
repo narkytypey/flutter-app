@@ -31,7 +31,7 @@ class AppChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final lead = selected
-        ? const AppIcon(AppGlyph.check, size: 16, color: C.textPrimary)
+        ? AppIcon(AppGlyph.check, size: 16, color: C.textPrimary)
         : leading;
     return Semantics(
       button: true,

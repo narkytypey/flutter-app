@@ -50,11 +50,16 @@ enum AppGlyph {
 /// Material `Icons.*`. Place it under loose constraints — under tight ones a
 /// `CustomPaint` fills its box and the glyph scales with it.
 class AppIcon extends StatelessWidget {
-  const AppIcon(this.glyph, {super.key, this.size = 20, this.color = C.icon});
+  // A private field cannot be a named formal; [color] resolves it.
+  // ignore: prefer_initializing_formals
+  const AppIcon(this.glyph, {super.key, this.size = 20, Color? color}) : _color = color;
 
   final AppGlyph glyph;
   final double size;
-  final Color color;
+  final Color? _color;
+
+  /// The colour passed, or [C.icon] in the active palette.
+  Color get color => _color ?? C.icon;
 
   @override
   Widget build(BuildContext context) =>

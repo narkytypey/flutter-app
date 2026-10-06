@@ -41,7 +41,7 @@ class RouteFields extends StatelessWidget {
   final TextEditingController userController;
   final TextEditingController passwordController;
 
-  static final _label = T.sectionLabel;
+  static TextStyle get _label => T.sectionLabel;
 
   @override
   Widget build(BuildContext context) {

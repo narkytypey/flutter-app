@@ -18,7 +18,7 @@ FontWeight _sansWeight(int weight) => weight >= 600
 TextStyle ui({
   required double size,
   int weight = 400,
-  Color color = C.textPrimary,
+  Color? color,
   double? height,
   double? letterSpacing,
 }) {
@@ -27,7 +27,7 @@ TextStyle ui({
     fontSize: size,
     height: height,
     letterSpacing: letterSpacing,
-    color: color,
+    color: color ?? C.textPrimary,
     fontWeight: _sansWeight(weight),
   );
 }
@@ -37,7 +37,7 @@ TextStyle ui({
 TextStyle mono({
   required double size,
   int weight = 400,
-  Color color = C.textSecondary,
+  Color? color,
   double? height,
   double? letterSpacing,
 }) {
@@ -46,7 +46,7 @@ TextStyle mono({
     fontSize: size,
     height: height,
     letterSpacing: letterSpacing,
-    color: color,
+    color: color ?? C.textSecondary,
     fontWeight: weight >= 500 ? FontWeight.w500 : FontWeight.w400,
   );
 }
