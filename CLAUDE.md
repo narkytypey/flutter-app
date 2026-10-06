@@ -60,7 +60,7 @@ for host tests), `path`, `path_provider`. Plan 2 replaces `sqflite` with
 `sqflite_sqlcipher` for encrypted stores and adds `local_auth`, BouncyCastle
 (Argon2id + AES-GCM via Kotlin plugin), and the Android Keystore. Plan 3
 adds `androidx.webkit:webkit:1.12.0` (multi-profile WebView API) and raises
-`minSdk` to 29. Fonts Figtree + IBM Plex Mono, bundled as assets, never
+`minSdk` to 29. Fonts Figtree + IBM Plex Mono (IBM Plex Sans in place of Figtree on `restyle-implementation`, Plan 20), bundled as assets, never
 fetched at runtime. No code generation anywhere (no `build_runner`,
 `freezed`, `drift`) — hand-written mappers only. Plan 19 adds `info.guardianproject:tor-android` (Tor in process, Maven Central) and `androidx.localbroadcastmanager`.
 
@@ -74,7 +74,7 @@ fetched at runtime. No code generation anywhere (no `build_runner`,
 - **Jade `#7FC8A9`** means live state or the single affirmative action on a
   screen — never decorative, never more than one per screen.
 - **Hairline dividers, not cards.** 1px white-alpha lines separate rows.
-- **IBM Plex Mono for anything technical**, Figtree for everything else.
+- **IBM Plex Mono for anything technical**, Figtree for everything else (IBM Plex Sans on `restyle-implementation`).
 - **Two-vault decoy model, not a filter.** Two separate encrypted SQLite
   stores selected by which PIN unwraps them; no query anywhere filters rows
   for privacy, and no aggregate ever counts across both vaults.
