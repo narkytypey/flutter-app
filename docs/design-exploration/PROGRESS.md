@@ -4,11 +4,11 @@ Read this first. It is the only thing that carries across a restart.
 
 ## Where I got to
 
-Phases 0–2 done. Phase 3 (three directions) building in parallel subagents.
+Phases 0–3 done (all three directions, 30+ blocks each, a11y clean). Phase 4 debate in progress.
 
 ## Heartbeat
 
-2026-10-06T04:06Z · fire-7a41e2
+2026-10-06T04:27Z · fire-7a41e2
 
 ## Branch
 
@@ -16,7 +16,7 @@ design-exploration-restyle
 
 ## Next action
 
-Phase 3: check each direction folder's files against the checklist; build whatever is missing (BRIEF, TOKENS, logos, screens blocks in the mandated order).
+Phase 4: round-1 debate agents (7) are writing to debate/round-1/; when all seven files exist, run round 2.
 
 ## Toolchain
 
@@ -96,12 +96,12 @@ A later fire must reinstall all of it (~10 min); set
   - [x] screens.html: extended blocks
   - [x] Accessibility pass
 - Direction C
-  - [ ] BRIEF.md
-  - [ ] TOKENS.md + tokens.css
-  - [ ] logos (4)
-  - [ ] screens.html: 10 mandatory blocks
-  - [ ] screens.html: extended blocks
-  - [ ] Accessibility pass
+  - [x] BRIEF.md
+  - [x] TOKENS.md + tokens.css
+  - [x] logos (4)
+  - [x] screens.html: 10 mandatory blocks
+  - [x] screens.html: extended blocks
+  - [x] Accessibility pass
 
 ### Phase 4 — Debate
 - [ ] Round 1: advocate A, B, C
@@ -136,6 +136,8 @@ A later fire must reinstall all of it (~10 min); set
 - [ ] One-page rationale
 
 ## Log
+
+- fire-7a41e2: direction C complete — all 32 blocks, a11y clean. Phase 4 round 1 launched (7 agents).
 
 - fire-7a41e2: direction A complete — 30 blocks (+ dark theme), four a11y runs clean (A/A11Y.md).
 
