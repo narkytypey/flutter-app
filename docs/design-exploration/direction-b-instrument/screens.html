@@ -307,6 +307,33 @@
   .file .text { flex: 1 1 auto; display: flex; flex-direction: column; gap: 2px; }
   .sheet-body { display: flex; flex-direction: column; gap: var(--s2); padding-top: var(--s5); }
   .sheet-actions { padding-top: var(--s4); }
+  .marker { flex: 0 0 auto; width: 14px; height: 14px; border-radius: 4px; }
+  .newrow { display: flex; align-items: center; gap: var(--s3); min-height: 56px; padding: var(--s2) var(--s4); margin-top: var(--s3); color: var(--jade); font: 600 var(--fs-label)/1.25 var(--sans);
+            border: 1px solid var(--line); border-radius: var(--r-lg); }
+  .markers { display: flex; flex-wrap: wrap; gap: 0 var(--s2); }
+  .markers > span { width: var(--target); height: var(--target); display: inline-flex; align-items: center; justify-content: center; border-radius: 14px; }
+  .markers > span > i { width: 32px; height: 32px; border-radius: 9px; display: inline-flex; align-items: center; justify-content: center; }
+  .markers > span.on { box-shadow: inset 0 0 0 2px var(--text-1); }
+  .markers > span.on .ic { stroke: var(--ink); stroke-width: 2.5; }
+  .kbadge { flex: 0 0 auto; width: 44px; height: 44px; border-radius: var(--r-sm); display: inline-flex; align-items: center; justify-content: center; background: var(--surface-raised);
+            font: 600 var(--fs-caption)/1 var(--sans); letter-spacing: 0.02em; color: var(--code); }
+  .kbadge.js { color: var(--amber); }
+  .seg { display: grid; grid-template-columns: 1fr 1fr; gap: var(--s2); padding-top: var(--s4); }
+  .seg > span { min-height: var(--target); display: flex; align-items: center; justify-content: center; border-radius: var(--r-md); border: 1px solid var(--line); font: 500 var(--fs-sub)/1.3 var(--sans); color: var(--text-2); text-align: center; padding: 4px; overflow-wrap: anywhere; }
+  .seg > span.on { background: var(--surface-raised); border-color: var(--surface-raised); color: var(--text-1); font-weight: 600; }
+  .code { margin-top: var(--s5); background: var(--surface-group); border: 1px solid var(--line); border-radius: var(--r-lg); padding: var(--s3) var(--s3) var(--s3) 0; }
+  .code .ln { display: grid; grid-template-columns: 36px 1fr; gap: var(--s2); font: 400 var(--fs-code)/1.7 var(--mono); }
+  .code .ln > span { text-align: right; color: var(--text-3); }
+  .code .ln > code { font: inherit; color: var(--code); white-space: pre-wrap; overflow-wrap: anywhere; }
+  .chip.x > span { padding-right: 4px; background: var(--surface-raised); border-color: var(--surface-raised); color: var(--text-1); }
+  .chip.x .xbtn { width: 28px; height: 28px; display: inline-flex; align-items: center; justify-content: center; color: var(--text-2); }
+  .chip.add > span { border: 1.5px dashed var(--edge); color: var(--text-1); }
+  .panicpage { flex: 1 1 auto; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; gap: var(--s4); padding: var(--s6) var(--s6); }
+  .pmark { width: 64px; height: 64px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; color: var(--danger); box-shadow: inset 0 0 0 1.5px var(--danger); }
+  .status { width: 100%; text-align: left; }
+  .status .row { min-height: 52px; }
+  .status .row .sc { color: var(--text-2); font: 400 var(--fs-sub)/1.43 var(--sans); }
+  .status .row .st { margin-left: auto; color: var(--text-1); font: 600 var(--fs-sub)/1.43 var(--sans); }
 </style>
 </head>
 <body>
@@ -783,6 +810,138 @@
         <span class="btn neutral">Keep inside this container</span>
         <span class="btn neutral">Save to device storage</span>
         <span class="btn primary">Discard</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═════════════════════════ 10a ═════════════════════════ -->
+<section class="block" data-block="10a">
+  <p class="tag"><b>10a</b>Workspaces — what each one keeps <i>(markers are data, never jade)</i></p>
+  <div class="phone">
+    <div class="sys"></div>
+    <div class="hdr back"><span class="tap" aria-label="Back"><svg class="ic"><use href="#i-back"/></svg></span><span class="screen-title">Workspaces</span></div>
+    <div class="fill gutter" style="padding-top:16px">
+      <div class="group">
+        <div class="row two"><span class="marker" style="background:var(--marker-0)"></span><div class="text"><span class="row-title">Personal</span><span class="sub">6 sites · cookies kept · <span class="mono">12 MB</span></span></div><svg class="ic s20 chev"><use href="#i-chev"/></svg></div>
+        <div class="row two"><span class="marker" style="background:var(--marker-1)"></span><div class="text"><span class="row-title">Work</span><span class="sub">2 sites · cookies kept · <span class="mono">3 MB</span></span></div><svg class="ic s20 chev"><use href="#i-chev"/></svg></div>
+        <div class="row two"><span class="marker" style="background:var(--marker-4)"></span><div class="text"><span class="row-title">Ephemeral</span><span class="sub">1 site · wipes on exit · nothing stored</span></div><svg class="ic s20 chev"><use href="#i-chev"/></svg></div>
+      </div>
+      <div class="newrow"><svg class="ic s20"><use href="#i-plus"/></svg>New workspace</div>
+      <p class="footnote">The same site can live in more than one workspace. Each copy has its own login and its own history.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ═════════════════════════ 10b ═════════════════════════ -->
+<section class="block" data-block="10b">
+  <p class="tag"><b>10b</b>New workspace — name, marker, storage rule</p>
+  <div class="phone">
+    <div class="sys"></div>
+    <div class="form-hdr">
+      <span class="tap" aria-label="Close"><svg class="ic"><use href="#i-close"/></svg></span>
+      <span class="appbar-title ell">New workspace</span>
+      <span class="textbtn jade">Save</span>
+    </div>
+    <div class="fill gutter" style="padding-bottom:24px">
+      <span class="flabel sc" style="margin-top:8px">NAME</span>
+      <div class="field focus"><span class="v">Research</span></div>
+      <span class="flabel sc">MARKER</span>
+      <div class="markers">
+        <span><i style="background:var(--marker-0)"></i></span>
+        <span class="on"><i style="background:var(--marker-1)"><svg class="ic s20"><use href="#i-check"/></svg></i></span>
+        <span><i style="background:var(--marker-2)"></i></span>
+        <span><i style="background:var(--marker-3)"></i></span>
+        <span><i style="background:var(--marker-4)"></i></span>
+      </div>
+      <span class="flabel sc">STORAGE</span>
+      <div class="group">
+        <div class="row two"><div class="text"><span class="row-title">Keep between sessions</span><span class="sub">Stays signed in</span></div><span class="radio on"></span></div>
+        <div class="row two"><div class="text"><span class="row-title">Wipe when the app closes</span><span class="sub">Nothing survives a restart</span></div><span class="radio"></span></div>
+      </div>
+      <div class="group" style="margin-top:16px">
+        <div class="row two"><div class="text"><span class="body">Ask for PIN to enter</span><span class="sub">Applies to the whole workspace</span></div><span class="sw"></span></div>
+        <div class="row two"><div class="text"><span class="body">Show in decoy vault</span><span class="sub">Off keeps it invisible behind the second PIN</span></div><span class="sw"></span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═════════════════════════ 10d ═════════════════════════ -->
+<section class="block" data-block="10d">
+  <p class="tag"><b>10d</b>Scripts and filters — one library, reused across sites <i>(canvas rule counts, illustrative)</i></p>
+  <div class="phone">
+    <div class="sys"></div>
+    <div class="hdr back"><span class="tap" aria-label="Back"><svg class="ic"><use href="#i-back"/></svg></span><span class="screen-title">Scripts and filters</span></div>
+    <div class="fill gutter">
+      <span class="section sc">FILTER LISTS</span>
+      <div class="group">
+        <div class="row two"><div class="text"><span class="body">Trackers and ads</span><span class="sub"><span class="mono">84,102</span> rules · updated 2 days ago</span></div><span class="sw on"><svg viewBox="0 0 24 24"><use href="#i-check"/></svg></span></div>
+        <div class="row two"><div class="text"><span class="body">Cookie notices</span><span class="sub"><span class="mono">11,430</span> rules · updated 2 days ago</span></div><span class="sw on"><svg viewBox="0 0 24 24"><use href="#i-check"/></svg></span></div>
+        <div class="row two"><div class="text"><span class="body">Social embeds</span><span class="sub"><span class="mono">2,908</span> rules · off</span></div><span class="sw"></span></div>
+      </div>
+      <span class="section sc">MY SCRIPTS</span>
+      <div class="group">
+        <div class="row two"><span class="kbadge">CSS</span><div class="text"><span class="body">Hide sticky headers</span><span class="sub">Applied to 4 sites</span></div><span class="sw on"><svg viewBox="0 0 24 24"><use href="#i-check"/></svg></span></div>
+        <div class="row two"><span class="kbadge">CSS</span><div class="text"><span class="body">Wider reading column</span><span class="sub">Applied to 1 site</span></div><span class="sw on"><svg viewBox="0 0 24 24"><use href="#i-check"/></svg></span></div>
+        <div class="row two"><span class="kbadge js">JS</span><div class="text"><span class="body">Auto-expand comments</span><span class="sub">Applied to 1 site · runs at load</span></div><span class="sw"></span></div>
+      </div>
+      <div class="newrow" style="margin-bottom:24px"><svg class="ic s20"><use href="#i-plus"/></svg>New script</div>
+    </div>
+  </div>
+</section>
+
+<!-- ═════════════════════════ 10e ═════════════════════════ -->
+<section class="block" data-block="10e">
+  <p class="tag"><b>10e</b>Script editor — code, then where it runs <i>(add chip dashed, as the canvas draws it)</i></p>
+  <div class="phone">
+    <div class="sys"></div>
+    <div class="form-hdr" style="border-bottom:1px solid var(--line)">
+      <span class="tap" aria-label="Back"><svg class="ic"><use href="#i-back"/></svg></span>
+      <span class="appbar-title ell">Hide sticky headers</span>
+      <span class="textbtn jade">Save</span>
+    </div>
+    <div class="fill gutter" style="padding-bottom:24px">
+      <div class="seg"><span class="on">CSS</span><span>JavaScript</span></div>
+      <div class="code">
+        <div class="ln"><span>1</span><code>header, .sticky, [data-sticky] {</code></div>
+        <div class="ln"><span>2</span><code>  position: static !important;</code></div>
+        <div class="ln"><span>3</span><code>}</code></div>
+        <div class="ln"><span>4</span><code></code></div>
+        <div class="ln"><span>5</span><code>.cookie-banner, .ad-slot {</code></div>
+        <div class="ln"><span>6</span><code>  display: none !important;</code></div>
+      </div>
+      <span class="flabel sc">RUNS ON</span>
+      <div class="chips">
+        <span class="chip x"><span>Forum<span class="xbtn" aria-label="Remove"><svg class="ic s16"><use href="#i-close"/></svg></span></span></span>
+        <span class="chip x"><span>Reader<span class="xbtn" aria-label="Remove"><svg class="ic s16"><use href="#i-close"/></svg></span></span></span>
+        <span class="chip x"><span>Marketplace<span class="xbtn" aria-label="Remove"><svg class="ic s16"><use href="#i-close"/></svg></span></span></span>
+        <span class="chip x"><span>News<span class="xbtn" aria-label="Remove"><svg class="ic s16"><use href="#i-close"/></svg></span></span></span>
+        <span class="chip add"><span>+ Add site</span></span>
+      </div>
+      <div class="group" style="margin-top:20px">
+        <div class="row two"><div class="text"><span class="body">Run before the page paints</span><span class="sub">Prevents a flash of the hidden elements</span></div><span class="sw on"><svg viewBox="0 0 24 24"><use href="#i-check"/></svg></span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═════════════════════════ 3c ═════════════════════════ -->
+<section class="block" data-block="3c">
+  <p class="tag"><b>3c</b>Panic — no confirmation dialog, it just happens and reports after <i>(on the page colour, never a red screen)</i></p>
+  <div class="phone">
+    <div class="sys"></div>
+    <div class="fill" style="display:flex;flex-direction:column">
+      <div class="panicpage">
+        <span class="pmark"><svg class="ic s28"><use href="#i-panic"/></svg></span>
+        <span class="screen-title">Everything closed</span>
+        <span class="muted"><span class="mono">3</span> sessions destroyed, temporary storage wiped, app locked.</span>
+        <div class="group status" style="margin-top:8px">
+          <div class="row"><span class="sc">WEBVIEWS</span><span class="st sc">DESTROYED</span></div>
+          <div class="row"><span class="sc">EPHEMERAL DATA</span><span class="st sc">WIPED</span></div>
+          <div class="row"><span class="sc">MEMORY</span><span class="st sc">CLEARED</span></div>
+        </div>
+        <div style="width:100%;padding-top:8px"><span class="btn neutral">Unlock</span></div>
       </div>
     </div>
   </div>

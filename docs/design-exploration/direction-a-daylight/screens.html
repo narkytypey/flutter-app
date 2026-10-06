@@ -232,6 +232,23 @@ body.theme-dark .frame-note { color: #B4BBB6; }
 .barrow .track > i.warn { background: var(--warning); }
 .barrow .n { flex: none; min-width: 2.5rem; text-align: right; font-family: var(--font-mono); font-size: var(--fs-value); }
 
+.marker { width: 14px; height: 14px; border-radius: 999px; box-shadow: 0 0 0 1px var(--outline); flex: none; }
+.swatches { display: flex; gap: 0; flex-wrap: wrap; }
+.swatch { width: 48px; height: 48px; display: grid; place-items: center; }
+.swatch > i { width: 32px; height: 32px; border-radius: 999px; display: block; box-shadow: 0 0 0 1px var(--outline); }
+.swatch.sel > i { box-shadow: 0 0 0 2px var(--page), 0 0 0 4px var(--ink); }
+.newrow { display: flex; align-items: center; gap: 16px; min-height: 56px; padding: 12px 16px; color: var(--accent); font-weight: 600; font-size: var(--fs-body); }
+.badge { width: 40px; height: 40px; border-radius: var(--r-sm); background: var(--tonal); display: grid; place-items: center; font-weight: 700; font-size: var(--fs-caption); flex: none; }
+.badge.css { color: var(--accent); }
+.badge.js { color: var(--warning); }
+.codebox { background: var(--card); border: 1px solid var(--outline); border-radius: var(--r-md); display: flex; padding: 12px 0; overflow: hidden; }
+.codebox .ln { padding: 0 8px 0 12px; color: var(--ink2); text-align: right; flex: none; }
+.codebox .code { padding: 0 12px 0 4px; color: var(--accent); white-space: pre-wrap; overflow-wrap: anywhere; min-width: 0; flex: 1 1 auto; }
+.seg { display: flex; border: 1px solid var(--outline); border-radius: 999px; overflow: hidden; }
+.seg > span { flex: 1 1 0; min-width: 0; min-height: 48px; display: flex; align-items: center; justify-content: center; gap: 6px; font-weight: 600; font-size: var(--fs-meta); }
+.seg > span + span { border-left: 1px solid var(--outline); }
+.seg > span.on { background: var(--accent-container); color: var(--on-accent-container); }
+
 /* dashboard */
 .chiprow { display: flex; align-items: center; gap: 8px; padding: 8px 8px 8px 16px; flex: none; flex-wrap: wrap; }
 .chiprow .chips { flex: 1 1 auto; min-width: 0; }
@@ -857,6 +874,140 @@ body.theme-dark .frame-note { color: #B4BBB6; }
           <span class="btn filled">Discard</span>
         </div>
       </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== 10a ===================== -->
+<section data-block="10a">
+  <div class="blabel">10a · Workspaces<span>Canvas: “Workspaces — what each one keeps”. Markers are site data, ringed so every hue passes 3:1.</span></div>
+  <div class="phone">
+    <div class="statusbar"></div>
+    <div class="appbar"><span class="btn-icon ink" aria-label="Back"><svg class="ic"><use href="#i-back"/></svg></span><span class="t-screen">Workspaces</span></div>
+    <div class="scroll pad">
+      <div class="group">
+        <div class="row two"><span class="marker" style="background:var(--m0)"></span><span class="txt"><span class="t-row">Personal</span><span class="t-meta">6 sites · cookies kept · 12 MB</span></span><svg class="ic s20 chev"><use href="#i-forward"/></svg></div>
+        <div class="row two"><span class="marker" style="background:var(--m1)"></span><span class="txt"><span class="t-row">Work</span><span class="t-meta">2 sites · cookies kept · 3 MB</span></span><svg class="ic s20 chev"><use href="#i-forward"/></svg></div>
+        <div class="row two"><span class="marker" style="background:var(--m4)"></span><span class="txt"><span class="t-row">Ephemeral</span><span class="t-meta">1 site · wipes on exit · nothing stored</span></span><svg class="ic s20 chev"><use href="#i-forward"/></svg></div>
+      </div>
+      <div class="group"><div class="newrow"><svg class="ic"><use href="#i-plus"/></svg><span>New workspace</span></div></div>
+      <p class="t-caption" style="padding:16px 16px 24px;margin:0">The same site can live in more than one workspace. Each copy has its own login and its own history.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== 10b ===================== -->
+<section data-block="10b">
+  <div class="blabel">10b · New workspace<span>Canvas: “New workspace — name, marker, storage rule”. Marker swatches are 48 dp targets.</span></div>
+  <div class="phone">
+    <div class="statusbar"></div>
+    <div class="formbar">
+      <span class="btn-icon ink" aria-label="Close"><svg class="ic"><use href="#i-close"/></svg></span>
+      <span class="t-screen ell">New workspace</span>
+      <span class="textbtn">Save</span>
+    </div>
+    <div class="scroll form">
+      <span class="t-label sentence flabel first">NAME</span>
+      <div class="field focus"><span>Research</span></div>
+      <span class="t-label sentence flabel">MARKER</span>
+      <div class="swatches">
+        <span class="swatch"><i style="background:var(--m0)"></i></span>
+        <span class="swatch sel"><i style="background:var(--m1)"></i></span>
+        <span class="swatch"><i style="background:var(--m2)"></i></span>
+        <span class="swatch"><i style="background:var(--m3)"></i></span>
+        <span class="swatch"><i style="background:var(--m4)"></i></span>
+      </div>
+      <span class="t-label sentence flabel">STORAGE</span>
+      <div class="group">
+        <div class="row two"><span class="txt"><span class="t-row">Keep between sessions</span><span class="t-meta">Stays signed in</span></span><span class="radio on"></span></div>
+        <div class="row two"><span class="txt"><span class="t-row-idle">Wipe when the app closes</span><span class="t-meta">Nothing survives a restart</span></span><span class="radio"></span></div>
+      </div>
+      <div class="group" style="margin-top:16px">
+        <div class="row two"><span class="txt"><span class="t-body">Ask for PIN to enter</span><span class="t-meta">Applies to the whole workspace</span></span><span class="sw-hit"><span class="sw"></span></span></div>
+        <div class="row two"><span class="txt"><span class="t-body">Show in decoy vault</span><span class="t-meta">Off keeps it invisible behind the second PIN</span></span><span class="sw-hit"><span class="sw"></span></span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== 10d ===================== -->
+<section data-block="10d">
+  <div class="blabel">10d · Scripts and filters<span>Canvas: “Scripts and filters — one library, reused across sites”. Rule counts are the canvas's illustrative numbers.</span></div>
+  <div class="phone">
+    <div class="statusbar"></div>
+    <div class="appbar"><span class="btn-icon ink" aria-label="Back"><svg class="ic"><use href="#i-back"/></svg></span><span class="t-screen">Scripts and filters</span></div>
+    <div class="scroll pad">
+      <span class="t-label sentence section-label first blocklevel">FILTER LISTS</span>
+      <div class="group">
+        <div class="row two"><span class="txt"><span class="t-body">Trackers and ads</span><span class="t-value wrap">84,102 rules · updated 2 days ago</span></span><span class="sw-hit"><span class="sw on"></span></span></div>
+        <div class="row two"><span class="txt"><span class="t-body">Cookie notices</span><span class="t-value wrap">11,430 rules · updated 2 days ago</span></span><span class="sw-hit"><span class="sw on"></span></span></div>
+        <div class="row two"><span class="txt"><span class="t-body">Social embeds</span><span class="t-value wrap">2,908 rules · off</span></span><span class="sw-hit"><span class="sw"></span></span></div>
+      </div>
+      <span class="t-label sentence section-label blocklevel">MY SCRIPTS</span>
+      <div class="group">
+        <div class="row two mg"><span class="badge css">CSS</span><span class="txt"><span class="t-body">Hide sticky headers</span><span class="t-meta">Applied to 4 sites</span></span><span class="sw-hit"><span class="sw on"></span></span></div>
+        <div class="row two mg"><span class="badge css">CSS</span><span class="txt"><span class="t-body">Wider reading column</span><span class="t-meta">Applied to 1 site</span></span><span class="sw-hit"><span class="sw on"></span></span></div>
+        <div class="row two mg"><span class="badge js">JS</span><span class="txt"><span class="t-body">Auto-expand comments</span><span class="t-meta">Applied to 1 site · runs at load</span></span><span class="sw-hit"><span class="sw"></span></span></div>
+      </div>
+      <div class="group"><div class="newrow"><svg class="ic"><use href="#i-plus"/></svg><span>New script</span></div></div>
+      <div style="height:24px"></div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== 10e ===================== -->
+<section data-block="10e">
+  <div class="blabel">10e · Script editor<span>Canvas: “Script editor — code, then where it runs”. Chips' × are 48 dp targets; “+ Add site” keeps the code's solid outline.</span></div>
+  <div class="phone">
+    <div class="statusbar"></div>
+    <div class="formbar">
+      <span class="btn-icon ink" aria-label="Back"><svg class="ic"><use href="#i-back"/></svg></span>
+      <span class="t-screen ell">Hide sticky headers</span>
+      <span class="textbtn">Save</span>
+    </div>
+    <div class="scroll form">
+      <div class="seg" style="margin-top:8px"><span class="on"><svg class="ic s18"><use href="#i-check"/></svg>CSS</span><span>JavaScript</span></div>
+      <div class="codebox t-code" style="margin-top:20px">
+        <div class="ln">1<br>2<br>3<br>4<br>5<br>6</div>
+        <div class="code">header, .sticky, [data-sticky] {
+  position: static !important;
+}
+
+.cookie-banner, .ad-slot {
+  display: none !important;</div>
+      </div>
+      <span class="t-label sentence flabel">RUNS ON</span>
+      <div class="chips">
+        <span class="chip tonal">Forum<span class="x" aria-label="Remove"><svg class="ic s16"><use href="#i-close"/></svg></span></span>
+        <span class="chip tonal">Reader<span class="x" aria-label="Remove"><svg class="ic s16"><use href="#i-close"/></svg></span></span>
+        <span class="chip tonal">Marketplace<span class="x" aria-label="Remove"><svg class="ic s16"><use href="#i-close"/></svg></span></span>
+        <span class="chip tonal">News<span class="x" aria-label="Remove"><svg class="ic s16"><use href="#i-close"/></svg></span></span>
+        <span class="chip" style="color:var(--accent)">+ Add site</span>
+      </div>
+      <div class="group" style="margin-top:20px">
+        <div class="row two"><span class="txt"><span class="t-body">Run before the page paints</span><span class="t-meta">Prevents a flash of the hidden elements</span></span><span class="sw-hit"><span class="sw on"></span></span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== 3c ===================== -->
+<section data-block="3c">
+  <div class="blabel">3c · Panic, after<span>Canvas: “Panic — no confirmation dialog, it just happens and reports after”. The page stays the ordinary ground: no red screen. States read as done, in ink with a check.</span></div>
+  <div class="phone">
+    <div class="statusbar"></div>
+    <div class="scroll" style="display:flex;flex-direction:column;justify-content:center;padding:32px 24px">
+      <div style="display:flex;flex-direction:column;align-items:center;text-align:center">
+        <span class="mark" style="border-radius:999px;border:1.5px solid var(--danger);color:var(--danger)"><svg class="ic s32"><use href="#i-panic"/></svg></span>
+        <div class="t-step" style="margin-top:24px">Everything closed</div>
+        <p class="t-body2" style="margin:12px 0 0">3 sessions destroyed, temporary storage wiped, app locked.</p>
+      </div>
+      <div class="group" style="margin-top:28px">
+        <div class="row"><span class="txt t-meta sentence">WEBVIEWS</span><span class="end wide t-meta" style="color:var(--ink);font-weight:600"><svg class="ic s18"><use href="#i-check"/></svg><span class="sentence">DESTROYED</span></span></div>
+        <div class="row"><span class="txt t-meta sentence">EPHEMERAL DATA</span><span class="end wide t-meta" style="color:var(--ink);font-weight:600"><svg class="ic s18"><use href="#i-check"/></svg><span class="sentence">WIPED</span></span></div>
+        <div class="row"><span class="txt t-meta sentence">MEMORY</span><span class="end wide t-meta" style="color:var(--ink);font-weight:600"><svg class="ic s18"><use href="#i-check"/></svg><span class="sentence">CLEARED</span></span></div>
+      </div>
+      <div style="margin-top:28px"><span class="btn tonal">Unlock</span></div>
     </div>
   </div>
 </section>
