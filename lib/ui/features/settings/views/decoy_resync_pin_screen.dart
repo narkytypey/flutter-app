@@ -37,22 +37,22 @@ class DecoyResyncPinScreen extends StatelessWidget {
       backgroundColor: C.bg,
       body: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 28),
+          padding: const EdgeInsets.symmetric(horizontal: S.s5),
           child: PinLayout(
             message: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Text(title, style: ui(size: 14, color: C.textMuted)),
-                const SizedBox(height: 26),
+                Text(title, textAlign: TextAlign.center, style: T.stepTitle),
+                const SizedBox(height: S.s6),
                 PinDots(filled: filled, error: error),
                 if (error) ...[
-                  const SizedBox(height: 20),
-                  Text('Wrong PIN', style: ui(size: 14, color: C.danger)),
+                  const SizedBox(height: S.s5),
+                  Text('Wrong PIN', style: T.body.copyWith(color: C.danger)),
                 ],
               ],
             ),
             keypad: PinKeypad(onKey: onKey),
-            bottom: const SizedBox(height: 20),
+            bottom: const SizedBox(height: S.s5),
           ),
         ),
       ),

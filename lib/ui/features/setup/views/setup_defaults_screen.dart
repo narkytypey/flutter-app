@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../core/icons.dart';
 import '../../../core/tokens.dart';
 import '../../../core/typography.dart';
+import '../../../core/widgets/group.dart';
 import '../../../core/widgets/pill_button.dart';
 import '../../../core/widgets/step_progress.dart';
 
@@ -27,7 +28,7 @@ class SetupDefaultsScreen extends StatelessWidget {
       backgroundColor: C.bg,
       body: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 28),
+          padding: const EdgeInsets.symmetric(horizontal: S.s5),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -37,58 +38,58 @@ class SetupDefaultsScreen extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const SizedBox(height: 40),
+                      const SizedBox(height: S.s7),
                       Text('How sites will behave', style: T.stepTitle),
-                      const SizedBox(height: 18),
+                      const SizedBox(height: S.s4),
                       Text(
                         'These apply to every site you add. You can change any '
                         'of them per site later.',
-                        style: ui(size: 14, color: C.textMuted, height: 1.65),
+                        style: T.bodyMuted,
                       ),
-                      const SizedBox(height: 20),
-                      for (final (title, detail) in _defaults)
-                        DecoratedBox(
-                          decoration: const BoxDecoration(
-                            border: Border(top: BorderSide(color: C.line06)),
-                          ),
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(vertical: 14),
-                            child: Row(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                const AppIcon(AppGlyph.check, size: 16, color: C.jade),
-                                const SizedBox(width: 12),
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Text(title, style: T.body),
-                                      const SizedBox(height: 3),
-                                      Text(detail,
-                                          style: ui(
-                                              size: 12,
-                                              color: C.textFaint,
-                                              height: 1.5)),
-                                    ],
+                      const SizedBox(height: S.s5),
+                      Group(
+                        children: [
+                          for (final (title, detail) in _defaults)
+                            Padding(
+                              padding: const EdgeInsets.symmetric(vertical: S.s3),
+                              child: Row(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  // A check is a fact, not a live state: text-1.
+                                  const Padding(
+                                    padding: EdgeInsets.only(top: 1),
+                                    child: AppIcon(AppGlyph.check,
+                                        size: 20, color: C.textPrimary),
                                   ),
-                                ),
-                              ],
+                                  const SizedBox(width: S.s3),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(title, style: T.rowTitle),
+                                        const SizedBox(height: 2),
+                                        Text(detail, style: T.sub),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ),
-                          ),
-                        ),
+                        ],
+                      ),
+                      const SizedBox(height: S.s4),
                     ],
                   ),
                 ),
               ),
               Padding(
-                padding: const EdgeInsets.only(bottom: 26),
+                padding: const EdgeInsets.only(top: S.s4, bottom: S.s6),
                 child: SizedBox(
                   width: double.infinity,
                   child: PillButton(
                     label: 'Add your first site',
                     tone: PillTone.primary,
-                    height: 50,
                     onTap: onFinish,
                   ),
                 ),
