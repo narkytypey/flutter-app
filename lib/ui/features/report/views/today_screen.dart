@@ -4,6 +4,7 @@ import '../../../../domain/models/blocked_tally.dart';
 import '../../../core/icons.dart';
 import '../../../core/tokens.dart';
 import '../../../core/typography.dart';
+import '../../../core/widgets/group.dart';
 import '../../../core/widgets/icon_tap.dart';
 import '../../../core/widgets/monogram.dart';
 
@@ -25,9 +26,10 @@ class TodayScreen extends StatelessWidget {
         child: Column(
           children: [
             Container(
-              padding: const EdgeInsets.fromLTRB(18, 14, 18, 12),
+              constraints: const BoxConstraints(minHeight: 64),
+              padding: EdgeInsets.fromLTRB(onBack == null ? 16 : 4, 8, 16, 8),
               decoration: const BoxDecoration(
-                border: Border(bottom: BorderSide(color: C.line06)),
+                border: Border(bottom: BorderSide(color: C.line)),
               ),
               child: Row(
                 children: [
@@ -36,40 +38,32 @@ class TodayScreen extends StatelessWidget {
                       glyph: AppGlyph.back,
                       label: 'Back',
                       onTap: onBack,
-                      size: 20,
-                      iconSize: 18,
+                      iconSize: 22,
                     ),
-                    const SizedBox(width: 10),
+                    const SizedBox(width: 4),
                   ],
-                  Text('Today', style: T.screenTitle),
+                  Expanded(child: Text('Today', style: T.screenTitle)),
                 ],
               ),
             ),
             Expanded(
               child: ListView(
-                padding: const EdgeInsets.fromLTRB(18, 20, 18, 20),
+                padding: const EdgeInsets.fromLTRB(16, 24, 16, 24),
                 children: [
-                  Container(
-                    padding: const EdgeInsets.only(bottom: 22),
-                    decoration: const BoxDecoration(
-                      border: Border(bottom: BorderSide(color: C.line06)),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text('${tally.total}', style: ui(size: 34, weight: 600, letterSpacing: -0.68)),
-                        const SizedBox(height: 8),
-                        Text(
-                            '${tally.total == 1 ? 'request' : 'requests'} blocked across '
-                            '${tally.siteCount} ${tally.siteCount == 1 ? 'site' : 'sites'}',
-                            style: ui(size: 13.5, color: C.textMuted)),
-                      ],
-                    ),
-                  ),
+                  Text('${tally.total}', style: T.display),
+                  const SizedBox(height: 4),
+                  Text(
+                      '${tally.total == 1 ? 'request' : 'requests'} blocked across '
+                      '${tally.siteCount} ${tally.siteCount == 1 ? 'site' : 'sites'}',
+                      style: T.bodyMuted),
+                  const SizedBox(height: 24),
                   Container(
                     padding: const EdgeInsets.symmetric(vertical: 20),
                     decoration: const BoxDecoration(
-                      border: Border(bottom: BorderSide(color: C.line06)),
+                      border: Border(
+                        top: BorderSide(color: C.line),
+                        bottom: BorderSide(color: C.line),
+                      ),
                     ),
                     child: Column(
                       children: [
@@ -79,17 +73,15 @@ class TodayScreen extends StatelessWidget {
                     ),
                   ),
                   Padding(
-                    padding: const EdgeInsets.fromLTRB(0, 20, 0, 4),
-                    child: Text(
-                      'BY SITE',
-                      style: ui(size: 10.5, weight: 500, letterSpacing: 1.05, color: C.textFaint),
-                    ),
+                    padding: const EdgeInsets.fromLTRB(0, 24, 0, 8),
+                    child: Text('BY SITE', style: T.sectionLabel),
                   ),
-                  for (final site in tally.sites) _SiteRow(site: site),
+                  if (tally.sites.isNotEmpty)
+                    Group(children: [for (final site in tally.sites) _SiteRow(site: site)]),
                   const SizedBox(height: 20),
                   Text(
                     'Counts are kept in memory only and reset when the app closes.',
-                    style: ui(size: 12, height: 1.6, color: C.textDim),
+                    style: T.sub.copyWith(color: C.textFaint),
                   ),
                 ],
               ),
@@ -109,35 +101,31 @@ class _CategoryBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final fillColor = entry.category == BlockedCategory.permissionAsks ? C.warning : C.jade;
+    // Restyle v2 §8 (`5c`): a count is not live state, so no bar is jade.
     return Padding(
-      padding: const EdgeInsets.only(bottom: 14),
+      padding: const EdgeInsets.symmetric(vertical: 6),
       child: Row(
         children: [
           SizedBox(
-            width: 110,
-            child: Text(entry.category.label, style: ui(size: 13, color: C.textTertiary)),
+            width: 128,
+            child: Text(entry.category.label, style: T.bodyMuted),
           ),
           Expanded(
             child: Container(
-              height: 6,
-              decoration: BoxDecoration(color: C.barTrack, borderRadius: BorderRadius.circular(3)),
+              height: 8,
+              decoration: BoxDecoration(color: C.surface, borderRadius: BorderRadius.circular(4)),
               child: FractionallySizedBox(
                 alignment: Alignment.centerLeft,
                 widthFactor: categoryFraction(tally, entry.category),
                 child: DecoratedBox(
-                  decoration: BoxDecoration(color: fillColor, borderRadius: BorderRadius.circular(3)),
+                  decoration: BoxDecoration(color: C.textMuted, borderRadius: BorderRadius.circular(4)),
                 ),
               ),
             ),
           ),
           SizedBox(
-            width: 34,
-            child: Text(
-              '${entry.count}',
-              textAlign: TextAlign.right,
-              style: ui(size: 12.5, weight: 500, color: C.textMuted),
-            ),
+            width: 48,
+            child: Text('${entry.count}', textAlign: TextAlign.right, style: T.value),
           ),
         ],
       ),
@@ -152,36 +140,28 @@ class _SiteRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 14),
-      decoration: const BoxDecoration(
-        border: Border(bottom: BorderSide(color: C.line05)),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Expanded(
-            child: Row(
-            children: [
-              // `open: false` is Monogram's idle treatment — `C.raised` on
-              // `C.textMuted` — which is what `5c` draws for a site that is
-              // being reported on rather than running.
-              Monogram(site.monogram, size: 32, radius: 9, fontSize: 12.5, open: false),
-              const SizedBox(width: 11),
-              Expanded(
-                child: Text(
-                  site.name,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: ui(size: 14, color: C.textSecondary),
-                ),
+    return ConstrainedBox(
+      constraints: const BoxConstraints(minHeight: 56),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 10),
+        child: Row(
+          children: [
+            // `open: false` is Monogram's idle treatment, which is what `5c`
+            // draws for a site that is being reported on rather than running.
+            Monogram(site.monogram, size: 32, radius: R.monogram, fontSize: 13, open: false),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                site.name,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: T.rowTitle,
               ),
-            ],
             ),
-          ),
-          const SizedBox(width: 12),
-          Text('${site.count}', style: ui(size: 12.5, weight: 500, color: C.textMuted)),
-        ],
+            const SizedBox(width: 12),
+            Text('${site.count}', style: T.value),
+          ],
+        ),
       ),
     );
   }

@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:container/domain/models/reader_article.dart';
@@ -118,5 +120,37 @@ void main() {
     expect(styleOf(tester, article.paragraphs.first).fontSize, 15.5);
     expect(styleOf(tester, article.paragraphs.first).color, C.readerBody);
   });
+
+  // Restyle v2 §2.5, §5, §8 (`6b`): reader tones, Plex Sans, sizes as built.
+  testWidgets('v2: the host is reader-muted, at least 4.5:1 on the reader page', (tester) async {
+    await tester.pumpWidget(host());
+    final style = tester.widget<Text>(find.text('forum.example.com')).style!;
+    expect(style.color, C.readerMuted);
+    expect(_contrast(C.readerMuted, C.bgReader), greaterThanOrEqualTo(4.5));
+  });
+
+  testWidgets('v2: the article is set in Plex Sans', (tester) async {
+    await tester.pumpWidget(host());
+    for (final text in [article.title, article.paragraphs.first, 'forum.example.com']) {
+      expect(tester.widget<Text>(find.text(text)).style!.fontFamily, 'IBMPlexSans');
+    }
+  });
+
+  testWidgets('v2: the header controls are 48 dp targets', (tester) async {
+    await tester.pumpWidget(host());
+    expect(tester.getSize(findIconTap('Back')), const Size(48, 48));
+    expect(tester.getSize(findIconTap('Reader theme')), const Size(48, 48));
+    final aa = find.ancestor(of: find.text('Aa'), matching: find.byType(GestureDetector)).first;
+    expect(tester.getSize(aa).height, greaterThanOrEqualTo(48));
+    expect(tester.getSize(aa).width, greaterThanOrEqualTo(48));
+  });
 }
 
+
+/// WCAG 2 contrast ratio.
+double _contrast(Color a, Color b) {
+  double lin(double v) => v <= 0.03928 ? v / 12.92 : math.pow((v + 0.055) / 1.055, 2.4).toDouble();
+  double lum(Color c) => 0.2126 * lin(c.r) + 0.7152 * lin(c.g) + 0.0722 * lin(c.b);
+  final la = lum(a), lb = lum(b);
+  return (math.max(la, lb) + 0.05) / (math.min(la, lb) + 0.05);
+}

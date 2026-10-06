@@ -34,9 +34,9 @@ class ReaderScreen extends StatelessWidget {
         child: Column(
           children: [
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+              padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
               decoration: const BoxDecoration(
-                border: Border(bottom: BorderSide(color: C.line06)),
+                border: Border(bottom: BorderSide(color: C.line)),
               ),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -45,8 +45,7 @@ class ReaderScreen extends StatelessWidget {
                     glyph: AppGlyph.back,
                     label: 'Back',
                     onTap: onClose,
-                    size: 20,
-                    iconSize: 18,
+                    iconSize: 22,
                     color: C.readerMuted,
                   ),
                   Expanded(
@@ -57,23 +56,28 @@ class ReaderScreen extends StatelessWidget {
                         textAlign: TextAlign.center,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: ui(size: 11.5, weight: 500, letterSpacing: 0.69, color: C.readerMuted),
+                        style: ui(size: 13, weight: 500, letterSpacing: 0.52, color: C.readerMuted),
                       ),
                     ),
                   ),
                   Row(
                     children: [
                       GestureDetector(
+                        behavior: HitTestBehavior.opaque,
                         onTap: onTextSize,
-                        child: Text('Aa', style: ui(size: 13, color: C.readerMuted)),
+                        child: SizedBox(
+                          width: 48,
+                          height: 48,
+                          child: Center(
+                            child: Text('Aa', style: ui(size: 15, color: C.readerMuted)),
+                          ),
+                        ),
                       ),
-                      const SizedBox(width: 14),
                       IconTap(
                         glyph: AppGlyph.contrast,
                         label: 'Reader theme',
                         onTap: onTheme,
-                        size: 20,
-                        iconSize: 16,
+                        iconSize: 22,
                         color: C.readerMuted,
                       ),
                     ],
@@ -85,7 +89,7 @@ class ReaderScreen extends StatelessWidget {
               child: ListView(
                 padding: const EdgeInsets.fromLTRB(26, 26, 26, 40),
                 children: [
-                  Text(article.host, style: ui(size: 12, color: C.readerHost)),
+                  Text(article.host, style: ui(size: 14, color: C.readerMuted)),
                   const SizedBox(height: 18),
                   Text(
                     article.title,
@@ -104,7 +108,7 @@ class ReaderScreen extends StatelessWidget {
                       article.paragraphs[i],
                       style: ui(
                         size: style.size.body,
-                        height: 1.75,
+                        height: 1.7,
                         color: style.soft ? C.readerMuted : C.readerBody,
                       ),
                     ),
