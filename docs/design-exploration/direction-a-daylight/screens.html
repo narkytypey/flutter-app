@@ -723,3 +723,75 @@ body.theme-dark .frame-note { color: #B4BBB6; }
     </div>
   </div>
 </section>
+
+<!-- ===================== 9b ===================== -->
+<section data-block="9b">
+  <div class="blabel">9b · Welcome back (within the grace period)<span>Canvas: “Back within the grace period — sessions kept, one tap to resume”. Fingerprint shown because biometric unlock is on for this vault (resume only).</span></div>
+  <div class="phone">
+    <div class="statusbar"></div>
+    <div class="pinwrap">
+      <div class="pinmsg">
+        <span class="mark" style="color:var(--accent)"><svg style="width:56px;height:56px"><use href="#logo-cur"/></svg></span>
+        <span class="t-body" style="margin-top:24px;font-size:var(--fs-sheet);font-weight:500">Welcome back</span>
+        <span class="t-meta" style="margin-top:6px">3 sessions still open · locks in 40s</span>
+        <div class="dots"><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="dot"></span></div>
+      </div>
+      <div class="keypad">
+        <span class="key">1</span><span class="key">2</span><span class="key">3</span>
+        <span class="key">4</span><span class="key">5</span><span class="key">6</span>
+        <span class="key">7</span><span class="key">8</span><span class="key">9</span>
+        <span class="key blank"></span><span class="key">0</span><span class="key bs" aria-label="Delete"><svg class="ic s32"><use href="#i-backspace"/></svg></span>
+      </div>
+      <div style="display:flex;flex-direction:column;align-items:center;gap:4px;padding:0 0 24px;flex:none">
+        <span class="btn-icon" style="width:56px;height:56px;color:var(--accent)"><svg class="ic s32"><use href="#i-fingerprint"/></svg></span>
+        <span class="t-meta">Use fingerprint</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== 9c ===================== -->
+<section data-block="9c">
+  <div class="blabel">9c · Locked after the timer<span>Canvas: “Past the timer — ephemeral sessions were already destroyed”. No fingerprint: biometric unlock never applies here.</span></div>
+  <div class="phone">
+    <div class="statusbar"></div>
+    <div class="pinwrap">
+      <div class="pinmsg">
+        <span class="mark" style="color:var(--accent)"><svg style="width:56px;height:56px"><use href="#logo-cur"/></svg></span>
+        <span class="t-body" style="margin-top:24px;font-size:var(--fs-sheet);font-weight:500">Enter your PIN</span>
+        <div class="dots"><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="dot"></span></div>
+        <div class="panel" style="margin-top:20px;text-align:left;width:100%">
+          <div class="t-body" style="font-weight:600">Locked after 1 minute in the background</div>
+          <div class="t-meta" style="margin-top:4px">Ephemeral sessions were closed and wiped. Saved sites will reopen where you left them.</div>
+        </div>
+      </div>
+      <div class="keypad">
+        <span class="key">1</span><span class="key">2</span><span class="key">3</span>
+        <span class="key">4</span><span class="key">5</span><span class="key">6</span>
+        <span class="key">7</span><span class="key">8</span><span class="key">9</span>
+        <span class="key blank"></span><span class="key">0</span><span class="key bs" aria-label="Delete"><svg class="ic s32"><use href="#i-backspace"/></svg></span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== 6b ===================== -->
+<section data-block="6b">
+  <div class="blabel">6b · Reader<span>Canvas: “Reader mode — text only, controls out of the way”. Warm paper in light, the current reader dark in dark; Aa and the contrast icon keep their jobs.</span></div>
+  <div class="phone" style="background:var(--reader-page);color:var(--reader-ink)">
+    <div class="statusbar"></div>
+    <div style="display:flex;align-items:center;gap:4px;padding:8px 4px;flex:none;box-shadow:inset 0 -1px 0 rgba(94,86,75,.25)">
+      <span class="btn-icon" style="color:var(--reader-ink2)" aria-label="Back"><svg class="ic"><use href="#i-back"/></svg></span>
+      <span class="t-label sentence ell" style="flex:1 1 auto;text-align:center;color:var(--reader-ink2)">READER · 6 MIN</span>
+      <span class="btn-icon" style="color:var(--reader-ink2);font-size:var(--fs-row);font-weight:600">Aa</span>
+      <span class="btn-icon" style="color:var(--reader-ink2)" aria-label="Reader theme"><svg class="ic s20"><use href="#i-contrast"/></svg></span>
+    </div>
+    <div class="scroll" style="padding:24px 24px 40px">
+      <div class="t-value" style="color:var(--reader-ink2)">forum.example.com</div>
+      <h1 style="font-size:var(--fs-step);line-height:1.25;font-weight:600;letter-spacing:-.3px;margin:16px 0 18px;color:var(--reader-ink)">What a container actually isolates, and what it cannot</h1>
+      <p style="font-size:1.125rem;line-height:1.7;margin:0 0 16px">Separate storage stops one site from reading another's cookies. It does not hide the fact that a request came from this device, which is what the proxy layer is for.</p>
+      <p style="font-size:1.125rem;line-height:1.7;margin:0 0 16px">The two protections are often confused. Keeping them separate in your head makes it easier to decide which sites need which.</p>
+      <p style="font-size:1.125rem;line-height:1.7;margin:0">A site that needs a login and a site you want to read anonymously are different problems, and they belong in different workspaces.</p>
+    </div>
+  </div>
+</section>

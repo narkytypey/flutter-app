@@ -288,6 +288,25 @@
   .infobox { background: var(--surface-group); border: 1px solid var(--line); border-radius: var(--r-lg); padding: var(--s3) var(--s4); display: flex; flex-direction: column; gap: var(--s2); }
   .wrap { overflow-wrap: anywhere; }
   .openpill { white-space: nowrap; padding: 0 var(--s3); }
+  .fp { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: var(--s2) 0 var(--s5); color: var(--jade); font: 500 var(--fs-sub)/1.43 var(--sans); }
+  .fp .ic { width: 32px; height: 32px; }
+  .fp > span { min-height: var(--target); min-width: 120px; display: flex; flex-direction: column; align-items: center; gap: 6px; }
+  .notice { width: 100%; text-align: left; background: var(--surface-group); border: 1px solid var(--line); border-radius: var(--r-lg); padding: var(--s3) var(--s4); display: flex; flex-direction: column; gap: 4px; }
+  .reader { background: var(--reader-bg); }
+  .reader .rhdr { display: flex; align-items: center; gap: var(--s1); min-height: 64px; padding: var(--s2); border-bottom: 1px solid rgba(239,232,220,.12); color: var(--reader-muted); }
+  .reader .rhdr .lbl { flex: 1 1 auto; text-align: center; font: 600 var(--fs-sub)/1.3 var(--sans); }
+  .reader .tap { color: var(--reader-muted); }
+  .reader .aa { min-width: var(--target); min-height: var(--target); display: inline-flex; align-items: center; justify-content: center; font: 500 var(--fs-body)/1 var(--sans); color: var(--reader-muted); }
+  .article { padding: var(--s6) var(--s6) var(--s12); }
+  .article .rhost { font: 400 var(--fs-meta)/1.4 var(--mono); color: var(--reader-muted); }
+  .article h2 { margin: var(--s4) 0; font: 600 var(--fs-r-title)/1.25 var(--sans); letter-spacing: -0.01em; color: var(--reader-title); }
+  .article p { margin: 0 0 var(--s4); font: 400 var(--fs-r-body)/1.7 var(--sans); color: var(--reader-body); }
+  .file { display: flex; align-items: center; gap: var(--s3); padding: var(--s3) var(--s4); background: var(--surface-raised); border: 1px solid var(--line); border-radius: var(--r-lg); }
+  .file .kind { flex: 0 0 auto; width: 44px; height: 44px; border-radius: var(--r-sm); background: var(--surface-sheet); display: inline-flex; align-items: center; justify-content: center;
+                font: 600 var(--fs-caption)/1 var(--sans); color: var(--text-1); letter-spacing: 0.02em; }
+  .file .text { flex: 1 1 auto; display: flex; flex-direction: column; gap: 2px; }
+  .sheet-body { display: flex; flex-direction: column; gap: var(--s2); padding-top: var(--s5); }
+  .sheet-actions { padding-top: var(--s4); }
 </style>
 </head>
 <body>
@@ -653,6 +672,117 @@
           <span class="btn neutral">Change proxy settings</span>
           <span class="btn outline-danger">Open without the tunnel<small>This site will see your real IP</small></span>
         </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═════════════════════════ 9b ═════════════════════════ -->
+<section class="block" data-block="9b">
+  <p class="tag"><b>9b</b>Back within the grace period — sessions kept, one tap to resume <i>(biometrics on; the fingerprint is the one jade action)</i></p>
+  <div class="phone">
+    <div class="sys"></div>
+    <div class="pin">
+      <div class="msg">
+        <svg class="vmark" viewBox="0 0 48 48" aria-hidden="true"><rect x="6" y="6" width="36" height="36" rx="11" fill="none" stroke="currentColor" stroke-width="3"/><path d="M6 18H42" stroke="currentColor" stroke-width="3"/><circle cx="24" cy="30" r="5" fill="currentColor"/></svg>
+        <div style="display:flex;flex-direction:column;gap:4px"><span class="body t1" style="font-size:var(--fs-appbar);font-weight:600">Welcome back</span><span class="sub"><span class="mono">3</span> sessions still open · locks in <span class="mono">40s</span></span></div>
+        <div class="dots"><i></i><i></i><i></i><i></i><i></i><i></i></div>
+      </div>
+      <div class="keypad" aria-label="Keypad"><span>1</span><span>2</span><span>3</span><span>4</span><span>5</span><span>6</span><span>7</span><span>8</span><span>9</span><span class="blank"></span><span>0</span><span class="bs" aria-label="Delete"><svg class="ic s28"><use href="#i-backspace"/></svg></span></div>
+      <div class="fp"><span><svg class="ic"><use href="#i-fingerprint"/></svg>Use fingerprint</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- ═════════════════════════ 9c ═════════════════════════ -->
+<section class="block" data-block="9c">
+  <p class="tag"><b>9c</b>Past the timer — ephemeral sessions were already destroyed <i>(no fingerprint: resume-only)</i></p>
+  <div class="phone">
+    <div class="sys"></div>
+    <div class="pin">
+      <div class="msg">
+        <svg class="vmark" viewBox="0 0 48 48" aria-hidden="true"><rect x="6" y="6" width="36" height="36" rx="11" fill="none" stroke="currentColor" stroke-width="3"/><path d="M6 18H42" stroke="currentColor" stroke-width="3"/><circle cx="24" cy="30" r="5" fill="currentColor"/></svg>
+        <span class="body t2">Enter your PIN</span>
+        <div class="dots"><i></i><i></i><i></i><i></i><i></i><i></i></div>
+        <div class="notice"><span class="body t1" style="font-weight:500">Locked after 1 minute in the background</span><span class="sub">Ephemeral sessions were closed and wiped. Saved sites will reopen where you left them.</span></div>
+      </div>
+      <div class="keypad" aria-label="Keypad"><span>1</span><span>2</span><span>3</span><span>4</span><span>5</span><span>6</span><span>7</span><span>8</span><span>9</span><span class="blank"></span><span>0</span><span class="bs" aria-label="Delete"><svg class="ic s28"><use href="#i-backspace"/></svg></span></div>
+    </div>
+  </div>
+</section>
+
+<!-- ═════════════════════════ 6b ═════════════════════════ -->
+<section class="block" data-block="6b">
+  <p class="tag"><b>6b</b>Reader mode — text only, controls out of the way <i>(standard size, normal contrast)</i></p>
+  <div class="phone reader">
+    <div class="sys"></div>
+    <div class="rhdr">
+      <span class="tap" aria-label="Back"><svg class="ic"><use href="#i-back"/></svg></span>
+      <span class="lbl sc">READER · 6 MIN</span>
+      <span class="aa">Aa</span>
+      <span class="tap" aria-label="Reader theme"><svg class="ic s20"><use href="#i-contrast"/></svg></span>
+    </div>
+    <div class="fill">
+      <div class="article">
+        <span class="rhost">forum.example.com</span>
+        <h2>What a container actually isolates, and what it cannot</h2>
+        <p>Separate storage stops one site from reading another's cookies. It does not hide the fact that a request came from this device, which is what the proxy layer is for.</p>
+        <p>The two protections are often confused. Keeping them separate in your head makes it easier to decide which sites need which.</p>
+        <p>A site that needs a login and a site you want to read anonymously are different problems, and they belong in different workspaces.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═════════════════════════ 6a ═════════════════════════ -->
+<section class="block" data-block="6a">
+  <p class="tag"><b>6a</b>Permission request — one time by default, never remembered silently <i>(jade on Keep blocked, as the canvas draws it — BRIEF copy question 3)</i></p>
+  <div class="phone">
+    <div class="sys"></div>
+    <div class="topbar" aria-hidden="true">
+      <div class="pill"><span class="case throw"><svg class="ic s20"><use href="#i-globe"/></svg><span class="lt live"></span></span><span class="readout"><span class="host wrap">meet.example.com</span></span><span class="tap"><svg class="ic s20"><use href="#i-reload"/></svg></span><span class="tap"><svg class="ic"><use href="#i-shield"/></svg></span></div>
+      <span class="panic"><svg class="ic"><use href="#i-panic"/></svg></span>
+    </div>
+    <div class="page"><i class="img"></i><i class="h"></i><i class="m"></i><i></i><i class="s"></i></div>
+    <div class="scrim"></div>
+    <div class="sheet">
+      <div class="sheet-body">
+        <span class="sheet-title wrap"><span class="mono" style="font-weight:500">meet.example.com</span> wants your microphone</span>
+        <span class="muted">It is blocked right now. Allowing it applies to this site only, inside this container.</span>
+      </div>
+      <div class="sheet-actions">
+        <span class="btn neutral">Allow once</span>
+        <span class="btn neutral">Allow while this site is open</span>
+        <span class="btn primary">Keep blocked</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═════════════════════════ 7c ═════════════════════════ -->
+<section class="block" data-block="7c">
+  <p class="tag"><b>7c</b>Blocked download — says what it is and where it would land</p>
+  <div class="phone">
+    <div class="sys"></div>
+    <div class="topbar" aria-hidden="true">
+      <div class="pill"><span class="case wipe">Fr<span class="lt live"></span></span><span class="readout"><span class="host wrap">forum.example.com</span><span class="badge">SOCKS5</span></span><span class="tap"><svg class="ic s20"><use href="#i-reload"/></svg></span><span class="tap"><svg class="ic"><use href="#i-shield"/></svg></span></div>
+      <span class="panic"><svg class="ic"><use href="#i-panic"/></svg></span>
+    </div>
+    <div class="page"><i class="h"></i><i class="m"></i><i></i><i class="s"></i><i class="img"></i></div>
+    <div class="scrim"></div>
+    <div class="sheet">
+      <div class="sheet-body">
+        <span class="sheet-title">Download held</span>
+        <span class="muted">Files leave the container when they are saved. This one would go to your device storage where other apps can read it.</span>
+      </div>
+      <div class="file" style="margin-top:16px">
+        <span class="kind">PDF</span>
+        <div class="text"><span class="body wrap mono" style="font-size:var(--fs-sub)">statement-june.pdf</span><span class="sub wrap"><span class="mono">1.4 MB</span> · from <span class="mono">forum.example.com</span></span></div>
+      </div>
+      <div class="sheet-actions">
+        <span class="btn neutral">Keep inside this container</span>
+        <span class="btn neutral">Save to device storage</span>
+        <span class="btn primary">Discard</span>
       </div>
     </div>
   </div>

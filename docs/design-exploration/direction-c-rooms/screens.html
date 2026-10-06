@@ -43,7 +43,7 @@ section[data-block] > header .note { display: block; margin-top: 4px; opacity: .
 /* ---------- the phone ---------- */
 .phone { position: relative; width: var(--pw); height: var(--ph); background: var(--page); color: var(--ink);
   border-radius: 34px; overflow-x: hidden; overflow-y: auto; display: flex; flex-direction: column;
-  box-shadow: 0 0 0 8px #14120F, 0 18px 40px rgba(0,0,0,.25); font-family: var(--ui); overflow-wrap: anywhere;
+  box-shadow: 0 0 0 8px #14120F, 0 18px 40px rgba(0,0,0,.25); font-family: var(--ui); overflow-wrap: break-word;
   scrollbar-width: none; }
 .phone::-webkit-scrollbar { display: none; }
 .phone * { box-sizing: border-box; }
@@ -197,7 +197,7 @@ section[data-block] > header .note { display: block; margin-top: 4px; opacity: .
 .addr .hc { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; align-items: flex-start; }
 .addr .hc .host { max-width: 100%; }
 .badge { max-width: 100%; }
-.tiles { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+.tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(calc(64px*var(--scale)), 1fr)); gap: 8px; }
 .tile { display: flex; flex-direction: column; align-items: center; gap: 6px; min-height: 48px; text-align: center; font: 500 calc(13px*var(--scale))/1.38 var(--ui); color: var(--ink2); }
 .tile .sq { width: 56px; height: 52px; border-radius: 16px; background: var(--sunken); display: grid; place-items: center; color: var(--ink); }
 .mrow { display: flex; align-items: center; gap: 12px; min-height: 56px; padding: 12px 16px; border-top: 1px solid var(--hairline); }
@@ -217,6 +217,14 @@ section[data-block] > header .note { display: block; margin-top: 4px; opacity: .
 .lock .msg { flex: 1 0 auto; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 20px; padding: 24px 0; text-align: center; }
 .lock .msg.start { align-items: flex-start; text-align: left; }
 .lock .kp { flex: none; padding: 8px 0 28px; }
+.opt, .mrow { flex-wrap: wrap; }
+.opt > .col.f1, .mrow > .col.f1 { flex-basis: 0; }
+.opt > .gv, .mrow > .t-value, .opt > .t-value { margin-left: auto; }
+.addr { flex-wrap: wrap; row-gap: 0; }
+.addr .hc { flex-basis: 96px; }
+.badge, .openpill, .seg, .chip, .savebtn, .textbtn { white-space: nowrap; }
+.mono, .t-value, .t-code { overflow-wrap: anywhere; }
+.sheet > *, .form > *, .col > * { flex-shrink: 0; }
 .hr { height: 1px; background: var(--divider); flex: none; }
 </style>
 </head>
