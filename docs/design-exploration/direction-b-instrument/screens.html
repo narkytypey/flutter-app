@@ -265,6 +265,29 @@
   .panic.big { width: 52px; height: auto; min-height: 52px; border-radius: var(--r-full); }
   .sheet .lt.live, .sheet .lt.bg { box-shadow: 0 0 0 2px var(--surface-sheet); }
   .sheet .lt.idle { background: var(--surface-sheet); }
+  .pin .msg.left { gap: var(--s3); }
+  .pin .msg.left .dots { margin-top: var(--s3); }
+  .total { padding: var(--s5) var(--s1) var(--s5); border-bottom: 1px solid var(--line); }
+  .total .num { display: block; font: 500 var(--fs-display)/1.2 var(--mono); letter-spacing: -0.01em; color: var(--text-1); }
+  .cat { padding: var(--s2) var(--s1) var(--s3); }
+  .cat .lbl { display: flex; justify-content: space-between; gap: var(--s3); font: 400 var(--fs-sub)/1.43 var(--sans); color: var(--text-1); }
+  .cat .lbl .mono { color: var(--text-2); }
+  .bar { height: 8px; border-radius: 4px; background: var(--surface-group); margin-top: 6px; overflow: hidden; }
+  .bar > i { display: block; height: 100%; border-radius: 4px; background: var(--text-2); }
+  .cats { padding: var(--s3) 0 var(--s2); border-bottom: 1px solid var(--line); }
+  .site .count { flex: 0 0 auto; font: 400 var(--fs-sub)/1.43 var(--mono); color: var(--text-2); }
+  .sitehead { display: flex; align-items: center; gap: var(--s3); padding: var(--s1) 0 var(--s4); border-bottom: 1px solid var(--line); }
+  .sitehead .text { flex: 1 1 auto; display: flex; flex-direction: column; gap: 2px; }
+  .sheet .row.cat-row { min-height: 40px; padding-top: 6px; padding-bottom: 6px; padding-left: var(--s8); border-top: 0; }
+  .sheet .row.cat-row .sub { flex: 1 1 auto; }
+  .refuse { flex: 1 1 auto; display: flex; flex-direction: column; justify-content: center; padding: var(--s6) var(--s5) var(--s5); gap: var(--s4); }
+  .rmark { width: 56px; height: 56px; border-radius: 16px; display: inline-flex; align-items: center; justify-content: center; color: var(--danger); box-shadow: inset 0 0 0 1.5px var(--danger); }
+  .kv { display: flex; justify-content: space-between; gap: var(--s3); flex-wrap: wrap; }
+  .kv > :first-child { color: var(--text-3); font: 400 var(--fs-sub)/1.43 var(--sans); }
+  .kv > :last-child { color: var(--text-1); font: 400 var(--fs-sub)/1.43 var(--sans); text-align: right; }
+  .infobox { background: var(--surface-group); border: 1px solid var(--line); border-radius: var(--r-lg); padding: var(--s3) var(--s4); display: flex; flex-direction: column; gap: var(--s2); }
+  .wrap { overflow-wrap: anywhere; }
+  .openpill { white-space: nowrap; padding: 0 var(--s3); }
 </style>
 </head>
 <body>
@@ -328,22 +351,22 @@
     <div class="fill gutter" style="padding-top:8px;padding-bottom:16px">
       <div class="group">
         <div class="site"><span class="mg">Nt<span class="lt live"></span></span>
-          <div class="text"><span class="row-title ell">Notes</span><span class="meta ell"><span class="mono">notes.example.org</span> · socks5</span></div>
+          <div class="text"><span class="row-title ell">Notes</span><span class="meta wrap"><span class="mono">notes.example.org</span> · socks5</span></div>
           <span class="age">now</span></div>
         <div class="site"><span class="mg">Wm<span class="lt live"></span></span>
-          <div class="text"><span class="row-title ell">Webmail</span><span class="meta ell"><span class="mono">mail.example.net</span> · direct</span></div>
+          <div class="text"><span class="row-title ell">Webmail</span><span class="meta wrap"><span class="mono">mail.example.net</span> · direct</span></div>
           <span class="age">14m</span></div>
         <div class="site idle"><span class="mg idle">Fr<span class="lt idle"></span></span>
-          <div class="text"><span class="row-title ell">Forum</span><span class="meta ell"><span class="mono">forum.example.com</span> · ephemeral</span></div>
+          <div class="text"><span class="row-title ell">Forum</span><span class="meta wrap"><span class="mono">forum.example.com</span> · ephemeral</span></div>
           <span class="age">2h</span></div>
         <div class="site idle"><span class="mg idle">Rd<span class="lt idle"></span></span>
-          <div class="text"><span class="row-title ell">Reader</span><span class="meta ell"><span class="mono">read.example.io</span> · direct</span></div>
+          <div class="text"><span class="row-title ell">Reader</span><span class="meta wrap"><span class="mono">read.example.io</span> · direct</span></div>
           <span class="age">1d</span></div>
         <div class="site idle"><span class="mg idle">Bk<span class="lt idle"></span></span>
-          <div class="text"><span class="row-title ell">Bank</span><span class="meta ell"><span class="mono">bank.example.com</span> · pin required</span></div>
+          <div class="text"><span class="row-title ell">Bank</span><span class="meta wrap"><span class="mono">bank.example.com</span> · pin required</span></div>
           <span class="age">3d</span></div>
         <div class="site idle"><span class="mg idle">Mk<span class="lt idle"></span></span>
-          <div class="text"><span class="row-title ell">Marketplace</span><span class="meta ell"><span class="mono">shop.example.com</span> · direct</span></div>
+          <div class="text"><span class="row-title ell">Marketplace</span><span class="meta wrap"><span class="mono">shop.example.com</span> · direct</span></div>
           <span class="age">5d</span></div>
       </div>
     </div>
@@ -367,7 +390,7 @@
     <div class="topbar">
       <div class="pill">
         <span class="case wipe">Fr<span class="lt live"></span></span>
-        <span class="readout"><span class="host ell">forum.example.com</span><span class="badge">SOCKS5</span></span>
+        <span class="readout"><span class="host wrap">forum.example.com</span><span class="badge">SOCKS5</span></span>
         <span class="tap" aria-label="Reload"><svg class="ic s20"><use href="#i-reload"/></svg></span>
         <span class="tap" aria-label="Site details" style="margin-right:2px"><svg class="ic"><use href="#i-shield"/></svg></span>
       </div>
@@ -422,7 +445,7 @@
   <div class="phone">
     <div class="sys"></div>
     <div class="topbar" aria-hidden="true">
-      <div class="pill"><span class="case wipe">Fr<span class="lt live"></span></span><span class="readout"><span class="host ell">forum.example.com</span><span class="badge">SOCKS5</span></span><span class="tap"><svg class="ic s20"><use href="#i-reload"/></svg></span><span class="tap"><svg class="ic"><use href="#i-shield"/></svg></span></div>
+      <div class="pill"><span class="case wipe">Fr<span class="lt live"></span></span><span class="readout"><span class="host wrap">forum.example.com</span><span class="badge">SOCKS5</span></span><span class="tap"><svg class="ic s20"><use href="#i-reload"/></svg></span><span class="tap"><svg class="ic"><use href="#i-shield"/></svg></span></div>
       <span class="panic"><svg class="ic"><use href="#i-panic"/></svg></span>
     </div>
     <div class="page"><i class="h"></i><i class="m"></i><i></i><i class="img"></i><i></i><i class="s"></i></div>
@@ -529,6 +552,108 @@
       </div>
       <div class="keypad" aria-label="Keypad"><span>1</span><span>2</span><span>3</span><span>4</span><span>5</span><span>6</span><span>7</span><span>8</span><span>9</span><span class="blank"></span><span>0</span><span class="bs" aria-label="Delete"><svg class="ic s28"><use href="#i-backspace"/></svg></span></div>
       <div style="padding:4px 0 24px"><span class="btn primary">Continue</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- ═════════════════════════ 5c ═════════════════════════ -->
+<section class="block" data-block="5c">
+  <p class="tag"><b>5c</b>Today — a quiet log, not a dashboard of scary numbers <i>(Today tab; bars monochrome, no grade)</i></p>
+  <div class="phone">
+    <div class="sys"></div>
+    <div class="hdr"><span class="screen-title">Today</span></div>
+    <div class="fill gutter">
+      <div class="total"><span class="num">312</span><span class="muted">requests blocked across 4 sites</span></div>
+      <div class="cats">
+        <div class="cat"><div class="lbl"><span>Trackers</span><span class="mono">198</span></div><div class="bar"><i style="width:100%"></i></div></div>
+        <div class="cat"><div class="lbl"><span>Ads</span><span class="mono">88</span></div><div class="bar"><i style="width:44.4%"></i></div></div>
+        <div class="cat"><div class="lbl"><span>Fingerprinting</span><span class="mono">24</span></div><div class="bar"><i style="width:12.1%"></i></div></div>
+        <div class="cat"><div class="lbl"><span>Permission asks</span><span class="mono">2</span></div><div class="bar"><i style="width:1.5%"></i></div></div>
+      </div>
+      <span class="section sc">BY SITE</span>
+      <div class="group">
+        <div class="site idle"><span class="mg idle sm">Fr</span><div class="text"><span class="row-title ell">Forum</span></div><span class="count">164</span></div>
+        <div class="site idle"><span class="mg idle sm">Mk</span><div class="text"><span class="row-title ell">Marketplace</span></div><span class="count">97</span></div>
+        <div class="site idle"><span class="mg idle sm">Rd</span><div class="text"><span class="row-title ell">Reader</span></div><span class="count">39</span></div>
+        <div class="site idle"><span class="mg idle sm">Wm</span><div class="text"><span class="row-title ell">Webmail</span></div><span class="count">12</span></div>
+      </div>
+      <p class="footnote">Counts are kept in memory only and reset when the app closes.</p>
+    </div>
+    <nav class="tabs">
+      <div><span class="ind"><svg class="ic"><use href="#i-sites"/></svg></span>Sites</div>
+      <div class="on" aria-selected="true"><span class="ind"><svg class="ic"><use href="#i-today"/></svg></span>Today</div>
+      <div><span class="ind"><svg class="ic"><use href="#i-settings"/></svg></span>Settings</div>
+    </nav>
+  </div>
+</section>
+
+<!-- ═════════════════════════ 6c ═════════════════════════ -->
+<section class="block" data-block="6c">
+  <p class="tag"><b>6c</b>Site sheet — what this container is running under, editable in place <i>(Plan 16 shield panel; category split and the Location row are illustrative data)</i></p>
+  <div class="phone">
+    <div class="sys"></div>
+    <div class="topbar" aria-hidden="true">
+      <div class="pill"><span class="case wipe">Fr<span class="lt live"></span></span><span class="readout"><span class="host wrap">forum.example.com</span><span class="badge">SOCKS5</span></span><span class="tap"><svg class="ic s20"><use href="#i-reload"/></svg></span><span class="tap"><svg class="ic"><use href="#i-shield"/></svg></span></div>
+      <span class="panic"><svg class="ic"><use href="#i-panic"/></svg></span>
+    </div>
+    <div class="page"><i class="h"></i><i class="m"></i><i></i><i class="img"></i></div>
+    <div class="scrim"></div>
+    <div class="sheet">
+      <div class="handle"></div>
+      <div class="sitehead">
+        <span class="mg">Fr</span>
+        <div class="text"><span class="sheet-title ell" style="font-size:var(--fs-appbar)">Forum</span><span class="sub wrap"><span class="mono">forum.example.com</span> · Personal</span></div>
+        <span class="textbtn jade">Edit</span>
+      </div>
+      <div class="group" style="margin-top:16px">
+        <div class="row"><div class="text"><span class="body">Proxy</span></div><span class="val">SOCKS5 · <span class="mono">127.0.0.1:9050</span></span><svg class="ic s20 chev"><use href="#i-chev"/></svg></div>
+        <div class="row"><div class="text"><span class="body">Cookies</span></div><span class="val">Wipe on exit</span></div>
+        <div class="row"><div class="text"><span class="body">Security level</span></div><span class="val">Standard · default</span><svg class="ic s20 chev"><use href="#i-chev"/></svg></div>
+        <div class="row"><div class="text"><span class="body">Blocked here</span></div><span class="val"><span class="mono">164</span> requests</span></div>
+        <div class="row cat-row"><span class="sub">Trackers</span><span class="value">104</span></div>
+        <div class="row cat-row"><span class="sub">Ads</span><span class="value">52</span></div>
+        <div class="row cat-row" style="padding-bottom:12px"><span class="sub">Fingerprinting</span><span class="value">8</span></div>
+      </div>
+      <div class="group">
+        <div class="row"><div class="text"><span class="body">Block WebRTC</span></div><span class="sw on"><svg viewBox="0 0 24 24"><use href="#i-check"/></svg></span></div>
+        <div class="row"><div class="text"><span class="body">Block trackers and ads</span></div><span class="sw on"><svg viewBox="0 0 24 24"><use href="#i-check"/></svg></span></div>
+        <div class="row"><div class="text"><span class="body">Anti-fingerprinting</span></div><span class="sw on"><svg viewBox="0 0 24 24"><use href="#i-check"/></svg></span></div>
+        <div class="row"><div class="text"><span class="body">Force dark mode</span></div><span class="sw on"><svg viewBox="0 0 24 24"><use href="#i-check"/></svg></span></div>
+        <div class="row"><div class="text"><span class="body">Desktop view</span></div><span class="sw"></span></div>
+      </div>
+      <div class="group">
+        <div class="row"><div class="text"><span class="body">Location</span></div><span class="val">Allowed</span></div>
+      </div>
+      <div style="padding-top:16px"><span class="btn neutral">Close and wipe this session</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- ═════════════════════════ 8b ═════════════════════════ -->
+<section class="block" data-block="8b">
+  <p class="tag"><b>8b</b>Proxy unreachable — no silent fallback, the risky option is spelled out <i>(proxyUnreachable variant; header icons inert)</i></p>
+  <div class="phone">
+    <div class="sys"></div>
+    <div class="topbar">
+      <span class="tap inert" aria-hidden="true"><svg class="ic s20"><use href="#i-back"/></svg></span>
+      <div class="pill danger" style="padding-left:16px"><span class="lt fail"></span><span class="readout"><span class="host wrap">forum.example.com</span></span></div>
+      <span class="tap inert" aria-hidden="true"><svg class="ic s20"><use href="#i-reload"/></svg></span>
+    </div>
+    <div class="fill" style="display:flex;flex-direction:column">
+      <div class="refuse">
+        <span class="rmark"><svg class="ic"><use href="#i-refused"/></svg></span>
+        <span class="screen-title">Proxy did not answer</span>
+        <span class="muted">Forum is set to go through <span class="mono">socks5 · 127.0.0.1:9050</span> and nothing is listening there. The page was not loaded, so no request left your device.</span>
+        <div class="infobox">
+          <div class="kv"><span>Tunnel</span><span class="mono">socks5 · 127.0.0.1:9050</span></div>
+          <div class="kv"><span>Last worked</span><span>2 hours ago</span></div>
+        </div>
+        <div style="padding-top:8px">
+          <span class="btn primary">Try again</span>
+          <span class="btn neutral">Change proxy settings</span>
+          <span class="btn outline-danger">Open without the tunnel<small>This site will see your real IP</small></span>
+        </div>
+      </div>
     </div>
   </div>
 </section>

@@ -213,6 +213,10 @@ section[data-block] > header .note { display: block; margin-top: 4px; opacity: .
 .ccard { display: flex; align-items: center; gap: 12px; padding: 12px 4px 12px 12px; min-height: 72px; border-radius: var(--r-l); }
 .ccard.viewed { background: var(--box); border: var(--wall-w) solid var(--wall); box-shadow: 0 4px 14px rgba(30,27,22,.10); }
 .ccard.bg { background: var(--tint); border-left: 6px solid var(--wall); }
+.lock { flex: 1 0 auto; display: flex; flex-direction: column; padding: 0 28px; }
+.lock .msg { flex: 1 0 auto; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 20px; padding: 24px 0; text-align: center; }
+.lock .msg.start { align-items: flex-start; text-align: left; }
+.lock .kp { flex: none; padding: 8px 0 28px; }
 .hr { height: 1px; background: var(--divider); flex: none; }
 </style>
 </head>
@@ -493,6 +497,211 @@ section[data-block] > header .note { display: block; margin-top: 4px; opacity: .
       <span class="pill secondary f1"><svg class="ic s20" aria-hidden="true" style="color:var(--ink2)"><use href="#i-flame"/></svg>Close all and wipe</span>
       <span class="panic" role="button" aria-label="Panic" style="width:52px;height:52px;border:2px solid var(--danger)"><svg class="ic"><use href="#i-panic"/></svg></span>
     </div>
+  </div>
+</div>
+</div>
+</section>
+
+<section data-block="2d">
+<header><span class="bid">2d</span>Settings — lock, vault and panic behaviour
+<span class="note">As built, as the dashboard's Settings tab (decoy configured, so VAULT shows). No room colour anywhere: Settings look identical in both vaults. Inert rows at 38 %.</span></header>
+<div class="frames">
+<div class="phone">
+  <div class="sys"></div>
+  <div class="pad" style="padding-top:8px;padding-bottom:12px"><h1 class="t-screen" style="margin:0">Settings</h1></div>
+  <div class="scroll"><div class="form" style="padding-top:0;gap:8px">
+    <p class="label sentence">LOCK</p>
+    <div class="group">
+      <div class="opt"><div class="col f1"><span class="gt">Unlock with biometrics</span><span class="gs">PIN always available as fallback</span></div><span class="sw on"></span></div>
+      <div class="opt"><span class="gt f1">Auto-lock</span><span class="gv">After 1 min</span></div>
+      <div class="opt"><span class="gt f1">Change main PIN</span><svg class="ic s20 ink3"><use href="#i-fwd"/></svg></div>
+    </div>
+    <p class="label sentence" style="margin-top:14px">MANAGE</p>
+    <div class="group">
+      <div class="opt"><span class="gt f1">Workspaces</span><svg class="ic s20 ink3"><use href="#i-fwd"/></svg></div>
+      <div class="opt"><span class="gt f1">Scripts and filters</span><svg class="ic s20 ink3"><use href="#i-fwd"/></svg></div>
+    </div>
+    <p class="label sentence" style="margin-top:14px">BROWSING</p>
+    <div class="group">
+      <div class="opt"><span class="gt f1">Search engine</span><span class="gv">DuckDuckGo</span></div>
+      <div class="opt"><span class="gt f1">Default route</span><span class="gv">Direct</span></div>
+      <div class="opt"><span class="gt f1">Security level</span><span class="gv">Standard</span></div>
+    </div>
+    <p class="label sentence" style="margin-top:14px">VAULT</p>
+    <div class="group">
+      <div class="opt"><div class="col f1"><span class="gt">Decoy vault</span><span class="gs">A second PIN opens a harmless board</span></div><span class="sw on inert"></span></div>
+      <div class="opt"><span class="gt f1">Sites shown in decoy</span><span class="gv">4 selected</span></div>
+      <div class="opt"><span class="gt f1">Re-sync decoy now</span><svg class="ic s20 ink3"><use href="#i-fwd"/></svg></div>
+      <div class="opt"><div class="col f1"><span class="gt">Hide from app switcher</span><span class="gs">Blurs previews, blocks screenshots</span></div><span class="sw on inert"></span></div>
+    </div>
+    <p class="label sentence" style="margin-top:14px">PANIC</p>
+    <div class="group">
+      <div class="opt"><div class="col f1"><span class="gt">Trigger by flipping face down</span><span class="gs">Uses the accelerometer</span></div><span class="sw"></span></div>
+      <div class="opt"><span class="gt f1">On panic</span><span class="gv">Wipe + lock</span></div>
+    </div>
+    <p class="t-meta" style="margin:14px 4px 8px">Nothing leaves this device. There is no account and no sync.</p>
+  </div></div>
+  <nav class="tabbar">
+    <span class="ti"><span class="ind"><svg class="ic"><use href="#i-sites"/></svg></span>Sites</span>
+    <span class="ti"><span class="ind"><svg class="ic"><use href="#i-today"/></svg></span>Today</span>
+    <span class="ti sel"><span class="ind"><svg class="ic"><use href="#i-settings"/></svg></span>Settings</span>
+  </nav>
+</div>
+</div>
+</section>
+
+<section data-block="3a">
+<header><span class="bid">3a</span>Lock — one PIN field, no mention of vaults
+<span class="note">As built (cold lock: no fingerprint). The mark is the logo's room with its door shut; on a correct PIN the door swings open (the one unlock motion). Same in both vaults.</span></header>
+<div class="frames">
+<div class="phone">
+  <div class="sys"></div>
+  <div class="lock">
+    <div class="msg">
+      <svg class="lockmark" style="color:var(--ink)" aria-hidden="true"><use href="#i-room"/></svg>
+      <p class="t-appbar" style="margin:0">Enter your PIN</p>
+      <div class="dots"><i class="f"></i><i class="f"></i><i></i><i></i><i></i><i></i></div>
+    </div>
+    <div class="kp"><div class="keypad"><span class="key">1</span><span class="key">2</span><span class="key">3</span><span class="key">4</span><span class="key">5</span><span class="key">6</span><span class="key">7</span><span class="key">8</span><span class="key">9</span><span class="key blank"></span><span class="key">0</span><span class="key bs" role="button" aria-label="Delete"><svg class="ic s28"><use href="#i-bs"/></svg></span></div></div>
+  </div>
+</div>
+</div>
+</section>
+
+<section data-block="4a">
+<header><span class="bid">4a</span>Setup — main PIN, three steps, no account
+<span class="note">As built. Step bar in ink, never a room colour. Continue is the one solid pill (shown enabled: six digits entered).</span></header>
+<div class="frames">
+<div class="phone">
+  <div class="sys"></div>
+  <div class="lock">
+    <div class="steps" style="margin-top:12px"><i class="f"></i><i></i><i></i></div>
+    <div class="msg start" style="gap:14px">
+      <h1 class="t-step" style="margin:0">Choose a PIN</h1>
+      <p class="t-muted" style="margin:0">Six digits. It encrypts everything stored on this device. There is no account and no way to recover it, so pick something you will remember.</p>
+      <div class="dots" style="margin-top:8px"><i class="f"></i><i class="f"></i><i class="f"></i><i class="f"></i><i class="f"></i><i class="f"></i></div>
+    </div>
+    <div class="kp" style="padding-bottom:12px"><div class="keypad"><span class="key">1</span><span class="key">2</span><span class="key">3</span><span class="key">4</span><span class="key">5</span><span class="key">6</span><span class="key">7</span><span class="key">8</span><span class="key">9</span><span class="key blank"></span><span class="key">0</span><span class="key bs" role="button" aria-label="Delete"><svg class="ic s28"><use href="#i-bs"/></svg></span></div></div>
+    <div style="padding:8px 0 24px"><span class="pill primary">Continue</span></div>
+  </div>
+</div>
+</div>
+</section>
+
+<section data-block="5c">
+<header><span class="bid">5c</span>Today — a quiet log, not a dashboard of scary numbers
+<span class="note">As built, as the dashboard's Today tab. A ledger in ink: neutral bars, no score, no grade, no colour by category. Room colour appears only on each site's monogram (all four are Personal).</span></header>
+<div class="frames">
+<div class="phone">
+  <div class="sys"></div>
+  <div class="pad" style="padding-top:8px;padding-bottom:12px"><h1 class="t-screen" style="margin:0">Today</h1></div>
+  <div class="scroll"><div class="form" style="padding-top:0;gap:10px">
+    <div class="box" style="border-radius:var(--r-m);padding:18px 16px">
+      <div class="t-display">312</div>
+      <p class="t-muted" style="margin:6px 0 18px">requests blocked across 4 sites</p>
+      <div class="col" style="gap:14px">
+        <div class="col" style="gap:6px"><div class="row" style="justify-content:space-between"><span class="t-body">Trackers</span><span class="t-value">198</span></div><div class="bar"><i style="width:100%"></i></div></div>
+        <div class="col" style="gap:6px"><div class="row" style="justify-content:space-between"><span class="t-body">Ads</span><span class="t-value">88</span></div><div class="bar"><i style="width:44%"></i></div></div>
+        <div class="col" style="gap:6px"><div class="row" style="justify-content:space-between"><span class="t-body">Fingerprinting</span><span class="t-value">24</span></div><div class="bar"><i style="width:12%"></i></div></div>
+        <div class="col" style="gap:6px"><div class="row" style="justify-content:space-between"><span class="t-body">Permission asks</span><span class="t-value">2</span></div><div class="bar"><i style="width:2%"></i></div></div>
+      </div>
+    </div>
+    <p class="label sentence" style="margin-top:14px">BY SITE</p>
+    <div class="group room-fern">
+      <div class="opt"><span class="mg s36">Fr</span><span class="gt f1">Forum</span><span class="t-value">164</span></div>
+      <div class="opt"><span class="mg s36">Mk</span><span class="gt f1">Marketplace</span><span class="t-value">97</span></div>
+      <div class="opt"><span class="mg s36">Rd</span><span class="gt f1">Reader</span><span class="t-value">39</span></div>
+      <div class="opt"><span class="mg s36">Wm</span><span class="gt f1">Webmail</span><span class="t-value">12</span></div>
+    </div>
+    <p class="t-meta" style="margin:10px 4px 8px">Counts are kept in memory only and reset when the app closes.</p>
+  </div></div>
+  <nav class="tabbar">
+    <span class="ti"><span class="ind"><svg class="ic"><use href="#i-sites"/></svg></span>Sites</span>
+    <span class="ti sel"><span class="ind"><svg class="ic"><use href="#i-today"/></svg></span>Today</span>
+    <span class="ti"><span class="ind"><svg class="ic"><use href="#i-settings"/></svg></span>Settings</span>
+  </nav>
+</div>
+</div>
+</section>
+
+<section data-block="6c">
+<header><span class="bid">6c</span>Site sheet — what this container is running under, editable in place
+<span class="note">As built (Plan 16's shield panel). The header is the site's room. Switches are ink, never the room colour. Category counts are sample figures that add up to the canvas's 164. When a switch changes, the sheet closes and the page's room wall redraws itself (the reopen-in-place motion).</span></header>
+<div class="frames">
+<div class="phone room-fern">
+  <div class="sys" style="background:var(--tint)"></div>
+  <div class="chrome-top">
+    <div class="addr">
+      <svg class="door" style="color:var(--ink);width:16px;height:20px"><use href="#i-door-open"/></svg>
+      <div class="hc"><span class="host ell">forum.example.com</span><span class="badge">SOCKS5</span></div>
+      <span class="tap"><svg class="ic s20"><use href="#i-reload"/></svg></span>
+      <span class="tap"><svg class="ic s20"><use href="#i-shield"/></svg></span>
+    </div>
+    <span class="panic"><svg class="ic s20"><use href="#i-panic"/></svg></span>
+  </div>
+  <div class="walled" style="background:#26231F"><div class="webpage"><i class="h"></i><i></i></div></div>
+  <div class="scrim"></div>
+  <div class="sheet">
+    <div class="handle"></div>
+    <div class="row" style="background:var(--tint);border-radius:var(--r-l);padding:12px 6px 12px 12px;flex-wrap:wrap">
+      <span class="mg s52">Fr<span class="flame"><svg class="ic s16" aria-label="Wipe on exit"><use href="#i-flame"/></svg></span></span>
+      <div class="col f1" style="min-width:120px"><span class="t-sheet ell">Forum</span><span class="t-value" style="color:var(--room-ink)">forum.example.com · Personal</span></div>
+      <span class="textbtn" role="button" style="border:2px solid var(--ink3)">Edit</span>
+    </div>
+    <div class="group">
+      <div class="opt"><span class="gt f1">Proxy</span><span class="gv mono">SOCKS5 · 127.0.0.1:9050</span><svg class="ic s16 ink3"><use href="#i-fwd"/></svg></div>
+      <div class="opt"><span class="gt f1">Cookies</span><span class="gv"><svg class="ic s16" aria-hidden="true" style="vertical-align:-2px;margin-right:4px"><use href="#i-flame"/></svg>Wipe on exit</span></div>
+      <div class="opt"><span class="gt f1">Security level</span><span class="gv">Standard · default</span><svg class="ic s16 ink3"><use href="#i-fwd"/></svg></div>
+      <div class="opt" style="flex-wrap:wrap"><span class="gt f1">Blocked here</span><span class="gv">164 requests</span>
+        <div class="col" style="width:100%;gap:6px;padding:4px 0 0 16px">
+          <div class="row" style="justify-content:space-between"><span class="t-muted">Trackers</span><span class="t-value">112</span></div>
+          <div class="row" style="justify-content:space-between"><span class="t-muted">Ads</span><span class="t-value">41</span></div>
+          <div class="row" style="justify-content:space-between"><span class="t-muted">Fingerprinting</span><span class="t-value">11</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="group">
+      <div class="opt"><span class="gt f1">Block WebRTC</span><span class="sw on"></span></div>
+      <div class="opt"><span class="gt f1">Block trackers and ads</span><span class="sw on"></span></div>
+      <div class="opt"><span class="gt f1">Anti-fingerprinting</span><span class="sw on"></span></div>
+      <div class="opt"><span class="gt f1">Force dark mode</span><span class="sw on"></span></div>
+      <div class="opt"><span class="gt f1">Desktop view</span><span class="sw"></span></div>
+    </div>
+    <span class="pill secondary"><svg class="ic s20" aria-hidden="true" style="color:var(--ink2)"><use href="#i-flame"/></svg>Close and wipe this session</span>
+  </div>
+</div>
+</div>
+</section>
+
+<section data-block="8b">
+<header><span class="bid">8b</span>Proxy unreachable — no silent fallback, the risky option is spelled out
+<span class="note">As built (proxyUnreachable variant). Shown in place of the page, inside Forum's room: the walls stay Fern, so the user knows which container refused. The pill's edge turns danger and its door becomes the refused mark. No red fill: danger is text and outline only.</span></header>
+<div class="frames">
+<div class="phone room-fern">
+  <div class="sys" style="background:var(--tint)"></div>
+  <div class="chrome-top">
+    <span class="tap ink3" aria-hidden="true"><svg class="ic s20"><use href="#i-back"/></svg></span>
+    <div class="addr" style="border-color:var(--danger);padding-right:14px">
+      <svg class="ic s20 danger" aria-hidden="true"><use href="#i-refused"/></svg>
+      <div class="hc"><span class="host ell">forum.example.com</span></div>
+    </div>
+    <span class="tap ink3" aria-hidden="true"><svg class="ic s20"><use href="#i-reload"/></svg></span>
+  </div>
+  <div class="walled" style="background:var(--page);margin-bottom:10px">
+    <div class="scroll"><div class="col" style="padding:24px 20px 20px;gap:16px">
+      <span style="width:56px;height:56px;border-radius:var(--r-m);border:2px solid var(--danger);color:var(--danger);display:grid;place-items:center"><svg class="ic s28"><use href="#i-refused"/></svg></span>
+      <h2 class="t-sheet" style="margin:0">Proxy did not answer</h2>
+      <p class="t-muted" style="margin:0">Forum is set to go through socks5 · 127.0.0.1:9050 and nothing is listening there. The page was not loaded, so no request left your device.</p>
+      <div class="group">
+        <div class="opt" style="flex-wrap:wrap;gap:4px 12px"><span class="t-meta f1">Tunnel</span><span class="t-value" style="color:var(--ink)">socks5 · 127.0.0.1:9050</span></div>
+        <div class="opt" style="flex-wrap:wrap;gap:4px 12px"><span class="t-meta f1">Last worked</span><span class="t-body">2 hours ago</span></div>
+      </div>
+      <div class="col" style="gap:10px;margin-top:6px">
+        <span class="pill primary">Try again</span>
+        <span class="pill secondary">Change proxy settings</span>
+        <span class="pill dangerline">Open without the tunnel<small>This site will see your real IP</small></span>
+      </div>
+    </div></div>
   </div>
 </div>
 </div>

@@ -111,7 +111,7 @@ body.theme-dark .frame-note { color: #B4BBB6; }
 .row.mg + .row.mg::before { left: 72px; }
 .row .txt { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
 .row .end { flex: none; display: flex; align-items: center; gap: 8px; color: var(--ink2); text-align: right; max-width: 55%; }
-.row .end.wide { flex: 0 1 auto; min-width: 0; }
+.row .end.wide { flex: 0 1 auto; min-width: 0; max-width: 68%; }
 .chev { color: var(--ink2); }
 
 /* monograms */
@@ -223,6 +223,14 @@ body.theme-dark .frame-note { color: #B4BBB6; }
 .actions .btn { flex: 1 1 auto; width: auto; }
 .panicbtn { width: 52px; height: 52px; border-radius: 999px; background: var(--danger-container); color: var(--danger); display: grid; place-items: center; flex: none; border: 1.5px solid var(--danger); }
 .chrome-only { flex: none; }
+
+.bars { padding: 8px 16px 12px; }
+.barrow { display: flex; align-items: center; gap: 12px; padding: 8px 0; flex-wrap: wrap; }
+.barrow .lbl { flex: 0 0 auto; width: 8.5rem; max-width: 100%; }
+.barrow .track { flex: 1 1 80px; height: 8px; border-radius: 999px; background: var(--tonal); overflow: hidden; min-width: 60px; }
+.barrow .track > i { display: block; height: 100%; border-radius: 999px; background: var(--ink2); }
+.barrow .track > i.warn { background: var(--warning); }
+.barrow .n { flex: none; min-width: 2.5rem; text-align: right; font-family: var(--font-mono); font-size: var(--fs-value); }
 
 /* dashboard */
 .chiprow { display: flex; align-items: center; gap: 8px; padding: 8px 8px 8px 16px; flex: none; flex-wrap: wrap; }
@@ -515,6 +523,203 @@ body.theme-dark .frame-note { color: #B4BBB6; }
         <span class="btn tonal">Close all and wipe</span>
         <span class="panicbtn" aria-label="Panic"><svg class="ic"><use href="#i-panic"/></svg></span>
       </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== 2d ===================== -->
+<section data-block="2d">
+  <div class="blabel">2d · Settings (as the dashboard's Settings tab)<span>Canvas: “Settings — lock, vault and panic behaviour”. Identical in both vaults. Inert switches drawn in the disabled tone, not at 40 % opacity.</span></div>
+  <div class="phone">
+    <div class="statusbar"></div>
+    <div class="appbar notback"><span class="t-screen">Settings</span></div>
+    <div class="scroll pad">
+      <span class="t-label sentence section-label first blocklevel">LOCK</span>
+      <div class="group">
+        <div class="row two"><span class="txt"><span class="t-body">Unlock with biometrics</span><span class="t-meta">PIN always available as fallback</span></span><span class="sw-hit"><span class="sw on"></span></span></div>
+        <div class="row"><span class="txt t-body">Auto-lock</span><span class="end t-meta">After 1 min</span></div>
+        <div class="row"><span class="txt t-body">Change main PIN</span><span class="end"><svg class="ic s20 chev"><use href="#i-forward"/></svg></span></div>
+      </div>
+      <span class="t-label sentence section-label blocklevel">MANAGE</span>
+      <div class="group">
+        <div class="row"><span class="txt t-body">Workspaces</span><span class="end"><svg class="ic s20 chev"><use href="#i-forward"/></svg></span></div>
+        <div class="row"><span class="txt t-body">Scripts and filters</span><span class="end"><svg class="ic s20 chev"><use href="#i-forward"/></svg></span></div>
+      </div>
+      <span class="t-label sentence section-label blocklevel">BROWSING</span>
+      <div class="group">
+        <div class="row"><span class="txt t-body">Search engine</span><span class="end t-meta">DuckDuckGo</span></div>
+        <div class="row"><span class="txt t-body">Default route</span><span class="end t-meta">Direct</span></div>
+        <div class="row"><span class="txt t-body">Security level</span><span class="end t-meta">Standard</span></div>
+      </div>
+      <span class="t-label sentence section-label blocklevel">VAULT</span>
+      <div class="group">
+        <div class="row two"><span class="txt"><span class="t-body">Decoy vault</span><span class="t-meta">A second PIN opens a harmless board</span></span><span class="sw-hit"><span class="sw on inert"></span></span></div>
+        <div class="row"><span class="txt t-body">Sites shown in decoy</span><span class="end t-meta">4 selected</span></div>
+        <div class="row"><span class="txt t-body">Re-sync decoy now</span><span class="end"><svg class="ic s20 chev"><use href="#i-forward"/></svg></span></div>
+        <div class="row two"><span class="txt"><span class="t-body">Hide from app switcher</span><span class="t-meta">Blurs previews, blocks screenshots</span></span><span class="sw-hit"><span class="sw on inert"></span></span></div>
+      </div>
+      <span class="t-label sentence section-label blocklevel">PANIC</span>
+      <div class="group">
+        <div class="row two"><span class="txt"><span class="t-body">Trigger by flipping face down</span><span class="t-meta">Uses the accelerometer</span></span><span class="sw-hit"><span class="sw"></span></span></div>
+        <div class="row"><span class="txt t-body">On panic</span><span class="end t-meta">Wipe + lock</span></div>
+      </div>
+      <p class="t-caption" style="padding:16px 16px 24px;margin:0">Nothing leaves this device. There is no account and no sync.</p>
+    </div>
+    <div class="navbar">
+      <div class="nav"><span class="ind"><svg class="ic"><use href="#i-sites"/></svg></span><span class="t-bar">Sites</span></div>
+      <div class="nav"><span class="ind"><svg class="ic"><use href="#i-today"/></svg></span><span class="t-bar">Today</span></div>
+      <div class="nav on"><span class="ind"><svg class="ic"><use href="#i-settings"/></svg></span><span class="t-bar">Settings</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== 3a ===================== -->
+<section data-block="3a">
+  <div class="blabel">3a · Lock<span>Canvas: “Lock — one PIN field, no mention of vaults”. The box mark is the only ornament; the same screen opens either vault.</span></div>
+  <div class="phone">
+    <div class="statusbar"></div>
+    <div class="pinwrap">
+      <div class="pinmsg">
+        <span class="mark" style="color:var(--accent)"><svg style="width:56px;height:56px"><use href="#logo-cur"/></svg></span>
+        <span class="t-body" style="margin-top:24px;font-size:var(--fs-sheet);font-weight:500">Enter your PIN</span>
+        <div class="dots"><span class="dot f"></span><span class="dot f"></span><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="dot"></span></div>
+      </div>
+      <div class="keypad">
+        <span class="key">1</span><span class="key">2</span><span class="key">3</span>
+        <span class="key">4</span><span class="key">5</span><span class="key">6</span>
+        <span class="key">7</span><span class="key">8</span><span class="key">9</span>
+        <span class="key blank"></span><span class="key">0</span><span class="key bs" aria-label="Delete"><svg class="ic s32"><use href="#i-backspace"/></svg></span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== 4a ===================== -->
+<section data-block="4a">
+  <div class="blabel">4a · Setup: choose a PIN<span>Canvas: “Setup — main PIN, three steps, no account”. Continue stays tonal until six digits are in.</span></div>
+  <div class="phone">
+    <div class="statusbar"></div>
+    <div class="pinwrap">
+      <div class="steps"><i class="on"></i><i></i><i></i></div>
+      <div class="pinmsg start">
+        <span class="t-step">Choose a PIN</span>
+        <span class="t-body2" style="margin-top:12px">Six digits. It encrypts everything stored on this device. There is no account and no way to recover it, so pick something you will remember.</span>
+        <div class="dots"><span class="dot f"></span><span class="dot f"></span><span class="dot f"></span><span class="dot"></span><span class="dot"></span><span class="dot"></span></div>
+      </div>
+      <div class="keypad">
+        <span class="key">1</span><span class="key">2</span><span class="key">3</span>
+        <span class="key">4</span><span class="key">5</span><span class="key">6</span>
+        <span class="key">7</span><span class="key">8</span><span class="key">9</span>
+        <span class="key blank"></span><span class="key">0</span><span class="key bs" aria-label="Delete"><svg class="ic s32"><use href="#i-backspace"/></svg></span>
+      </div>
+      <div style="padding:0 0 24px;flex:none"><span class="btn disabled">Continue</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== 5c ===================== -->
+<section data-block="5c">
+  <div class="blabel">5c · Today (as the dashboard's Today tab)<span>Canvas: “Today — a quiet log, not a dashboard of scary numbers”. Bars are ink, not the accent: a count is data, not a score.</span></div>
+  <div class="phone">
+    <div class="statusbar"></div>
+    <div class="appbar notback"><span class="t-screen">Today</span></div>
+    <div class="scroll pad">
+      <div class="group" style="padding:20px 16px 16px">
+        <div class="t-display">312</div>
+        <div class="t-body2">requests blocked across 4 sites</div>
+      </div>
+      <div class="group bars">
+        <div class="barrow"><span class="t-body lbl">Trackers</span><span class="track"><i style="width:100%"></i></span><span class="n">198</span></div>
+        <div class="barrow"><span class="t-body lbl">Ads</span><span class="track"><i style="width:44%"></i></span><span class="n">88</span></div>
+        <div class="barrow"><span class="t-body lbl">Fingerprinting</span><span class="track"><i style="width:12%"></i></span><span class="n">24</span></div>
+        <div class="barrow"><span class="t-body lbl">Permission asks</span><span class="track"><i class="warn" style="width:4%"></i></span><span class="n">2</span></div>
+      </div>
+      <span class="t-label sentence section-label blocklevel">BY SITE</span>
+      <div class="group">
+        <div class="row mg"><span class="mg-b"><i>Fr</i></span><span class="txt t-body ell">Forum</span><span class="end t-value">164</span></div>
+        <div class="row mg"><span class="mg-b"><i>Mk</i></span><span class="txt t-body ell">Marketplace</span><span class="end t-value">97</span></div>
+        <div class="row mg"><span class="mg-b"><i>Rd</i></span><span class="txt t-body ell">Reader</span><span class="end t-value">39</span></div>
+        <div class="row mg"><span class="mg-b"><i>Wm</i></span><span class="txt t-body ell">Webmail</span><span class="end t-value">12</span></div>
+      </div>
+      <p class="t-caption" style="padding:16px 16px 24px;margin:0">Counts are kept in memory only and reset when the app closes.</p>
+    </div>
+    <div class="navbar">
+      <div class="nav"><span class="ind"><svg class="ic"><use href="#i-sites"/></svg></span><span class="t-bar">Sites</span></div>
+      <div class="nav on"><span class="ind"><svg class="ic"><use href="#i-today"/></svg></span><span class="t-bar">Today</span></div>
+      <div class="nav"><span class="ind"><svg class="ic"><use href="#i-settings"/></svg></span><span class="t-bar">Settings</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== 6c ===================== -->
+<section data-block="6c">
+  <div class="blabel">6c · Shield panel (site sheet)<span>Canvas: “Site sheet — what this container is running under, editable in place”. Drawn as built (Plan 16). The shield in the pill is spruce while protections are on; the tally is a quiet line, never a score.</span></div>
+  <div class="phone fixed">
+    <div class="statusbar" style="background:var(--card)"></div>
+    <div class="topbar">
+      <div class="pill">
+        <span class="ctype"><svg class="ic"><use href="#i-box-dashed"/></svg><span class="livedot"></span></span>
+        <span class="host ell">forum.example.com</span>
+        <span class="route">SOCKS5</span>
+        <span class="inpill"><svg class="ic s20"><use href="#i-reload"/></svg></span>
+        <span class="inpill shield"><svg class="ic"><use href="#i-shield"/></svg></span>
+      </div>
+      <span class="panic"><svg class="ic"><use href="#i-panic"/></svg></span>
+    </div>
+    <div class="pagefill"><i class="h"></i><i></i><i></i><i class="s"></i><i class="img"></i><i></i><i></i></div>
+    <div class="scrim"></div>
+    <div class="sheet">
+      <div class="handle"></div>
+      <div class="sheethead" style="padding-right:8px"><span class="mg-b open"><i>Fr</i></span><span class="txt"><span class="t-sheet ell">Forum</span><span class="t-value wrap">forum.example.com · Personal</span></span><span class="textbtn">Edit</span></div>
+      <div class="pad"><div class="group">
+        <div class="row two"><span class="txt t-body">Proxy</span><span class="end wide"><span class="t-value wrap">SOCKS5 · 127.0.0.1:9050</span><svg class="ic s20 chev"><use href="#i-forward"/></svg></span></div>
+        <div class="row"><span class="txt t-body">Cookies</span><span class="end wide t-meta">Wipe on exit</span></div>
+        <div class="row"><span class="txt t-body">Security level</span><span class="end wide"><span class="t-meta">Standard · default</span><svg class="ic s20 chev"><use href="#i-forward"/></svg></span></div>
+        <div class="row"><span class="txt t-body">Blocked here</span><span class="end wide t-meta">164 requests</span></div>
+        <div style="padding:0 16px 12px 32px;display:flex;flex-direction:column;gap:6px">
+          <div style="display:flex;justify-content:space-between;gap:12px"><span class="t-meta">Trackers</span><span class="t-value">112</span></div>
+          <div style="display:flex;justify-content:space-between;gap:12px"><span class="t-meta">Ads</span><span class="t-value">46</span></div>
+          <div style="display:flex;justify-content:space-between;gap:12px"><span class="t-meta">Fingerprinting</span><span class="t-value">6</span></div>
+        </div>
+      </div>
+      <div class="group">
+        <div class="row"><span class="txt t-body">Block WebRTC</span><span class="sw-hit"><span class="sw on"></span></span></div>
+        <div class="row"><span class="txt t-body">Block trackers and ads</span><span class="sw-hit"><span class="sw on"></span></span></div>
+        <div class="row"><span class="txt t-body">Anti-fingerprinting</span><span class="sw-hit"><span class="sw on"></span></span></div>
+        <div class="row"><span class="txt t-body">Force dark mode</span><span class="sw-hit"><span class="sw on"></span></span></div>
+        <div class="row"><span class="txt t-body">Desktop view</span><span class="sw-hit"><span class="sw"></span></span></div>
+      </div></div>
+      <div style="padding:16px 24px 8px"><span class="btn tonal dng">Close and wipe this session</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== 8b ===================== -->
+<section data-block="8b">
+  <div class="blabel">8b · Proxy refused (proxyUnreachable variant)<span>Canvas: “Proxy unreachable — no silent fallback, the risky option is spelled out”. Danger is the pill's outline, a small tinted mark and one outlined button — never a fill. The risky option sits 24 dp apart.</span></div>
+  <div class="phone">
+    <div class="statusbar" style="background:var(--card)"></div>
+    <div class="topbar">
+      <span class="btn-icon dim" style="width:40px"><svg class="ic"><use href="#i-back"/></svg></span>
+      <div class="pill dng">
+        <span class="ctype"><svg class="ic"><use href="#i-box-dashed"/></svg><span class="livedot dng"></span></span>
+        <span class="host ell">forum.example.com</span>
+      </div>
+      <span class="btn-icon dim" style="width:40px"><svg class="ic s20"><use href="#i-reload"/></svg></span>
+    </div>
+    <div class="scroll" style="padding:32px 24px 24px">
+      <span class="mark dng"><svg class="ic s32"><use href="#i-refused"/></svg></span>
+      <div class="t-step" style="margin-top:20px">Proxy did not answer</div>
+      <p class="t-body2" style="margin:12px 0 0">Forum is set to go through socks5 · 127.0.0.1:9050 and nothing is listening there. The page was not loaded, so no request left your device.</p>
+      <div class="group" style="margin-top:20px">
+        <div class="row"><span class="txt t-meta">Tunnel</span><span class="end wide"><span class="t-value wrap" style="color:var(--ink)">socks5 · 127.0.0.1:9050</span></span></div>
+        <div class="row"><span class="txt t-meta">Last worked</span><span class="end wide t-body" style="font-size:var(--fs-meta)">2 hours ago</span></div>
+      </div>
+      <div class="stack" style="margin-top:24px">
+        <span class="btn filled">Try again</span>
+        <span class="btn tonal">Change proxy settings</span>
+      </div>
+      <div style="margin-top:24px"><span class="btn outline-dng">Open without the tunnel<span class="sub">This site will see your real IP</span></span></div>
     </div>
   </div>
 </section>
