@@ -93,4 +93,14 @@ void main() {
     expect(border.top.width, 1.5);
     expect(tester.getSize(find.byWidget(box)).height, greaterThanOrEqualTo(48));
   });
+
+  // Plan 24: the + on jade takes the label-on-jade colour, which in light is
+  // white, not the page colour.
+  testWidgets('in light the emphasised + is drawn in onJade', (tester) async {
+    C.use(Brightness.light);
+    await _pump(tester, emphasise: true);
+    final tap = tester.widget<IconTap>(findIconTap('Add site'));
+    expect(tap.background, Palette.light.jade);
+    expect(tap.color, Palette.light.onJade);
+  });
 }

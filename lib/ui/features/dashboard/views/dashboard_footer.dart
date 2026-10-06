@@ -86,7 +86,7 @@ class DashboardFooter extends StatelessWidget {
                   iconSize: 22,
                   radius: R.input,
                   background: emphasise ? C.jade : C.button,
-                  color: emphasise ? C.bg : C.icon,
+                  color: emphasise ? C.onJade : C.icon,
                 ),
               ],
             ),
