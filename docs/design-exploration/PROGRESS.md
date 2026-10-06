@@ -16,7 +16,7 @@ design-exploration-restyle
 
 ## Next action
 
-Phase 4: round-1 debate agents (7) are writing to debate/round-1/; when all seven files exist, run round 2.
+Phase 4: round-2 agents (7) are writing to debate/round-2/; when all exist, write VERDICT.md yourself.
 
 ## Toolchain
 
@@ -104,8 +104,8 @@ A later fire must reinstall all of it (~10 min); set
   - [x] Accessibility pass
 
 ### Phase 4 — Debate
-- [ ] Round 1: advocate A, B, C
-- [ ] Round 1: critics threat-model, accessibility, implementation-cost, familiarity
+- [x] Round 1: advocate A, B, C
+- [x] Round 1: critics threat-model, accessibility, implementation-cost, familiarity
 - [ ] Round 2: advocate rebuttals A, B, C
 - [ ] Round 2: critic replies (4)
 - [ ] VERDICT.md
