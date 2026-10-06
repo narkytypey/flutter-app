@@ -57,3 +57,12 @@ writing BRIEF/TOKENS first and screens block by block, and the ledger is
 committed after each agent's report. If a fire dies mid-way, the next one
 finds each direction's own file state and the checklist says which blocks
 exist.
+
+## D5 — Fire 7a41e2 takes over a stale run (2026-10-06T04:05Z)
+
+The ledger's heartbeat was six hours old and no commit had landed since
+22:23Z, so no sibling is live. This fire's harness branch is
+`second/gracious-cannon-vgx0f2`; `tools/push.sh` now mirrors there, for the
+reason D0 gives. Since this may be the last fire of the night, it builds the
+three directions' screens in parallel (as D4) and then drives straight
+through the debate, spec, plans and code.

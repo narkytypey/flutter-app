@@ -9,5 +9,5 @@ for i in 1 2 3; do
   git pull -q --rebase origin "$B" && git push -q origin "$B" && break
   sleep $((i*2))
 done
-if [ "$B" = design-exploration-restyle ] || [ "$B" = restyle-implementation ]; then git push -q -f origin HEAD:second/gracious-cannon-1eynaf 2>/dev/null; fi
+if [ "$B" = design-exploration-restyle ] || [ "$B" = restyle-implementation ]; then git push -q -f origin HEAD:second/gracious-cannon-vgx0f2 2>/dev/null; fi
 git log --oneline -1
