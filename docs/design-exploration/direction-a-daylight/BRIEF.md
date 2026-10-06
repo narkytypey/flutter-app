@@ -200,6 +200,19 @@ CSS, so the stored strings are untouched). Questions found while drawing:
    (`Personal ▼`, `PROXY`/`TEMP`/`LOCK`, `Open · now`, `Add site`, `LIVE`,
    `SAVED`, `WORKSPACE`, `page preview`) and are labelled as canvas mocks.
 
+5. **`6a`'s filled button.** The canvas fills **Keep blocked**; the code
+   fills **Allow once** (inventory: an unreconciled deviation). `screens.html`
+   follows the code (D2, mock the app as built). Daylight's own leaning is the
+   canvas: the safe answer as the one filled action matches its "quiet when
+   healthy" rule. A ruling is needed either way.
+6. **Mono values that break mid-host at 2.0×.** At 2.0 on a 320–390 dp phone a
+   host such as `notes.example.org · socks5` wraps inside the host
+   (`notes.examp` / `le.org`). No copy change can fix it; the app could
+   prefer breaks after `.` (a `TextPainter` concern, not a string one).
+   Recorded, not a copy question.
+
+(Added 2026-10-06 while building `screens.html`; nothing above it changed.)
+
 ## Logo files
 
 - `logo.svg` — primary mark, 48-unit grid: lid `#2F8F74` over body
