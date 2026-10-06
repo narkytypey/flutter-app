@@ -150,7 +150,7 @@ section[data-block] > header .note { display: block; margin-top: 4px; opacity: .
 .addr .tap { min-width: 44px; min-height: 44px; }
 .panic { flex: none; width: 48px; height: 48px; border-radius: 14px; background: var(--danger-tint); color: var(--danger); display: grid; place-items: center; }
 .walled { flex: 1 1 auto; margin: 0 8px; border: var(--wall-w) solid var(--wall); border-radius: 18px; overflow: hidden; position: relative; display: flex; flex-direction: column; min-height: 0; }
-.loadline { height: 3px; background: var(--ink); width: 46%; border-radius: 0 3px 3px 0; }
+.loadline { height: 3px; background: #F2EBE0; width: 46%; border-radius: 0 3px 3px 0; }
 .webpage { flex: 1 1 auto; background: #26231F; padding: 18px 16px; display: flex; flex-direction: column; gap: 12px; }
 .webpage i { display: block; height: 12px; border-radius: 6px; background: rgba(255,255,255,.10); }
 .webpage i.h { height: 22px; width: 72%; background: rgba(255,255,255,.16); }
@@ -201,6 +201,14 @@ section[data-block] > header .note { display: block; margin-top: 4px; opacity: .
 .tile .sq { width: 56px; height: 52px; border-radius: 16px; background: var(--sunken); display: grid; place-items: center; color: var(--ink); }
 .mrow { display: flex; align-items: center; gap: 12px; min-height: 56px; padding: 12px 16px; border-top: 1px solid var(--hairline); }
 .mrow:first-child { border-top: 0; }
+.tabs { display: flex; flex-wrap: wrap; padding: 0 8px; border-bottom: 1px solid var(--divider); flex: none; }
+.tabs span { flex: 1 1 auto; min-height: 48px; display: flex; align-items: center; justify-content: center; padding: 10px 8px; text-align: center;
+  font: 600 calc(15px*var(--scale))/1.33 var(--ui); color: var(--ink2); border-bottom: 3px solid transparent; }
+.tabs span.sel { color: var(--ink); font-weight: 700; border-bottom-color: var(--ink); }
+.form { display: flex; flex-direction: column; gap: 10px; padding: 16px; }
+.form .label { margin-top: 10px; }
+.opt { display: flex; align-items: center; gap: 12px; padding: 14px 16px; min-height: 64px; border-top: 1px solid var(--hairline); }
+.opt:first-child { border-top: 0; }
 .hr { height: 1px; background: var(--divider); flex: none; }
 </style>
 </head>
@@ -388,6 +396,64 @@ section[data-block] > header .note { display: block; margin-top: 4px; opacity: .
       <div class="mrow"><span class="gt f1">All sites</span><svg class="ic s16 ink3"><use href="#i-fwd"/></svg></div>
     </div>
   </div>
+</div>
+</div>
+</section>
+
+<section data-block="2a">
+<header><span class="bid">2a</span>Add site — four tabs, all visible from the start
+<span class="note">As built. Save is the screen's one solid ink pill. The name's monogram tile and the chosen workspace chip take that workspace's room colour. Left: Basics. Right: Network.</span></header>
+<div class="frames">
+<div class="phone room-fern">
+  <div class="sys"></div>
+  <div class="top">
+    <span class="tap ink" role="button" aria-label="Close"><svg class="ic"><use href="#i-close"/></svg></span>
+    <span class="t t-appbar ell">Add site</span>
+    <span class="savebtn">Save</span>
+  </div>
+  <div class="tabs"><span class="sel">Basics</span><span>Network</span><span>Privacy</span><span>Appearance</span></div>
+  <div class="scroll"><div class="form">
+    <p class="label sentence">ADDRESS</p>
+    <div class="field focus"><span class="t-value f1" style="color:var(--ink)">https://forum.example.com</span></div>
+    <p class="label sentence">NAME</p>
+    <div class="field"><span class="f1">Forum</span><span class="mg s36">Fr</span></div>
+    <p class="label sentence">WORKSPACE</p>
+    <div class="chips">
+      <span class="chip sel room-fern">Personal</span>
+      <span class="chip room-lake">Work</span>
+      <span class="chip room-graphite"><svg class="ic s16" aria-label="Wipe on exit"><use href="#i-flame"/></svg>Ephemeral</span>
+    </div>
+    <p class="label sentence">COOKIES</p>
+    <div class="group">
+      <div class="opt"><div class="col f1"><span class="gt">Keep for this site</span><span class="gs">Stays signed in, isolated from other sites</span></div><span class="radio"></span></div>
+      <div class="opt"><div class="col f1"><span class="gt" style="font-weight:600"><svg class="ic s16" style="vertical-align:-2px;margin-right:4px;color:var(--ink2)"><use href="#i-flame"/></svg>Wipe on exit</span><span class="gs">Cookies, cache and form history destroyed</span></div><span class="radio on"></span></div>
+    </div>
+  </div></div>
+</div>
+
+<div class="phone room-fern">
+  <div class="sys"></div>
+  <div class="top">
+    <span class="tap ink" role="button" aria-label="Close"><svg class="ic"><use href="#i-close"/></svg></span>
+    <span class="t t-appbar ell">Add site</span>
+    <span class="savebtn">Save</span>
+  </div>
+  <div class="tabs"><span>Basics</span><span class="sel">Network</span><span>Privacy</span><span>Appearance</span></div>
+  <div class="scroll"><div class="form">
+    <div class="group"><div class="opt"><div class="col f1"><span class="gt">Route through proxy</span><span class="gs">This site only</span></div><span class="sw on"></span></div></div>
+    <div class="chips" style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px">
+      <span class="seg sel">SOCKS5</span><span class="seg">HTTP</span><span class="seg"><svg class="ic s16" aria-hidden="true"><use href="#i-onion"/></svg>Tor</span>
+    </div>
+    <div style="display:grid;grid-template-columns:minmax(0,2fr) minmax(0,1fr);gap:10px">
+      <div class="col" style="gap:8px"><p class="label sentence">HOST</p><div class="field"><span class="t-value" style="color:var(--ink)">127.0.0.1</span></div></div>
+      <div class="col" style="gap:8px"><p class="label sentence">PORT</p><div class="field"><span class="t-value" style="color:var(--ink)">9050</span></div></div>
+    </div>
+    <div class="group">
+      <div class="opt"><div class="col f1"><span class="gt">Separate login per site</span><span class="gs">Tor gives this site its own circuit</span></div><span class="sw on"></span></div>
+      <div class="opt"><div class="col f1"><span class="gt">Block WebRTC</span><span class="gs">Prevents real IP leaking past the proxy</span></div><span class="sw on"></span></div>
+      <div class="opt"><div class="col f1"><span class="gt">Block trackers and ads</span><span class="gs">Local filter lists</span></div><span class="sw on"></span></div>
+    </div>
+  </div></div>
 </div>
 </div>
 </section>
