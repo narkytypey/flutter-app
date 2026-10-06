@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../core/icons.dart';
 import '../../../core/tokens.dart';
 import '../../../core/typography.dart';
+import '../../../core/widgets/choice_chip.dart';
 import '../../../core/widgets/hairline.dart';
 import '../../../core/widgets/icon_tap.dart';
 
@@ -20,8 +21,8 @@ class WorkspaceChip {
 /// Dashboard spec §4.2: the top of Sites. One chip per workspace, in the
 /// vault's order, then `+`, scrolling sideways. A tap views a workspace, a
 /// long-press opens its form (`10b`), and `+` makes a new one. Deleting stays
-/// in Settings ▸ Workspaces. No jade: the selected chip is drawn like `2a`'s
-/// selected mode chip. [badge] is the viewed workspace's `WIPES ON EXIT`,
+/// in Settings ▸ Workspaces. No jade: the selected chip is an [AppChip]
+/// (restyle v2 §5: raised fill, text-1 outline, a leading check). [badge] is the viewed workspace's `WIPES ON EXIT`,
 /// fixed at the row's end (plan D3).
 class WorkspaceChips extends StatelessWidget {
   const WorkspaceChips({
@@ -45,13 +46,13 @@ class WorkspaceChips extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       children: [
         Padding(
-          padding: const EdgeInsets.fromLTRB(0, 10, 18, 10),
+          padding: const EdgeInsets.fromLTRB(0, 4, 16, 4),
           child: Row(
             children: [
               Expanded(
                 child: SingleChildScrollView(
                   scrollDirection: Axis.horizontal,
-                  padding: const EdgeInsets.only(left: 18, right: 8),
+                  padding: const EdgeInsets.only(left: 16, right: 8),
                   child: Row(
                     children: [
                       for (final chip in chips) ...[_chip(chip), const SizedBox(width: 8)],
@@ -59,11 +60,9 @@ class WorkspaceChips extends StatelessWidget {
                         glyph: AppGlyph.plus,
                         label: 'New workspace',
                         onTap: onNew,
-                        size: 32,
-                        iconSize: 14,
+                        size: 48,
+                        iconSize: 20,
                         color: C.textMuted,
-                        background: C.button,
-                        radius: 16,
                       ),
                     ],
                   ),
@@ -73,37 +72,17 @@ class WorkspaceChips extends StatelessWidget {
             ],
           ),
         ),
-        const Hairline(),
+        const Hairline(color: C.line),
       ],
     );
   }
 
   Widget _chip(WorkspaceChip chip) {
-    return Semantics(
-      button: true,
+    return AppChip(
+      label: chip.name,
       selected: chip.selected,
-      child: GestureDetector(
-        onTap: () => onPick(chip.id),
-        onLongPress: () => onEdit(chip.id),
-        child: Container(
-          height: 32,
-          padding: const EdgeInsets.symmetric(horizontal: 14),
-          alignment: Alignment.center,
-          decoration: BoxDecoration(
-            color: chip.selected ? C.selected : null,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: chip.selected ? C.line10 : C.line07),
-          ),
-          child: Text(
-            chip.name,
-            style: ui(
-              size: 12.5,
-              weight: 500,
-              color: chip.selected ? C.textPrimary : C.tabInactive,
-            ),
-          ),
-        ),
-      ),
+      onTap: () => onPick(chip.id),
+      onLongPress: () => onEdit(chip.id),
     );
   }
 }

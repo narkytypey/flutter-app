@@ -1,3 +1,4 @@
+import 'package:container/ui/core/icons.dart';
 import 'package:container/ui/core/tokens.dart';
 import 'package:container/ui/features/dashboard/views/workspace_chips.dart';
 import 'package:flutter/material.dart';
@@ -64,5 +65,17 @@ void main() {
     expect(find.text('WIPES ON EXIT'), findsOneWidget);
     expect(tester.getCenter(find.text('WIPES ON EXIT')).dx,
         greaterThan(tester.getCenter(findIconTap('New workspace')).dx));
+  });
+
+  // Restyle v2 §5 (Plan 21 Task 1).
+  testWidgets('v2: only the selected chip shows a check', (tester) async {
+    await _pump(tester);
+
+    final check = findGlyph(AppGlyph.check);
+    expect(check, findsOneWidget);
+    final checkX = tester.getCenter(check).dx;
+    expect(checkX, lessThan(tester.getCenter(find.text('Personal')).dx));
+    expect(checkX, lessThan(tester.getCenter(find.text('Work')).dx));
+    expect(tester.getSize(findIconTap('New workspace')).height, greaterThanOrEqualTo(48));
   });
 }

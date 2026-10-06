@@ -39,7 +39,7 @@ void main() {
 
     expect(find.text('Search or type an address'), findsOneWidget);
     expect(find.text('+ Add site'), findsNothing);
-    expect(tester.getSize(findIconTap('Add site')), const Size(46, 46));
+    expect(tester.getSize(findIconTap('Add site')), const Size(48, 48));
     expect(find.bySemanticsLabel('Add site'), findsOneWidget);
     expect(tester.getCenter(findIconTap('Add site')).dx,
         greaterThan(tester.getCenter(find.byType(TextField)).dx));
@@ -76,5 +76,21 @@ void main() {
     expect(plus.background, C.jade);
     expect(plus.color, C.bg);
     expect(tester.widget<AppIcon>(findGlyph(AppGlyph.plus)).color, C.bg);
+  });
+
+  // Restyle v2 §8 `1b` (Plan 21 Task 1).
+  testWidgets('v2: the search field is 48 dp on the group tone with a 1.5 dp edge border',
+      (tester) async {
+    await _pump(tester);
+
+    final box = tester.widget<Container>(find
+        .ancestor(of: find.byKey(const Key('dashboard-search')), matching: find.byType(Container))
+        .first);
+    final decoration = box.decoration! as BoxDecoration;
+    expect(decoration.color, C.surface);
+    final border = decoration.border! as Border;
+    expect(border.top.color, C.edge);
+    expect(border.top.width, 1.5);
+    expect(tester.getSize(find.byWidget(box)).height, greaterThanOrEqualTo(48));
   });
 }

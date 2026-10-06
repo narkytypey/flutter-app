@@ -7,9 +7,10 @@ import '../../../core/typography.dart';
 /// The dashboard's tabs (dashboard spec §4.1), in bar order.
 enum DashboardTab { sites, today, settings }
 
-/// Spec §4.1's bottom tab bar: each tab a line icon over its label. The
-/// viewed tab is in the primary text colour, the others muted. No jade,
-/// which stays for open sessions.
+/// Spec §4.1's bottom tab bar: each tab a line icon over its label. Restyle
+/// v2 §5: the viewed tab's icon is its filled variant on a raised pill with
+/// a text-2 outline, its label text-1 at 600; the others are outline icons
+/// in text-2. No jade, which stays for open sessions.
 class DashboardTabBar extends StatelessWidget {
   const DashboardTabBar({super.key, required this.current, required this.onSelect});
 
@@ -17,23 +18,24 @@ class DashboardTabBar extends StatelessWidget {
   final ValueChanged<DashboardTab> onSelect;
 
   static const _tabs = [
-    (DashboardTab.sites, AppGlyph.sites, 'Sites'),
-    (DashboardTab.today, AppGlyph.today, 'Today'),
-    (DashboardTab.settings, AppGlyph.settings, 'Settings'),
+    (DashboardTab.sites, AppGlyph.sites, AppGlyph.sitesFilled, 'Sites'),
+    (DashboardTab.today, AppGlyph.today, AppGlyph.todayFilled, 'Today'),
+    (DashboardTab.settings, AppGlyph.settings, AppGlyph.settingsFilled, 'Settings'),
   ];
 
   @override
   Widget build(BuildContext context) {
     return DecoratedBox(
       decoration: const BoxDecoration(
-        color: C.footer,
-        border: Border(top: BorderSide(color: C.line07)),
+        color: C.bg,
+        border: Border(top: BorderSide(color: C.line)),
       ),
       child: SafeArea(
         top: false,
         child: Row(
           children: [
-            for (final (tab, glyph, label) in _tabs) Expanded(child: _item(tab, glyph, label)),
+            for (final (tab, glyph, filled, label) in _tabs)
+              Expanded(child: _item(tab, tab == current ? filled : glyph, label)),
           ],
         ),
       ),
@@ -49,15 +51,35 @@ class DashboardTabBar extends StatelessWidget {
       child: GestureDetector(
         behavior: HitTestBehavior.opaque,
         onTap: () => onSelect(tab),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 8),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              AppIcon(glyph, size: 20, color: color),
-              const SizedBox(height: 4),
-              Text(label, style: ui(size: 10.5, weight: 500, color: color)),
-            ],
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(minHeight: 56),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 6),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Container(
+                  width: 56,
+                  height: 28,
+                  alignment: Alignment.center,
+                  decoration: viewed
+                      ? BoxDecoration(
+                          color: C.button,
+                          borderRadius: BorderRadius.circular(R.full),
+                          border: Border.all(color: C.textMuted, width: 1.5),
+                        )
+                      : null,
+                  child: AppIcon(glyph, size: 20, color: color),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  label,
+                  textAlign: TextAlign.center,
+                  style: viewed ? T.tabSelected : T.tab,
+                ),
+              ],
+            ),
           ),
         ),
       ),
