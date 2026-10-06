@@ -4,7 +4,7 @@ Read this first. It is the only thing that carries across a restart.
 
 ## Where I got to
 
-Phases 0–7 done (index.html, spec, plans 20–23). Phase 8 on branch `restyle-implementation`.
+**Phase 8 is on branch `restyle-implementation`; read PROGRESS.md there.** This copy stops at phase 7.
 
 ## Heartbeat
 
@@ -16,7 +16,7 @@ design-exploration-restyle
 
 ## Next action
 
-Phase 8: execute Plan 20 (foundation) on `restyle-implementation`, task by task, gates after each.
+`git checkout restyle-implementation` and read its PROGRESS.md.
 
 ## Toolchain
 
