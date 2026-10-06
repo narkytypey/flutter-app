@@ -218,6 +218,12 @@ body.theme-dark .frame-note { color: #B4BBB6; }
 .split > div { flex: 2 1 140px; min-width: 0; }
 .split > div.narrow { flex: 1 1 80px; }
 
+.rail { position: absolute; left: 0; top: 14px; bottom: 14px; width: 4px; border-radius: 0 4px 4px 0; background: var(--accent); }
+.actions { display: flex; gap: 12px; align-items: center; padding: 16px 24px 8px; }
+.actions .btn { flex: 1 1 auto; width: auto; }
+.panicbtn { width: 52px; height: 52px; border-radius: 999px; background: var(--danger-container); color: var(--danger); display: grid; place-items: center; flex: none; border: 1.5px solid var(--danger); }
+.chrome-only { flex: none; }
+
 /* dashboard */
 .chiprow { display: flex; align-items: center; gap: 8px; padding: 8px 8px 8px 16px; flex: none; flex-wrap: wrap; }
 .chiprow .chips { flex: 1 1 auto; min-width: 0; }
@@ -468,5 +474,47 @@ body.theme-dark .frame-note { color: #B4BBB6; }
       </div>
     </div>
   </div>
+  </div>
+</section>
+
+<!-- ===================== 2c ===================== -->
+<section data-block="2c">
+  <div class="blabel">2c · Open containers (tabs)<span>Canvas: “Quick switcher drawer — thumb height, wipe and panic in the same sheet”. Drawn as built (Plan 15). The viewed container carries the one live bar.</span></div>
+  <div class="phone fixed">
+    <div class="statusbar" style="background:var(--card)"></div>
+    <div class="topbar">
+      <div class="pill">
+        <span class="ctype"><svg class="ic"><use href="#i-box-dashed"/></svg><span class="livedot"></span></span>
+        <span class="host ell">forum.example.com</span>
+        <span class="route">SOCKS5</span>
+        <span class="inpill"><svg class="ic s20"><use href="#i-reload"/></svg></span>
+        <span class="inpill shield"><svg class="ic"><use href="#i-shield"/></svg></span>
+      </div>
+      <span class="panic"><svg class="ic"><use href="#i-panic"/></svg></span>
+    </div>
+    <div class="pagefill"><i class="h"></i><i></i><i></i><i class="s"></i><i class="img"></i><i></i><i></i></div>
+    <div class="scrim"></div>
+    <div class="sheet">
+      <div class="handle"></div>
+      <div style="display:flex;justify-content:space-between;gap:12px;padding:8px 24px 12px;align-items:baseline">
+        <span class="t-label live sentence">3 OPEN SESSIONS</span>
+        <span class="t-label sentence ell" style="flex:0 1 auto">PERSONAL</span>
+      </div>
+      <div class="pad"><div class="group">
+        <div class="row two mg" style="padding-right:4px"><span class="rail"></span><span class="mg-b open"><i>Fr</i></span>
+          <span class="txt"><span class="t-row ell">Forum</span><span class="t-meta">viewing now · socks5</span></span>
+          <span class="btn-icon" aria-label="Close"><svg class="ic s20"><use href="#i-close"/></svg></span></div>
+        <div class="row two mg" style="padding-right:4px"><span class="mg-b open"><i>Nt</i></span>
+          <span class="txt"><span class="t-row ell">Notes</span><span class="t-meta">background · 2 min</span></span>
+          <span class="btn-icon" aria-label="Close"><svg class="ic s20"><use href="#i-close"/></svg></span></div>
+        <div class="row two mg" style="padding-right:4px"><span class="mg-b open"><i>Wm</i></span>
+          <span class="txt"><span class="t-row ell">Webmail</span><span class="t-meta">background · 14 min</span></span>
+          <span class="btn-icon" aria-label="Close"><svg class="ic s20"><use href="#i-close"/></svg></span></div>
+      </div></div>
+      <div class="actions">
+        <span class="btn tonal">Close all and wipe</span>
+        <span class="panicbtn" aria-label="Panic"><svg class="ic"><use href="#i-panic"/></svg></span>
+      </div>
+    </div>
   </div>
 </section>

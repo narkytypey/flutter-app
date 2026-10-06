@@ -210,6 +210,9 @@ section[data-block] > header .note { display: block; margin-top: 4px; opacity: .
 .form .label { margin-top: 10px; }
 .opt { display: flex; align-items: center; gap: 12px; padding: 14px 16px; min-height: 64px; border-top: 1px solid var(--hairline); }
 .opt:first-child { border-top: 0; }
+.ccard { display: flex; align-items: center; gap: 12px; padding: 12px 4px 12px 12px; min-height: 72px; border-radius: var(--r-l); }
+.ccard.viewed { background: var(--box); border: var(--wall-w) solid var(--wall); box-shadow: 0 4px 14px rgba(30,27,22,.10); }
+.ccard.bg { background: var(--tint); border-left: 6px solid var(--wall); }
 .hr { height: 1px; background: var(--divider); flex: none; }
 </style>
 </head>
@@ -455,6 +458,42 @@ section[data-block] > header .note { display: block; margin-top: 4px; opacity: .
       <div class="opt"><div class="col f1"><span class="gt">Block trackers and ads</span><span class="gs">Local filter lists</span></div><span class="sw on"></span></div>
     </div>
   </div></div>
+</div>
+</div>
+</section>
+
+<section data-block="2c">
+<header><span class="bid">2c</span>Quick switcher drawer — thumb height, wipe and panic in the same sheet
+<span class="note">As built (Plan 15). Every open container is a card in its own room's colour: the viewed one is lifted and fully walled, background ones are flat with a wall on their leading edge. Wiki is in Work (Lake).</span></header>
+<div class="frames">
+<div class="phone room-fern">
+  <div class="sys" style="background:var(--tint)"></div>
+  <div class="chrome-top">
+    <div class="addr">
+      <svg class="door" style="color:var(--ink);width:16px;height:20px"><use href="#i-door-open"/></svg>
+      <div class="hc"><span class="host ell">forum.example.com</span><span class="badge">SOCKS5</span></div>
+      <span class="tap"><svg class="ic s20"><use href="#i-reload"/></svg></span>
+      <span class="tap"><svg class="ic s20"><use href="#i-shield"/></svg></span>
+    </div>
+    <span class="panic"><svg class="ic s20"><use href="#i-panic"/></svg></span>
+  </div>
+  <div class="walled" style="background:#26231F"><div class="webpage"><i class="h"></i><i></i><i style="width:70%"></i><i class="img"></i></div></div>
+  <div class="scrim"></div>
+  <div class="sheet">
+    <div class="handle"></div>
+    <div class="row" style="justify-content:space-between;flex-wrap:wrap;gap:4px 12px;padding:0 4px">
+      <span class="t-summary sentence">4 OPEN SESSIONS</span>
+      <span class="t-label sentence" style="color:var(--room-ink)">PERSONAL</span>
+    </div>
+    <div class="ccard viewed room-fern"><span class="mg">Fr</span><div class="col f1"><span class="t-row ell">Forum</span><span class="t-meta">viewing now · socks5</span></div><span class="tap" role="button" aria-label="Close"><svg class="ic s20"><use href="#i-close"/></svg></span></div>
+    <div class="ccard bg room-fern"><span class="mg">Nt</span><div class="col f1"><span class="t-row ell">Notes</span><span class="t-meta">background · 2 min</span></div><span class="tap" role="button" aria-label="Close"><svg class="ic s20"><use href="#i-close"/></svg></span></div>
+    <div class="ccard bg room-lake"><span class="mg">Wk</span><div class="col f1"><span class="t-row ell">Wiki</span><span class="t-meta">background · 3 min</span></div><span class="tap" role="button" aria-label="Close"><svg class="ic s20"><use href="#i-close"/></svg></span></div>
+    <div class="ccard bg room-fern"><span class="mg">Wm</span><div class="col f1"><span class="t-row ell">Webmail</span><span class="t-meta">background · 14 min</span></div><span class="tap" role="button" aria-label="Close"><svg class="ic s20"><use href="#i-close"/></svg></span></div>
+    <div class="row" style="gap:10px;margin-top:4px">
+      <span class="pill secondary f1"><svg class="ic s20" aria-hidden="true" style="color:var(--ink2)"><use href="#i-flame"/></svg>Close all and wipe</span>
+      <span class="panic" role="button" aria-label="Panic" style="width:52px;height:52px;border:2px solid var(--danger)"><svg class="ic"><use href="#i-panic"/></svg></span>
+    </div>
+  </div>
 </div>
 </div>
 </section>
