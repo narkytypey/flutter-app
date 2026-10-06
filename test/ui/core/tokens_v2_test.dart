@@ -83,4 +83,134 @@ void main() {
     expect(C.markers, isNot(contains(C.jade)));
     expect(C.markers, hasLength(5));
   });
+
+  group('light palette (Plan 24, spec §9)', () {
+    tearDown(() => C.use(Brightness.dark));
+
+    test('Palette.dark holds exactly the v2 dark values', () {
+      const d = Palette.dark;
+      expect(d.bg, const Color(0xFF121110));
+      expect(d.bgReader, const Color(0xFF15120E));
+      expect(d.surface, const Color(0xFF22201D));
+      expect(d.skeleton, const Color(0xFF22201D));
+      expect(d.barTrack, const Color(0xFF22201D));
+      expect(d.sheet, const Color(0xFF302D29));
+      for (final c in [d.button, d.selected, d.monogramOpen]) {
+        expect(c, const Color(0xFF403C37));
+      }
+      for (final c in [d.textPrimary, d.textSecondary, d.monogramText, d.pillText, d.focus]) {
+        expect(c, const Color(0xFFEDEAE4));
+      }
+      for (final c in [d.textTertiary, d.textMuted, d.icon, d.tabInactive]) {
+        expect(c, const Color(0xFFCBC4B9));
+      }
+      for (final c in [d.textFaint, d.chevron, d.knobOff]) {
+        expect(c, const Color(0xFFA8A095));
+      }
+      for (final c in [d.edge, d.handle, d.idleDot, d.pinEmpty]) {
+        expect(c, const Color(0xFF958D82));
+      }
+      expect(d.line, const Color(0x24EDEAE4));
+      expect(d.lineSoft, const Color(0x14EDEAE4));
+      expect(d.jade, const Color(0xFF7FC8A9));
+      expect(d.onJade, const Color(0xFF121110));
+      expect(d.code, const Color(0xFFD9CFB8));
+      expect(d.danger, const Color(0xFFEE8D79));
+      expect(d.pinError, const Color(0xFFEE8D79));
+      expect(d.dangerSurface, const Color(0xFF2C201D));
+      expect(d.warning, const Color(0xFFE0B266));
+      expect(d.readerMuted, const Color(0xFFA39A8C));
+      expect(d.readerTitle, const Color(0xFFEFE8DC));
+      expect(d.readerBody, const Color(0xFFD3CBBE));
+      expect(d.markers, const [
+        Color(0xFFC9B48A),
+        Color(0xFF8FA5C8),
+        Color(0xFFE0B266),
+        Color(0xFFC89BB4),
+        Color(0xFFA8A095),
+      ]);
+    });
+
+    test('Palette.light holds spec §9 values', () {
+      const l = Palette.light;
+      expect(l.bg, const Color(0xFFF3F0EA));
+      expect(l.bgReader, const Color(0xFFF6F1E7));
+      expect(l.surface, const Color(0xFFFFFFFF));
+      expect(l.skeleton, const Color(0xFFE9E4DC));
+      expect(l.barTrack, const Color(0xFFE9E4DC));
+      expect(l.sheet, const Color(0xFFFAF8F4));
+      for (final c in [l.button, l.selected, l.monogramOpen]) {
+        expect(c, const Color(0xFFE3DDD3));
+      }
+      for (final c in [l.textPrimary, l.textSecondary, l.monogramText, l.pillText, l.focus]) {
+        expect(c, const Color(0xFF1C1A17));
+      }
+      for (final c in [l.textTertiary, l.textMuted, l.icon, l.tabInactive]) {
+        expect(c, const Color(0xFF4B453D));
+      }
+      for (final c in [l.textFaint, l.chevron, l.knobOff]) {
+        expect(c, const Color(0xFF686157));
+      }
+      for (final c in [l.edge, l.handle, l.idleDot, l.pinEmpty]) {
+        expect(c, const Color(0xFF857D72));
+      }
+      expect(l.line, const Color(0x241C1A17));
+      expect(l.lineSoft, const Color(0x141C1A17));
+      expect(l.jade, const Color(0xFF1D6B57));
+      expect(l.onJade, const Color(0xFFFFFFFF));
+      expect(l.code, const Color(0xFF7A5718));
+      expect(l.danger, const Color(0xFFB3261E));
+      expect(l.pinError, const Color(0xFFB3261E));
+      expect(l.dangerSurface, const Color(0xFFFBEAE6));
+      expect(l.warning, const Color(0xFF8A5800));
+      expect(l.readerMuted, const Color(0xFF5E564B));
+      expect(l.readerTitle, const Color(0xFF2B2620));
+      expect(l.readerBody, const Color(0xFF3A342C));
+      expect(l.markers, const [
+        Color(0xFF7D6532),
+        Color(0xFF3D5F8F),
+        Color(0xFF8A5800),
+        Color(0xFF8A4F72),
+        Color(0xFF6E675D),
+      ]);
+    });
+
+    test('C.use switches the active palette', () {
+      C.use(Brightness.light);
+      expect(C.brightness, Brightness.light);
+      expect(C.bg, const Color(0xFFF3F0EA));
+      expect(C.markers, Palette.light.markers);
+      C.use(Brightness.dark);
+      expect(C.brightness, Brightness.dark);
+      expect(C.bg, const Color(0xFF121110));
+      expect(C.markers, Palette.dark.markers);
+    });
+
+    test('every light pairing reaches its stated contrast', () {
+      const l = Palette.light;
+      final surfaces = [l.bg, l.surface, l.sheet, l.button];
+      // Text-1, text-2 and text-3 on all four surfaces (text-3 on raised is
+      // 4.53:1), and jade, code and danger text likewise.
+      for (final s in surfaces) {
+        for (final t in [l.textPrimary, l.textMuted, l.textFaint, l.jade, l.code, l.danger]) {
+          expect(contrast(t, s), greaterThanOrEqualTo(4.5), reason: '$t on $s');
+        }
+        expect(contrast(l.edge, s), greaterThanOrEqualTo(3.0), reason: 'edge on $s');
+      }
+      // Warning and the markers on page, group and sheet (never on raised).
+      for (final s in [l.bg, l.surface, l.sheet]) {
+        expect(contrast(l.warning, s), greaterThanOrEqualTo(4.5), reason: 'warning on $s');
+        for (final m in l.markers) {
+          expect(contrast(m, s), greaterThanOrEqualTo(4.5), reason: '$m on $s');
+        }
+      }
+      expect(contrast(l.onJade, l.jade), greaterThanOrEqualTo(4.5));
+      expect(contrast(l.danger, l.dangerSurface), greaterThanOrEqualTo(4.5));
+      expect(contrast(l.textPrimary, l.dangerSurface), greaterThanOrEqualTo(4.5));
+      for (final t in [l.readerTitle, l.readerBody, l.readerMuted]) {
+        expect(contrast(t, l.bgReader), greaterThanOrEqualTo(4.5));
+      }
+      expect(l.markers, isNot(contains(l.jade)));
+    });
+  });
 }
