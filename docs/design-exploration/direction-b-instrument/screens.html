@@ -256,6 +256,15 @@
   .tabstrip > span { display: flex; align-items: center; justify-content: center; text-align: center; min-height: var(--target); padding: var(--s2) 2px;
                      font: 500 var(--fs-sub)/1.25 var(--sans); color: var(--text-2); border-bottom: 2px solid transparent; overflow-wrap: anywhere; }
   .tabstrip > span.on { color: var(--text-1); font-weight: 600; border-bottom-color: var(--text-1); }
+  .sw-head { display: flex; justify-content: space-between; align-items: baseline; gap: var(--s3); padding: 0 var(--s1) var(--s3); font: 600 var(--fs-section)/1.43 var(--sans); }
+  .cont { display: flex; align-items: center; gap: var(--s3); min-height: 72px; padding: var(--s2) 0 var(--s2) var(--s1); }
+  .cont + .cont { border-top: 1px solid var(--line); }
+  .cont .text { flex: 1 1 auto; display: flex; flex-direction: column; gap: 2px; }
+  .sw-actions { display: flex; gap: var(--s2); padding-top: var(--s4); align-items: stretch; }
+  .sw-actions .btn { flex: 1 1 auto; width: auto; }
+  .panic.big { width: 52px; height: auto; min-height: 52px; border-radius: var(--r-full); }
+  .sheet .lt.live, .sheet .lt.bg { box-shadow: 0 0 0 2px var(--surface-sheet); }
+  .sheet .lt.idle { background: var(--surface-sheet); }
 </style>
 </head>
 <body>
@@ -403,6 +412,123 @@
         <div class="row two"><div class="text"><span class="row-title">Keep for this site</span><span class="sub">Stays signed in, isolated from other sites</span></div><span class="radio"></span></div>
         <div class="row two"><div class="text"><span class="row-title">Wipe on exit</span><span class="sub">Cookies, cache and form history destroyed</span></div><span class="radio on"></span></div>
       </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═════════════════════════ 2c ═════════════════════════ -->
+<section class="block" data-block="2c">
+  <p class="tag"><b>2c</b>Quick switcher drawer — thumb height, wipe and panic in the same sheet <i>(Plan 15 tabs; only the viewed container is jade)</i></p>
+  <div class="phone">
+    <div class="sys"></div>
+    <div class="topbar" aria-hidden="true">
+      <div class="pill"><span class="case wipe">Fr<span class="lt live"></span></span><span class="readout"><span class="host ell">forum.example.com</span><span class="badge">SOCKS5</span></span><span class="tap"><svg class="ic s20"><use href="#i-reload"/></svg></span><span class="tap"><svg class="ic"><use href="#i-shield"/></svg></span></div>
+      <span class="panic"><svg class="ic"><use href="#i-panic"/></svg></span>
+    </div>
+    <div class="page"><i class="h"></i><i class="m"></i><i></i><i class="img"></i><i></i><i class="s"></i></div>
+    <div class="scrim"></div>
+    <div class="sheet">
+      <div class="handle"></div>
+      <div class="sw-head"><span class="sc t1">3 OPEN SESSIONS</span><span class="sc t2 ell">PERSONAL</span></div>
+      <div class="cont">
+        <span class="mg">Fr<span class="lt live"></span></span>
+        <div class="text"><span class="row-title ell">Forum</span><span class="sub">viewing now · socks5</span></div>
+        <span class="tap" aria-label="Close"><svg class="ic s20"><use href="#i-close"/></svg></span>
+      </div>
+      <div class="cont">
+        <span class="mg">Nt<span class="lt bg"></span></span>
+        <div class="text"><span class="row-title ell">Notes</span><span class="sub">background · 2 min</span></div>
+        <span class="tap" aria-label="Close"><svg class="ic s20"><use href="#i-close"/></svg></span>
+      </div>
+      <div class="cont">
+        <span class="mg">Wm<span class="lt bg"></span></span>
+        <div class="text"><span class="row-title ell">Webmail</span><span class="sub">background · 14 min</span></div>
+        <span class="tap" aria-label="Close"><svg class="ic s20"><use href="#i-close"/></svg></span>
+      </div>
+      <div class="sw-actions">
+        <span class="btn neutral">Close all and wipe</span>
+        <span class="panic big" aria-label="Panic"><svg class="ic"><use href="#i-panic"/></svg></span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═════════════════════════ 2d ═════════════════════════ -->
+<section class="block" data-block="2d">
+  <p class="tag"><b>2d</b>Settings — lock, vault and panic behaviour <i>(Settings tab; dashed switch = on and inert)</i></p>
+  <div class="phone">
+    <div class="sys"></div>
+    <div class="hdr"><span class="screen-title">Settings</span></div>
+    <div class="fill gutter">
+      <span class="section sc">LOCK</span>
+      <div class="group">
+        <div class="row two"><div class="text"><span class="body">Unlock with biometrics</span><span class="sub">PIN always available as fallback</span></div><span class="sw on"><svg viewBox="0 0 24 24"><use href="#i-check"/></svg></span></div>
+        <div class="row"><div class="text"><span class="body">Auto-lock</span></div><span class="val">After 1 min</span></div>
+        <div class="row"><div class="text"><span class="body">Change main PIN</span></div><svg class="ic s20 chev"><use href="#i-chev"/></svg></div>
+      </div>
+      <span class="section sc">MANAGE</span>
+      <div class="group">
+        <div class="row"><div class="text"><span class="body">Workspaces</span></div><svg class="ic s20 chev"><use href="#i-chev"/></svg></div>
+        <div class="row"><div class="text"><span class="body">Scripts and filters</span></div><svg class="ic s20 chev"><use href="#i-chev"/></svg></div>
+      </div>
+      <span class="section sc">BROWSING</span>
+      <div class="group">
+        <div class="row"><div class="text"><span class="body">Search engine</span></div><span class="val">DuckDuckGo</span></div>
+        <div class="row"><div class="text"><span class="body">Default route</span></div><span class="val">Direct</span></div>
+        <div class="row"><div class="text"><span class="body">Security level</span></div><span class="val">Standard</span></div>
+      </div>
+      <span class="section sc">VAULT</span>
+      <div class="group">
+        <div class="row two"><div class="text"><span class="body">Decoy vault</span><span class="sub">A second PIN opens a harmless board</span></div><span class="sw inert"><svg viewBox="0 0 24 24"><use href="#i-check"/></svg></span></div>
+        <div class="row"><div class="text"><span class="body">Sites shown in decoy</span></div><span class="val">4 selected</span></div>
+        <div class="row"><div class="text"><span class="body">Re-sync decoy now</span></div><svg class="ic s20 chev"><use href="#i-chev"/></svg></div>
+        <div class="row two"><div class="text"><span class="body">Hide from app switcher</span><span class="sub">Blurs previews, blocks screenshots</span></div><span class="sw inert"><svg viewBox="0 0 24 24"><use href="#i-check"/></svg></span></div>
+      </div>
+      <span class="section sc">PANIC</span>
+      <div class="group">
+        <div class="row two"><div class="text"><span class="body">Trigger by flipping face down</span><span class="sub">Uses the accelerometer</span></div><span class="sw"></span></div>
+        <div class="row"><div class="text"><span class="body">On panic</span></div><span class="val">Wipe + lock</span></div>
+      </div>
+      <p class="footnote">Nothing leaves this device. There is no account and no sync.</p>
+    </div>
+    <nav class="tabs">
+      <div><span class="ind"><svg class="ic"><use href="#i-sites"/></svg></span>Sites</div>
+      <div><span class="ind"><svg class="ic"><use href="#i-today"/></svg></span>Today</div>
+      <div class="on" aria-selected="true"><span class="ind"><svg class="ic"><use href="#i-settings"/></svg></span>Settings</div>
+    </nav>
+  </div>
+</section>
+
+<!-- ═════════════════════════ 3a ═════════════════════════ -->
+<section class="block" data-block="3a">
+  <p class="tag"><b>3a</b>Lock — one PIN field, no mention of vaults <i>(cold lock: no fingerprint; two digits entered)</i></p>
+  <div class="phone">
+    <div class="sys"></div>
+    <div class="pin">
+      <div class="msg">
+        <svg class="vmark" viewBox="0 0 48 48" aria-hidden="true"><rect x="6" y="6" width="36" height="36" rx="11" fill="none" stroke="currentColor" stroke-width="3"/><path d="M6 18H42" stroke="currentColor" stroke-width="3"/><circle cx="24" cy="30" r="5" fill="currentColor"/></svg>
+        <span class="body t2">Enter your PIN</span>
+        <div class="dots"><i class="f"></i><i class="f"></i><i></i><i></i><i></i><i></i></div>
+      </div>
+      <div class="keypad" aria-label="Keypad"><span>1</span><span>2</span><span>3</span><span>4</span><span>5</span><span>6</span><span>7</span><span>8</span><span>9</span><span class="blank"></span><span>0</span><span class="bs" aria-label="Delete"><svg class="ic s28"><use href="#i-backspace"/></svg></span></div>
+    </div>
+  </div>
+</section>
+
+<!-- ═════════════════════════ 4a ═════════════════════════ -->
+<section class="block" data-block="4a">
+  <p class="tag"><b>4a</b>Setup — main PIN, three steps, no account <i>(six digits entered; step bar is not jade)</i></p>
+  <div class="phone">
+    <div class="sys"></div>
+    <div class="pin">
+      <div class="stepbar"><i class="d"></i><i></i><i></i></div>
+      <div class="msg left">
+        <span class="step-title">Choose a PIN</span>
+        <span class="muted">Six digits. It encrypts everything stored on this device. There is no account and no way to recover it, so pick something you will remember.</span>
+        <div class="dots"><i class="f"></i><i class="f"></i><i class="f"></i><i class="f"></i><i class="f"></i><i class="f"></i></div>
+      </div>
+      <div class="keypad" aria-label="Keypad"><span>1</span><span>2</span><span>3</span><span>4</span><span>5</span><span>6</span><span>7</span><span>8</span><span>9</span><span class="blank"></span><span>0</span><span class="bs" aria-label="Delete"><svg class="ic s28"><use href="#i-backspace"/></svg></span></div>
+      <div style="padding:4px 0 24px"><span class="btn primary">Continue</span></div>
     </div>
   </div>
 </section>

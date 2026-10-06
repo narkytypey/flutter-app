@@ -209,6 +209,15 @@ body.theme-dark .frame-note { color: #B4BBB6; }
 .sheethead { display: flex; align-items: center; gap: 16px; padding: 8px 24px 16px; }
 .sheethead .txt { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
 
+/* tabs */
+.tabs { display: flex; flex-wrap: wrap; padding: 0 8px; box-shadow: inset 0 -1px 0 var(--outline-variant); flex: none; }
+.tab { flex: 1 0 auto; min-height: 48px; display: grid; place-items: center; padding: 12px 8px 10px; font-size: var(--fs-meta); font-weight: 600; color: var(--ink2); border-bottom: 3px solid transparent; text-align: center; }
+.tab.on { color: var(--ink); border-bottom-color: var(--accent); }
+.form { padding: 8px 16px 24px; }
+.split { display: flex; gap: 12px; flex-wrap: wrap; }
+.split > div { flex: 2 1 140px; min-width: 0; }
+.split > div.narrow { flex: 1 1 80px; }
+
 /* dashboard */
 .chiprow { display: flex; align-items: center; gap: 8px; padding: 8px 8px 8px 16px; flex: none; flex-wrap: wrap; }
 .chiprow .chips { flex: 1 1 auto; min-width: 0; }
@@ -398,6 +407,65 @@ body.theme-dark .frame-note { color: #B4BBB6; }
         <div class="row"><span class="txt t-body">Settings</span><span class="end"><svg class="ic s20 chev"><use href="#i-forward"/></svg></span></div>
         <div class="row"><span class="txt t-body">All sites</span><span class="end"><svg class="ic s20 chev"><use href="#i-forward"/></svg></span></div>
       </div></div>
+    </div>
+  </div>
+  </div>
+</section>
+
+<!-- ===================== 2a ===================== -->
+<section data-block="2a">
+  <div class="blabel">2a · Add site (Basics, Network)<span>Canvas: “Add site — four tabs, all visible from the start”. Labels set in sentence case by CSS; stored strings unchanged.</span></div>
+  <div class="frames">
+  <div class="phone">
+    <div class="statusbar"></div>
+    <div class="formbar">
+      <span class="btn-icon ink" aria-label="Close"><svg class="ic"><use href="#i-close"/></svg></span>
+      <span class="t-screen ell">Add site</span>
+      <span class="textbtn">Save</span>
+    </div>
+    <div class="tabs"><span class="tab on">Basics</span><span class="tab">Network</span><span class="tab">Privacy</span><span class="tab">Appearance</span></div>
+    <div class="scroll form">
+      <span class="t-label sentence flabel first">ADDRESS</span>
+      <div class="field focus"><span class="mono wrap" style="font-size:var(--fs-value)">https://forum.example.com</span></div>
+      <span class="t-label sentence flabel">NAME</span>
+      <div class="field" style="padding-right:8px"><span class="grow">Forum</span><span class="mg-b open sm"><i>Fr</i></span></div>
+      <span class="t-label sentence flabel">WORKSPACE</span>
+      <div class="chips"><span class="chip sel"><svg class="ic s18"><use href="#i-check"/></svg>Personal</span><span class="chip">Work</span><span class="chip">Ephemeral</span></div>
+      <span class="t-label sentence flabel">COOKIES</span>
+      <div class="group">
+        <div class="row two"><span class="txt"><span class="t-row-idle">Keep for this site</span><span class="t-meta">Stays signed in, isolated from other sites</span></span><span class="radio"></span></div>
+        <div class="row two"><span class="txt"><span class="t-row">Wipe on exit</span><span class="t-meta">Cookies, cache and form history destroyed</span></span><span class="radio on"></span></div>
+      </div>
+    </div>
+  </div>
+  <div class="phone">
+    <div class="statusbar"></div>
+    <div class="formbar">
+      <span class="btn-icon ink" aria-label="Close"><svg class="ic"><use href="#i-close"/></svg></span>
+      <span class="t-screen ell">Add site</span>
+      <span class="textbtn">Save</span>
+    </div>
+    <div class="tabs"><span class="tab">Basics</span><span class="tab on">Network</span><span class="tab">Privacy</span><span class="tab">Appearance</span></div>
+    <div class="scroll form">
+      <div class="group" style="margin-top:8px">
+        <div class="row two"><span class="txt"><span class="t-row">Route through proxy</span><span class="t-meta">This site only</span></span><span class="sw-hit"><span class="sw on"></span></span></div>
+      </div>
+      <div class="chips" style="margin-top:12px"><span class="chip sel"><svg class="ic s18"><use href="#i-check"/></svg>SOCKS5</span><span class="chip">HTTP</span><span class="chip">Tor</span></div>
+      <div class="split">
+        <div><span class="t-label sentence flabel">HOST</span><div class="field"><span class="mono wrap" style="font-size:var(--fs-value)">127.0.0.1</span></div></div>
+        <div class="narrow"><span class="t-label sentence flabel">PORT</span><div class="field"><span class="mono" style="font-size:var(--fs-value)">9050</span></div></div>
+      </div>
+      <div class="group" style="margin-top:16px">
+        <div class="row two"><span class="txt"><span class="t-row">Separate login per site</span><span class="t-meta">Tor gives this site its own circuit</span></span><span class="sw-hit"><span class="sw"></span></span></div>
+      </div>
+      <div class="split">
+        <div><span class="t-label sentence flabel">USERNAME</span><div class="field"></div></div>
+        <div><span class="t-label sentence flabel">PASSWORD</span><div class="field"></div></div>
+      </div>
+      <div class="group" style="margin-top:16px">
+        <div class="row two"><span class="txt"><span class="t-row">Block WebRTC</span><span class="t-meta">Prevents real IP leaking past the proxy</span></span><span class="sw-hit"><span class="sw on"></span></span></div>
+        <div class="row two"><span class="txt"><span class="t-row">Block trackers and ads</span><span class="t-meta">Local filter lists</span></span><span class="sw-hit"><span class="sw on"></span></span></div>
+      </div>
     </div>
   </div>
   </div>
