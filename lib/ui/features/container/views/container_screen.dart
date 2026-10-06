@@ -4,6 +4,7 @@ import '../../../../domain/models/address_suggestion.dart';
 import '../../../../domain/models/destination.dart';
 import '../../../../domain/models/find_result.dart';
 import '../../../../domain/models/navigation_state.dart';
+import '../../../../domain/models/security_level.dart';
 import '../../../../domain/models/switcher_entry.dart';
 import '../../../core/tokens.dart';
 import 'address_edit_bar.dart';
@@ -79,7 +80,19 @@ class ContainerScreen extends StatefulWidget {
     required this.onCloseSession,
     required this.onClosePage,
     required this.onCloseAllAndWipe,
+    this.caseKind = CaseKind.keep,
+    this.tor = false,
+    this.securityLevel = SecurityLevel.standard,
   });
+
+  /// The pill's case (restyle v2 §8 `2b`): see [ContainerTopBar.caseKind].
+  final CaseKind caseKind;
+
+  /// The route is Tor: the case's second edge.
+  final bool tor;
+
+  /// The level the site runs at: the pill's shield.
+  final SecurityLevel securityLevel;
 
   /// The page's host, for the pill.
   final String host;
@@ -349,6 +362,9 @@ class _ContainerScreenState extends State<ContainerScreen> {
                     routeLabel: widget.routeLabel,
                     live: widget.live,
                     loading: loading,
+                    caseKind: widget.caseKind,
+                    tor: widget.tor,
+                    securityLevel: widget.securityLevel,
                     onEditAddress: _startEditing,
                     onStop: widget.onStop,
                     onReload: widget.onReload,

@@ -44,7 +44,7 @@ void main() {
 
     await tester.tap(_icon('Panic'));
     expect(taps, 1);
-    expect(tester.getSize(_icon('Panic')), const Size(32, 32));
+    expect(tester.getSize(_icon('Panic')), const Size(48, 48));
     expect(_glyph(tester, AppGlyph.panic).color, C.danger);
   });
 

@@ -48,6 +48,7 @@ import '../../workspaces/views/workspaces_route.dart';
 import '../view_models/open_containers.dart';
 import '../view_models/providers.dart';
 import 'container_screen.dart';
+import 'container_top_bar.dart' show CaseKind;
 import 'container_web_view.dart';
 import 'new_identity_sheet.dart';
 import 'opening_screen.dart';
@@ -833,6 +834,10 @@ class _ContainerRouteState extends ConsumerState<ContainerRoute> {
     final pageHost = navigation?.host ?? '';
     final openedUrl = _openedUrl(viewed);
     final neighbours = swipeNeighbours(state.containers, siteId);
+    final level = effectiveLevel(
+      viewed.site,
+      ref.watch(vaultSecurityLevelProvider).valueOrNull ?? SecurityLevel.standard,
+    );
     final previous = neighbours.previous;
     final next = neighbours.next;
     return Stack(children: [
@@ -866,10 +871,16 @@ class _ContainerRouteState extends ConsumerState<ContainerRoute> {
         siteSubtitle: _menuSubtitle(viewed, workspaces),
         blockedToday: blockedToday,
         // Display only: the level the engine runs at is resolved at open.
-        securityLevelMeta: effectiveLevel(
-          viewed.site,
-          ref.watch(vaultSecurityLevelProvider).valueOrNull ?? SecurityLevel.standard,
-        ).meta,
+        securityLevelMeta: level.meta,
+        // Restyle v2 §8 `2b`: the pill's case and shield, from what the
+        // container already holds.
+        caseKind: viewed.throwaway
+            ? CaseKind.throwaway
+            : opened.cookiePolicy == CookiePolicy.wipeOnExit
+                ? CaseKind.wipe
+                : CaseKind.keep,
+        tor: opened.proxyMode == ProxyMode.tor,
+        securityLevel: level,
         findResult: _findResult,
         showSaveBar: viewed.throwaway && viewed.loadedOnce && !viewed.saveBarDismissed,
         address: navigation?.url ?? openedUrl,

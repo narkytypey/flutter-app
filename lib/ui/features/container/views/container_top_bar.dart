@@ -1,18 +1,27 @@
 import 'package:flutter/material.dart';
 
+import '../../../../domain/models/security_level.dart';
+import '../../../core/host_text.dart';
 import '../../../core/icons.dart';
 import '../../../core/tokens.dart';
 import '../../../core/typography.dart';
 import '../../../core/widgets/icon_tap.dart';
 import 'panic_square.dart';
 
-/// Browser-chrome spec §6.1's top bar (layout C). Keeps `2b`'s 12/8 padding,
-/// 34px pill, 6px dot and 32px panic square; `2b`'s ‹ is gone — back is on
-/// the bottom bar. The pill ends in the shield, which opens `6c`; just before
-/// it sits a stop × while the page loads, and a reload otherwise (user's
-/// ruling 2026-10-05; reload is also in the ☰ menu).
-/// A tap anywhere else on the pill starts typing an address (§6.2). Panic is
-/// always here, never behind a menu.
+/// What the pill's case says about the container's storage (restyle v2 §8
+/// `2b`): a saved site that keeps its storage, one that wipes on exit, or a
+/// throwaway (which is wiped when it closes).
+enum CaseKind { keep, wipe, throwaway }
+
+/// Browser-chrome spec §6.1's top bar (layout C), restyled to v2 §8 `2b`: a
+/// bar of at least 64 dp, a pill of at least 48 dp. Inside the pill, left to
+/// right: the light, the case, the host (wrapping after its dots, never cut
+/// short: the pill grows), the route badge (under the host when it does not
+/// fit beside it), then the reload — a stop × while the page loads (user's
+/// ruling 2026-10-05; reload is also in the ☰ menu) — and the shield, drawn
+/// by security level, which opens `6c`. `2b`'s ‹ is gone — back is on the
+/// bottom bar. A tap anywhere else on the pill starts typing an address
+/// (§6.2). Panic is always here, never behind a menu.
 class ContainerTopBar extends StatelessWidget {
   const ContainerTopBar({
     super.key,
@@ -25,6 +34,9 @@ class ContainerTopBar extends StatelessWidget {
     required this.onReload,
     required this.onSiteDetails,
     required this.onPanic,
+    this.caseKind = CaseKind.keep,
+    this.tor = false,
+    this.securityLevel = SecurityLevel.standard,
   });
 
   /// The page's host: after following a link, the other site's.
@@ -50,12 +62,42 @@ class ContainerTopBar extends StatelessWidget {
   final VoidCallback onSiteDetails;
   final VoidCallback onPanic;
 
+  /// The case's shape: solid for a site that keeps its storage, broken for
+  /// one that does not.
+  final CaseKind caseKind;
+
+  /// The route is Tor: the case is drawn with a second edge.
+  final bool tor;
+
+  /// The level the site runs at: the shield's fill (never its colour).
+  final SecurityLevel securityLevel;
+
+  /// What a screen reader hears for the case: `6c`'s own words for the
+  /// container's storage. A throwaway is wiped when it closes.
+  static String caseLabel(CaseKind kind) => switch (kind) {
+        CaseKind.keep => 'Keep for this site',
+        CaseKind.wipe || CaseKind.throwaway => 'Wipe on exit',
+      };
+
+  static AppGlyph caseGlyph(CaseKind kind, {required bool tor}) {
+    if (tor) return AppGlyph.caseDouble;
+    return kind == CaseKind.keep ? AppGlyph.caseSolid : AppGlyph.caseBroken;
+  }
+
+  static AppGlyph shieldGlyph(SecurityLevel level) => switch (level) {
+        SecurityLevel.standard => AppGlyph.shield,
+        SecurityLevel.safer => AppGlyph.shieldHalf,
+        SecurityLevel.safest => AppGlyph.shieldFull,
+      };
+
   @override
   Widget build(BuildContext context) {
     return Container(
+      constraints: const BoxConstraints(minHeight: 64),
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: const BoxDecoration(
-        border: Border(bottom: BorderSide(color: C.line07)),
+        color: C.bg,
+        border: Border(bottom: BorderSide(color: C.line)),
       ),
       child: Row(
         children: [
@@ -64,63 +106,92 @@ class ContainerTopBar extends StatelessWidget {
               behavior: HitTestBehavior.opaque,
               onTap: onEditAddress,
               child: Container(
-                height: 34,
-                padding: const EdgeInsets.only(left: 12, right: 3),
+                key: const Key('address-pill'),
+                constraints: const BoxConstraints(minHeight: 48),
+                padding: const EdgeInsets.only(left: 12),
                 decoration: BoxDecoration(
                   color: C.surface,
-                  borderRadius: BorderRadius.circular(17),
-                  border: Border.all(color: C.line08),
+                  // Full on the 48 dp pill; when a long host makes it grow,
+                  // its corners stay that round instead of turning it into a
+                  // capsule that would cut into the first line.
+                  borderRadius: BorderRadius.circular(24),
+                  border: Border.all(color: C.line),
                 ),
-                child: Row(
-                  children: [
+                child: LayoutBuilder(builder: (context, constraints) {
+                  final lead = [
                     Container(
-                      width: 6,
-                      height: 6,
+                      width: 8,
+                      height: 8,
                       decoration: BoxDecoration(
                         color: live ? C.jade : C.warning,
                         shape: BoxShape.circle,
                       ),
                     ),
-                    const SizedBox(width: 7),
+                    const SizedBox(width: 8),
+                    Semantics(
+                      container: true,
+                      label: caseLabel(caseKind),
+                      child: AppIcon(caseGlyph(caseKind, tor: tor), size: 20, color: C.textMuted),
+                    ),
+                    const SizedBox(width: 8),
                     Expanded(
-                      child: Text(
-                        host,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: ui(size: 11.5, color: C.pillText),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 6),
+                        child: Wrap(
+                          crossAxisAlignment: WrapCrossAlignment.center,
+                          spacing: 8,
+                          runSpacing: 2,
+                          children: [
+                            HostText(host, style: T.address.copyWith(color: C.pillText)),
+                            if (routeLabel.isNotEmpty) Text(routeLabel, style: T.barBadge),
+                          ],
+                        ),
                       ),
                     ),
-                    if (routeLabel.isNotEmpty) ...[
-                      const SizedBox(width: 8),
-                      Text(routeLabel,
-                          style: ui(size: 9.5, weight: 500, color: C.textFaint)),
-                      const SizedBox(width: 2),
-                    ],
+                  ];
+                  final actions = [
                     if (loading)
                       IconTap(
                         glyph: AppGlyph.stop,
                         label: 'Stop',
                         onTap: onStop,
-                        size: 28,
-                        iconSize: 14,
+                        iconSize: 20,
                       )
                     else
                       IconTap(
                         glyph: AppGlyph.reload,
                         label: 'Reload',
                         onTap: onReload,
-                        size: 28,
-                        iconSize: 14,
+                        iconSize: 20,
                       ),
                     IconTap(
-                      glyph: AppGlyph.shield,
+                      glyph: shieldGlyph(securityLevel),
                       label: 'Site details',
                       onTap: onSiteDetails,
-                      size: 28,
-                      iconSize: 15,
+                      iconSize: 22,
                     ),
-                  ],
-                ),
+                  ];
+                  // The host gets the room left beside the light, the case
+                  // and the two 48 dp actions. Where that is under about six
+                  // characters (a narrow phone at a large text scale), the
+                  // actions move under the host, in the same order, rather
+                  // than squeeze it a letter at a time.
+                  final hostRoom = constraints.maxWidth - 12 - 8 - 8 - 20 - 8 - 96;
+                  final minRoom = MediaQuery.textScalerOf(context).scale(16) * 6;
+                  if (hostRoom >= minRoom) {
+                    return Row(children: [...lead, ...actions]);
+                  }
+                  return Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.only(right: 16),
+                        child: Row(children: lead),
+                      ),
+                      Row(mainAxisAlignment: MainAxisAlignment.end, children: actions),
+                    ],
+                  );
+                }),
               ),
             ),
           ),
