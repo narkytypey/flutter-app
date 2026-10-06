@@ -82,12 +82,12 @@ A later fire must reinstall all of it (~10 min); set
 ### Phase 3 — Three directions
 - [x] Theses written into this file
 - Direction A
-  - [ ] BRIEF.md
-  - [ ] TOKENS.md + tokens.css (contrast measured)
-  - [ ] logo.svg, logo-wordmark.svg, logo-monochrome.svg, app-icon.svg
-  - [ ] screens.html: 10 mandatory blocks
-  - [ ] screens.html: extended blocks
-  - [ ] Accessibility pass (1.3, 2.0, 320px)
+  - [x] BRIEF.md
+  - [x] TOKENS.md + tokens.css (contrast measured)
+  - [x] logo.svg, logo-wordmark.svg, logo-monochrome.svg, app-icon.svg
+  - [x] screens.html: 10 mandatory blocks
+  - [x] screens.html: extended blocks
+  - [x] Accessibility pass (1.3, 2.0, 320px)
 - Direction B
   - [x] BRIEF.md
   - [x] TOKENS.md + tokens.css
@@ -136,6 +136,8 @@ A later fire must reinstall all of it (~10 min); set
 - [ ] One-page rationale
 
 ## Log
+
+- fire-7a41e2: direction A complete — 30 blocks (+ dark theme), four a11y runs clean (A/A11Y.md).
 
 - fire-7a41e2: direction B complete — 30 blocks, four a11y runs clean (B/A11Y.md).
 
