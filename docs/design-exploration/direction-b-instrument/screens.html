@@ -359,6 +359,26 @@
   .rowmenu .group { background: var(--surface-raised); }
   .rowmenu .group .row + .row { border-top-color: var(--line); }
   .rowmenu .btn { margin-top: var(--s3); }
+  .vmark.err { color: var(--danger); }
+  .tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 150px), 1fr)); gap: var(--s3); }
+  .tile { background: var(--surface-group); border: 1px solid var(--line); border-radius: var(--r-lg); padding: var(--s3); display: flex; flex-direction: column; gap: var(--s2); min-height: 120px; }
+  .tile .top { display: flex; justify-content: space-between; align-items: flex-start; gap: var(--s2); flex-wrap: wrap; }
+  .tile .badges { display: flex; gap: 4px; flex-wrap: wrap; }
+  .tile .status { display: flex; align-items: center; gap: 6px; font: 400 var(--fs-meta)/1.38 var(--sans); color: var(--text-2); }
+  .tile .status .lt { width: 10px; height: 10px; box-shadow: none; }
+  .tile.add { align-items: center; justify-content: center; border-style: dashed; border-color: var(--edge); color: var(--text-1); background: transparent; font: 500 var(--fs-sub)/1.3 var(--sans); }
+  .wsdrop { display: flex; align-items: center; gap: var(--s1); min-height: 64px; padding: var(--s2) var(--s2) var(--s2) var(--s4); border-bottom: 1px solid var(--line); }
+  .wsdrop .name { display: inline-flex; align-items: center; gap: 4px; min-height: var(--target); font: 600 var(--fs-screen)/1.27 var(--sans); }
+  .wsdrop .grow { flex: 1 1 auto; }
+  .live-card { background: var(--surface-group); border: 1px solid var(--line); border-radius: var(--r-lg); overflow: hidden; }
+  .live-card + .live-card { margin-top: var(--s3); }
+  .live-card .preview { height: 120px; background: #1A1816; padding: var(--s4); display: flex; flex-direction: column; gap: 8px; }
+  .live-card .preview i { display: block; height: 10px; border-radius: 5px; background: #2A2724; }
+  .live-card .preview i.h { height: 16px; width: 60%; background: #322F2B; }
+  .live-card .site { border-top: 1px solid var(--line); padding-right: var(--s1); }
+  .saved-tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 96px), 1fr)); gap: var(--s2); }
+  .saved-tiles .tile { min-height: 0; align-items: flex-start; }
+  .saved-tiles .tile.add { min-height: 112px; align-items: center; }
 </style>
 </head>
 <body>
@@ -1100,3 +1120,125 @@
     </div>
   </div>
 </section>
+
+<!-- ═════════════════════════ 4b ═════════════════════════ -->
+<section class="block" data-block="4b">
+  <p class="tag"><b>4b</b>Setup — the decoy, explained once and never again <i>(Sites to show is inert, as built)</i></p>
+  <div class="phone">
+    <div class="sys"></div>
+    <div class="pin" style="padding-bottom:16px">
+      <div class="stepbar"><i class="d"></i><i class="d"></i><i></i></div>
+      <div class="fill" style="display:flex;flex-direction:column;justify-content:center;padding:24px 0">
+        <span class="step-title" style="display:block">A second PIN, if you want one</span>
+        <p class="muted" style="margin:12px 0 20px">If someone makes you unlock the app, this PIN opens a plain board with only the sites you choose. Nothing on it hints that anything else exists.</p>
+        <div class="group">
+          <div class="row"><div class="text"><span class="body">Set up a decoy PIN</span></div><span class="sw on"><svg viewBox="0 0 24 24"><use href="#i-check"/></svg></span></div>
+          <div class="row two"><div class="text"><span class="body">Sites to show</span><span class="sub">Pick after setup</span></div><svg class="ic s20 chev"><use href="#i-chev"/></svg></div>
+        </div>
+      </div>
+      <span class="btn primary">Continue</span>
+      <span class="btn ghost">Skip for now</span>
+    </div>
+  </div>
+</section>
+
+<!-- ═════════════════════════ 4c ═════════════════════════ -->
+<section class="block" data-block="4c">
+  <p class="tag"><b>4c</b>Wrong PIN — counts down without naming what is behind it <i>(danger as text and outline only)</i></p>
+  <div class="phone">
+    <div class="sys"></div>
+    <div class="pin">
+      <div class="msg">
+        <svg class="vmark err" viewBox="0 0 48 48" aria-hidden="true"><rect x="6" y="6" width="36" height="36" rx="11" fill="none" stroke="currentColor" stroke-width="3"/><path d="M6 18H42" stroke="currentColor" stroke-width="3"/><circle cx="24" cy="30" r="5" fill="currentColor"/></svg>
+        <span class="body danger" style="font-weight:500">Wrong PIN · <span class="mono">3</span> tries left</span>
+        <div class="dots err"><i></i><i></i><i></i><i></i><i></i><i></i></div>
+        <span class="sub" style="max-width:280px">After 5 wrong tries the app waits 30 seconds before accepting another.</span>
+      </div>
+      <div class="keypad" aria-label="Keypad"><span>1</span><span>2</span><span>3</span><span>4</span><span>5</span><span>6</span><span>7</span><span>8</span><span>9</span><span class="blank"></span><span>0</span><span class="bs" aria-label="Delete"><svg class="ic s28"><use href="#i-backspace"/></svg></span></div>
+    </div>
+  </div>
+</section>
+
+<!-- ═════════════════════════ 1a ═════════════════════════ -->
+<section class="block" data-block="1a">
+  <p class="tag"><b>1a</b>Quiet grid — monogram tiles, one status line, badges only when they mean something <i>(never built as an app screen; mocked from the canvas file)</i></p>
+  <div class="phone">
+    <div class="sys"></div>
+    <div class="wsdrop">
+      <span class="name">Personal<svg class="ic s20 t2"><use href="#i-down"/></svg></span><span class="grow"></span>
+      <span class="tap" aria-label="Search"><svg class="ic"><use href="#i-search"/></svg></span>
+      <span class="tap" aria-label="More"><svg class="ic"><use href="#i-more"/></svg></span>
+    </div>
+    <div class="fill gutter" style="padding-top:16px;padding-bottom:24px">
+      <div class="tiles">
+        <div class="tile"><div class="top"><span class="mg">Nt</span><span class="badges"><span class="badge sc">PROXY</span></span></div><span class="row-title ell">Notes</span><span class="status"><span class="lt live"></span>Open · now</span></div>
+        <div class="tile"><div class="top"><span class="mg">Wm</span></div><span class="row-title ell">Webmail</span><span class="status"><span class="lt live"></span>Open · 14 min</span></div>
+        <div class="tile"><div class="top"><span class="mg idle">Fr</span><span class="badges"><span class="badge sc">TEMP</span></span></div><span class="row-title ell t2">Forum</span><span class="status"><span class="lt idle"></span>Idle · 2 h</span></div>
+        <div class="tile"><div class="top"><span class="mg idle">Rd</span></div><span class="row-title ell t2">Reader</span><span class="status"><span class="lt idle"></span>Idle · yesterday</span></div>
+        <div class="tile"><div class="top"><span class="mg idle">Bk</span><span class="badges"><span class="badge sc">LOCK</span></span></div><span class="row-title ell t2">Bank</span><span class="status"><span class="lt idle"></span>Idle · 3 d</span></div>
+        <div class="tile"><div class="top"><span class="mg idle">Mk</span></div><span class="row-title ell t2">Marketplace</span><span class="status"><span class="lt idle"></span>Idle · 5 d</span></div>
+        <div class="tile add"><svg class="ic"><use href="#i-plus"/></svg>Add site</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═════════════════════════ 1c ═════════════════════════ -->
+<section class="block" data-block="1c">
+  <p class="tag"><b>1c</b>Live tiles — full-width rows for open sessions with a page preview, small tiles below <i>(never built as an app screen; mocked from the canvas file)</i></p>
+  <div class="phone">
+    <div class="sys"></div>
+    <div class="wsdrop">
+      <div style="display:flex;flex-direction:column;flex:1 1 auto"><span class="sc meta" style="font-weight:600;color:var(--text-2)">WORKSPACE</span><span class="name" style="min-height:0">Personal<svg class="ic s20 t2"><use href="#i-down"/></svg></span></div>
+      <span class="tap" aria-label="Search"><svg class="ic"><use href="#i-search"/></svg></span>
+    </div>
+    <div class="fill gutter" style="padding-bottom:24px">
+      <span class="section sc">LIVE</span>
+      <div class="live-card"><div class="preview" aria-hidden="true"><i class="h"></i><i></i><i style="width:75%"></i><i style="width:50%"></i></div>
+        <div class="site"><span class="mg">Nt<span class="lt live"></span></span><div class="text"><span class="row-title ell">Notes</span><span class="meta wrap"><span class="mono">notes.example.org</span> · socks5</span></div><span class="tap" aria-label="Close"><svg class="ic s20"><use href="#i-close"/></svg></span></div></div>
+      <div class="live-card"><div class="preview" aria-hidden="true"><i class="h"></i><i></i><i style="width:60%"></i></div>
+        <div class="site"><span class="mg">Wm<span class="lt live"></span></span><div class="text"><span class="row-title ell">Webmail</span><span class="meta wrap"><span class="mono">mail.example.net</span> · direct</span></div><span class="tap" aria-label="Close"><svg class="ic s20"><use href="#i-close"/></svg></span></div></div>
+      <span class="section sc">SAVED</span>
+      <div class="saved-tiles">
+        <div class="tile"><span class="mg idle sm">Fr</span><span class="row-title ell t2">Forum</span><span class="meta mono">2h</span></div>
+        <div class="tile"><span class="mg idle sm">Rd</span><span class="row-title ell t2">Reader</span><span class="meta mono">1d</span></div>
+        <div class="tile"><span class="mg idle sm">Bk</span><span class="row-title ell t2">Bank</span><span class="meta mono">3d</span></div>
+        <div class="tile"><span class="mg idle sm">Mk</span><span class="row-title ell t2">Marketplace</span><span class="meta mono">5d</span></div>
+        <div class="tile add" aria-label="Add site"><svg class="ic"><use href="#i-plus"/></svg></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═════════════════════════ 3b ═════════════════════════ -->
+<section class="block" data-block="3b">
+  <p class="tag"><b>3b</b>Decoy vault — same shell, ordinary content, no privacy language <i>(identical widgets to 1b; nothing marks the vault)</i></p>
+  <div class="phone">
+    <div class="sys"></div>
+    <div class="chips gutter" style="padding-top:4px;padding-bottom:4px">
+      <span class="chip on"><span>Personal</span></span>
+      <span class="tap" aria-label="New workspace"><svg class="ic s20"><use href="#i-plus"/></svg></span>
+    </div>
+    <div class="fill gutter" style="padding-top:8px;padding-bottom:16px">
+      <div class="group">
+        <div class="site idle"><span class="mg idle">Nw<span class="lt idle"></span></span><div class="text"><span class="row-title ell">News</span><span class="meta wrap"><span class="mono">news.example.com</span> · direct</span></div><span class="age">2d</span></div>
+        <div class="site idle"><span class="mg idle">Wt<span class="lt idle"></span></span><div class="text"><span class="row-title ell">Weather</span><span class="meta wrap"><span class="mono">weather.example.com</span> · direct</span></div><span class="age">4d</span></div>
+        <div class="site idle"><span class="mg idle">Rc<span class="lt idle"></span></span><div class="text"><span class="row-title ell">Recipes</span><span class="meta wrap"><span class="mono">cook.example.org</span> · direct</span></div><span class="age">1w</span></div>
+        <div class="site idle"><span class="mg idle">Tt<span class="lt idle"></span></span><div class="text"><span class="row-title ell">Timetable</span><span class="meta wrap"><span class="mono">transit.example.com</span> · direct</span></div><span class="age">2w</span></div>
+      </div>
+    </div>
+    <div class="dash-foot">
+      <div class="search"><svg class="ic s20"><use href="#i-search"/></svg><span class="ell">Search or type an address</span></div>
+      <span class="addbtn" aria-label="Add site"><svg class="ic"><use href="#i-plus"/></svg></span>
+    </div>
+    <nav class="tabs">
+      <div class="on" aria-selected="true"><span class="ind"><svg class="ic"><use href="#i-sites"/></svg></span>Sites</div>
+      <div><span class="ind"><svg class="ic"><use href="#i-today"/></svg></span>Today</div>
+      <div><span class="ind"><svg class="ic"><use href="#i-settings"/></svg></span>Settings</div>
+    </nav>
+  </div>
+</section>
+
+</main>
+</body>
+</html>
