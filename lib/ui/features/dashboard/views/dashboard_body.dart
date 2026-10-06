@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/tokens.dart';
+import '../../../core/widgets/group.dart';
 import '../view_models/dashboard_view.dart';
 import 'empty_workspace.dart';
 import 'session_row.dart';
@@ -62,16 +63,22 @@ class DashboardBody extends StatelessWidget {
 
   Widget _list() {
     if (view.isEmpty) return EmptyWorkspace(wipesOnExit: view.wipesOnExit);
+    // Restyle v2 §8 `1b`: the list's rows in one group, soft rules between.
     return ListView(
-      padding: const EdgeInsets.only(top: 6),
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
       children: [
-        for (final entry in view.rows)
-          SessionRow(
-            key: ValueKey(entry.siteId),
-            entry: entry,
-            onTap: () => onOpenSite(entry.siteId),
-            onLongPress: () => onSiteMenu(entry.siteId),
-          ),
+        Group(
+          padding: EdgeInsets.zero,
+          children: [
+            for (final entry in view.rows)
+              SessionRow(
+                key: ValueKey(entry.siteId),
+                entry: entry,
+                onTap: () => onOpenSite(entry.siteId),
+                onLongPress: () => onSiteMenu(entry.siteId),
+              ),
+          ],
+        ),
       ],
     );
   }

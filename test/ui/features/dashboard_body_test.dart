@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:container/ui/core/tokens.dart';
+import 'package:container/ui/core/typography.dart';
+import 'package:container/ui/core/widgets/status_rail.dart';
+import 'package:container/ui/features/dashboard/views/session_row.dart';
 import 'package:container/domain/models/site.dart';
 import 'package:container/domain/models/workspace.dart';
 import 'package:container/ui/features/dashboard/views/dashboard_body.dart';
@@ -168,5 +171,46 @@ void main() {
     expect(find.text('Notes'), findsNothing);
     expect(find.text('Personal'), findsOneWidget, reason: 'the chips stay');
     expect(find.text('the footer'), findsOneWidget);
+  });
+
+  // Restyle v2 §8 `1b` (Plan 21 Task 2).
+  testWidgets('v2: an idle row paints no light; an open one a jade light', (tester) async {
+    await _pump(tester, _personal());
+
+    StatusRail railOf(String name) => tester.widget<StatusRail>(find.descendant(
+        of: find.ancestor(of: find.text(name), matching: find.byType(SessionRow)),
+        matching: find.byType(StatusRail)));
+    for (final idle in ['Webmail', 'Forum']) {
+      final rail = railOf(idle);
+      expect(rail.live, isFalse);
+      expect(rail.showIdle, isFalse, reason: '1b rows say idle by the missing light');
+    }
+    expect(railOf('Notes').live, isTrue);
+    expect(railOf('Notes').showIdle, isFalse);
+  });
+
+  testWidgets('v2: rows are at least 72 dp, names in the row-title roles', (tester) async {
+    await _pump(tester, _personal());
+
+    for (final row in tester.widgetList<SessionRow>(find.byType(SessionRow))) {
+      expect(tester.getSize(find.byWidget(row)).height, greaterThanOrEqualTo(72));
+    }
+    expect(tester.widget<Text>(find.text('Notes')).style, T.rowTitle);
+    expect(tester.widget<Text>(find.text('Forum')).style, T.rowTitleIdle);
+  });
+
+  testWidgets("v2: the meta line's host is Plex Mono, the rest the UI face", (tester) async {
+    await _pump(tester, _personal());
+
+    final meta = tester.widget<Text>(find.text('notes.example.org · socks5'));
+    final span = meta.textSpan! as TextSpan;
+    final host = span.children!.first as TextSpan;
+    final rest = span.children!.last as TextSpan;
+    expect(host.toPlainText(), 'notes.example.org');
+    expect(host.style!.fontFamily, T.metaValue.fontFamily);
+    expect(host.style!.fontFamily, 'IBMPlexMono');
+    expect(rest.text, ' · socks5');
+    expect(span.style, T.meta);
+    expect(meta.maxLines, isNull, reason: 'the host is never cut short');
   });
 }
