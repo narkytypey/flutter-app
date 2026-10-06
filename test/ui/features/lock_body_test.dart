@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:container/domain/models/lock_state.dart';
 import 'package:container/ui/core/icons.dart';
 import 'package:container/ui/core/tokens.dart';
+import 'package:container/ui/core/typography.dart';
 import 'package:container/ui/features/lock/views/lock_body.dart';
 
 import '../../support/glyph_finders.dart';
@@ -147,9 +148,9 @@ void main() {
     expect(find.text('Locked after 1 minute in the background'), findsNothing);
   });
 
-  testWidgets('the vault mark is a drawn diamond, jade, and danger after a wrong PIN', (tester) async {
+  testWidgets('the vault mark is a drawn case, text-1, and danger after a wrong PIN', (tester) async {
     await _pump(tester, _body(LockMood.normal));
-    expect(tester.widget<AppIcon>(findGlyph(AppGlyph.vault)).color, C.jade);
+    expect(tester.widget<AppIcon>(findGlyph(AppGlyph.vault)).color, C.textPrimary);
     expect(tester.getSize(findGlyph(AppGlyph.vault)), const Size(20, 20));
 
     await _pump(tester, _body(LockMood.wrong, triesLeft: 3));
@@ -164,4 +165,65 @@ void main() {
     expect(tester.getCenter(findGlyph(AppGlyph.fingerprint)).dy,
         lessThan(tester.getCenter(find.text('Use fingerprint')).dy));
   });
+
+  // Restyle v2 §3.2, §5, §8 (Plan 22 Task 1).
+  testWidgets('v2: headlines are step titles, notes body-muted, counts in Mono',
+      (tester) async {
+    await _pump(tester, _body(LockMood.normal));
+    expect(tester.widget<Text>(find.text('Enter your PIN')).style, T.stepTitle);
+
+    await _pump(tester, _body(LockMood.wrong, triesLeft: 3));
+    final wrong = tester.widget<Text>(find.text('Wrong PIN · 3 tries left'));
+    expect(wrong.style!.fontSize, T.stepTitle.fontSize);
+    expect(wrong.style!.color, C.danger);
+    expect(_monoSpans(wrong), ['3']);
+    expect(
+      tester
+          .widget<Text>(find.text('After 5 wrong tries the app waits 30 seconds '
+              'before accepting another.'))
+          .style,
+      T.bodyMuted,
+    );
+
+    await _pump(tester, _body(LockMood.welcomeBack));
+    expect(tester.widget<Text>(find.text('Welcome back')).style, T.stepTitle);
+    final open = tester.widget<Text>(find.text('3 sessions still open · locks in 40s'));
+    expect(open.style, T.bodyMuted);
+    expect(_monoSpans(open), ['3', '40']);
+  });
+
+  testWidgets('v2: nothing on the lock screens is jade but the fingerprint',
+      (tester) async {
+    for (final mood in LockMood.values) {
+      await _pump(tester, _body(mood));
+      for (final icon in tester.widgetList<AppIcon>(find.byType(AppIcon))) {
+        expect(icon.color, isNot(C.jade), reason: '\$mood');
+      }
+      for (final text in tester.widgetList<Text>(find.byType(Text))) {
+        expect(text.style?.color, isNot(C.jade), reason: '\$mood');
+      }
+    }
+  });
+
+  testWidgets('v2: the lock screen has a 20 dp gutter', (tester) async {
+    await _pump(tester, _body(LockMood.afterTimeout));
+    final panel = find.ancestor(
+        of: find.text('Locked after 1 minute in the background'),
+        matching: find.byType(Container)).first;
+    expect(tester.getTopLeft(panel).dx, 20);
+    expect(tester.getTopRight(panel).dx, 400 - 20);
+  });
+}
+
+List<String> _monoSpans(Text text) {
+  final out = <String>[];
+  text.textSpan!.visitChildren((span) {
+    if (span is TextSpan &&
+        span.style?.fontFamily == T.value.fontFamily &&
+        span.text != null) {
+      out.add(span.text!);
+    }
+    return true;
+  });
+  return out;
 }
