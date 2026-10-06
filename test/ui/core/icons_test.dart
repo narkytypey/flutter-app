@@ -5,12 +5,15 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  test("the set is spec §6.6's fifteen glyphs, the restyle's eight, then the dashboard's three", () {
+  test("the set is spec §6.6's fifteen glyphs, the restyle's eight, the dashboard's three, then restyle v2's eight", () {
     expect(AppGlyph.values.map((g) => g.name), [
       'back', 'forward', 'reload', 'stop', 'shield', 'panic', 'menu', 'find',
       'reader', 'link', 'search', 'globe', 'chevronUp', 'chevronDown', 'close',
       'check', 'plus', 'more', 'vault', 'fingerprint', 'backspace', 'refused',
       'contrast', 'sites', 'today', 'settings',
+      // Restyle v2 (spec §6).
+      'shieldHalf', 'shieldFull', 'sitesFilled', 'todayFilled', 'settingsFilled',
+      'caseSolid', 'caseBroken', 'caseDouble',
     ]);
   });
 
@@ -89,6 +92,31 @@ void main() {
     await tester.tap(find.byWidgetPredicate((w) => w is IconTap && w.label == 'Forward'));
     expect(taps, 1);
     expect(tester.getSize(find.byType(IconTap).first), const Size(40, 40));
+  });
+
+  testWidgets('the restyle v2 glyphs paint at small and large sizes', (tester) async {
+    const added = [
+      AppGlyph.shieldHalf, AppGlyph.shieldFull, AppGlyph.sitesFilled, AppGlyph.todayFilled,
+      AppGlyph.settingsFilled, AppGlyph.caseSolid, AppGlyph.caseBroken, AppGlyph.caseDouble,
+      AppGlyph.vault,
+    ];
+    await tester.pumpWidget(Directionality(
+      textDirection: TextDirection.ltr,
+      child: Center(
+        child: Wrap(children: [
+          for (final glyph in added) ...[
+            AppIcon(glyph, size: 14, color: C.textMuted),
+            AppIcon(glyph, size: 48, color: C.textPrimary),
+          ],
+        ]),
+      ),
+    ));
+
+    expect(tester.takeException(), isNull);
+    for (final glyph in added) {
+      final icon = find.byWidgetPredicate((w) => w is AppIcon && w.glyph == glyph && w.size == 48);
+      expect(tester.getSize(icon), const Size(48, 48), reason: glyph.name);
+    }
   });
 
   testWidgets('an icon button names itself for screen readers', (tester) async {
