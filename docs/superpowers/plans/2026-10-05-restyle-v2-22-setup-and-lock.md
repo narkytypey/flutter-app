@@ -109,6 +109,10 @@ Executed 2026-10-06 in a worktree branched from `restyle-implementation` at
   `lock_body_test.dart:153` asserts 20).
 - No layout overflow needed fixing.
 
+**Merged** into `restyle-implementation` after Plan 21 (2026-10-06). On the
+merged tree: `flutter analyze` clean, `flutter test` **1104/1104**,
+`flutter build apk --debug` **zero `e:` lines**.
+
 **Not verified on a device.**
 
 ## Device checks
