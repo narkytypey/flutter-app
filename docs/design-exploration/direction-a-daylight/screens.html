@@ -1,0 +1,404 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Daylight screens</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible+Mono:wght@400;500;600&family=Atkinson+Hyperlegible+Next:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="tokens.css">
+<script>
+/* ?w=320 -> phones 320x568; ?scale=1.3 -> every text size x1.3 (rem); ?theme=dark -> dark theme. */
+(function () {
+  var q = new URLSearchParams(location.search);
+  var w = parseInt(q.get('w') || '390', 10);
+  var s = parseFloat(q.get('scale') || '1');
+  var h = w <= 320 ? 568 : (w === 390 ? 844 : Math.round(w * 844 / 390));
+  var r = document.documentElement.style;
+  r.setProperty('--pw', w + 'px');
+  r.setProperty('--ph', h + 'px');
+  r.setProperty('--scale', s);
+  if (h < 640) document.documentElement.classList.add('short');
+  window.__theme = q.get('theme') === 'dark' ? 'dark' : 'light';
+})();
+</script>
+<style>
+html { font-size: calc(16px * var(--scale, 1)); }
+* { box-sizing: border-box; }
+body { margin: 0; background: #C9CEC6; color: var(--ink); font-family: var(--font-ui); padding: 64px 24px 48px; }
+body.theme-dark { background: #050605; }
+/* ---------- viewer chrome (outside the phones; px, does not scale) ---------- */
+.tb { position: fixed; top: 0; left: 0; right: 0; z-index: 50; display: flex; flex-wrap: wrap; gap: 6px 14px; align-items: center;
+  padding: 10px 24px; background: #1A1D1B; color: #E4E8E4; font: 500 13px/18px var(--font-ui); }
+.tb b { font-weight: 700; margin-right: 6px; }
+.tb a { color: #BFEBD8; text-decoration: none; padding: 4px 8px; border-radius: 999px; border: 1px solid #3A403C; }
+.tb a:hover { background: #2B302D; }
+.grid { display: flex; flex-wrap: wrap; gap: 48px 40px; align-items: flex-start; }
+section[data-block] { display: flex; flex-direction: column; gap: 10px; }
+.frames { display: flex; gap: 24px; flex-wrap: wrap; align-items: flex-start; }
+.blabel { font: 600 14px/20px var(--font-ui); color: #1A1D1B; max-width: var(--pw); }
+.blabel span { display: block; font-weight: 400; color: #4A514C; font-size: 13px; line-height: 18px; }
+body.theme-dark .blabel { color: #E4E8E4; }
+body.theme-dark .blabel span { color: #B4BBB6; }
+.frame-note { font: 400 12px/16px var(--font-ui); color: #4A514C; max-width: var(--pw); }
+body.theme-dark .frame-note { color: #B4BBB6; }
+
+/* ---------- phone ---------- */
+.phone { width: var(--pw); height: var(--ph); background: var(--page); color: var(--ink); position: relative;
+  border-radius: 28px; overflow-x: hidden; overflow-y: auto; display: flex; flex-direction: column;
+  box-shadow: 0 0 0 8px #1A1D1B, 0 20px 40px rgba(0,0,0,.25); font-family: var(--font-ui); font-size: var(--fs-body); line-height: 1.5; }
+.phone.fixed { overflow-y: hidden; }
+.statusbar { height: 24px; flex: none; }
+.grow { flex: 1 1 auto; min-height: 0; }
+.scroll { flex: 1 1 auto; min-height: 0; overflow-y: auto; overflow-x: hidden; }
+.wrap { overflow-wrap: anywhere; min-width: 0; }
+.ell { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.mono { font-family: var(--font-mono); }
+.sentence { display: inline-block; text-transform: lowercase; }
+.sentence::first-letter { text-transform: uppercase; }
+.blocklevel { display: block; }
+
+/* icons */
+.ic { width: 24px; height: 24px; flex: none; display: block; }
+.ic.s20 { width: 20px; height: 20px; }
+.ic.s18 { width: 18px; height: 18px; }
+.ic.s16 { width: 16px; height: 16px; }
+.ic.s32 { width: 32px; height: 32px; }
+.btn-icon { width: 48px; height: 48px; flex: none; display: grid; place-items: center; border-radius: 999px; color: var(--ink2); border: 0; background: none; padding: 0; }
+.btn-icon.dim { color: var(--ink-disabled); }
+.btn-icon.ink { color: var(--ink); }
+
+/* type roles */
+.t-display { font-size: var(--fs-display); font-weight: 600; line-height: 1.18; letter-spacing: -.5px; }
+.t-step { font-size: var(--fs-step); font-weight: 600; line-height: 1.23; letter-spacing: -.2px; }
+.t-screen { font-size: var(--fs-screen); font-weight: 500; line-height: 1.27; }
+.t-sheet { font-size: var(--fs-sheet); font-weight: 600; line-height: 1.3; }
+.t-row { font-size: var(--fs-row); font-weight: 600; line-height: 1.375; }
+.t-row-idle { font-size: var(--fs-row); font-weight: 400; line-height: 1.375; }
+.t-body { font-size: var(--fs-body); font-weight: 400; line-height: 1.5; }
+.t-body2 { font-size: var(--fs-body); font-weight: 400; line-height: 1.5; color: var(--ink2); }
+.t-meta { font-size: var(--fs-meta); line-height: 1.43; letter-spacing: .1px; color: var(--ink2); }
+.t-value { font-family: var(--font-mono); font-size: var(--fs-value); line-height: 1.43; color: var(--ink2); }
+.t-label { font-size: var(--fs-label); font-weight: 700; line-height: 1.43; letter-spacing: .1px; color: var(--ink2); }
+.t-label.live { color: var(--accent); }
+.t-bar { font-size: var(--fs-bar); font-weight: 600; line-height: 1.23; letter-spacing: .2px; }
+.t-badge { font-size: var(--fs-badge); font-weight: 700; line-height: 1.23; letter-spacing: .3px; }
+.t-caption { font-size: var(--fs-caption); line-height: 1.38; letter-spacing: .1px; color: var(--ink2); }
+.t-button { font-size: var(--fs-button); font-weight: 600; line-height: 1.5; letter-spacing: .1px; }
+.t-code { font-family: var(--font-mono); font-size: var(--fs-code); line-height: 1.57; }
+.ink2 { color: var(--ink2); }
+.accent { color: var(--accent); }
+.danger { color: var(--danger); }
+
+/* top app bar */
+.appbar { min-height: 64px; display: flex; align-items: center; gap: 4px; padding: 8px 8px 8px 4px; flex: none; }
+.appbar.notback { padding-left: 16px; }
+.appbar .t-screen { flex: 1 1 auto; min-width: 0; }
+.formbar { min-height: 64px; display: flex; align-items: center; gap: 4px; padding: 8px 8px 8px 4px; flex: none; }
+.formbar .t-screen { flex: 1 1 auto; min-width: 0; text-align: left; }
+.textbtn { min-height: 48px; min-width: 48px; padding: 0 16px; display: inline-flex; align-items: center; justify-content: center; border-radius: 999px; font-size: var(--fs-button); font-weight: 600; color: var(--accent); flex: none; }
+
+/* groups and rows */
+.pad { padding: 0 16px; }
+.group { background: var(--card); border-radius: var(--r-lg); overflow: hidden; }
+.group + .group, .gap16 { margin-top: 16px; }
+.section-label { padding: 24px 16px 8px; }
+.section-label.first { padding-top: 8px; }
+.row { display: flex; align-items: center; gap: 16px; padding: 12px 16px; min-height: 56px; position: relative; }
+.row.two { min-height: 72px; }
+.row + .row::before { content: ""; position: absolute; top: 0; left: 16px; right: 0; height: 1px; background: var(--outline-variant); }
+.row.mg + .row.mg::before { left: 72px; }
+.row .txt { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.row .end { flex: none; display: flex; align-items: center; gap: 8px; color: var(--ink2); text-align: right; max-width: 55%; }
+.row .end.wide { flex: 0 1 auto; min-width: 0; }
+.chev { color: var(--ink2); }
+
+/* monograms */
+.mg-b { width: 40px; height: 40px; border-radius: var(--r-sm); background: var(--tonal); color: var(--ink); display: grid; place-items: center;
+  font-weight: 700; font-size: var(--fs-mono-gram); line-height: 1; flex: none; position: relative; overflow: hidden; letter-spacing: 0; }
+.mg-b > i { font-style: normal; font-size: min(var(--fs-mono-gram), 16px * 1.3); }
+.mg-b.open { background: var(--accent-container); color: var(--on-accent-container); }
+.mg-b.sm { width: 36px; height: 36px; }
+.livedot { width: 8px; height: 8px; border-radius: 999px; background: var(--accent); flex: none; }
+.livedot.warn { background: var(--warning); }
+.livedot.dng { background: var(--danger); }
+.mg-wrap { position: relative; flex: none; }
+.mg-wrap .livedot { position: absolute; right: -3px; top: -3px; width: 12px; height: 12px; border: 2px solid var(--card); }
+
+/* switches */
+.sw { width: 52px; height: 32px; border-radius: 999px; background: var(--tonal); border: 2px solid var(--outline); position: relative; flex: none; }
+.sw::after { content: ""; position: absolute; width: 16px; height: 16px; border-radius: 999px; background: var(--outline); left: 6px; top: 6px; }
+.sw.on { background: var(--accent); border-color: var(--accent); }
+.sw.on::after { width: 24px; height: 24px; background: var(--on-accent); left: 22px; top: 2px; }
+.sw.inert { background: var(--tonal); border-color: var(--ink-disabled); }
+.sw.inert.on::after { background: var(--ink-disabled); }
+.sw-hit { width: 52px; min-height: 48px; display: grid; place-items: center; flex: none; }
+
+/* radios */
+.radio { width: 20px; height: 20px; border-radius: 999px; border: 2px solid var(--outline); flex: none; position: relative; }
+.radio.on { border-color: var(--accent); }
+.radio.on::after { content: ""; position: absolute; inset: 3px; border-radius: 999px; background: var(--accent); }
+
+/* buttons */
+.btn { min-height: 52px; border-radius: 999px; padding: 12px 24px; display: flex; align-items: center; justify-content: center; text-align: center;
+  font-size: var(--fs-button); font-weight: 600; line-height: 1.5; letter-spacing: .1px; border: 0; width: 100%; flex-direction: column; }
+.btn.filled { background: var(--accent); color: var(--on-accent); }
+.btn.tonal { background: var(--tonal); color: var(--ink); }
+.btn.tonal.dng { color: var(--danger); }
+.btn.outline-dng { background: transparent; border: 1.5px solid var(--danger); color: var(--danger); }
+.btn.disabled { background: var(--tonal); color: var(--ink-disabled); }
+.btn .sub { font-size: var(--fs-caption); font-weight: 400; line-height: 1.38; color: var(--on-danger-container); }
+.stack { display: flex; flex-direction: column; gap: 12px; }
+
+/* chips */
+.chips { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.chip { min-height: 40px; padding: 6px 16px; border-radius: 999px; border: 1px solid var(--outline); display: inline-flex; align-items: center; gap: 8px;
+  font-size: var(--fs-meta); font-weight: 600; line-height: 1.43; color: var(--ink); background: transparent; margin: 4px 0; }
+.chip.sel { background: var(--accent-container); color: var(--on-accent-container); border-color: transparent; padding-left: 10px; }
+.chip.tonal { background: var(--tonal); border-color: transparent; }
+.chip .x { width: 28px; height: 28px; margin-right: -10px; display: grid; place-items: center; }
+
+/* fields */
+.field { min-height: 52px; border-radius: var(--r-sm); background: var(--card); border: 1px solid var(--outline); padding: 12px 14px; display: flex; align-items: center; gap: 12px; font-size: var(--fs-body); }
+.field.focus { border: 2px solid var(--accent); padding: 11px 13px; }
+.field.on-card { background: var(--tonal); border-color: var(--outline); }
+.field .ph { color: var(--ink2); }
+.flabel { display: block; margin: 20px 0 8px; }
+.flabel.first { margin-top: 8px; }
+
+/* sheets */
+.scrim { position: absolute; inset: 0; background: var(--scrim); z-index: 5; }
+.sheet { position: absolute; left: 0; right: 0; bottom: 0; z-index: 6; background: var(--card); border-radius: var(--r-xl) var(--r-xl) 0 0;
+  box-shadow: var(--sheet-shadow); max-height: calc(100% - 32px); overflow-y: auto; overflow-x: hidden; padding: 0 0 16px; }
+.theme-dark .sheet { background: var(--card); }
+.handle { width: 32px; height: 4px; border-radius: 999px; background: var(--outline); margin: 12px auto 8px; opacity: .6; }
+.sheet .group { background: var(--page); }
+.sheet-body { padding: 8px 24px 8px; }
+
+/* page placeholder (behind chrome): neutral blocks, not a real site */
+.pagefill { flex: 1 1 auto; min-height: 0; background: #FFFFFF; padding: 20px 16px; display: flex; flex-direction: column; gap: 12px; overflow: hidden; }
+.theme-dark .pagefill { background: #F4F4F2; }
+.pagefill i { display: block; height: 12px; border-radius: 6px; background: #E3E6E1; }
+.pagefill i.h { height: 22px; width: 70%; background: #D5D9D3; }
+.pagefill i.img { height: 120px; border-radius: 12px; }
+.pagefill i.s { width: 55%; }
+.pagefill.grey { filter: grayscale(1); opacity: .5; }
+
+/* browser chrome */
+.topbar { background: var(--card); padding: 8px 4px 8px 8px; display: flex; align-items: center; gap: 4px; flex: none; position: relative; z-index: 1; box-shadow: 0 1px 0 var(--outline-variant), 0 2px 8px rgba(26,29,27,.06); }
+.pill { flex: 1 1 auto; min-width: 0; min-height: 48px; border-radius: 999px; background: var(--tonal); display: flex; align-items: center; gap: 4px; padding: 0 0 0 12px; }
+.pill.dng { background: var(--card); border: 1.5px solid var(--danger); }
+.pill .host { flex: 1 1 auto; margin-left: 4px; font-size: var(--fs-address); font-weight: 500; line-height: 1.375; color: var(--ink); }
+.ctype { position: relative; flex: none; width: 24px; height: 24px; color: var(--ink2); }
+.ctype .livedot { position: absolute; right: -3px; bottom: -2px; width: 10px; height: 10px; border: 2px solid var(--tonal); }
+.pill.dng .ctype .livedot { border-color: var(--card); }
+.route { flex: none; font-size: var(--fs-badge); font-weight: 700; line-height: 1.23; letter-spacing: .3px; padding: 3px 6px; margin-left: 2px; border-radius: var(--r-xs); background: var(--card); color: var(--ink); }
+.inpill { width: 40px; height: 40px; border-radius: 999px; display: grid; place-items: center; flex: none; color: var(--ink2); margin: 0 -4px; }
+.inpill.shield { color: var(--accent); margin-right: 0; }
+.panic { width: 48px; height: 48px; border-radius: 999px; background: var(--danger-container); color: var(--danger); display: grid; place-items: center; flex: none; }
+.loadline { position: absolute; left: 0; bottom: 0; height: 3px; background: var(--ink2); border-radius: 0 3px 3px 0; }
+.botbar { box-shadow: 0 -1px 0 var(--outline-variant); background: var(--card); min-height: 64px; display: flex; align-items: center; justify-content: space-between; padding: 8px 12px; flex: none; gap: 4px; }
+.openpill { min-height: 40px; padding: 6px 14px 6px 16px; border-radius: 999px; background: var(--accent-container); color: var(--on-accent-container); display: inline-flex; align-items: center; gap: 6px; flex: 0 1 auto; min-width: 0; }
+
+/* menu tiles */
+.tiles { display: flex; flex-wrap: wrap; gap: 8px; padding: 8px 16px 16px; }
+.tile { flex: 1 0 auto; min-width: 64px; display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 4px 0; }
+.tile > span:first-child { width: 56px; height: 56px; border-radius: var(--r-md); background: var(--tonal); display: grid; place-items: center; color: var(--ink); }
+.tile .t-caption { color: var(--ink); white-space: nowrap; }
+.sheethead { display: flex; align-items: center; gap: 16px; padding: 8px 24px 16px; }
+.sheethead .txt { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+
+/* dashboard */
+.chiprow { display: flex; align-items: center; gap: 8px; padding: 8px 8px 8px 16px; flex: none; flex-wrap: wrap; }
+.chiprow .chips { flex: 1 1 auto; min-width: 0; }
+.wsbadge { font-size: var(--fs-badge); font-weight: 700; letter-spacing: .3px; color: var(--ink2); display: inline-flex; align-items: center; gap: 6px; }
+.addbtn { width: 48px; height: 48px; display: grid; place-items: center; flex: none; }
+.addbtn > span { width: 40px; height: 40px; border-radius: 999px; background: var(--tonal); display: grid; place-items: center; color: var(--ink); }
+.footer { background: var(--card); padding: 8px 12px 8px 16px; display: flex; align-items: center; gap: 8px; flex: none; border-radius: var(--r-lg) var(--r-lg) 0 0; }
+.search { flex: 1 1 auto; min-width: 0; min-height: 52px; border-radius: 999px; background: var(--tonal); display: flex; align-items: center; gap: 12px; padding: 8px 16px; color: var(--ink2); font-size: var(--fs-body); }
+.plus48 { width: 52px; height: 52px; border-radius: 999px; background: var(--tonal); color: var(--ink); display: grid; place-items: center; flex: none; }
+.plus48.filled { background: var(--accent); color: var(--on-accent); }
+.navbar { background: var(--card); display: flex; padding: 12px 8px 16px; flex: none; }
+.nav { flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; align-items: center; gap: 4px; color: var(--ink2); }
+.nav .ind { width: 64px; height: 32px; border-radius: 999px; display: grid; place-items: center; }
+.nav.on { color: var(--ink); }
+.nav.on .ind { background: var(--tonal); }
+.nav .t-bar { text-align: center; max-width: 100%; overflow-wrap: anywhere; }
+.age { font-size: var(--fs-meta); color: var(--ink2); flex: none; }
+
+/* lock / PIN */
+.pinwrap { flex: 1 1 auto; display: flex; flex-direction: column; padding: 0 24px; min-height: 0; }
+.pinmsg { flex: 1 1 auto; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; gap: 0; padding: 24px 0 16px; }
+.pinmsg.start { align-items: flex-start; text-align: left; }
+.mark { width: 56px; height: 56px; display: grid; place-items: center; }
+.mark.dng { border-radius: 999px; background: var(--danger-container); color: var(--danger); }
+.dots { display: flex; gap: 16px; margin-top: 24px; }
+.dot { width: 14px; height: 14px; border-radius: 999px; border: 2px solid var(--outline); }
+.dot.f { background: var(--ink); border-color: var(--ink); }
+.dot.err { border-color: var(--danger); }
+.keypad { display: grid; grid-template-columns: repeat(3, var(--key, 72px)); justify-content: center; gap: 12px 24px; padding: 8px 0 24px; flex: none; }
+.short .keypad { --key: 60px; gap: 8px 20px; }
+.key { width: var(--key, 72px); height: var(--key, 72px); border-radius: 999px; background: var(--card); display: grid; place-items: center; font-size: var(--fs-keypad); font-weight: 500; line-height: 1; color: var(--ink); }
+.key.blank { background: transparent; }
+.key.bs { background: transparent; color: var(--ink2); }
+.steps { display: flex; gap: 6px; padding: 16px 0 0; flex: none; }
+.steps i { flex: 1; height: 4px; border-radius: 999px; background: var(--tonal); }
+.steps i.on { background: var(--accent); }
+.panel { background: var(--card); border-radius: var(--r-md); padding: 14px 16px; }
+.panel.dng { background: var(--danger-container); color: var(--on-danger-container); }
+</style>
+</head>
+<body>
+<script>if (window.__theme === 'dark') document.body.classList.add('theme-dark');</script>
+<nav class="tb" aria-label="Viewer">
+  <b>Daylight · direction A</b>
+  <a href="?w=390&amp;scale=1.0">390 · 1.0</a>
+  <a href="?w=390&amp;scale=1.3">390 · 1.3</a>
+  <a href="?w=390&amp;scale=2.0">390 · 2.0</a>
+  <a href="?w=320&amp;scale=1.0">320 · 1.0</a>
+  <a href="?w=320&amp;scale=1.3">320 · 1.3</a>
+  <a href="?w=320&amp;scale=2.0">320 · 2.0</a>
+  <a href="?w=390&amp;scale=1.0&amp;theme=dark">Dark theme</a>
+</nav>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+<defs>
+<symbol id="i-back" viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+<symbol id="i-forward" viewBox="0 0 24 24"><path d="M9 5l7 7-7 7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+<symbol id="i-reload" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19.5 12a7.5 7.5 0 1 1-2.2-5.3"/><path d="M19.5 4.5v4.5H15"/></g></symbol>
+<symbol id="i-close" viewBox="0 0 24 24"><path d="M6.5 6.5l11 11M17.5 6.5l-11 11" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
+<symbol id="i-shield" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l7 2.8v5.4c0 4.4-2.9 8-7 9.8-4.1-1.8-7-5.4-7-9.8V5.8z"/><path d="M9 12l2.2 2.2L15.2 10"/></g></symbol>
+<symbol id="i-panic" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 3.5v8"/><path d="M7.3 6.6a7 7 0 1 0 9.4 0"/></g></symbol>
+<symbol id="i-menu" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
+<symbol id="i-search" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="10.5" cy="10.5" r="6"/><path d="M15 15l5 5"/></g></symbol>
+<symbol id="i-find" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 3H6.5A1.5 1.5 0 0 0 5 4.5v15A1.5 1.5 0 0 0 6.5 21H11"/><circle cx="15.5" cy="13.5" r="3.5"/><path d="M18 16l2.5 2.5"/></g></symbol>
+<symbol id="i-reader" viewBox="0 0 24 24"><path d="M5 6h14M5 10h14M5 14h9M5 18h11" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
+<symbol id="i-link" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M10 14a4 4 0 0 0 5.7 0l3-3A4 4 0 0 0 13 5.3l-1 1"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/></g></symbol>
+<symbol id="i-globe" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="8.5"/><path d="M3.5 12h17M12 3.5c3 3.2 3 13.8 0 17M12 3.5c-3 3.2-3 13.8 0 17"/></g></symbol>
+<symbol id="i-up" viewBox="0 0 24 24"><path d="M6 15l6-6 6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+<symbol id="i-down" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+<symbol id="i-check" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+<symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
+<symbol id="i-more" viewBox="0 0 24 24"><g fill="currentColor"><circle cx="5.5" cy="12" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="18.5" cy="12" r="1.8"/></g></symbol>
+<symbol id="i-fingerprint" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M5 11a7 7 0 0 1 12.3-4.6"/><path d="M19 10.5c.3 1.6.3 3.6-.2 5.6"/><path d="M8.5 19.5c1-1.8 1.5-3.8 1.5-6.5v-1a2 2 0 0 1 4 0v1.5c0 2.8-.6 5.3-1.8 7.3"/><path d="M7 11.5v1.5c0 1.8-.4 3.4-1.2 4.8"/><path d="M16.5 13.5c0 2.2-.4 4.3-1.2 6"/></g></symbol>
+<symbol id="i-backspace" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5.5h10a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H9l-6-6.5z"/><path d="M12 9.5l5 5M17 9.5l-5 5"/></g></symbol>
+<symbol id="i-refused" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="8.5"/><path d="M6 6l12 12"/></g></symbol>
+<symbol id="i-contrast" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 3.5a8.5 8.5 0 0 1 0 17z" fill="currentColor"/></symbol>
+<symbol id="i-sites" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><rect x="3.5" y="4" width="17" height="4.5" rx="1.6"/><rect x="4.8" y="11" width="14.4" height="9" rx="2.2"/></g></symbol>
+<symbol id="i-today" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="5" width="16" height="15" rx="2.5"/><path d="M4 10h16M8.5 3v4M15.5 3v4"/></g></symbol>
+<symbol id="i-settings" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h9M17 7h3M4 17h3M11 17h9"/><circle cx="15" cy="7" r="2.2"/><circle cx="9" cy="17" r="2.2"/></g></symbol>
+<symbol id="i-box" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><rect x="3" y="4" width="18" height="4.5" rx="1.6"/><rect x="4.5" y="11" width="15" height="9.5" rx="2.2"/><path d="M10 14.5h4" stroke-linecap="round"/></g></symbol>
+<symbol id="i-box-dashed" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-dasharray="3 2.4"><rect x="3" y="4" width="18" height="4.5" rx="1.6"/><rect x="4.5" y="11" width="15" height="9.5" rx="2.2"/></g></symbol>
+<symbol id="i-file" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M13.5 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8.5z"/><path d="M13.5 3v5.5H19"/></g></symbol>
+<symbol id="logo" viewBox="0 0 48 48"><rect x="6" y="9" width="36" height="9" rx="3.5" fill="#2F8F74"/><path fill="#1D6B57" fill-rule="evenodd" d="M14 21H34A5 5 0 0 1 39 26V37A5 5 0 0 1 34 42H14A5 5 0 0 1 9 37V26A5 5 0 0 1 14 21ZM20 26.5A2 2 0 0 0 18 28.5A2 2 0 0 0 20 30.5H28A2 2 0 0 0 30 28.5A2 2 0 0 0 28 26.5Z"/></symbol>
+<symbol id="logo-cur" viewBox="0 0 48 48"><rect x="6" y="9" width="36" height="9" rx="3.5" fill="currentColor" opacity=".72"/><path fill="currentColor" fill-rule="evenodd" d="M14 21H34A5 5 0 0 1 39 26V37A5 5 0 0 1 34 42H14A5 5 0 0 1 9 37V26A5 5 0 0 1 14 21ZM20 26.5A2 2 0 0 0 18 28.5A2 2 0 0 0 20 30.5H28A2 2 0 0 0 30 28.5A2 2 0 0 0 28 26.5Z"/></symbol>
+</defs>
+</svg>
+
+<main class="grid">
+
+<!-- ===================== 1b ===================== -->
+<section data-block="1b">
+  <div class="blabel">1b · Sites tab (dashboard)<span>Canvas: “Session list — grouped by what is running, technical meta in mono, one-handed reach”. Drawn as built (Plan 18 shell).</span></div>
+  <div class="phone">
+    <div class="statusbar"></div>
+    <div class="chiprow">
+      <div class="chips">
+        <span class="chip sel"><svg class="ic s18"><use href="#i-check"/></svg>Personal</span>
+        <span class="chip">Work</span>
+        <span class="chip">Ephemeral</span>
+      </div>
+      <span class="addbtn" aria-label="New workspace"><span><svg class="ic s20"><use href="#i-plus"/></svg></span></span>
+    </div>
+    <div class="scroll pad">
+      <div class="group">
+        <div class="row two mg"><span class="mg-wrap"><span class="mg-b open"><i>Nt</i></span><span class="livedot"></span></span>
+          <span class="txt"><span class="t-row ell">Notes</span><span class="t-value wrap">notes.example.org · socks5</span></span><span class="age">now</span></div>
+        <div class="row two mg"><span class="mg-wrap"><span class="mg-b open"><i>Wm</i></span><span class="livedot"></span></span>
+          <span class="txt"><span class="t-row ell">Webmail</span><span class="t-value wrap">mail.example.net · direct</span></span><span class="age">14m</span></div>
+        <div class="row two mg"><span class="mg-b"><i>Fr</i></span>
+          <span class="txt"><span class="t-row-idle ell">Forum</span><span class="t-value wrap">forum.example.com · ephemeral</span></span><span class="age">2h</span></div>
+        <div class="row two mg"><span class="mg-b"><i>Rd</i></span>
+          <span class="txt"><span class="t-row-idle ell">Reader</span><span class="t-value wrap">read.example.io · direct</span></span><span class="age">1d</span></div>
+        <div class="row two mg"><span class="mg-b"><i>Bk</i></span>
+          <span class="txt"><span class="t-row-idle ell">Bank</span><span class="t-value wrap">bank.example.com · pin required</span></span><span class="age">3d</span></div>
+        <div class="row two mg"><span class="mg-b"><i>Mk</i></span>
+          <span class="txt"><span class="t-row-idle ell">Marketplace</span><span class="t-value wrap">shop.example.com · direct</span></span><span class="age">5d</span></div>
+      </div>
+      <div style="height:16px"></div>
+    </div>
+    <div class="footer">
+      <div class="search"><svg class="ic"><use href="#i-search"/></svg><span class="ell">Search or type an address</span></div>
+      <span class="plus48" aria-label="Add site"><svg class="ic"><use href="#i-plus"/></svg></span>
+    </div>
+    <div class="navbar">
+      <div class="nav on"><span class="ind"><svg class="ic"><use href="#i-sites"/></svg></span><span class="t-bar">Sites</span></div>
+      <div class="nav"><span class="ind"><svg class="ic"><use href="#i-today"/></svg></span><span class="t-bar">Today</span></div>
+      <div class="nav"><span class="ind"><svg class="ic"><use href="#i-settings"/></svg></span><span class="t-bar">Settings</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== 2b ===================== -->
+<section data-block="2b">
+  <div class="blabel">2b · Container chrome (layout C) and the ☰ menu<span>Canvas: “Isolated container — minimal top bar, panic button always reachable”. Drawn as built (Plan 12 layout C, reload in the pill). The dashed box says this container keeps nothing.</span></div>
+  <div class="frames">
+  <div class="phone">
+    <div class="statusbar" style="background:var(--card)"></div>
+    <div class="topbar">
+      <div class="pill">
+        <span class="ctype"><svg class="ic"><use href="#i-box-dashed"/></svg><span class="livedot"></span></span>
+        <span class="host ell">forum.example.com</span>
+        <span class="route">SOCKS5</span>
+        <span class="inpill" aria-label="Reload"><svg class="ic s20"><use href="#i-reload"/></svg></span>
+        <span class="inpill shield" aria-label="Site details"><svg class="ic"><use href="#i-shield"/></svg></span>
+      </div>
+      <span class="panic" aria-label="Panic"><svg class="ic"><use href="#i-panic"/></svg></span>
+    </div>
+    <div class="pagefill"><i class="h"></i><i></i><i></i><i class="s"></i><i class="img"></i><i></i><i></i><i class="s"></i><i></i><i></i></div>
+    <div class="botbar">
+      <span class="btn-icon ink" aria-label="Back"><svg class="ic"><use href="#i-back"/></svg></span>
+      <span class="btn-icon dim" aria-label="Forward"><svg class="ic"><use href="#i-forward"/></svg></span>
+      <span class="openpill" aria-label="Open sessions"><span class="t-bar sentence">3 OPEN</span><svg class="ic s18"><use href="#i-up"/></svg></span>
+      <span class="btn-icon ink" aria-label="Menu"><svg class="ic"><use href="#i-menu"/></svg></span>
+    </div>
+  </div>
+  <div class="phone fixed">
+    <div class="statusbar" style="background:var(--card)"></div>
+    <div class="topbar">
+      <div class="pill">
+        <span class="ctype"><svg class="ic"><use href="#i-box-dashed"/></svg><span class="livedot"></span></span>
+        <span class="host ell">forum.example.com</span>
+        <span class="route">SOCKS5</span>
+        <span class="inpill"><svg class="ic s20"><use href="#i-reload"/></svg></span>
+        <span class="inpill shield"><svg class="ic"><use href="#i-shield"/></svg></span>
+      </div>
+      <span class="panic"><svg class="ic"><use href="#i-panic"/></svg></span>
+    </div>
+    <div class="pagefill"><i class="h"></i><i></i><i></i><i class="s"></i><i class="img"></i></div>
+    <div class="scrim"></div>
+    <div class="sheet">
+      <div class="handle"></div>
+      <div class="sheethead"><span class="mg-b open"><i>Fr</i></span><span class="txt"><span class="t-sheet ell">Forum</span><span class="t-value wrap">forum.example.com · Personal</span></span></div>
+      <div class="tiles">
+        <div class="tile"><span><svg class="ic"><use href="#i-reload"/></svg></span><span class="t-caption">Reload</span></div>
+        <div class="tile"><span><svg class="ic"><use href="#i-find"/></svg></span><span class="t-caption">Find</span></div>
+        <div class="tile"><span><svg class="ic"><use href="#i-reader"/></svg></span><span class="t-caption">Reader</span></div>
+        <div class="tile"><span><svg class="ic"><use href="#i-link"/></svg></span><span class="t-caption">Copy link</span></div>
+      </div>
+      <div class="pad"><div class="group">
+        <div class="row"><span class="txt t-body">Security level</span><span class="end t-meta"><span class="sentence">STANDARD</span><svg class="ic s20 chev"><use href="#i-forward"/></svg></span></div>
+        <div class="row"><span class="txt t-body">New identity</span><span class="end"><svg class="ic s20 chev"><use href="#i-forward"/></svg></span></div>
+      </div>
+      <div class="group">
+        <div class="row"><span class="txt t-body">Today</span><span class="end t-meta"><span class="sentence">312 BLOCKED</span><svg class="ic s20 chev"><use href="#i-forward"/></svg></span></div>
+        <div class="row"><span class="txt t-body">Scripts and filters</span><span class="end"><svg class="ic s20 chev"><use href="#i-forward"/></svg></span></div>
+        <div class="row"><span class="txt t-body">Workspaces</span><span class="end"><svg class="ic s20 chev"><use href="#i-forward"/></svg></span></div>
+        <div class="row"><span class="txt t-body">Settings</span><span class="end"><svg class="ic s20 chev"><use href="#i-forward"/></svg></span></div>
+        <div class="row"><span class="txt t-body">All sites</span><span class="end"><svg class="ic s20 chev"><use href="#i-forward"/></svg></span></div>
+      </div></div>
+    </div>
+  </div>
+  </div>
+</section>

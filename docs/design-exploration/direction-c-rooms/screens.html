@@ -1,0 +1,398 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Rooms screens</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;650;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="tokens.css">
+<script>
+/* ?w=320 sets every phone's width (height 568 at 320); ?scale=1.3 multiplies every
+   text size and nothing else; ?theme=dark shows the Ink theme. */
+(function () {
+  var q = new URLSearchParams(location.search);
+  var w = parseInt(q.get('w') || '390', 10);
+  var h = w <= 320 ? 568 : 844;
+  var s = parseFloat(q.get('scale') || '1');
+  var r = document.documentElement;
+  r.style.setProperty('--pw', w + 'px');
+  r.style.setProperty('--ph', h + 'px');
+  r.style.setProperty('--scale', s);
+  if (q.get('theme') === 'dark') r.setAttribute('data-theme', 'dark');
+})();
+</script>
+<style>
+/* ---------- page around the phones (not part of the design) ---------- */
+html { --pw: 390px; --ph: 844px; }
+body { margin: 0; background: #D9D2C5; font-family: var(--ui); color: #1E1B16; }
+[data-theme="dark"] body { background: #0E0D0B; color: #F2EDE3; }
+.toolbar { position: fixed; top: 0; left: 0; right: 0; z-index: 10; display: flex; flex-wrap: wrap; gap: 6px; align-items: center;
+  padding: 8px 16px; background: #1E1B16; color: #F2EBE0; font: 600 13px/1.2 system-ui, sans-serif; }
+.toolbar a { color: #F2EBE0; text-decoration: none; padding: 6px 10px; border: 1px solid rgba(242,235,224,.35); border-radius: 999px; }
+.toolbar a.on { background: #F2EBE0; color: #1E1B16; }
+.toolbar b { margin-right: 8px; }
+main { display: flex; flex-wrap: wrap; gap: 48px 40px; padding: 76px 32px 64px; align-items: flex-start; }
+section[data-block] { display: flex; flex-direction: column; gap: 12px; }
+section[data-block] > header { width: var(--pw); font: 13px/1.35 system-ui, sans-serif; }
+section[data-block] > header .bid { display: inline-block; font: 700 12px/1 system-ui, sans-serif; padding: 4px 7px; border-radius: 6px; background: #1E1B16; color: #F2EBE0; margin-right: 6px; }
+[data-theme="dark"] section[data-block] > header .bid { background: #F2EDE3; color: #1A1815; }
+section[data-block] > header .note { display: block; margin-top: 4px; opacity: .72; }
+.frames { display: flex; flex-wrap: wrap; gap: 24px; }
+
+/* ---------- the phone ---------- */
+.phone { position: relative; width: var(--pw); height: var(--ph); background: var(--page); color: var(--ink);
+  border-radius: 34px; overflow-x: hidden; overflow-y: auto; display: flex; flex-direction: column;
+  box-shadow: 0 0 0 8px #14120F, 0 18px 40px rgba(0,0,0,.25); font-family: var(--ui); overflow-wrap: anywhere;
+  scrollbar-width: none; }
+.phone::-webkit-scrollbar { display: none; }
+.phone * { box-sizing: border-box; }
+.sys { flex: none; height: 28px; }
+.grow { flex: 1 1 auto; }
+.ic { width: 24px; height: 24px; flex: none; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.ic.s20 { width: 20px; height: 20px; } .ic.s16 { width: 16px; height: 16px; } .ic.s28 { width: 28px; height: 28px; }
+.ic.fill { fill: currentColor; stroke: none; }
+.row { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.col { display: flex; flex-direction: column; min-width: 0; }
+.f1 { flex: 1 1 auto; min-width: 0; }
+.ell { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ink2 { color: var(--ink2); } .ink3 { color: var(--ink3); } .danger { color: var(--danger); }
+.mono { font-family: var(--mono); }
+.center { text-align: center; }
+.up { text-transform: uppercase; }
+
+/* tap targets */
+.tap { min-width: var(--target); min-height: var(--target); display: inline-grid; place-items: center; border-radius: 999px; color: var(--ink2); flex: none; }
+.tap.ink { color: var(--ink); }
+.inert { opacity: .38; }
+
+/* pills: the one solid ink pill per screen is .primary */
+.pill { display: flex; align-items: center; justify-content: center; gap: 8px; min-height: 52px; padding: 12px 22px; border-radius: 999px;
+  font: 650 calc(16px*var(--scale))/1.25 var(--ui); text-align: center; width: 100%; }
+.pill.primary { background: var(--ink); color: var(--on-ink); }
+.pill.secondary { border: 2px solid var(--ink3); color: var(--ink); }
+.pill.dangerline { border: 2px solid var(--danger); color: var(--danger); flex-direction: column; gap: 2px; }
+.pill.dangerline small { font: 500 calc(13px*var(--scale))/1.38 var(--ui); }
+.pill.small { min-height: 48px; width: auto; padding: 10px 18px; }
+.textbtn { min-height: 48px; display: inline-flex; align-items: center; padding: 0 12px; border-radius: 999px; font: 650 calc(16px*var(--scale))/1.25 var(--ui); color: var(--ink); }
+.savebtn { min-height: 48px; display: inline-flex; align-items: center; padding: 0 20px; border-radius: 999px; background: var(--ink); color: var(--on-ink); font: 650 calc(16px*var(--scale))/1.25 var(--ui); flex: none; }
+
+/* switches: on = ink, off = ink3 outline */
+.sw { flex: none; width: 52px; height: 32px; border-radius: 999px; position: relative; border: 2px solid var(--ink3); }
+.sw::after { content: ""; position: absolute; top: 6px; left: 6px; width: 16px; height: 16px; border-radius: 50%; background: var(--ink3); }
+.sw.on { background: var(--ink); border-color: var(--ink); }
+.sw.on::after { top: 2px; left: 22px; width: 24px; height: 24px; background: var(--on-ink); }
+.radio { flex: none; width: 24px; height: 24px; border-radius: 50%; border: 2px solid var(--ink3); display: grid; place-items: center; }
+.radio.on { border-color: var(--ink); }
+.radio.on::after { content: ""; width: 12px; height: 12px; border-radius: 50%; background: var(--ink); }
+
+/* monogram tile in its room's wall colour; letters shrink to fit as Monogram does */
+.mg { flex: none; width: 44px; height: 44px; border-radius: var(--r-s); background: var(--wall); color: var(--on-wall); display: grid; place-items: center;
+  font: 650 min(calc(15px*var(--scale)), 18px)/1 var(--ui); letter-spacing: .01em; position: relative; }
+.mg.s36 { width: 36px; height: 36px; border-radius: 10px; font-size: min(calc(13px*var(--scale)), 15px); }
+.mg.s52 { width: 52px; height: 52px; border-radius: 14px; font-size: min(calc(17px*var(--scale)), 21px); }
+.mg .flame { position: absolute; right: -6px; bottom: -6px; width: 22px; height: 22px; border-radius: 50%; background: var(--box); color: var(--ink2); display: grid; place-items: center; }
+.mg.throw { background: transparent; border: 2px dashed var(--ink3); color: var(--ink3); }
+.kind { flex: none; width: 44px; height: 44px; border-radius: var(--r-s); background: var(--sunken); color: var(--ink); display: grid; place-items: center; font: 700 min(calc(12px*var(--scale)), 14px)/1 var(--mono); }
+
+/* rooms and boxes */
+.room { background: var(--tint); border-radius: var(--r-xl); padding: 12px; display: flex; flex-direction: column; gap: 8px; }
+.box { background: var(--box); border-radius: var(--r-l); box-shadow: var(--shadow-box); border: 1px solid var(--divider); }
+.site { display: flex; align-items: center; gap: 12px; padding: 14px 14px 14px 12px; min-height: 76px; }
+.door { flex: none; width: 20px; height: 24px; }
+.age { flex: none; text-align: right; min-width: 24px; }
+.badge { display: inline-flex; align-items: center; gap: 4px; font: 700 calc(12px*var(--scale))/1.33 var(--ui); letter-spacing: .04em; color: var(--room-ink, var(--ink2)); }
+.badge.tag { padding: 4px 8px; border-radius: 8px; background: var(--box); border: 1px solid var(--divider); }
+
+/* chips (room doors) */
+.chips { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.chip { min-height: 40px; display: inline-flex; align-items: center; gap: 6px; padding: 8px 16px; border-radius: 999px; background: var(--tint); color: var(--room-ink);
+  font: 650 calc(15px*var(--scale))/1.33 var(--ui); margin: 4px 0; }
+.chip.sel { background: var(--wall); color: var(--on-wall); }
+.chip.add { background: transparent; color: var(--ink2); border: 2px solid var(--ink3); padding: 0; width: 40px; justify-content: center; }
+.seg { min-height: 48px; display: flex; align-items: center; justify-content: center; gap: 6px; padding: 10px 14px; border-radius: 999px; border: 2px solid var(--ink3);
+  font: 650 calc(15px*var(--scale))/1.33 var(--ui); color: var(--ink); text-align: center; }
+.seg.sel { background: var(--ink); color: var(--on-ink); border-color: var(--ink); }
+
+/* settings-style groups */
+.label { font: 700 calc(15px*var(--scale))/1.33 var(--ui); color: var(--ink2); margin: 0; }
+.group { background: var(--box); border-radius: var(--r-m); border: 1px solid var(--divider); overflow: hidden; }
+.group > .gr { display: flex; align-items: center; gap: 12px; padding: 14px 16px; min-height: 56px; border-top: 1px solid var(--hairline); }
+.group > .gr:first-child { border-top: 0; }
+.gt { font: 400 calc(16px*var(--scale))/1.5 var(--ui); color: var(--ink); }
+.gs { font: 500 calc(13px*var(--scale))/1.38 var(--ui); color: var(--ink3); }
+.gv { font: 400 calc(15px*var(--scale))/1.47 var(--ui); color: var(--ink2); text-align: right; flex: none; max-width: 50%; }
+.gv.mono { font: 500 calc(14px*var(--scale))/1.43 var(--mono); }
+
+/* fields */
+.field { min-height: 52px; display: flex; align-items: center; gap: 10px; padding: 10px 8px 10px 16px; border-radius: var(--r-s); background: var(--box); border: 2px solid var(--ink3);
+  font: 400 calc(16px*var(--scale))/1.5 var(--ui); color: var(--ink); }
+.field.focus { border-color: var(--focus); box-shadow: 0 0 0 1px var(--focus); }
+.field .hint { color: var(--ink3); }
+
+/* screen headers */
+.top { flex: none; display: flex; align-items: center; gap: 4px; padding: 4px 8px 8px; }
+.top .t { flex: 1 1 auto; min-width: 0; padding: 0 8px; }
+.pad { padding: 0 16px; }
+
+/* dashboard tab bar */
+.tabbar { flex: none; display: flex; padding: 6px 8px 10px; background: var(--page); border-top: 1px solid var(--divider); }
+.tabbar .ti { flex: 1 1 0; min-height: 56px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; color: var(--ink2);
+  font: 600 calc(13px*var(--scale))/1.2 var(--ui); text-align: center; }
+.tabbar .ti .ind { width: 56px; height: 30px; border-radius: 999px; display: grid; place-items: center; }
+.tabbar .ti.sel { color: var(--ink); font-weight: 700; }
+.tabbar .ti.sel .ind { background: var(--sunken); }
+
+/* container chrome: the room frames the page */
+.chrome-top { flex: none; display: flex; align-items: center; gap: 8px; padding: 6px 8px 8px 10px; background: var(--tint); }
+.addr { flex: 1 1 auto; min-width: 0; min-height: 56px; display: flex; align-items: center; gap: 6px; padding: 4px 4px 4px 14px; background: var(--box); border: var(--pill-wall-w) solid var(--wall); border-radius: 999px; }
+.addr .host { font: 600 calc(16px*var(--scale))/1.375 var(--ui); color: var(--ink); }
+.addr .tap { min-width: 44px; min-height: 44px; }
+.panic { flex: none; width: 48px; height: 48px; border-radius: 14px; background: var(--danger-tint); color: var(--danger); display: grid; place-items: center; }
+.walled { flex: 1 1 auto; margin: 0 8px; border: var(--wall-w) solid var(--wall); border-radius: 18px; overflow: hidden; position: relative; display: flex; flex-direction: column; min-height: 0; }
+.loadline { height: 3px; background: var(--ink); width: 46%; border-radius: 0 3px 3px 0; }
+.webpage { flex: 1 1 auto; background: #26231F; padding: 18px 16px; display: flex; flex-direction: column; gap: 12px; }
+.webpage i { display: block; height: 12px; border-radius: 6px; background: rgba(255,255,255,.10); }
+.webpage i.h { height: 22px; width: 72%; background: rgba(255,255,255,.16); }
+.webpage i.img { height: 120px; border-radius: 10px; background: rgba(255,255,255,.07); }
+.chrome-bot { flex: none; display: flex; align-items: center; justify-content: space-between; gap: 4px; padding: 8px 8px 10px; background: var(--tint); }
+.openpill { min-height: 48px; display: inline-flex; align-items: center; gap: 6px; padding: 8px 16px; border-radius: 999px; background: var(--box); border: 2px solid var(--wall); color: var(--ink);
+  font: 650 calc(15px*var(--scale))/1.33 var(--ui); }
+.tor-wall { box-shadow: inset 0 0 0 2px var(--tint), inset 0 0 0 4px var(--ink); }
+/* throwaway: no room — dashed ink3 wall, hatch instead of a tint */
+.room-none .chrome-top, .room-none .chrome-bot, .hatch { background: repeating-linear-gradient(135deg, var(--hatch) 0 2px, transparent 2px 9px), var(--page); }
+.room-none .addr { border-style: dashed; }
+.room-none .walled { border-style: dashed; border-color: var(--ink3); }
+
+/* sheets */
+.scrim { position: absolute; inset: 0; background: var(--scrim); z-index: 2; }
+.sheet { position: absolute; left: 0; right: 0; bottom: 0; z-index: 3; max-height: calc(100% - 44px); overflow-y: auto; scrollbar-width: none;
+  background: var(--sheet); border-radius: var(--r-xl) var(--r-xl) 0 0; box-shadow: var(--shadow-sheet); padding: 10px 16px 20px; display: flex; flex-direction: column; gap: 12px; }
+.sheet::-webkit-scrollbar { display: none; }
+.handle { width: 40px; height: 5px; border-radius: 3px; background: var(--ink3); margin: 0 auto 6px; opacity: .5; flex: none; }
+.under { display: flex; flex-direction: column; flex: 1 1 auto; min-height: 0; }
+
+/* PIN */
+.dots { display: flex; gap: 16px; }
+.dots i { width: 16px; height: 16px; border-radius: 50%; border: 2px solid var(--ink3); }
+.dots i.f { background: var(--ink); border-color: var(--ink); }
+.dots.err i { border-color: var(--danger); }
+.keypad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px 20px; width: 100%; max-width: 292px; margin: 0 auto; }
+.key { height: 64px; border-radius: 999px; background: var(--sunken); display: grid; place-items: center; font: 500 calc(28px*var(--scale))/1.14 var(--ui); color: var(--ink); }
+.key.blank { background: transparent; }
+.key.bs { background: transparent; color: var(--ink2); }
+@media (max-height: 700px) { .key { height: 56px; } }
+.phone.short .key { height: 52px; }
+.lockmark { width: 72px; height: 72px; }
+.steps { display: flex; gap: 6px; }
+.steps i { flex: 1; height: 6px; border-radius: 3px; background: var(--sunken); }
+.steps i.f { background: var(--ink); }
+.bar { height: 10px; border-radius: 5px; background: var(--sunken); overflow: hidden; }
+.bar i { display: block; height: 100%; background: var(--ink2); border-radius: 5px; }
+.scroll { flex: 1 1 auto; min-height: 0; overflow-y: auto; scrollbar-width: none; }
+.dfoot { flex: none; display: flex; gap: 8px; align-items: center; padding: 10px 16px 8px; }
+.sentence { display: inline-block; }
+.room.fill { min-height: calc(100% - 8px); }
+.addr .hc { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; align-items: flex-start; }
+.addr .hc .host { max-width: 100%; }
+.badge { max-width: 100%; }
+.tiles { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+.tile { display: flex; flex-direction: column; align-items: center; gap: 6px; min-height: 48px; text-align: center; font: 500 calc(13px*var(--scale))/1.38 var(--ui); color: var(--ink2); }
+.tile .sq { width: 56px; height: 52px; border-radius: 16px; background: var(--sunken); display: grid; place-items: center; color: var(--ink); }
+.mrow { display: flex; align-items: center; gap: 12px; min-height: 56px; padding: 12px 16px; border-top: 1px solid var(--hairline); }
+.mrow:first-child { border-top: 0; }
+.hr { height: 1px; background: var(--divider); flex: none; }
+</style>
+</head>
+<body>
+<nav class="toolbar" aria-label="Preview size">
+  <b>Rooms</b>
+  <span id="tb"></span>
+</nav>
+<script>
+(function () {
+  var q = new URLSearchParams(location.search);
+  var cur = (q.get('w') || '390') + '|' + (q.get('scale') || '1.0').replace(/^1$/, '1.0').replace(/^2$/, '2.0');
+  var th = q.get('theme') === 'dark' ? '&theme=dark' : '';
+  var out = '';
+  [['390','1.0'],['390','1.3'],['390','2.0'],['320','1.0'],['320','1.3'],['320','2.0']].forEach(function (p) {
+    out += '<a class="' + (cur === p[0] + '|' + p[1] ? 'on' : '') + '" href="?w=' + p[0] + '&scale=' + p[1] + th + '">' + p[0] + ' × ' + p[1] + '</a> ';
+  });
+  var base = '?w=' + (q.get('w') || '390') + '&scale=' + (q.get('scale') || '1.0');
+  out += '<a class="' + (th ? '' : 'on') + '" href="' + base + '">Paper</a> <a class="' + (th ? 'on' : '') + '" href="' + base + '&theme=dark">Ink</a>';
+  document.getElementById('tb').innerHTML = out;
+})();
+</script>
+
+<!-- Line icons, drawn for Rooms: 24 grid, 2 dp round strokes. -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <symbol id="i-back" viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></symbol>
+    <symbol id="i-fwd" viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"/></symbol>
+    <symbol id="i-reload" viewBox="0 0 24 24"><path d="M19.5 12a7.5 7.5 0 1 1-2.2-5.3"/><path d="M19.5 4.5v4.5H15"/></symbol>
+    <symbol id="i-close" viewBox="0 0 24 24"><path d="M6.5 6.5l11 11M17.5 6.5l-11 11"/></symbol>
+    <symbol id="i-shield" viewBox="0 0 24 24"><path d="M12 3l7 3v5.5c0 4.6-3 7.9-7 9.5-4-1.6-7-4.9-7-9.5V6z"/><path d="M12 7.5v9"/></symbol>
+    <symbol id="i-panic" viewBox="0 0 24 24"><path d="M12 3.5v8"/><path d="M7 6.6a7.5 7.5 0 1 0 10 0"/></symbol>
+    <symbol id="i-menu" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></symbol>
+    <symbol id="i-find" viewBox="0 0 24 24"><path d="M4 6h9M4 11h5M4 16h4"/><circle cx="15.5" cy="14" r="3.5"/><path d="M18 16.5l2.5 2.5"/></symbol>
+    <symbol id="i-reader" viewBox="0 0 24 24"><path d="M3.5 5.5h6a2.5 2.5 0 0 1 2.5 2.5v11a2 2 0 0 0-2-2H3.5z"/><path d="M20.5 5.5h-6A2.5 2.5 0 0 0 12 8v11a2 2 0 0 1 2-2h6.5z"/></symbol>
+    <symbol id="i-link" viewBox="0 0 24 24"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/></symbol>
+    <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l4.5 4.5"/></symbol>
+    <symbol id="i-globe" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M3.5 12h17M12 3.5c2.5 2.6 3.5 5.4 3.5 8.5s-1 5.9-3.5 8.5c-2.5-2.6-3.5-5.4-3.5-8.5s1-5.9 3.5-8.5z"/></symbol>
+    <symbol id="i-up" viewBox="0 0 24 24"><path d="M6 15l6-6 6 6"/></symbol>
+    <symbol id="i-down" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></symbol>
+    <symbol id="i-check" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></symbol>
+    <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+    <symbol id="i-more" viewBox="0 0 24 24"><circle cx="5.5" cy="12" r="1.2"/><circle cx="12" cy="12" r="1.2"/><circle cx="18.5" cy="12" r="1.2"/></symbol>
+    <symbol id="i-fp" viewBox="0 0 24 24"><path d="M7.5 18.5c1-2 1.5-4 1.5-6.5a3 3 0 0 1 6 0c0 2-.3 3.8-.8 5.4"/><path d="M12 12c0 3-.8 5.6-2.2 7.6"/><path d="M5 15c.5-1 .7-2 .7-3a6.3 6.3 0 0 1 12.6 0c0 1.5-.1 2.9-.4 4.2"/><path d="M6.6 6.3A8.5 8.5 0 0 1 20 9.5"/></symbol>
+    <symbol id="i-bs" viewBox="0 0 24 24"><path d="M9 5.5h10.5a1.5 1.5 0 0 1 1.5 1.5v10a1.5 1.5 0 0 1-1.5 1.5H9L3 12z"/><path d="M12.5 9.5l5 5M17.5 9.5l-5 5"/></symbol>
+    <symbol id="i-refused" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M6 18L18 6"/></symbol>
+    <symbol id="i-contrast" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M12 3.5v17a8.5 8.5 0 0 0 0-17z" fill="currentColor"/></symbol>
+    <symbol id="i-sites" viewBox="0 0 24 24"><rect x="3.5" y="3.5" width="17" height="17" rx="5"/><path d="M9 20.5V14a3 3 0 0 1 6 0v6.5"/></symbol>
+    <symbol id="i-today" viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="15.5" rx="3"/><path d="M4 10h16M8.5 3v4M15.5 3v4M8 14h3"/></symbol>
+    <symbol id="i-settings" viewBox="0 0 24 24"><path d="M4 7.5h9M17 7.5h3M4 16.5h3M11 16.5h9"/><circle cx="15" cy="7.5" r="2"/><circle cx="9" cy="16.5" r="2"/></symbol>
+    <symbol id="i-flame" viewBox="0 0 24 24"><path d="M12 3c.8 3 5.5 5.2 5.5 10.2a5.5 5.5 0 0 1-11 0c0-2.6 1.4-4.3 2.6-5.3.2 2 1.2 3.2 2.4 3.4.4-2.8-.6-5.6.5-8.3z"/></symbol>
+    <symbol id="i-onion" viewBox="0 0 24 24"><path d="M12 4.5c0 2.3-6 5.2-6 10a6 6.2 0 0 0 12 0c0-4.8-6-7.7-6-10z"/><path d="M12 9.5c-1.2 1.6-3 3-3 5.2a3 3.2 0 0 0 6 0c0-2.2-1.8-3.6-3-5.2z"/><path d="M12 4.5c.8-1.4 2-2 3.5-2"/></symbol>
+    <symbol id="i-door-open" viewBox="0 0 20 24"><path d="M3 23V10a7 7 0 0 1 14 0v13z" fill="currentColor" stroke="none"/></symbol>
+    <symbol id="i-door-idle" viewBox="0 0 20 24"><path d="M4 22V10a6 6 0 0 1 12 0v12z"/></symbol>
+    <symbol id="i-dashbox" viewBox="0 0 24 24"><rect x="3.5" y="3.5" width="17" height="17" rx="5" stroke-dasharray="4 3"/></symbol>
+    <symbol id="i-room" viewBox="0 0 128 128"><rect x="12" y="12" width="104" height="104" rx="30" style="fill:var(--fern-tint)" stroke="currentColor" stroke-width="12"/><path d="M46 110 V70 a18 18 0 0 1 36 0 V110 Z" fill="currentColor" stroke="none"/><circle cx="72" cy="90" r="3.5" style="fill:var(--fern-tint)" stroke="none"/></symbol>
+    <symbol id="i-pen" viewBox="0 0 24 24"><path d="M4 20l1-4.5L15.5 5a2.1 2.1 0 0 1 3 3L8 18.5z"/><path d="M13.5 7l3 3"/></symbol>
+  </defs>
+</svg>
+
+<main>
+<section data-block="1b">
+<header><span class="bid">1b</span>Session list — grouped by what is running, technical meta in mono, one-handed reach
+<span class="note">As built (Plan 18's Sites tab). The viewed workspace, Personal, is a Fern room; each saved site is a box in it. Filled door = open, hollow door = idle; open sites first. Flame = wipe on exit.</span></header>
+<div class="frames">
+<div class="phone room-fern">
+  <div class="sys"></div>
+  <div class="pad chips" style="padding-bottom:8px">
+    <span class="chip sel room-fern">Personal</span>
+    <span class="chip room-lake">Work</span>
+    <span class="chip room-graphite"><svg class="ic s16" aria-label="Wipe on exit"><use href="#i-flame"/></svg>Ephemeral</span>
+    <span class="chip add" role="button" aria-label="New workspace"><svg class="ic s20"><use href="#i-plus"/></svg></span>
+  </div>
+  <div class="scroll">
+    <div class="room fill" style="margin:0 12px 8px">
+      <div class="box site"><span class="mg">Nt</span><div class="col f1"><span class="t-row ell">Notes</span><span class="t-meta">notes.example.org · socks5</span></div><span class="t-meta age">now</span><svg class="door" style="color:var(--ink)"><use href="#i-door-open"/></svg></div>
+      <div class="box site"><span class="mg">Wm</span><div class="col f1"><span class="t-row ell">Webmail</span><span class="t-meta">mail.example.net · direct</span></div><span class="t-meta age">14m</span><svg class="door" style="color:var(--ink)"><use href="#i-door-open"/></svg></div>
+      <div class="box site"><span class="mg">Fr<span class="flame"><svg class="ic s16" aria-label="Wipe on exit"><use href="#i-flame"/></svg></span></span><div class="col f1"><span class="t-row-idle ell">Forum</span><span class="t-meta">forum.example.com · ephemeral</span></div><span class="t-meta age">2h</span><svg class="door ic" style="color:var(--ink3)"><use href="#i-door-idle"/></svg></div>
+      <div class="box site"><span class="mg">Rd</span><div class="col f1"><span class="t-row-idle ell">Reader</span><span class="t-meta">read.example.io · direct</span></div><span class="t-meta age">1d</span><svg class="door ic" style="color:var(--ink3)"><use href="#i-door-idle"/></svg></div>
+      <div class="box site"><span class="mg">Bk</span><div class="col f1"><span class="t-row-idle ell">Bank</span><span class="t-meta">bank.example.com · pin required</span></div><span class="t-meta age">3d</span><svg class="door ic" style="color:var(--ink3)"><use href="#i-door-idle"/></svg></div>
+      <div class="box site"><span class="mg">Mk</span><div class="col f1"><span class="t-row-idle ell">Marketplace</span><span class="t-meta">shop.example.com · direct</span></div><span class="t-meta age">5d</span><svg class="door ic" style="color:var(--ink3)"><use href="#i-door-idle"/></svg></div>
+    </div>
+  </div>
+  <div class="dfoot">
+    <div class="field f1"><svg class="ic s20 ink2"><use href="#i-search"/></svg><span class="hint f1">Search or type an address</span></div>
+    <span class="tap" role="button" aria-label="Add site" style="width:52px;height:52px;border-radius:16px;border:2px solid var(--ink3);color:var(--ink)"><svg class="ic"><use href="#i-plus"/></svg></span>
+  </div>
+  <nav class="tabbar">
+    <span class="ti sel"><span class="ind"><svg class="ic"><use href="#i-sites"/></svg></span>Sites</span>
+    <span class="ti"><span class="ind"><svg class="ic"><use href="#i-today"/></svg></span>Today</span>
+    <span class="ti"><span class="ind"><svg class="ic"><use href="#i-settings"/></svg></span>Settings</span>
+  </nav>
+</div>
+</div>
+</section>
+
+<section data-block="2b">
+<header><span class="bid">2b</span>Isolated container — minimal top bar, panic button always reachable
+<span class="note">As built (Plan 12 layout C + later rulings). The room's colour frames the chrome: tinted bars, the pill's wall, a 3 dp wall round the page. Left: saved site Forum (Personal, SOCKS5, wipe on exit). Middle: a throwaway has no room — dashed wall, hatch. Right: the ☰ sheet.</span></header>
+<div class="frames">
+<div class="phone room-fern">
+  <div class="sys" style="background:var(--tint)"></div>
+  <div class="chrome-top">
+    <div class="addr">
+      <svg class="door" style="color:var(--ink);width:16px;height:20px"><use href="#i-door-open"/></svg>
+      <div class="hc"><span class="host ell">forum.example.com</span><span class="badge"><svg class="ic s16" aria-label="Wipe on exit" style="color:var(--ink2)"><use href="#i-flame"/></svg>SOCKS5</span></div>
+      <span class="tap" role="button" aria-label="Reload"><svg class="ic s20"><use href="#i-reload"/></svg></span>
+      <span class="tap" role="button" aria-label="Site details"><svg class="ic s20"><use href="#i-shield"/></svg></span>
+    </div>
+    <span class="panic" role="button" aria-label="Panic"><svg class="ic s20"><use href="#i-panic"/></svg></span>
+  </div>
+  <div class="walled" style="background:#26231F">
+    <div class="webpage"><i class="h"></i><i></i><i style="width:88%"></i><i style="width:64%"></i><i class="img"></i><i></i><i style="width:92%"></i><i style="width:58%"></i><i></i><i style="width:76%"></i></div>
+  </div>
+  <div class="chrome-bot">
+    <span class="tap ink" role="button" aria-label="Back"><svg class="ic"><use href="#i-back"/></svg></span>
+    <span class="tap inert" role="button" aria-label="Forward"><svg class="ic"><use href="#i-fwd"/></svg></span>
+    <span class="openpill" role="button" aria-label="Open sessions"><span class="sentence">3 OPEN</span><svg class="ic s16"><use href="#i-up"/></svg></span>
+    <span class="tap ink" role="button" aria-label="Menu"><svg class="ic"><use href="#i-menu"/></svg></span>
+  </div>
+</div>
+
+<div class="phone room-none">
+  <div class="sys hatch"></div>
+  <div class="chrome-top">
+    <div class="addr" style="border-color:var(--ink3)">
+      <svg class="door" style="color:var(--ink);width:16px;height:20px"><use href="#i-door-open"/></svg>
+      <div class="hc"><span class="host ell">duckduckgo.com</span></div>
+      <span class="tap" role="button" aria-label="Stop"><svg class="ic s20"><use href="#i-close"/></svg></span>
+      <span class="tap" role="button" aria-label="Site details"><svg class="ic s20"><use href="#i-shield"/></svg></span>
+    </div>
+    <span class="panic" role="button" aria-label="Panic"><svg class="ic s20"><use href="#i-panic"/></svg></span>
+  </div>
+  <div class="walled" style="background:#26231F">
+    <div class="loadline"></div>
+    <div class="webpage"><i class="h" style="width:50%"></i><i style="height:44px;border-radius:22px"></i><i></i><i style="width:80%"></i><i style="width:66%"></i><i></i><i style="width:84%"></i></div>
+  </div>
+  <div class="hatch" style="flex:none;display:flex;align-items:center;gap:8px;padding:10px 8px 6px 16px;flex-wrap:wrap">
+    <span class="t-muted f1" style="color:var(--ink);min-width:140px">Not saved · wiped when you close it</span>
+    <span class="savebtn">Save as a site</span>
+    <span class="tap" role="button" aria-label="Dismiss"><svg class="ic s20"><use href="#i-close"/></svg></span>
+  </div>
+  <div class="chrome-bot">
+    <span class="tap inert" role="button" aria-label="Back"><svg class="ic"><use href="#i-back"/></svg></span>
+    <span class="tap inert" role="button" aria-label="Forward"><svg class="ic"><use href="#i-fwd"/></svg></span>
+    <span class="openpill" role="button" aria-label="Open sessions" style="border-color:var(--ink3);border-style:dashed"><span class="sentence">4 OPEN</span><svg class="ic s16"><use href="#i-up"/></svg></span>
+    <span class="tap ink" role="button" aria-label="Menu"><svg class="ic"><use href="#i-menu"/></svg></span>
+  </div>
+</div>
+
+<div class="phone room-fern">
+  <div class="sys" style="background:var(--tint)"></div>
+  <div class="chrome-top">
+    <div class="addr">
+      <svg class="door" style="color:var(--ink);width:16px;height:20px"><use href="#i-door-open"/></svg>
+      <div class="hc"><span class="host ell">forum.example.com</span><span class="badge">SOCKS5</span></div>
+      <span class="tap"><svg class="ic s20"><use href="#i-reload"/></svg></span>
+      <span class="tap"><svg class="ic s20"><use href="#i-shield"/></svg></span>
+    </div>
+    <span class="panic"><svg class="ic s20"><use href="#i-panic"/></svg></span>
+  </div>
+  <div class="walled" style="background:#26231F"><div class="webpage"><i class="h"></i><i></i><i style="width:70%"></i><i class="img"></i></div></div>
+  <div class="scrim"></div>
+  <div class="sheet">
+    <div class="handle"></div>
+    <div class="row" style="background:var(--tint);border-radius:var(--r-l);padding:12px">
+      <span class="mg">Fr</span>
+      <div class="col f1"><span class="t-row ell">Forum</span><span class="t-value" style="color:var(--room-ink)">forum.example.com · Personal</span></div>
+    </div>
+    <div class="tiles">
+      <span class="tile" role="button"><span class="sq"><svg class="ic"><use href="#i-reload"/></svg></span>Reload</span>
+      <span class="tile" role="button"><span class="sq"><svg class="ic"><use href="#i-find"/></svg></span>Find</span>
+      <span class="tile" role="button"><span class="sq"><svg class="ic"><use href="#i-reader"/></svg></span>Reader</span>
+      <span class="tile" role="button"><span class="sq"><svg class="ic"><use href="#i-link"/></svg></span>Copy link</span>
+    </div>
+    <div class="group">
+      <div class="mrow"><span class="gt f1">Security level</span><span class="t-value sentence">STANDARD</span><svg class="ic s16 ink3"><use href="#i-fwd"/></svg></div>
+      <div class="mrow"><span class="gt f1">New identity</span><svg class="ic s16 ink3"><use href="#i-fwd"/></svg></div>
+    </div>
+    <div class="group">
+      <div class="mrow"><span class="gt f1">Today</span><span class="t-value sentence">312 BLOCKED</span></div>
+      <div class="mrow"><span class="gt f1">Scripts and filters</span><svg class="ic s16 ink3"><use href="#i-fwd"/></svg></div>
+      <div class="mrow"><span class="gt f1">Workspaces</span><svg class="ic s16 ink3"><use href="#i-fwd"/></svg></div>
+      <div class="mrow"><span class="gt f1">Settings</span><svg class="ic s16 ink3"><use href="#i-fwd"/></svg></div>
+      <div class="mrow"><span class="gt f1">All sites</span><svg class="ic s16 ink3"><use href="#i-fwd"/></svg></div>
+    </div>
+  </div>
+</div>
+</div>
+</section>
+
+<!-- END BLOCKS -->
+</main>
+</body>
+</html>
