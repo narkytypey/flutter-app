@@ -1,0 +1,884 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Instrument Motion Study</title>
+<meta name="description" content="Looping studies of the six transitions of restyle v2 (Instrument), at full motion and under reduced motion.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+/* ─────────────────────────────────────────────────────────────────────────
+   Tokens: restyle v2 spec §2 (colour), §3 (type), §4 (space/shape), §7
+   (motion). Dark only, by the CLAUDE.md constraint, so there is no light
+   block. The study page's own chrome uses the same tokens.
+   ───────────────────────────────────────────────────────────────────────── */
+:root {
+  color-scheme: dark;
+
+  /* surfaces (§2.1) */
+  --ink: #121110;            /* C.bg */
+  --group: #22201D;          /* C.surface */
+  --sheet: #302D29;          /* C.sheet */
+  --raised: #403C37;         /* C.button / C.selected */
+
+  /* text (§2.2) */
+  --text-1: #EDEAE4;
+  --text-2: #CBC4B9;
+  --text-3: #A8A095;         /* never on --raised */
+
+  /* state (§2.3) */
+  --jade: #7FC8A9;
+  --on-jade: #121110;
+  --danger: #EE8D79;
+  --danger-wash: #2C201D;
+  --amber: #E0B266;
+
+  /* lines (§2.4) */
+  --line-soft: rgba(237, 234, 228, 0.08);
+  --line: rgba(237, 234, 228, 0.14);
+  --edge: #958D82;
+  --focus: #EDEAE4;
+
+  /* stand-in page inside the WebView (not app chrome; no real site) */
+  --page-bg: #1A1816;
+  --page-bar: #2A2724;
+  --page-head: #322F2B;
+
+  /* the study page around the phones */
+  --study-bg: #0B0A09;
+  --frame-outline: rgba(237, 234, 228, 0.18);
+  --scrim: rgba(0, 0, 0, 0.54);       /* Flutter's Colors.black54 barrier */
+
+  /* type (§3) */
+  --sans: 'IBM Plex Sans', system-ui, sans-serif;
+  --mono: 'IBM Plex Mono', ui-monospace, monospace;
+
+  /* space and radii (§4) */
+  --s1: 4px; --s2: 8px; --s3: 12px; --s4: 16px; --s5: 20px; --s6: 24px; --s8: 32px;
+  --r-badge: 6px; --r-mono: 10px; --r-input: 14px; --r-group: 18px; --r-sheet: 28px; --r-full: 999px;
+  --shadow-sheet: 0 -12px 40px rgba(0, 0, 0, 0.55);
+
+  /* motion (§7). Reduced motion overrides these below. */
+  --moment: 320ms;                                /* unlock, protective change */
+  --ease-moment: cubic-bezier(0.33, 1, 0.68, 1);  /* Curves.easeOutCubic */
+  --light: 150ms;                                 /* amber → jade */
+  --effect: 150ms;                                /* "everything else ≈150 ms" */
+  --ease-effect: cubic-bezier(0.2, 0, 0, 1);      /* no overshoot */
+  --sheet-in: 250ms;                              /* Flutter modal sheet enter */
+  --sheet-out: 200ms;                             /* Flutter modal sheet exit */
+  --ease-sheet-in: cubic-bezier(0, 0, 0.2, 1);    /* decelerate */
+  --ease-sheet-out: cubic-bezier(0.8, 0, 1, 1);   /* the same curve played back */
+}
+:root.reduced {
+  /* MediaQuery.disableAnimations: both moments become 100 ms cross-fades. */
+  --moment: 100ms;
+  --ease-moment: linear;
+  --light: 100ms;
+  --effect: 100ms;
+  --ease-effect: linear;
+  --sheet-in: 100ms;
+  --sheet-out: 100ms;
+  --ease-sheet-in: linear;
+  --ease-sheet-out: linear;
+}
+
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body {
+  background: var(--study-bg); color: var(--text-1);
+  font: 400 16px/1.5 var(--sans); -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+}
+.mono { font-family: var(--mono); }
+
+/* ───────────── study chrome (outside the phones) ───────────── */
+.top {
+  position: sticky; top: 0; z-index: 20;
+  background: var(--ink); border-bottom: 1px solid var(--line);
+  padding: 12px 16px;
+}
+.top-in { max-width: 1180px; margin: 0 auto; display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; }
+.top h1 { margin: 0; font: 600 18px/1.3 var(--sans); flex: 1 1 auto; }
+.controls { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: var(--r-full); padding: 2px; }
+.seg button, .ctl {
+  font: 500 14px/1 var(--sans); color: var(--text-2); background: none; border: 0;
+  min-height: 40px; padding: 0 14px; border-radius: var(--r-full); cursor: pointer;
+}
+.seg button[aria-pressed="true"] { background: var(--raised); color: var(--text-1); font-weight: 600; box-shadow: inset 0 0 0 1.5px var(--text-1); }
+.ctl { border: 1px solid var(--line); }
+.seg button:focus-visible, .ctl:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+.sysnote { font: 400 13px/1.4 var(--sans); color: var(--text-3); width: 100%; }
+
+.intro { max-width: 1180px; margin: 0 auto; padding: 24px 16px 8px; color: var(--text-2); font-size: 15px; }
+.intro p { margin: 0 0 10px; max-width: 72ch; overflow-wrap: anywhere; }
+.legend { display: flex; flex-wrap: wrap; gap: 8px 20px; font-size: 13px; color: var(--text-3); margin-top: 6px; }
+.legend span { display: inline-flex; align-items: center; gap: 8px; }
+.legend .tm { width: 18px; height: 18px; border-radius: 50%; border: 2px dashed var(--text-1); opacity: .8; }
+.legend .ph { width: 28px; height: 8px; border-radius: 4px; background: var(--page-bar); }
+
+.grid {
+  max-width: 1180px; margin: 0 auto; padding: 16px 16px 64px;
+  display: grid; gap: 40px 32px;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 340px), 1fr));
+  align-items: start;
+}
+.study { min-width: 0; }
+.study h2 { margin: 0 0 6px; font: 600 17px/1.3 var(--sans); display: flex; gap: 10px; align-items: baseline; }
+.study h2 .n { font: 500 14px/1 var(--mono); color: var(--text-3); }
+.spec { margin: 0 0 12px; display: grid; grid-template-columns: auto 1fr; gap: 3px 12px; font-size: 13px; line-height: 1.45; }
+.spec dt { color: var(--text-3); }
+.spec dd { margin: 0; color: var(--text-2); min-width: 0; overflow-wrap: anywhere; }
+.spec dd b { color: var(--text-1); font-weight: 600; }
+:root:not(.reduced) .if-reduced, :root.reduced .if-full { display: none; }
+.phase { margin: 10px 0 0; min-height: 40px; font-size: 13px; color: var(--text-2); }
+.phase::before { content: "Now: "; color: var(--text-3); }
+.notes { overflow-wrap: anywhere; margin: 6px 0 0; font-size: 13px; color: var(--text-3); }
+.notes b { color: var(--text-2); font-weight: 500; }
+
+.detail { display: flex; gap: 12px; align-items: center; margin: 0 0 12px; font-size: 12px; color: var(--text-3); }
+.detail .zoom { width: 88px; height: 88px; border-radius: var(--r-group); border: 1px solid var(--line); background: var(--ink); display: flex; align-items: center; justify-content: center; flex: 0 0 auto; position: relative; }
+
+.foot { max-width: 1180px; margin: 0 auto; padding: 0 16px 64px; color: var(--text-2); font-size: 14px; }
+.foot h2 { font: 600 17px/1.3 var(--sans); color: var(--text-1); }
+.foot ul { padding-left: 20px; max-width: 80ch; }
+.foot li { margin-bottom: 6px; }
+
+/* ───────────── the phone ───────────── */
+.phone {
+  position: relative; width: 100%; max-width: 340px; height: 600px; margin: 0 auto;
+  background: var(--ink); color: var(--text-1);
+  border-radius: 28px; outline: 1px solid var(--frame-outline);
+  overflow: hidden; isolation: isolate;
+  font: 400 16px/1.5 var(--sans);
+}
+.phone * { min-width: 0; }
+.layer { position: absolute; inset: 0; display: flex; flex-direction: column; opacity: 0; pointer-events: none; }
+.layer.show { opacity: 1; }
+.sys { flex: 0 0 24px; }
+.noanim, .noanim * { transition: none !important; animation: none !important; }
+
+/* icons (AppIcon: 24 grid, 2 stroke, round) */
+.ic { width: 24px; height: 24px; flex: 0 0 auto; fill: none; stroke: currentColor; stroke-width: 2;
+      stroke-linecap: round; stroke-linejoin: round; display: block; }
+.ic.s20 { width: 20px; height: 20px; } .ic.s22 { width: 22px; height: 22px; } .ic.s16 { width: 16px; height: 16px; }
+.tap { width: 48px; height: 48px; flex: 0 0 auto; display: inline-flex; align-items: center; justify-content: center; color: var(--text-2); }
+.tap.dim { color: var(--text-3); opacity: .55; }
+.stack { position: relative; display: inline-grid; }
+.stack > * { grid-area: 1 / 1; }
+
+/* ── 2b container chrome (Plan 21 as built) ── */
+.topbar { flex: 0 0 auto; display: flex; align-items: center; gap: var(--s2); min-height: 64px; padding: var(--s2) var(--s3); border-bottom: 1px solid var(--line); background: var(--ink); }
+.pill { flex: 1 1 auto; container-type: inline-size; min-height: 48px; border-radius: 24px; background: var(--group); border: 1px solid var(--line); padding-left: var(--s3); }
+.pill-row { display: flex; align-items: center; flex-wrap: nowrap; min-height: 46px; }
+.lead { flex: 1 1 auto; display: flex; align-items: center; gap: var(--s2); }
+.actions { flex: 0 0 auto; display: flex; }
+@container (max-width: 250px) {
+  .pill-row { flex-wrap: wrap; }
+  .lead { flex-basis: 100%; padding: 6px var(--s4) 0 0; }
+  .actions { margin-left: auto; }
+}
+.light { width: 8px; height: 8px; border-radius: 50%; flex: 0 0 auto; background: var(--jade);
+         transition: background-color var(--light) var(--ease-effect); }
+.light.opening { background: var(--amber); }
+.case { width: 20px; height: 20px; color: var(--text-2); flex: 0 0 auto; }
+.case svg { width: 20px; height: 20px; opacity: 0; transition: opacity var(--moment) var(--ease-moment); }
+.case svg.on { opacity: 1; }
+.readout { flex: 1 1 auto; display: flex; flex-wrap: wrap; align-items: center; gap: 2px 8px; padding: 6px 0; }
+.host { font: 500 16px/20px var(--sans); color: var(--text-1); overflow-wrap: normal; word-break: normal; }
+.badge { font: 600 12px/16px var(--sans); letter-spacing: 0.24px; color: var(--text-2); }
+.badge > span { opacity: 0; transition: opacity var(--moment) var(--ease-moment); }
+.badge > span.on { opacity: 1; }
+[data-rs] > svg { opacity: 0; transition: opacity var(--effect) var(--ease-effect); }
+[data-rs] > svg.on { opacity: 1; }
+.panic { flex: 0 0 auto; width: 48px; height: 48px; border-radius: var(--r-input); display: inline-flex; align-items: center; justify-content: center;
+         color: var(--danger); box-shadow: inset 0 0 0 1.5px var(--danger); }
+.loadline { flex: 0 0 2px; position: relative; background: transparent; }
+.loadline > i { position: absolute; left: 0; top: 0; bottom: 0; width: 0; background: var(--text-2); opacity: 0;
+                transition: opacity var(--effect) var(--ease-effect); }
+.loadline > i.run { opacity: 1; }
+.page { flex: 1 1 auto; min-height: 0; padding: var(--s5); display: flex; flex-direction: column; gap: 12px; background: var(--page-bg); overflow: hidden;
+        transition: opacity var(--effect) var(--ease-effect); }
+.page.blank { opacity: 0; }
+.page i { display: block; height: 12px; border-radius: 6px; background: var(--page-bar); }
+.page i.h { height: 22px; width: 70%; background: var(--page-head); }
+.page i.img { height: 120px; border-radius: 12px; }
+.page i.s { width: 55%; } .page i.m { width: 82%; }
+.botbar { flex: 0 0 auto; display: flex; align-items: center; justify-content: space-between; min-height: 56px; padding: 4px var(--s2); border-top: 1px solid var(--line); background: var(--ink); }
+.openpill { display: inline-flex; align-items: center; gap: 6px; min-height: 48px; padding: 0 var(--s3); color: var(--text-1); font: 600 13px/16px var(--sans); white-space: nowrap; }
+
+/* ── 8a opening (as built) ── */
+.obar { flex: 0 0 auto; display: flex; align-items: center; min-height: 64px; padding: var(--s2); border-bottom: 1px solid var(--line); }
+.obar .opill { flex: 1 1 auto; display: flex; align-items: center; gap: var(--s2); min-height: 48px; padding: 6px var(--s4); border-radius: 24px; background: var(--group); border: 1px solid var(--line); }
+.oline { flex: 0 0 2px; background: var(--group); position: relative; }
+.oline > i { position: absolute; left: 0; top: 0; bottom: 0; width: 0; background: var(--text-2); transition: width 600ms var(--ease-effect); }
+.opening { flex: 1 1 auto; display: flex; flex-direction: column; justify-content: center; padding: 0 var(--s6); gap: var(--s5); }
+.screen-title { font: 600 22px/28px var(--sans); }
+.steps { display: flex; flex-direction: column; gap: 14px; }
+.steps > div { display: flex; align-items: flex-start; gap: var(--s3); font: 400 15px/22px var(--sans); color: var(--text-3); }
+.steps .ring { flex: 0 0 auto; width: 14px; height: 14px; border-radius: 50%; border: 2px solid var(--edge); margin-top: 4px; }
+.ofoot { flex: 0 0 auto; padding: 0 var(--s6) 30px; font: 400 14px/20px var(--sans); color: var(--text-3); margin: 0; }
+
+/* ── lock (3a) ── */
+.lock { flex: 1 1 auto; display: flex; flex-direction: column; padding: 0 var(--s5); }
+.lock .msg { flex: 1 1 auto; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; gap: var(--s5); }
+.vtile { width: 44px; height: 44px; border-radius: var(--r-input); border: 1px solid var(--line); display: flex; align-items: center; justify-content: center; color: var(--text-1); }
+.vmark { overflow: visible; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; transition: opacity var(--moment) var(--ease-moment); }
+.vmark .lid { transition: transform var(--moment) var(--ease-moment); }
+.unlocking .vmark { opacity: 0; }
+.unlocking .vmark .lid { transform: translateY(-2.4px); }  /* 2 dp at the mark's 20 dp size: 24/20 × 2 user units */
+:root.reduced .unlocking .vmark .lid { transform: none; }
+.lock .prompt { font: 400 15px/22px var(--sans); color: var(--text-2); }
+.dots { display: flex; gap: 16px; }
+.dots i { width: 14px; height: 14px; border-radius: 50%; border: 2px solid var(--edge); display: block; }
+.dots i.f { background: var(--text-1); border-color: var(--text-1); }
+.keypad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px 16px; width: 100%; max-width: 280px; margin: 0 auto; padding-bottom: var(--s4); }
+.keypad > span { height: 56px; border-radius: var(--r-full); background: var(--group); display: flex; align-items: center; justify-content: center;
+                 font: 400 28px/1 var(--mono); color: var(--text-1); }
+.keypad > span.blank, .keypad > span.bs { background: none; color: var(--text-2); }
+
+/* ── dashboard (1b / Plan 18 shell, Plan 21 as built) ── */
+.chips { display: flex; flex-wrap: wrap; gap: 0 var(--s2); align-items: center; padding: 4px var(--s4); }
+.chip { min-height: 48px; display: inline-flex; align-items: center; }
+.chip > span { display: inline-flex; align-items: center; gap: 6px; min-height: 36px; padding: 6px 14px; border-radius: var(--r-full);
+               border: 1px solid var(--line); font: 500 14px/1.3 var(--sans); color: var(--text-2); }
+.chip.on > span { background: var(--raised); border: 1.5px solid var(--text-1); color: var(--text-1); font-weight: 600; padding-left: 10px; }
+.dfill { flex: 1 1 auto; min-height: 0; overflow: hidden; padding: var(--s2) var(--s4); }
+.group { background: var(--group); border: 1px solid var(--line); border-radius: var(--r-group); overflow: hidden; }
+.site { display: flex; align-items: center; gap: var(--s3); min-height: 72px; padding: var(--s3) var(--s4); }
+.site + .site { border-top: 1px solid var(--line-soft); }
+.mg { position: relative; flex: 0 0 auto; width: 40px; height: 40px; border-radius: var(--r-mono); display: inline-flex; align-items: center; justify-content: center;
+      font: 600 15px/1 var(--sans); background: var(--raised); color: var(--text-1); }
+.mg.idle { background: var(--group); color: var(--text-2); box-shadow: inset 0 0 0 1px var(--line); }
+.mg .lt { position: absolute; right: -3px; bottom: -3px; width: 10px; height: 10px; border-radius: 50%; background: var(--jade); box-shadow: 0 0 0 2px var(--group); }
+.site .text { flex: 1 1 auto; display: flex; flex-direction: column; gap: 2px; }
+.rt { font: 500 16px/22px var(--sans); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.site.idle .rt { color: var(--text-2); }
+.meta { font: 400 13px/18px var(--sans); color: var(--text-3); }
+.age { flex: 0 0 auto; font: 400 13px/18px var(--mono); color: var(--text-2); }
+.site.idle .age { color: var(--text-3); }
+.dfoot { flex: 0 0 auto; padding: var(--s3) var(--s4); }
+.search { display: flex; align-items: center; gap: var(--s2); min-height: 48px; padding: 0 var(--s4) 0 var(--s3); border-radius: var(--r-input);
+          background: var(--group); box-shadow: inset 0 0 0 1.5px var(--edge); color: var(--text-3); font: 400 16px/1.3 var(--sans); }
+.search .ic { color: var(--text-2); }
+.tabs { flex: 0 0 auto; display: grid; grid-template-columns: repeat(3, 1fr); border-top: 1px solid var(--line); background: var(--ink); padding-bottom: 6px; }
+.tabs > div { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; min-height: 56px; padding: 6px 0;
+              font: 500 13px/16px var(--sans); color: var(--text-2); transition: color var(--effect) var(--ease-effect); }
+.tabs .ind { position: relative; width: 56px; height: 28px; border-radius: var(--r-full); display: inline-flex; align-items: center; justify-content: center;
+             background: transparent; box-shadow: inset 0 0 0 1.5px transparent;
+             transition: background-color var(--effect) var(--ease-effect), box-shadow var(--effect) var(--ease-effect); }
+.tabs .ind svg { position: absolute; transition: opacity var(--effect) var(--ease-effect); }
+.tabs .ind .f { opacity: 0; }
+.tabs .on { color: var(--text-1); font-weight: 600; }
+.tabs .on .ind { background: var(--raised); box-shadow: inset 0 0 0 1.5px var(--text-2); }
+.tabs .on .ind .o { opacity: 0; } .tabs .on .ind .f { opacity: 1; }
+.tabbody { position: relative; flex: 1 1 auto; min-height: 0; }
+.tabbody > .pane { position: absolute; inset: 0; display: flex; flex-direction: column; opacity: 0; transition: opacity var(--effect) var(--ease-effect); }
+.tabbody > .pane.show { opacity: 1; }
+.phdr { display: flex; align-items: center; min-height: 64px; padding: 0 var(--s4); border-bottom: 1px solid var(--line); }
+.skel { padding: var(--s4); display: flex; flex-direction: column; gap: 12px; }
+.skel i { display: block; height: 12px; border-radius: 6px; background: var(--group); }
+.skel i.big { height: 40px; width: 40%; }
+.skel i.s { width: 50%; } .skel i.m { width: 80%; }
+.skel .grp { height: auto; background: var(--group); border: 1px solid var(--line); border-radius: var(--r-group); padding: 0; }
+.skel .grp > b { display: block; height: 56px; border-top: 1px solid var(--line-soft); }
+.skel .grp > b:first-child { border-top: 0; }
+
+/* lock ↔ dashboard and other whole-screen swaps */
+.xfade-moment { transition: opacity var(--moment) var(--ease-moment); }
+.xfade-effect { transition: opacity var(--effect) var(--ease-effect); }
+.cut { transition: none; }
+
+/* ── 6c sheet ── */
+.scrimL { position: absolute; inset: 0; z-index: 4; background: var(--scrim); opacity: 0; pointer-events: none;
+          transition: opacity var(--sheet-out) var(--ease-sheet-out); }
+.sheet { position: absolute; left: 0; right: 0; bottom: 0; z-index: 5; max-height: calc(100% - 24px); overflow: hidden;
+         background: var(--sheet); border-top: 1px solid var(--line); border-radius: var(--r-sheet) var(--r-sheet) 0 0; box-shadow: var(--shadow-sheet);
+         padding: 0 var(--s4) var(--s6); transform: translateY(105%); opacity: 1;
+         transition: transform var(--sheet-out) var(--ease-sheet-out), opacity var(--sheet-out) var(--ease-sheet-out); }
+.sheet-open .scrimL { opacity: 1; transition: opacity var(--sheet-in) var(--ease-sheet-in); }
+.sheet-open .sheet { transform: none; transition: transform var(--sheet-in) var(--ease-sheet-in), opacity var(--sheet-in) var(--ease-sheet-in); }
+:root.reduced .sheet { transform: none; opacity: 0; }
+:root.reduced .sheet-open .sheet { opacity: 1; }
+.handle { width: 36px; height: 4px; border-radius: 2px; background: var(--edge); margin: var(--s3) auto var(--s4); }
+.sitehead { display: flex; align-items: center; gap: var(--s3); padding: var(--s1) 0 var(--s4); border-bottom: 1px solid var(--line); }
+.sitehead .text { flex: 1 1 auto; display: flex; flex-direction: column; gap: 2px; }
+.sitehead .title { font: 600 18px/24px var(--sans); }
+.sub { font: 400 14px/20px var(--sans); color: var(--text-2); overflow-wrap: anywhere; }
+.textbtn { min-height: 48px; min-width: 48px; display: inline-flex; align-items: center; justify-content: center; padding: 0 var(--s3); font: 600 16px/20px var(--sans); color: var(--jade); }
+.sheet .group { background: var(--raised); margin-top: var(--s3); }
+.sheet .group .row + .row { border-top-color: var(--line); }
+.row { display: flex; align-items: center; flex-wrap: wrap; gap: 4px var(--s3); min-height: 56px; padding: var(--s3) var(--s4); }
+.row + .row { border-top: 1px solid var(--line-soft); }
+.row .k { flex: 1 1 7em; font: 400 16px/24px var(--sans); }
+.row .v { margin-left: auto; font: 400 14px/20px var(--sans); color: var(--text-2); text-align: right; }
+.sw { position: relative; flex: 0 0 auto; width: 52px; height: 32px; border-radius: var(--r-full); border: 2px solid var(--edge); }
+.sw::after { content: ""; position: absolute; top: 6px; left: 6px; width: 16px; height: 16px; border-radius: 50%; background: var(--text-3); }
+.sw.on { background: var(--text-1); border-color: var(--text-1); }
+.sw.on::after { top: 2px; left: 22px; width: 24px; height: 24px; background: var(--ink); }
+.sw.on > svg { position: absolute; top: 7px; left: 27px; width: 14px; height: 14px; z-index: 1; stroke: var(--text-1); stroke-width: 2.5; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+.btn { display: flex; align-items: center; justify-content: center; text-align: center; width: 100%; min-height: 52px; padding: var(--s3) var(--s5);
+       border-radius: var(--r-full); font: 500 16px/20px var(--sans); background: var(--raised); color: var(--text-1); margin-top: var(--s4); }
+
+/* ── 3c panic done ── */
+.panicpage { flex: 1 1 auto; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 0 var(--s5); }
+.pmark { width: 52px; height: 52px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; color: var(--danger); box-shadow: inset 0 0 0 1.5px var(--danger); }
+.ptitle { font: 600 20px/26px var(--sans); margin-top: var(--s6); }
+.pbody { font: 400 15px/22px var(--sans); color: var(--text-2); margin-top: var(--s2); }
+.pstatus { width: 100%; text-align: left; margin-top: var(--s6); }
+.pstatus .row { min-height: 48px; }
+.pstatus .l { flex: 1 1 auto; font: 600 13px/18px var(--sans); letter-spacing: 0.52px; color: var(--text-2); }
+.pstatus .r { font: 600 13px/18px var(--sans); letter-spacing: 0.52px; color: var(--text-1); }
+.pbtn { margin-top: var(--s6); min-height: 52px; padding: 0 var(--s8); border-radius: var(--r-full); background: var(--raised); color: var(--text-1);
+        display: inline-flex; align-items: center; font: 500 16px/20px var(--sans); }
+
+/* ── touch marker (study annotation, not app UI) ── */
+.touch { position: absolute; z-index: 10; width: 40px; height: 40px; margin: -20px 0 0 -20px; border-radius: 50%;
+         border: 2px dashed var(--text-1); opacity: 0; pointer-events: none; }
+.touch.on { animation: touch 520ms ease-out forwards; }
+@keyframes touch { 0% { opacity: 0; transform: scale(.6); } 25% { opacity: .85; transform: scale(1); } 100% { opacity: 0; transform: scale(1.15); } }
+:root.reduced .touch.on { animation: touchR 520ms linear forwards; }
+@keyframes touchR { 0%, 70% { opacity: .85; } 100% { opacity: 0; } }
+
+@media (max-width: 420px) {
+  .top h1 { font-size: 16px; flex-basis: 100%; }
+}
+</style>
+</head>
+<body>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <!-- AppIcon geometry from lib/ui/core/icons.dart (24 grid, 2 stroke). -->
+    <symbol id="i-back" viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></symbol>
+    <symbol id="i-forward" viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"/></symbol>
+    <symbol id="i-up" viewBox="0 0 24 24"><path d="M6 15l6-6 6 6"/></symbol>
+    <symbol id="i-reload" viewBox="0 0 24 24"><path d="M19.5 12a7.5 7.5 0 1 1-2.2-5.3"/><path d="M19.5 4.5v4h-4"/></symbol>
+    <symbol id="i-close" viewBox="0 0 24 24"><path d="M6.5 6.5l11 11M17.5 6.5l-11 11"/></symbol>
+    <symbol id="i-check" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></symbol>
+    <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+    <symbol id="i-menu" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></symbol>
+    <symbol id="i-search" viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6"/><path d="M15 15l4.5 4.5"/></symbol>
+    <symbol id="i-shield" viewBox="0 0 24 24"><path d="M12 3L19 6V12C19 16.5 16 19.5 12 21C8 19.5 5 16.5 5 12V6Z"/></symbol>
+    <symbol id="i-panic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3.2" fill="currentColor" stroke="none"/></symbol>
+    <symbol id="i-backspace" viewBox="0 0 24 24"><path d="M9 5.5h10.5a1.5 1.5 0 0 1 1.5 1.5v10a1.5 1.5 0 0 1-1.5 1.5H9L3.5 12z"/><path d="M11.5 9.5l5 5M16.5 9.5l-5 5"/></symbol>
+    <symbol id="i-case-solid" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="5"/><path d="M4 9.5h16"/></symbol>
+    <symbol id="i-case-broken" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="5" stroke-dasharray="3 2" stroke-linecap="butt"/><path d="M4 9.5h16"/></symbol>
+    <symbol id="i-case-double" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="5"/><path d="M4 9.5h16"/><rect x="1.5" y="1.5" width="21" height="21" rx="7" stroke-width="1"/></symbol>
+    <symbol id="i-sites" viewBox="0 0 24 24"><rect x="4" y="4" width="6" height="6" rx="1.5"/><rect x="14" y="4" width="6" height="6" rx="1.5"/><rect x="4" y="14" width="6" height="6" rx="1.5"/><rect x="14" y="14" width="6" height="6" rx="1.5"/></symbol>
+    <symbol id="i-sites-f" viewBox="0 0 24 24"><g fill="currentColor"><rect x="4" y="4" width="6" height="6" rx="1.5"/><rect x="14" y="4" width="6" height="6" rx="1.5"/><rect x="4" y="14" width="6" height="6" rx="1.5"/><rect x="14" y="14" width="6" height="6" rx="1.5"/></g></symbol>
+    <symbol id="i-today" viewBox="0 0 24 24"><rect x="4" y="6" width="16" height="14" rx="2"/><path d="M4 10.5h16M8.5 3.5v4M15.5 3.5v4"/></symbol>
+    <symbol id="i-today-f" viewBox="0 0 24 24"><rect x="4" y="6" width="16" height="14" rx="2" fill="currentColor"/><path d="M8.5 3.5v4M15.5 3.5v4"/></symbol>
+    <symbol id="i-settings" viewBox="0 0 24 24"><path d="M4 7h9M17 7h3M4 12h3M11 12h9M4 17h7M15 17h5"/><circle cx="15" cy="7" r="2"/><circle cx="9" cy="12" r="2"/><circle cx="13" cy="17" r="2"/></symbol>
+    <symbol id="i-settings-f" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/><g fill="currentColor" stroke="none"><circle cx="15" cy="7" r="2.6"/><circle cx="9" cy="12" r="2.6"/><circle cx="13" cy="17" r="2.6"/></g></symbol>
+    <!-- The vault mark's two halves: the lid (above the seam, with the seam) and the body. -->
+    <clipPath id="clip-lid" clipPathUnits="userSpaceOnUse"><rect x="0" y="0" width="24" height="9"/></clipPath>
+    <clipPath id="clip-body" clipPathUnits="userSpaceOnUse"><rect x="0" y="9" width="24" height="15"/></clipPath>
+  </defs>
+</svg>
+
+<header class="top">
+  <div class="top-in">
+    <h1>Instrument Motion Study</h1>
+    <div class="controls">
+      <div class="seg" role="group" aria-label="Motion">
+        <button type="button" id="m-full" aria-pressed="true">Full motion</button>
+        <button type="button" id="m-reduced" aria-pressed="false">Reduced motion</button>
+      </div>
+      <button type="button" class="ctl" id="pause" aria-pressed="false">Pause</button>
+    </div>
+    <div class="sysnote" id="sysnote"></div>
+  </div>
+</header>
+
+<section class="intro">
+  <p>Six transitions of restyle v2, "Instrument" (direction B, the debate's pick), playing on a loop inside phone frames. The source is <span class="mono">docs/superpowers/specs/2026-10-05-restyle-v2-design.md</span> §7. Two moments move: unlock, and a protective change. Everything else is an effect with no bounce. Under reduced motion (Flutter's <span class="mono">MediaQuery.disableAnimations</span>) both moments become 100 ms cross-fades.</p>
+  <p>Text inside the frames is the canvas's copy, or the app's where the canvas has none. Everything around the frames is the study's own notes.</p>
+  <div class="legend">
+    <span><i class="tm"></i>Touch marker. The study draws it; the app does not.</span>
+    <span><i class="ph"></i>Placeholder content (no real page or screen text)</span>
+  </div>
+</section>
+
+<main class="grid">
+
+  <!-- 1 ─ Unlock -->
+  <article class="study" id="s-unlock">
+    <h2><span class="n">01</span>Unlock</h2>
+    <dl class="spec">
+      <dt>Duration</dt><dd><b class="if-full">320 ms</b><b class="if-reduced">100 ms cross-fade</b></dd>
+      <dt>Curve</dt><dd><span class="if-full">easeOutCubic, <span class="mono">cubic-bezier(0.33, 1, 0.68, 1)</span></span><span class="if-reduced">linear; the seam does not lift</span></dd>
+      <dt>Says</dt><dd>The case opens: the vault you unlocked is now in your hands. The mark is text-1, never jade, because nothing is live on a lock screen.</dd>
+      <dt>Where</dt><dd><span class="mono">3a</span> / <span class="mono">9b</span> → dashboard (§7 row 1)</dd>
+    </dl>
+    <div class="detail">
+      <div class="zoom" aria-hidden="true"><svg class="vmark" data-vmark width="80" height="80" viewBox="0 0 24 24"></svg></div>
+      <span>The mark at ×4, in step with the frame. The seam lifts 2 dp at the mark's real 20 dp size, which is 8 px here.</span>
+    </div>
+    <div class="phone" data-frame aria-label="Unlock study" role="img"></div>
+    <p class="phase" data-phase></p>
+    <p class="notes"><b>Assumed:</b> §7 animates only the mark. Here the rest of the lock screen cross-fades into the dashboard over the same 320 ms. The six PIN digits are study input.</p>
+  </article>
+
+  <!-- 2 ─ Protective change -->
+  <article class="study" id="s-protect">
+    <h2><span class="n">02</span>Protective change</h2>
+    <dl class="spec">
+      <dt>Duration</dt><dd><span class="if-full"><b>case 320 ms</b>, light <b>150 ms</b></span><b class="if-reduced">100 ms cross-fades</b></dd>
+      <dt>Curve</dt><dd><span class="if-full">case: easeOutCubic cross-fade; light: no-overshoot effect curve</span><span class="if-reduced">linear</span></dd>
+      <dt>Says</dt><dd>The change you made has been applied to this container. The case's outline shows what kind it is: solid for Keep for this site, dashed for Wipe on exit or a throwaway, a doubled edge for Tor. The light goes amber while the container reopens in place and back to jade once it is live.</dd>
+      <dt>Where</dt><dd><span class="mono">2b</span> pill: reopen in place, New identity, route change (§7 row 2, §8 <span class="mono">2b</span>)</dd>
+    </dl>
+    <div class="detail">
+      <div class="zoom" aria-hidden="true"><span class="case stack" data-case style="width:64px;height:64px">
+        <svg class="on" data-k="solid" style="width:64px;height:64px" viewBox="0 0 24 24"><use href="#i-case-solid"/></svg>
+        <svg data-k="broken" style="width:64px;height:64px" viewBox="0 0 24 24"><use href="#i-case-broken"/></svg>
+        <svg data-k="double" style="width:64px;height:64px" viewBox="0 0 24 24"><use href="#i-case-double"/></svg></span></div>
+      <span>The case at ×3.2. Stroked like an <span class="mono">AppIcon</span>, so the cross-fade has to read at 20 dp.</span>
+    </div>
+    <div class="phone" data-frame aria-label="Protective change study" role="img"></div>
+    <p class="phase" data-phase></p>
+    <p class="notes"><b>As built (Plan 21):</b> the pill has an 8 dp light, then the 20 dp case in text-2, then the host, never ellipsized: it wraps after its dots. The stop × shows while a page loads and Reload otherwise.</p>
+  </article>
+
+  <!-- 3 ─ Going live -->
+  <article class="study" id="s-live">
+    <h2><span class="n">03</span>A site going live</h2>
+    <dl class="spec">
+      <dt>Duration</dt><dd><span class="if-full">screen swap <b>≈150 ms</b>; light amber → jade <b>150 ms</b></span><b class="if-reduced">100 ms cross-fades</b></dd>
+      <dt>Curve</dt><dd><span class="if-full">no-overshoot effect, <span class="mono">cubic-bezier(0.2, 0, 0, 1)</span></span><span class="if-reduced">linear</span></dd>
+      <dt>Says</dt><dd>Nothing loads until the container is ready. Amber means opening, and jade appears only once the first load is done. The progress line is text-2, never jade.</dd>
+      <dt>Where</dt><dd><span class="mono">8a</span> → <span class="mono">2b</span> (§8 <span class="mono">8a</span>; the light per §7 row 2)</dd>
+    </dl>
+    <div class="phone" data-frame aria-label="Site going live study" role="img"></div>
+    <p class="phase" data-phase></p>
+    <p class="notes"><b>As built:</b> every step stays pending, because <span class="mono">openStepsFor</span> never marks one done (the canvas draws ✓s). <span class="mono">ContainerRoute</span> swaps <span class="mono">8a</span> for the page without a route transition. The 150 ms swap is §7's "everything else".</p>
+  </article>
+
+  <!-- 4 ─ Sheet -->
+  <article class="study" id="s-sheet">
+    <h2><span class="n">04</span>The 6c sheet rising</h2>
+    <dl class="spec">
+      <dt>Duration</dt><dd><span class="if-full"><b>250 ms</b> in, <b>200 ms</b> out (Flutter's modal sheet). §7 rounds this to ≈150 ms "as built".</span><b class="if-reduced">100 ms fade, no slide</b></dd>
+      <dt>Curve</dt><dd><span class="if-full">decelerate in, <span class="mono">cubic-bezier(0, 0, 0.2, 1)</span>; the same curve played back on the way out</span><span class="if-reduced">linear</span></dd>
+      <dt>Says</dt><dd>A panel about this page, laid over it. The page stays put underneath, dimmed by a 54 % black scrim, and the sheet is the one raised surface: <span class="mono">C.sheet</span> with a 28 dp top radius and its shadow.</dd>
+      <dt>Where</dt><dd><span class="mono">2b</span> shield → <span class="mono">6c</span> (§7 row 3, §4 elevation)</dd>
+    </dl>
+    <div class="phone" data-frame aria-label="Bottom sheet study" role="img"></div>
+    <p class="phase" data-phase></p>
+    <p class="notes"><b>Not specified:</b> §7 gives no reduced-motion rule for sheets. The fade here is this study's extrapolation. The rows are the canvas's <span class="mono">6c</span>; the built sheet also has Security level, the three blocking switches and permissions.</p>
+  </article>
+
+  <!-- 5 ─ Tabs -->
+  <article class="study" id="s-tabs">
+    <h2><span class="n">05</span>Dashboard tab switch</h2>
+    <dl class="spec">
+      <dt>Duration</dt><dd><b class="if-full">≈150 ms</b><b class="if-reduced">100 ms cross-fade</b></dd>
+      <dt>Curve</dt><dd><span class="if-full">no-overshoot effect</span><span class="if-reduced">linear</span></dd>
+      <dt>Says</dt><dd>Where you are, without colour. The viewed tab gets a raised pill with a 1.5 dp text-2 outline, the filled glyph and a 600-weight label. No jade, because jade stays for open sessions, like the two live lights on the Sites list.</dd>
+      <dt>Where</dt><dd>Dashboard shell: Sites · Today · Settings (§5 Dashboard tabs, §8 <span class="mono">1b</span>)</dd>
+    </dl>
+    <div class="phone" data-frame aria-label="Tab switch study" role="img"></div>
+    <p class="phase" data-phase></p>
+    <p class="notes"><b>As built:</b> <span class="mono">DashboardTabBar</span> switches instantly; it has no implicit animation. The 150 ms here is §7's "≈150 ms" applied to it. Today and Settings are shown as placeholders below their real titles.</p>
+  </article>
+
+  <!-- 6 ─ Panic -->
+  <article class="study" id="s-panic">
+    <h2><span class="n">06</span>Panic</h2>
+    <dl class="spec">
+      <dt>Duration</dt><dd><b>0 ms</b>: a cut, in both modes</dd>
+      <dt>Curve</dt><dd>none</dd>
+      <dt>Says</dt><dd>It has already happened. There is no confirmation and no flourish that would give a watcher time to react. <span class="mono">3c</span> is the plain page colour, not a red screen. Danger is the 1.5 dp outline on the panic control and on <span class="mono">3c</span>'s mark.</dd>
+      <dt>Where</dt><dd><span class="mono">2b</span> panic → <span class="mono">3c</span> (§1.8, §8 <span class="mono">3c</span>)</dd>
+    </dl>
+    <div class="phone" data-frame aria-label="Panic study" role="img"></div>
+    <p class="phase" data-phase></p>
+    <p class="notes"><b>As built:</b> <span class="mono">AppGate</span> swaps the whole tree for <span class="mono">PanicScreen</span> when the session becomes <span class="mono">SessionPanicked</span>, so there is no transition to slow down. §7 names panic in neither moment.</p>
+  </article>
+
+</main>
+
+<section class="foot">
+  <h2>What this study cannot show</h2>
+  <ul>
+    <li><b>New identity</b> and a <b>route change from <span class="mono">6c</span>'s Proxy row</b> trigger the same moment as study 02. Only the pill's side is drawn here, not the confirm sheet or the form.</li>
+    <li><b>Toggles</b> (§5's 52 × 32 switch) move "as built", by Flutter's default. The spec gives no number for them, so none is shown.</li>
+    <li><b>The pill growing</b> when a long host wraps happens in layout, with no animation. Study 02 uses a host that fits on one line.</li>
+    <li><b>Haptics</b> and the system's own transitions (the Android back gesture, the keyboard) are outside the spec.</li>
+    <li><b>Browser timing is not Flutter timing.</b> CSS transitions approximate <span class="mono">Curves.easeOutCubic</span> and Material's decelerate curve, and the loops run on timers.</li>
+  </ul>
+</section>
+
+<script>
+(function () {
+  'use strict';
+  var root = document.documentElement;
+
+  /* ─────────── shared markup ─────────── */
+  var HOST = 'forum.<wbr>example.<wbr>com';           /* breaks only after a dot (§1.6) */
+  function ic(id, cls) { return '<svg class="ic ' + (cls || '') + '" viewBox="0 0 24 24"><use href="#' + id + '"/></svg>'; }
+  function vmark() {
+    return '<g class="lid"><rect x="3" y="3" width="18" height="18" rx="6" clip-path="url(#clip-lid)"/><path d="M3 9h18"/></g>' +
+           '<g><rect x="3" y="3" width="18" height="18" rx="6" clip-path="url(#clip-body)"/><circle cx="12" cy="15" r="3" fill="currentColor" stroke="none"/></g>';
+  }
+  function caseStack() {
+    return '<span class="case stack" data-case>' +
+      '<svg class="ic on" data-k="solid" viewBox="0 0 24 24"><use href="#i-case-solid"/></svg>' +
+      '<svg class="ic" data-k="broken" viewBox="0 0 24 24"><use href="#i-case-broken"/></svg>' +
+      '<svg class="ic" data-k="double" viewBox="0 0 24 24"><use href="#i-case-double"/></svg></span>';
+  }
+  function chrome2b() {
+    return '<div class="sys"></div>' +
+      '<div class="topbar"><div class="pill"><div class="pill-row">' +
+        '<div class="lead"><span class="light" data-light></span>' + caseStack() +
+          '<span class="readout"><span class="host">' + HOST + '</span>' +
+          '<span class="badge stack" data-badge><span class="on" data-k="SOCKS5">SOCKS5</span><span data-k="Tor">Tor</span></span></span></div>' +
+        '<div class="actions"><span class="tap"><span class="stack" data-rs>' +
+            '<svg class="ic s20 on" data-k="reload" viewBox="0 0 24 24"><use href="#i-reload"/></svg>' +
+            '<svg class="ic s20" data-k="stop" viewBox="0 0 24 24"><use href="#i-close"/></svg></span></span>' +
+          '<span class="tap" data-shield>' + ic('i-shield', 's22') + '</span></div>' +
+      '</div></div><span class="panic" data-panic>' + ic('i-panic', 's20') + '</span></div>' +
+      '<div class="loadline"><i data-load></i></div>' +
+      '<div class="page" data-page><i class="h"></i><i class="m"></i><i></i><i class="s"></i><i class="img"></i><i></i><i class="m"></i><i></i><i class="s"></i></div>' +
+      '<div class="botbar"><span class="tap">' + ic('i-back') + '</span><span class="tap dim">' + ic('i-forward') + '</span>' +
+        '<span class="openpill">3 OPEN' + ic('i-up', 's16') + '</span><span class="tap">' + ic('i-menu') + '</span></div>';
+  }
+  function sitesPane() {
+    /* Canvas 1b's Personal data; Plan 18 removed OPEN NOW / IDLE and N SESSIONS. */
+    var rows = [
+      ['Nt', 'Notes', 'notes.example.org', 'socks5', 'now', true],
+      ['Wm', 'Webmail', 'mail.example.net', 'direct', '14m', true],
+      ['Fr', 'Forum', 'forum.example.com', 'ephemeral', '2h', false],
+      ['Rd', 'Reader', 'read.example.io', 'direct', '1d', false],
+      ['Bk', 'Bank', 'bank.example.com', 'pin required', '3d', false]
+    ];
+    var h = '<div class="chips"><span class="chip on"><span>' + ic('i-check', 's16') + 'Personal</span></span>' +
+      '<span class="chip"><span>Work</span></span><span class="chip"><span>Ephemeral</span></span>' +
+      '<span class="tap">' + ic('i-plus', 's20') + '</span></div><div class="dfill"><div class="group">';
+    rows.forEach(function (r) {
+      h += '<div class="site' + (r[5] ? '' : ' idle') + '"><span class="mg' + (r[5] ? '' : ' idle') + '">' + r[0] + (r[5] ? '<span class="lt"></span>' : '') + '</span>' +
+        '<div class="text"><span class="rt">' + r[1] + '</span><span class="meta"><span class="mono">' + r[2] + '</span> · ' + r[3] + '</span></div>' +
+        '<span class="age">' + r[4] + '</span></div>';
+    });
+    return h + '</div></div><div class="dfoot"><div class="search">' + ic('i-search', 's20') + '<span>Search or type an address</span></div></div>';
+  }
+  function placeholderPane(title) {
+    return '<div class="phdr"><span class="screen-title">' + title + '</span></div>' +
+      '<div class="skel"><i class="big"></i><i class="m"></i><i class="s"></i>' +
+      '<div class="grp"><b></b><b></b><b></b></div><i class="m"></i><div class="grp"><b></b><b></b></div></div>';
+  }
+  function tabBar(sel) {
+    var tabs = [['sites', 'Sites'], ['today', 'Today'], ['settings', 'Settings']];
+    return '<nav class="tabs">' + tabs.map(function (t) {
+      return '<div data-tab="' + t[0] + '"' + (t[0] === sel ? ' class="on"' : '') + '><span class="ind">' +
+        '<svg class="ic s20 o" viewBox="0 0 24 24"><use href="#i-' + t[0] + '"/></svg>' +
+        '<svg class="ic s20 f" viewBox="0 0 24 24"><use href="#i-' + t[0] + '-f"/></svg></span>' + t[1] + '</div>';
+    }).join('') + '</nav>';
+  }
+  function dashboard(withPanes) {
+    var body = withPanes
+      ? '<div class="tabbody"><div class="pane show" data-pane="sites">' + sitesPane() + '</div>' +
+        '<div class="pane" data-pane="today">' + placeholderPane('Today') + '</div>' +
+        '<div class="pane" data-pane="settings">' + placeholderPane('Settings') + '</div></div>'
+      : '<div class="tabbody"><div class="pane show">' + sitesPane() + '</div></div>';
+    return '<div class="sys"></div>' + body + tabBar('sites');
+  }
+  function lockScreen() {
+    var keys = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '', '0', 'bs'];
+    return '<div class="sys"></div><div class="lock"><div class="msg">' +
+      '<span class="vtile"><svg class="vmark" data-vmark width="20" height="20" viewBox="0 0 24 24">' + vmark() + '</svg></span>' +
+      '<span class="prompt">Enter your PIN</span><div class="dots" data-dots><i></i><i></i><i></i><i></i><i></i><i></i></div></div>' +
+      '<div class="keypad">' + keys.map(function (k) {
+        if (k === '') return '<span class="blank"></span>';
+        if (k === 'bs') return '<span class="bs">' + ic('i-backspace') + '</span>';
+        return '<span data-key="' + k + '">' + k + '</span>';
+      }).join('') + '</div></div>';
+  }
+  function opening() {
+    return '<div class="sys"></div><div class="obar"><span class="tap">' + ic('i-back', 's22') + '</span>' +
+      '<div class="opill"><span class="light opening"></span><span class="host">' + HOST + '</span></div>' +
+      '<span class="tap">' + ic('i-close', 's20') + '</span></div>' +
+      '<div class="oline"><i data-oline></i></div>' +
+      '<div class="opening"><span class="screen-title">Starting a clean container</span><div class="steps">' +
+        '<div><span class="ring"></span><span>Fresh session, no shared cookies</span></div>' +
+        '<div><span class="ring"></span><span>Filter lists loaded</span></div>' +
+        '<div><span class="ring"></span><span>Fingerprint noise injected</span></div>' +
+        '<div><span class="ring"></span><span>Connecting through <span class="mono">127.0.0.1:9050</span></span></div>' +
+      '</div></div><p class="ofoot">Nothing loads until the tunnel is up.</p>';
+  }
+  function sheet6c() {
+    var on = '<span class="sw on"><svg viewBox="0 0 24 24"><use href="#i-check"/></svg></span>';
+    return '<div class="scrimL" data-scrim></div><div class="sheet"><div class="handle"></div>' +
+      '<div class="sitehead"><span class="mg">Fr</span><div class="text"><span class="title">Forum</span>' +
+        '<span class="sub"><span class="mono">forum.example.com</span> · Personal</span></div><span class="textbtn">Edit</span></div>' +
+      '<div class="group"><div class="row"><span class="k">Proxy</span><span class="v">SOCKS5 · <span class="mono">127.0.0.1:9050</span></span></div>' +
+        '<div class="row"><span class="k">Cookies</span><span class="v">Wipe on exit</span></div>' +
+        '<div class="row"><span class="k">Blocked here</span><span class="v"><span class="mono">164</span> requests</span></div></div>' +
+      '<div class="group"><div class="row"><span class="k">Force dark mode</span>' + on + '</div>' +
+        '<div class="row"><span class="k">Desktop view</span><span class="sw"></span></div></div>' +
+      '<span class="btn">Close and wipe this session</span></div>';
+  }
+  function panicDone() {
+    var rows = [['WEBVIEWS', 'DESTROYED'], ['EPHEMERAL DATA', 'WIPED'], ['MEMORY', 'CLEARED']];
+    return '<div class="sys"></div><div class="panicpage"><span class="pmark">' + ic('i-panic', 's20') + '</span>' +
+      '<span class="ptitle">Everything closed</span>' +
+      '<span class="pbody"><span class="mono">3</span> sessions destroyed, temporary storage wiped, app locked.</span>' +
+      '<div class="group pstatus">' + rows.map(function (r) { return '<div class="row"><span class="l">' + r[0] + '</span><span class="r">' + r[1] + '</span></div>'; }).join('') + '</div>' +
+      '<span class="pbtn">Unlock</span></div>';
+  }
+
+  /* ─────────── helpers ─────────── */
+  function q(el, s) { return el.querySelector(s); }
+  function qa(el, s) { return Array.prototype.slice.call(el.querySelectorAll(s)); }
+  function pick(scope, sel, key) {                     /* cross-fade a stack to one child */
+    qa(scope, sel).forEach(function (st) {
+      Array.prototype.forEach.call(st.children, function (c) { c.classList.toggle('on', c.getAttribute('data-k') === key); });
+    });
+  }
+  function show(el, on) { el.classList.toggle('show', on); }
+  function reflow(el) { void el.offsetWidth; }
+  function touch(frame, target) {
+    var m = q(frame, '.touch');
+    if (!m || !target) return;
+    var f = frame.getBoundingClientRect(), t = target.getBoundingClientRect();
+    m.style.left = (t.left - f.left + t.width / 2) + 'px';
+    m.style.top = (t.top - f.top + t.height / 2) + 'px';
+    m.classList.remove('on'); reflow(m); m.classList.add('on');
+  }
+  function T() {
+    var r = root.classList.contains('reduced');
+    return { moment: r ? 100 : 320, effect: r ? 100 : 150, sheetIn: r ? 100 : 250, sheetOut: r ? 100 : 200 };
+  }
+  function setLoading(frame, on, ms) {
+    var light = q(frame, '[data-light]'), load = q(frame, '[data-load]');
+    light.classList.toggle('opening', on);
+    pick(frame, '[data-rs]', on ? 'stop' : 'reload');
+    if (on) {
+      load.style.transition = 'none'; load.style.width = '0'; load.classList.add('run'); reflow(load);
+      load.style.transition = 'width ' + (ms || 900) + 'ms cubic-bezier(0.2, 0, 0, 1), opacity var(--effect) var(--ease-effect)';
+      load.style.width = '100%';
+    } else {
+      load.classList.remove('run');
+    }
+  }
+
+  /* ─────────── the six studies ─────────── */
+  var studies = {
+    unlock: {
+      build: function (f) {
+        f.innerHTML = '<div class="layer xfade-moment" data-l="lock">' + lockScreen() + '</div>' +
+                      '<div class="layer xfade-moment" data-l="dash">' + dashboard(false) + '</div><span class="touch"></span>';
+      },
+      reset: function (f, card) {
+        show(q(f, '[data-l="lock"]'), true); show(q(f, '[data-l="dash"]'), false);
+        qa(f, '[data-dots] i').forEach(function (d) { d.classList.remove('f'); });
+        card.classList.remove('unlocking');
+      },
+      steps: function (f, card) {
+        var t = T(), pin = ['2', '7', '1', '9', '4', '6'], s = [];
+        s.push([0, null, '3a: the lock screen; the case mark is text-1']);
+        pin.forEach(function (k, i) {
+          s.push([500 + i * 240, function () {
+            touch(f, q(f, '[data-key="' + k + '"]'));
+            q(f, '[data-dots]').children[i].classList.add('f');
+          }, i === 0 ? 'PIN entry (study input)' : null]);
+        });
+        var at = 500 + 5 * 240 + 380;
+        s.push([at, function () {
+          card.classList.add('unlocking');
+          show(q(f, '[data-l="lock"]'), false); show(q(f, '[data-l="dash"]'), true);
+        }, root.classList.contains('reduced')
+          ? 'Unlock: 100 ms cross-fade, no lift'
+          : 'Unlock: the seam lifts 2 dp and the mark fades, 320 ms easeOutCubic']);
+        s.push([at + t.moment + 200, null, 'Dashboard: the jade lights are open sessions']);
+        return { steps: s, length: at + t.moment + 2600 };
+      }
+    },
+
+    protect: {
+      build: function (f) { f.innerHTML = '<div class="layer show">' + chrome2b() + '</div><span class="touch"></span>'; },
+      reset: function (f, card) {
+        pick(card, '[data-case]', 'solid'); pick(f, '[data-badge]', 'SOCKS5'); setLoading(f, false);
+      },
+      steps: function (f, card) {
+        function change(caseKey, badge) {
+          return function () { setLoading(f, true, 900); pick(card, '[data-case]', caseKey); if (badge) pick(f, '[data-badge]', badge); };
+        }
+        function live() { setLoading(f, false); }
+        return { steps: [
+          [0, null, 'Keep for this site, live (solid case, jade light)'],
+          [1300, change('broken'), 'Reopen in place: Keep for this site → Wipe on exit (case cross-fades to dashed; light amber)'],
+          [2400, live, 'Live again: light amber → jade, 150 ms'],
+          [3900, change('double', 'Tor'), 'Route change: SOCKS5 → Tor (doubled edge)'],
+          [5000, live, 'Live over Tor'],
+          [6500, change('solid', 'SOCKS5'), 'Route change back: Tor → SOCKS5, Keep for this site'],
+          [7600, live, 'Live; the loop starts again']
+        ], length: 9200 };
+      }
+    },
+
+    live: {
+      build: function (f) {
+        f.innerHTML = '<div class="layer xfade-effect" data-l="open">' + opening() + '</div>' +
+                      '<div class="layer xfade-effect" data-l="page">' + chrome2b() + '</div><span class="touch"></span>';
+      },
+      reset: function (f) {
+        show(q(f, '[data-l="open"]'), true); show(q(f, '[data-l="page"]'), false);
+        q(f, '[data-oline]').style.width = '0';
+        pick(f, '[data-case]', 'broken');               /* the canvas's Forum: Wipe on exit */
+        setLoading(f, false); q(f, '[data-light]').classList.add('opening'); pick(f, '[data-rs]', 'stop');
+        q(f, '[data-page]').classList.add('blank');
+      },
+      steps: function (f) {
+        var t = T(), ol = function (w) { return function () { q(f, '[data-oline]').style.width = w; }; };
+        return { steps: [
+          [0, null, '8a: amber light; nothing has loaded'],
+          [300, ol('35%')], [1100, ol('70%')], [1900, ol('92%')],
+          [2500, function () {
+            show(q(f, '[data-l="open"]'), false); show(q(f, '[data-l="page"]'), true);
+            setLoading(f, true, 1000);
+          }, '2b: first load running (amber light, stop ×)'],
+          [2500 + t.effect + 250, function () { q(f, '[data-page]').classList.remove('blank'); }],
+          [3600, function () { setLoading(f, false); }, 'Live: the light turns jade, 150 ms'],
+          [3600 + 300, null, 'Live: the jade light is the only jade on 2b']
+        ], length: 6200 };
+      }
+    },
+
+    sheet: {
+      build: function (f) { f.innerHTML = '<div class="layer show">' + chrome2b() + sheet6c() + '</div><span class="touch"></span>'; },
+      reset: function (f) { pick(f, '[data-case]', 'broken'); setLoading(f, false); f.classList.remove('sheet-open'); },
+      steps: function (f) {
+        var t = T(), open = 1100, close = open + t.sheetIn + 2600;
+        return { steps: [
+          [0, null, '2b, live'],
+          [open - 120, function () { touch(f, q(f, '[data-shield]')); }],
+          [open, function () { f.classList.add('sheet-open'); },
+            root.classList.contains('reduced') ? '6c fades in, 100 ms' : '6c rises, 250 ms decelerate; scrim to 54 % black'],
+          [open + t.sheetIn + 200, null, '6c open: the one raised surface; Edit is its jade action'],
+          [close - 120, function () { var s = q(f, '[data-scrim]'); touch(f, s); var m = q(f, '.touch'); m.style.top = '70px'; }],
+          [close, function () { f.classList.remove('sheet-open'); },
+            root.classList.contains('reduced') ? 'Tap outside: fades out, 100 ms' : 'Tap outside: sheet falls, 200 ms']
+        ], length: close + t.sheetOut + 1500 };
+      }
+    },
+
+    tabs: {
+      build: function (f) { f.innerHTML = '<div class="layer show">' + dashboard(true) + '</div><span class="touch"></span>'; },
+      reset: function (f) { select(f, 'sites'); },
+      steps: function (f) {
+        function go(tab) { return function () { select(f, tab); }; }
+        function tap(tab) { return function () { touch(f, q(f, '[data-tab="' + tab + '"] .ind')); }; }
+        return { steps: [
+          [0, null, 'Sites'],
+          [1500, tap('today')], [1600, go('today'), 'Today: filled glyph on a raised pill, 600 label'],
+          [3400, tap('settings')], [3500, go('settings'), 'Settings'],
+          [5300, tap('sites')], [5400, go('sites'), 'Sites: the only jade is the two open sessions']
+        ], length: 7000 };
+      }
+    },
+
+    panic: {
+      build: function (f) {
+        f.innerHTML = '<div class="layer cut" data-l="page">' + chrome2b() + '</div>' +
+                      '<div class="layer cut" data-l="done">' + panicDone() + '</div><span class="touch"></span>';
+      },
+      reset: function (f) {
+        show(q(f, '[data-l="page"]'), true); show(q(f, '[data-l="done"]'), false);
+        pick(f, '[data-case]', 'solid'); setLoading(f, false);
+      },
+      steps: function (f) {
+        return { steps: [
+          [0, null, '2b, live; panic is the danger-outlined control, top right'],
+          [1500, function () { touch(f, q(f, '[data-panic]')); }],
+          [1620, function () { show(q(f, '[data-l="page"]'), false); show(q(f, '[data-l="done"]'), true); },
+            '3c: already done, with no transition'],
+        ], length: 5200 };
+      }
+    }
+  };
+  function select(f, tab) {
+    qa(f, '[data-tab]').forEach(function (el) { el.classList.toggle('on', el.getAttribute('data-tab') === tab); });
+    qa(f, '[data-pane]').forEach(function (el) { show(el, el.getAttribute('data-pane') === tab); });
+  }
+
+  /* ─────────── engine ─────────── */
+  var cards = [];
+  var paused = false;
+  Object.keys(studies).forEach(function (key) {
+    var card = document.getElementById('s-' + key);
+    var frame = q(card, '[data-frame]');
+    var c = { key: key, card: card, frame: frame, def: studies[key], timers: [], visible: true, phase: q(card, '[data-phase]') };
+    c.def.build(frame);
+    var zoom = q(card, '.zoom [data-vmark]');
+    if (zoom) zoom.innerHTML = vmark();
+    cards.push(c);
+  });
+
+  function stop(c) { c.timers.forEach(clearTimeout); c.timers = []; }
+  function run(c) {
+    stop(c);
+    if (paused || !c.visible) return;
+    c.frame.classList.add('noanim'); c.card.classList.add('noanim');
+    c.def.reset(c.frame, c.card);
+    reflow(c.frame);
+    c.frame.classList.remove('noanim'); c.card.classList.remove('noanim');
+    var plan = c.def.steps(c.frame, c.card);
+    plan.steps.forEach(function (st) {
+      c.timers.push(setTimeout(function () {
+        if (st[1]) st[1]();
+        if (st[2]) c.phase.textContent = st[2];
+      }, st[0]));
+    });
+    c.timers.push(setTimeout(function () { run(c); }, plan.length));
+  }
+  function runAll() { cards.forEach(run); }
+
+  if ('IntersectionObserver' in window) {
+    var io = new IntersectionObserver(function (entries) {
+      entries.forEach(function (e) {
+        var c = cards.filter(function (x) { return x.card === e.target; })[0];
+        if (!c) return;
+        var was = c.visible; c.visible = e.isIntersecting;
+        if (c.visible && !was) run(c); else if (!c.visible) stop(c);
+      });
+    }, { rootMargin: '100px' });
+    cards.forEach(function (c) { c.visible = false; io.observe(c.card); });
+  }
+
+  /* ─────────── controls ─────────── */
+  var mq = window.matchMedia ? window.matchMedia('(prefers-reduced-motion: reduce)') : null;
+  var chosen = null;
+  var bFull = document.getElementById('m-full'), bRed = document.getElementById('m-reduced'), bPause = document.getElementById('pause');
+  var note = document.getElementById('sysnote');
+  function setMode(reduced) {
+    root.classList.toggle('reduced', reduced);
+    bFull.setAttribute('aria-pressed', String(!reduced));
+    bRed.setAttribute('aria-pressed', String(reduced));
+    var sys = mq && mq.matches ? 'reduce' : 'no preference';
+    note.textContent = chosen === null
+      ? 'Following your system setting (prefers-reduced-motion: ' + sys + ').'
+      : 'Overriding your system setting (' + sys + ').';
+    runAll();
+  }
+  bFull.addEventListener('click', function () { chosen = 'full'; setMode(false); });
+  bRed.addEventListener('click', function () { chosen = 'reduced'; setMode(true); });
+  bPause.addEventListener('click', function () {
+    paused = !paused;
+    bPause.textContent = paused ? 'Play' : 'Pause';
+    bPause.setAttribute('aria-pressed', String(paused));
+    if (paused) cards.forEach(stop); else runAll();
+  });
+  if (mq) {
+    var onChange = function () { if (chosen === null) setMode(mq.matches); };
+    if (mq.addEventListener) mq.addEventListener('change', onChange); else if (mq.addListener) mq.addListener(onChange);
+  }
+  setMode(!!(mq && mq.matches));
+})();
+</script>
+<noscript><p style="padding:16px;color:#CBC4B9">The studies are driven by script; with it off, the frames stay empty.</p></noscript>
+</body>
+</html>
