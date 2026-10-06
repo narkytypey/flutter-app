@@ -8,7 +8,7 @@ Phases 0–3 done (all three directions, 30+ blocks each, a11y clean). Phase 4 d
 
 ## Heartbeat
 
-2026-10-06T04:27Z · fire-7a41e2
+2026-10-06T09:58Z · fire-cd6e6b (resumed)
 
 ## Branch
 
@@ -16,7 +16,7 @@ design-exploration-restyle
 
 ## Next action
 
-Phase 4: round-2 agents (7) are writing to debate/round-2/; when all exist, write VERDICT.md yourself.
+Phase 4: round-2 agents (7) relaunched 09:58Z, writing to debate/round-2/; when all seven files exist, write VERDICT.md yourself.
 
 ## Toolchain
 
@@ -136,6 +136,8 @@ A later fire must reinstall all of it (~10 min); set
 - [ ] One-page rationale
 
 ## Log
+
+- 2026-10-06T09:58Z fire-cd6e6b (resumed after its session limit): heartbeat 5.5 h stale, no round-2 file on origin. Taking over: relaunching round 2 (7 agents). Mirror branch back to `second/gracious-cannon-1eynaf`.
 
 - fire-7a41e2: direction C complete — all 32 blocks, a11y clean. Phase 4 round 1 launched (7 agents).
 

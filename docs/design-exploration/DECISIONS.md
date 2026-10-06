@@ -66,3 +66,11 @@ The ledger's heartbeat was six hours old and no commit had landed since
 reason D0 gives. Since this may be the last fire of the night, it builds the
 three directions' screens in parallel (as D4) and then drives straight
 through the debate, spec, plans and code.
+
+## D6 — Fire cd6e6b resumes after 7a41e2 stopped (2026-10-06T09:58Z)
+
+7a41e2's heartbeat (04:27Z) was 5.5 h old and round 2 had launched but written
+no file, so its agents died with it. This session (cd6e6b, back from a session
+limit) takes over at round 2. `tools/push.sh` mirrors to this session's
+harness branch `second/gracious-cannon-1eynaf` again, and now adds the
+session's attribution trailers to every commit.
