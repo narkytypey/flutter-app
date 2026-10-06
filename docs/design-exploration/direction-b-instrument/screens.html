@@ -326,7 +326,7 @@
   .code .ln > span { text-align: right; color: var(--text-3); }
   .code .ln > code { font: inherit; color: var(--code); white-space: pre-wrap; overflow-wrap: anywhere; }
   .chip.x > span { padding-right: 4px; background: var(--surface-raised); border-color: var(--surface-raised); color: var(--text-1); }
-  .chip.x .xbtn { width: 44px; height: 48px; margin: -12px -4px -12px -10px; display: inline-flex; align-items: center; justify-content: center; color: var(--text-2); }
+  .chip.x .xbtn { width: 48px; height: 48px; margin: -12px -6px -12px -12px; display: inline-flex; align-items: center; justify-content: center; color: var(--text-2); }
   .chip.add > span { border: 1.5px dashed var(--edge); color: var(--text-1); }
   .panicpage { flex: 1 1 auto; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; gap: var(--s4); padding: var(--s6) var(--s6); }
   .pmark { width: 64px; height: 64px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; color: var(--danger); box-shadow: inset 0 0 0 1.5px var(--danger); }
@@ -334,6 +334,31 @@
   .status .row { min-height: 52px; }
   .status .row .sc { color: var(--text-2); font: 400 var(--fs-sub)/1.43 var(--sans); }
   .status .row .st { margin-left: auto; color: var(--text-1); font: 600 var(--fs-sub)/1.43 var(--sans); }
+  .defaults .row { align-items: flex-start; padding-left: 0; padding-right: 0; }
+  .defaults .row + .row { border-top: 1px solid var(--line); }
+  .defaults .row > .ic { margin-top: 2px; color: var(--text-1); }
+  .empty { flex: 1 1 auto; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; gap: var(--s3); padding: var(--s8) var(--s8); }
+  .empty .box { width: 48px; height: 48px; border-radius: 14px; border: 1.5px dashed var(--edge); margin-bottom: var(--s2); }
+  .wsbar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0 var(--s2); }
+  .loadline { flex: 0 0 auto; height: 2px; background: var(--surface-group); }
+  .loadline > i { display: block; height: 100%; width: 60%; background: var(--text-2); }
+  .steps { display: flex; flex-direction: column; gap: var(--s4); padding-top: var(--s2); }
+  .steps > div { display: flex; align-items: flex-start; gap: var(--s3); font: 400 var(--fs-body)/1.4 var(--sans); color: var(--text-2); }
+  .steps .ring { flex: 0 0 auto; width: 14px; height: 14px; border-radius: 50%; border: 2px solid var(--edge); margin-top: 4px; }
+  .opening { flex: 1 1 auto; display: flex; flex-direction: column; justify-content: center; gap: var(--s5); padding: var(--s6) var(--s6); }
+  .banner { margin: var(--s2) var(--s3) 0; padding: var(--s4); background: var(--danger-wash); border-radius: var(--r-lg); box-shadow: inset 0 0 0 1.5px var(--danger); }
+  .banner .head { display: flex; gap: var(--s3); align-items: flex-start; }
+  .banner .head .ic { color: var(--danger); margin-top: 2px; }
+  .banner .text { display: flex; flex-direction: column; gap: 4px; }
+  .banner .btns { display: flex; flex-wrap: wrap; gap: var(--s2); padding-top: var(--s4); }
+  .banner .btns .btn { flex: 1 1 8em; width: auto; margin: 0; min-height: var(--target); }
+  .frozen { filter: grayscale(1); opacity: .5; }
+  .rowmenu { position: absolute; left: 0; right: 0; bottom: 0; z-index: 5; max-height: calc(100% - 24px); overflow-y: auto; padding: 0 var(--s4) var(--s6); }
+  .rowmenu .card { display: flex; align-items: center; gap: var(--s3); padding: var(--s3) var(--s4); background: var(--surface-sheet); border: 1px solid var(--line); border-radius: var(--r-lg); margin-bottom: var(--s3); }
+  .rowmenu .card .text { flex: 1 1 auto; display: flex; flex-direction: column; gap: 2px; }
+  .rowmenu .group { background: var(--surface-raised); }
+  .rowmenu .group .row + .row { border-top-color: var(--line); }
+  .rowmenu .btn { margin-top: var(--s3); }
 </style>
 </head>
 <body>
@@ -943,6 +968,135 @@
         </div>
         <div style="width:100%;padding-top:8px"><span class="btn neutral">Unlock</span></div>
       </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═════════════════════════ 5a ═════════════════════════ -->
+<section class="block" data-block="5a">
+  <p class="tag"><b>5a</b>Setup step 3 — the defaults, stated plainly <i>(checks are text-1; jade only on the button)</i></p>
+  <div class="phone">
+    <div class="sys"></div>
+    <div class="pin" style="padding-bottom:24px">
+      <div class="stepbar"><i class="d"></i><i class="d"></i><i class="d"></i></div>
+      <div class="fill" style="padding-top:40px">
+        <span class="step-title" style="display:block">How sites will behave</span>
+        <p class="muted" style="margin:12px 0 16px">These apply to every site you add. You can change any of them per site later.</p>
+        <div class="defaults">
+          <div class="row"><svg class="ic s20"><use href="#i-check"/></svg><div class="text"><span class="body">Each site gets its own storage</span><span class="sub">Cookies and logins never cross between sites</span></div></div>
+          <div class="row"><svg class="ic s20"><use href="#i-check"/></svg><div class="text"><span class="body">Camera, mic, location and clipboard blocked</span><span class="sub">A site has to ask you each time it wants one</span></div></div>
+          <div class="row"><svg class="ic s20"><use href="#i-check"/></svg><div class="text"><span class="body">Trackers, ads and WebRTC blocked</span><span class="sub">Some sites may need this relaxed to work</span></div></div>
+          <div class="row"><svg class="ic s20"><use href="#i-check"/></svg><div class="text"><span class="body">Nothing is sent anywhere</span><span class="sub">No account, no sync, no analytics</span></div></div>
+        </div>
+      </div>
+      <div style="padding-top:12px"><span class="btn primary">Add your first site</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- ═════════════════════════ 5b ═════════════════════════ -->
+<section class="block" data-block="5b">
+  <p class="tag"><b>5b</b>Empty workspace — one sentence and one action <i>(Ephemeral; the + is the one jade)</i></p>
+  <div class="phone">
+    <div class="sys"></div>
+    <div class="wsbar gutter" style="padding-top:4px;padding-bottom:4px">
+      <div class="chips">
+        <span class="chip"><span>Personal</span></span>
+        <span class="chip"><span>Work</span></span>
+        <span class="chip on"><span>Ephemeral</span></span>
+        <span class="tap" aria-label="New workspace"><svg class="ic s20"><use href="#i-plus"/></svg></span>
+      </div>
+      <span class="badge sc">WIPES ON EXIT</span>
+    </div>
+    <div class="fill" style="display:flex;flex-direction:column">
+      <div class="empty">
+        <span class="box"></span>
+        <span class="row-title t1">Nothing here yet</span>
+        <span class="muted">Sites you open in this workspace leave nothing behind when you close the app.</span>
+      </div>
+    </div>
+    <div class="dash-foot">
+      <div class="search"><svg class="ic s20"><use href="#i-search"/></svg><span class="ell">Search or type an address</span></div>
+      <span class="addbtn jadefill" aria-label="Add site"><svg class="ic"><use href="#i-plus"/></svg></span>
+    </div>
+    <nav class="tabs">
+      <div class="on" aria-selected="true"><span class="ind"><svg class="ic"><use href="#i-sites"/></svg></span>Sites</div>
+      <div><span class="ind"><svg class="ic"><use href="#i-today"/></svg></span>Today</div>
+      <div><span class="ind"><svg class="ic"><use href="#i-settings"/></svg></span>Settings</div>
+    </nav>
+  </div>
+</section>
+
+<!-- ═════════════════════════ 8a ═════════════════════════ -->
+<section class="block" data-block="8a">
+  <p class="tag"><b>8a</b>Opening — shows what is being applied before the page appears <i>(as built: every step pending; amber light = opening)</i></p>
+  <div class="phone">
+    <div class="sys"></div>
+    <div class="topbar">
+      <span class="tap" aria-label="Back"><svg class="ic"><use href="#i-back"/></svg></span>
+      <div class="pill" style="padding-left:16px"><span class="lt open"></span><span class="readout"><span class="host wrap">forum.example.com</span></span></div>
+      <span class="tap" aria-label="Close"><svg class="ic"><use href="#i-close"/></svg></span>
+    </div>
+    <div class="loadline"><i></i></div>
+    <div class="fill" style="display:flex;flex-direction:column">
+      <div class="opening">
+        <span class="screen-title">Starting a clean container</span>
+        <div class="steps">
+          <div><span class="ring"></span><span>Fresh session, no shared cookies</span></div>
+          <div><span class="ring"></span><span>Filter lists loaded</span></div>
+          <div><span class="ring"></span><span>Fingerprint noise injected</span></div>
+          <div><span class="ring"></span><span class="wrap">Connecting through <span class="mono">127.0.0.1:9050</span></span></div>
+        </div>
+      </div>
+      <p class="footnote" style="padding:0 24px 32px">Nothing loads until the tunnel is up.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ═════════════════════════ 8c ═════════════════════════ -->
+<section class="block" data-block="8c">
+  <p class="tag"><b>8c</b>Tunnel dropped mid-session — page frozen, decision surfaced at the top <i>(a small tinted panel, never a red screen)</i></p>
+  <div class="phone">
+    <div class="sys"></div>
+    <div class="topbar" style="border-bottom:0">
+      <span class="tap inert" aria-hidden="true"><svg class="ic s20"><use href="#i-back"/></svg></span>
+      <div class="pill danger" style="padding-left:16px"><span class="lt fail"></span><span class="readout"><span class="host wrap">forum.example.com</span></span></div>
+      <span class="tap inert" aria-hidden="true"><svg class="ic s20"><use href="#i-reload"/></svg></span>
+    </div>
+    <div class="banner">
+      <div class="head"><svg class="ic s20"><use href="#i-refused"/></svg>
+        <div class="text"><span class="row-title">Tunnel dropped</span><span class="sub">The page is paused. Nothing further has been requested since the connection failed just now.</span></div>
+      </div>
+      <div class="btns"><span class="btn primary">Reconnect</span><span class="btn neutral">Close and wipe</span></div>
+    </div>
+    <div class="page frozen" style="background:transparent"><i class="h"></i><i class="m"></i><i></i><i class="img"></i><i class="s"></i><i></i><i class="m"></i></div>
+  </div>
+</section>
+
+<!-- ═════════════════════════ 7b ═════════════════════════ -->
+<section class="block" data-block="7b">
+  <p class="tag"><b>7b</b>Long-press on a row — wipe sits apart from the rest <i>(rows as built, 2026-10-05 ruling)</i></p>
+  <div class="phone">
+    <div class="sys"></div>
+    <div class="fill gutter" aria-hidden="true" style="padding-top:60px">
+      <div class="group">
+        <div class="site"><span class="mg">Nt<span class="lt live"></span></span><div class="text"><span class="row-title ell">Notes</span><span class="meta wrap"><span class="mono">notes.example.org</span> · socks5</span></div><span class="age">now</span></div>
+        <div class="site"><span class="mg">Wm<span class="lt live"></span></span><div class="text"><span class="row-title ell">Webmail</span><span class="meta wrap"><span class="mono">mail.example.net</span> · direct</span></div><span class="age">14m</span></div>
+        <div class="site idle"><span class="mg idle">Fr<span class="lt idle"></span></span><div class="text"><span class="row-title ell">Forum</span><span class="meta wrap"><span class="mono">forum.example.com</span> · ephemeral</span></div><span class="age">2h</span></div>
+      </div>
+    </div>
+    <div class="scrim"></div>
+    <div class="rowmenu">
+      <div class="card"><span class="mg">Fr</span><div class="text"><span class="row-title ell">Forum</span><span class="sub wrap mono">https://forum.example.com</span></div></div>
+      <div class="group">
+        <div class="row"><span class="body">Open</span></div>
+        <div class="row"><span class="body">Edit settings</span></div>
+      </div>
+      <div class="group">
+        <div class="row"><span class="body">Wipe this site's data</span></div>
+        <div class="row"><span class="body danger">Remove site</span></div>
+      </div>
+      <span class="btn neutral">Cancel</span>
     </div>
   </div>
 </section>
