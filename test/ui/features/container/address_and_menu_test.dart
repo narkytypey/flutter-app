@@ -92,7 +92,7 @@ void main() {
     final pill = tester.widget<Container>(
         find.ancestor(of: find.byType(TextField), matching: find.byType(Container)).first);
     final decoration = pill.decoration! as BoxDecoration;
-    expect(decoration.color, C.raised);
+    expect(decoration.color, C.surface);
     expect((decoration.border! as Border).top.color, C.edge);
 
     final field = tester.widget<TextField>(find.byType(TextField));
@@ -199,7 +199,7 @@ void main() {
     expect(find.text('SEARCH'), findsNothing);
     final footer = tester.widget<Text>(find.text('Nothing is fetched while you type.'));
     expect(footer.style!.fontFamily, 'IBMPlexMono');
-    expect(footer.style!.color, C.textDim);
+    expect(footer.style!.color, C.textFaint);
   });
 
   testWidgets('the menu shows this site, four quick actions in a row, then five rows', (tester) async {

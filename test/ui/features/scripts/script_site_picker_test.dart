@@ -61,7 +61,7 @@ void main() {
     await tester.pumpWidget(editor(onAddSite: null));
 
     final label = tester.widget<Text>(find.text('+ Add site'));
-    expect(label.style!.color, C.textDisabled);
+    expect(label.style!.color, C.textFaint);
     await tester.tap(find.text('+ Add site'));
     await tester.pumpAndSettle();
   });

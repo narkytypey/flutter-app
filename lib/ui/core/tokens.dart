@@ -64,7 +64,6 @@ abstract final class C {
   static const readerMuted = Color(0xFFA39A8C);
   static const readerTitle = Color(0xFFEFE8DC);
   static const readerBody = Color(0xFFD3CBBE);
-  static const readerHost = Color(0xFFA39A8C);
 
   // State (spec §2.3)
   static const jade = Color(0xFF7FC8A9);
@@ -94,47 +93,6 @@ abstract final class C {
     Color(0xFFC89BB4),
     Color(0xFFA8A095),
   ];
-
-  // Retired by restyle v2 (spec §2.8). Kept as aliases until Plan 23 Task 6
-  // removes them, so every plan builds on its own.
-  @Deprecated('restyle v2: use C.bg')
-  static const bgPanic = bg;
-  @Deprecated('restyle v2: use C.bg')
-  static const bgRecents = bg;
-  @Deprecated('restyle v2: use C.bg')
-  static const footer = bg;
-  @Deprecated('restyle v2: use C.surface')
-  static const raised = surface;
-  @Deprecated('restyle v2: an off track is unfilled, outlined in C.edge')
-  static const trackOff = Color(0x00000000);
-  @Deprecated('restyle v2: use C.textFaint')
-  static const textDim = textFaint;
-  @Deprecated('restyle v2: use C.textFaint')
-  static const textDisabled = textFaint;
-  @Deprecated('restyle v2: use C.textMuted')
-  static const dangerMuted = textMuted;
-  @Deprecated('restyle v2: use C.dangerSurface')
-  static const dangerPanel = dangerSurface;
-  @Deprecated('restyle v2: use C.code')
-  static const jadeCode = code;
-  @Deprecated('restyle v2: use C.lineSoft')
-  static const line05 = lineSoft;
-  @Deprecated('restyle v2: use C.lineSoft')
-  static const line06 = lineSoft;
-  @Deprecated('restyle v2: use C.lineSoft')
-  static const line07 = lineSoft;
-  @Deprecated('restyle v2: use C.lineSoft')
-  static const line08 = lineSoft;
-  @Deprecated('restyle v2: use C.line')
-  static const line09 = line;
-  @Deprecated('restyle v2: use C.line')
-  static const line10 = line;
-  @Deprecated('restyle v2: use C.line')
-  static const line12 = line;
-  @Deprecated('restyle v2: use C.line')
-  static const line13 = line;
-  @Deprecated('restyle v2: use C.line')
-  static const line16 = line;
 }
 
 /// Spacing scale, dp (spec §4).

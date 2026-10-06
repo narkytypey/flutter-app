@@ -111,12 +111,12 @@ void main() {
     }
 
     final base = await pumpAndGetPainter(
-      const DashedBox(size: 80, radius: 12, color: C.line16),
+      const DashedBox(size: 80, radius: 12, color: C.line),
     );
 
     // Identical params: no repaint needed.
     final same = await pumpAndGetPainter(
-      const DashedBox(size: 80, radius: 12, color: C.line16),
+      const DashedBox(size: 80, radius: 12, color: C.line),
     );
     expect(same.shouldRepaint(base), isFalse);
 

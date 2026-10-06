@@ -90,7 +90,7 @@ void main() {
     await tester.tap(_icon('Menu'));
 
     expect(calls, ['forward', 'switcher', 'menu']);
-    expect(_glyph(tester, AppGlyph.back).color, C.textDisabled);
+    expect(_glyph(tester, AppGlyph.back).color, C.textFaint);
     expect(_glyph(tester, AppGlyph.forward).color, C.icon);
     expect(tester.getSize(_icon('Back')), const Size(48, 48));
   });
@@ -112,7 +112,7 @@ void main() {
         .descendant(of: find.byType(ContainerBottomBar), matching: find.byType(Container))
         .first);
     final decoration = bar.decoration! as BoxDecoration;
-    expect(decoration.color, C.footer);
+    expect(decoration.color, C.bg);
     expect((decoration.border! as Border).top.color, C.line);
     expect(_glyph(tester, AppGlyph.chevronUp).color, C.textPrimary);
     expect(tester.getSize(find.byWidgetPredicate(
@@ -204,8 +204,8 @@ void main() {
     await tester.tap(_icon('Next match'), warnIfMissed: false);
 
     expect(calls, isEmpty);
-    expect(_glyph(tester, AppGlyph.chevronUp).color, C.textDisabled);
-    expect(_glyph(tester, AppGlyph.chevronDown).color, C.textDisabled);
+    expect(_glyph(tester, AppGlyph.chevronUp).color, C.textFaint);
+    expect(_glyph(tester, AppGlyph.chevronDown).color, C.textFaint);
   });
 
   testWidgets('the find field asks the keyboard not to learn what is typed', (tester) async {

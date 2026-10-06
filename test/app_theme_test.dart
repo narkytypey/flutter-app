@@ -17,7 +17,7 @@ void main() {
   test('the restyle names four canvas colours without changing them', () {
     expect(C.handle, const Color(0xFF958D82));
     expect(C.pillText, const Color(0xFFEDEAE4));
-    expect(C.dangerPanel, const Color(0xFF2C201D));
+    expect(C.dangerSurface, const Color(0xFF2C201D));
     expect(C.pinError, const Color(0xFFEE8D79));
   });
 }

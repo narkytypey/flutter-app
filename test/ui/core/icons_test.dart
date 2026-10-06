@@ -68,7 +68,7 @@ void main() {
     const painter = AppIconPainter(AppGlyph.back, C.icon);
     expect(painter.shouldRepaint(const AppIconPainter(AppGlyph.back, C.icon)), isFalse);
     expect(painter.shouldRepaint(const AppIconPainter(AppGlyph.forward, C.icon)), isTrue);
-    expect(painter.shouldRepaint(const AppIconPainter(AppGlyph.back, C.textDisabled)), isTrue);
+    expect(painter.shouldRepaint(const AppIconPainter(AppGlyph.back, C.textFaint)), isTrue);
   });
 
   testWidgets('an icon button with no tap is dimmed and inert', (tester) async {
@@ -84,7 +84,7 @@ void main() {
 
     AppIcon icon(AppGlyph glyph) => tester.widget<AppIcon>(
         find.byWidgetPredicate((w) => w is AppIcon && w.glyph == glyph));
-    expect(icon(AppGlyph.back).color, C.textDisabled);
+    expect(icon(AppGlyph.back).color, C.textFaint);
     expect(icon(AppGlyph.forward).color, C.icon);
 
     await tester.tap(find.byWidgetPredicate((w) => w is IconTap && w.label == 'Back'),
