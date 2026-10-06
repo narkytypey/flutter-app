@@ -188,14 +188,14 @@ body.theme-dark .frame-note { color: #B4BBB6; }
 /* browser chrome */
 .topbar { background: var(--card); padding: 8px 4px 8px 8px; display: flex; align-items: center; gap: 4px; flex: none; position: relative; z-index: 1; box-shadow: 0 1px 0 var(--outline-variant), 0 2px 8px rgba(26,29,27,.06); }
 .pill { flex: 1 1 auto; min-width: 0; min-height: 48px; border-radius: 24px; background: var(--tonal); display: flex; flex-wrap: wrap; align-items: center; gap: 0 4px; padding: 0 0 0 12px; }
-.pend { display: flex; align-items: center; gap: 4px; margin-left: auto; flex: none; }
+.pend { display: flex; align-items: center; gap: 0; margin-left: auto; flex: none; }
 .pill.dng { background: var(--card); border: 1.5px solid var(--danger); }
 .pill .host { flex: 1 1 calc(7rem - 40px); margin-left: 4px; font-size: var(--fs-address); font-weight: 500; line-height: 1.375; color: var(--ink); }
 .ctype { position: relative; flex: none; width: 24px; height: 24px; color: var(--ink2); }
 .ctype .livedot { position: absolute; right: -3px; bottom: -2px; width: 10px; height: 10px; border: 2px solid var(--tonal); }
 .pill.dng .ctype .livedot { border-color: var(--card); }
 .route { flex: none; font-size: var(--fs-badge); font-weight: 700; line-height: 1.23; letter-spacing: .3px; padding: 3px 6px; margin-left: 2px; border-radius: var(--r-xs); background: var(--card); color: var(--ink); }
-.inpill { width: 40px; height: 40px; border-radius: 999px; display: grid; place-items: center; flex: none; color: var(--ink2); margin: 0 -4px; }
+.inpill { width: 48px; height: 48px; border-radius: 999px; display: grid; place-items: center; flex: none; color: var(--ink2); margin: 0; }
 .inpill.shield { color: var(--accent); margin-right: 0; }
 .panic { width: 48px; height: 48px; border-radius: 999px; background: var(--danger-container); color: var(--danger); display: grid; place-items: center; flex: none; }
 .loadline { position: absolute; left: 0; bottom: 0; height: 3px; background: var(--ink2); border-radius: 0 3px 3px 0; }
@@ -239,7 +239,7 @@ body.theme-dark .frame-note { color: #B4BBB6; }
 .swatch > i { width: 32px; height: 32px; border-radius: 999px; display: block; box-shadow: 0 0 0 1px var(--outline); }
 .swatch.sel > i { box-shadow: 0 0 0 2px var(--page), 0 0 0 4px var(--ink); }
 .newrow { display: flex; align-items: center; gap: 16px; min-height: 56px; padding: 12px 16px; color: var(--accent); font-weight: 600; font-size: var(--fs-body); }
-.badge { width: 40px; height: 40px; border-radius: var(--r-sm); background: var(--tonal); display: grid; place-items: center; font-weight: 700; font-size: var(--fs-caption); flex: none; }
+.badge { width: 40px; height: 40px; border-radius: var(--r-sm); background: var(--card); border: 1px solid var(--outline-variant); display: grid; place-items: center; font-weight: 700; font-size: var(--fs-caption); flex: none; }
 .badge.css { color: var(--accent); }
 .badge.js { color: var(--warning); }
 .codebox { background: var(--card); border: 1px solid var(--outline); border-radius: var(--r-md); display: flex; padding: 12px 0; overflow: hidden; }
@@ -267,6 +267,10 @@ body.theme-dark .frame-note { color: #B4BBB6; }
 .tag { font-size: var(--fs-badge); font-weight: 700; letter-spacing: .3px; padding: 2px 6px; border-radius: var(--r-xs); background: var(--tonal); color: var(--ink); }
 .stile.add { background: transparent; border: 1.5px dashed var(--outline); align-items: center; justify-content: center; color: var(--ink2); min-height: 120px; }
 .preview { height: 96px; background: var(--tonal); display: grid; place-items: center; color: var(--ink2); }
+
+/* 48 dp hit areas for controls drawn at 40 dp (chips, the N OPEN pill) */
+.chip, .openpill { position: relative; }
+.chip::before, .openpill::before { content: ""; position: absolute; left: 0; right: 0; top: 50%; height: 48px; transform: translateY(-50%); }
 
 /* dashboard */
 .chiprow { display: flex; align-items: center; gap: 8px; padding: 8px 8px 8px 16px; flex: none; flex-wrap: wrap; }
@@ -1090,7 +1094,7 @@ body.theme-dark .frame-note { color: #B4BBB6; }
   <div class="phone">
     <div class="statusbar" style="background:var(--card)"></div>
     <div class="topbar">
-      <span class="btn-icon ink" aria-label="Back" style="width:40px"><svg class="ic"><use href="#i-back"/></svg></span>
+      <span class="btn-icon ink" aria-label="Back"><svg class="ic"><use href="#i-back"/></svg></span>
       <div class="pill" style="padding-right:16px">
         <span class="ctype"><svg class="ic"><use href="#i-box-dashed"/></svg><span class="livedot warn"></span></span>
         <span class="host ell">forum.example.com</span>

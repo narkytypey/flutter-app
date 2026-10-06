@@ -1148,6 +1148,138 @@ section[data-block] > header .note { display: block; margin-top: 4px; opacity: .
 </div>
 </section>
 
+<section data-block="4b">
+<header><span class="bid">4b</span>Setup — the decoy, explained once and never again
+<span class="note">As built. The second row is inert in the app (no tap handler); drawn plainly, with its chevron. Continue is the one solid pill; Skip for now is a text button.</span></header>
+<div class="frames">
+<div class="phone">
+  <div class="sys"></div>
+  <div class="lock" style="padding:0 24px">
+    <div class="steps" style="margin-top:12px"><i class="f"></i><i class="f"></i><i></i></div>
+    <div class="col" style="flex:1 0 auto;gap:14px;padding:40px 0 20px;justify-content:center">
+      <h1 class="t-step" style="margin:0">A second PIN, if you want one</h1>
+      <p class="t-muted" style="margin:0">If someone makes you unlock the app, this PIN opens a plain board with only the sites you choose. Nothing on it hints that anything else exists.</p>
+      <div class="group" style="margin-top:8px">
+        <div class="opt"><span class="gt f1">Set up a decoy PIN</span><span class="sw on"></span></div>
+        <div class="opt"><div class="col f1"><span class="gt">Sites to show</span><span class="gs">Pick after setup</span></div><svg class="ic s20 ink3"><use href="#i-fwd"/></svg></div>
+      </div>
+    </div>
+    <div class="col" style="padding:8px 0 20px;gap:8px;align-items:center"><span class="pill primary">Continue</span><span class="textbtn" style="color:var(--ink2)">Skip for now</span></div>
+  </div>
+</div>
+</div>
+</section>
+
+<section data-block="4c">
+<header><span class="bid">4c</span>Wrong PIN — counts down without naming what is behind it
+<span class="note">As built. Danger as text and outline only: the mark's walls, the headline and the empty dots' rings. Nothing fills red.</span></header>
+<div class="frames">
+<div class="phone">
+  <div class="sys"></div>
+  <div class="lock">
+    <div class="msg" style="gap:18px">
+      <svg class="lockmark" style="color:var(--danger)" aria-hidden="true"><use href="#i-room"/></svg>
+      <p class="t-appbar danger" style="margin:0">Wrong PIN · 3 tries left</p>
+      <div class="dots err"><i></i><i></i><i></i><i></i><i></i><i></i></div>
+      <p class="t-meta" style="margin:0;max-width:260px">After 5 wrong tries the app waits 30 seconds before accepting another.</p>
+    </div>
+    <div class="kp"><div class="keypad"><span class="key">1</span><span class="key">2</span><span class="key">3</span><span class="key">4</span><span class="key">5</span><span class="key">6</span><span class="key">7</span><span class="key">8</span><span class="key">9</span><span class="key blank"></span><span class="key">0</span><span class="key bs" role="button" aria-label="Delete"><svg class="ic s28"><use href="#i-bs"/></svg></span></div></div>
+  </div>
+</div>
+</div>
+</section>
+
+<section data-block="1a">
+<header><span class="bid">1a</span>Quiet grid — monogram tiles, one status line, badges only when they mean something
+<span class="note">Never built as an app screen (Plan 18's Sites tab won). Mocked from the canvas file for comparison: the canvas's top bar, tiles, badges and status lines, drawn as boxes in the Personal room.</span></header>
+<div class="frames">
+<div class="phone room-fern">
+  <div class="sys"></div>
+  <div class="top">
+    <span class="textbtn t" style="padding-left:12px;gap:4px"><span class="t-screen">Personal</span><svg class="ic s20"><use href="#i-down"/></svg></span>
+    <span class="tap ink" role="button"><svg class="ic"><use href="#i-search"/></svg></span>
+    <span class="tap ink" role="button"><svg class="ic"><use href="#i-more"/></svg></span>
+  </div>
+  <div class="scroll">
+    <div class="room fill" style="margin:0 12px 12px;display:grid;grid-template-columns:repeat(auto-fill,minmax(calc(130px*var(--scale)),1fr));gap:8px;align-content:start">
+      <div class="box col" style="padding:14px;gap:8px"><div class="row" style="justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:6px"><span class="mg">Nt</span><span class="badge tag">PROXY</span></div><span class="t-row">Notes</span><span class="row t-meta" style="gap:6px"><svg class="door" style="width:12px;height:14px;color:var(--ink)"><use href="#i-door-open"/></svg>Open · now</span></div>
+      <div class="box col" style="padding:14px;gap:8px"><div class="row"><span class="mg">Wm</span></div><span class="t-row">Webmail</span><span class="row t-meta" style="gap:6px"><svg class="door" style="width:12px;height:14px;color:var(--ink)"><use href="#i-door-open"/></svg>Open · 14 min</span></div>
+      <div class="box col" style="padding:14px;gap:8px"><div class="row" style="justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:6px"><span class="mg">Fr</span><span class="badge tag">TEMP</span></div><span class="t-row-idle">Forum</span><span class="row t-meta" style="gap:6px"><svg class="door ic" style="width:12px;height:14px;color:var(--ink3)"><use href="#i-door-idle"/></svg>Idle · 2 h</span></div>
+      <div class="box col" style="padding:14px;gap:8px"><div class="row"><span class="mg">Rd</span></div><span class="t-row-idle">Reader</span><span class="row t-meta" style="gap:6px"><svg class="door ic" style="width:12px;height:14px;color:var(--ink3)"><use href="#i-door-idle"/></svg>Idle · yesterday</span></div>
+      <div class="box col" style="padding:14px;gap:8px"><div class="row" style="justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:6px"><span class="mg">Bk</span><span class="badge tag">LOCK</span></div><span class="t-row-idle">Bank</span><span class="row t-meta" style="gap:6px"><svg class="door ic" style="width:12px;height:14px;color:var(--ink3)"><use href="#i-door-idle"/></svg>Idle · 3 d</span></div>
+      <div class="box col" style="padding:14px;gap:8px"><div class="row"><span class="mg">Mk</span></div><span class="t-row-idle">Marketplace</span><span class="row t-meta" style="gap:6px"><svg class="door ic" style="width:12px;height:14px;color:var(--ink3)"><use href="#i-door-idle"/></svg>Idle · 5 d</span></div>
+      <div class="col" style="padding:14px;gap:8px;border:2px dashed var(--ink3);border-radius:var(--r-l);align-items:center;justify-content:center;min-height:120px;color:var(--ink)"><span class="t-sheet">+</span><span class="t-button">Add site</span></div>
+    </div>
+  </div>
+</div>
+</div>
+</section>
+
+<section data-block="1c">
+<header><span class="bid">1c</span>Live tiles — full-width rows for open sessions with a page preview, small tiles below
+<span class="note">Never built as an app screen (superseded by Plan 18 and Plan 15's 2c). Mocked from the canvas file: open sites as full-width cards with a page preview (a placeholder block) marked LIVE, saved sites as small tiles.</span></header>
+<div class="frames">
+<div class="phone room-fern">
+  <div class="sys"></div>
+  <div class="top" style="align-items:flex-end">
+    <div class="t col"><span class="t-label sentence" style="display:block">WORKSPACE</span><span class="row" style="gap:4px"><span class="t-screen">Personal</span><svg class="ic s20"><use href="#i-down"/></svg></span></div>
+    <span class="tap ink" role="button"><svg class="ic"><use href="#i-search"/></svg></span>
+  </div>
+  <div class="scroll">
+    <div class="room fill" style="margin:4px 12px 12px;gap:10px">
+      <div class="box" style="overflow:hidden">
+        <div style="height:110px;background:#26231F;position:relative;padding:14px"><span class="badge tag" style="position:absolute;top:10px;left:10px">LIVE</span><i style="display:block;height:10px;width:60%;margin-top:34px;border-radius:5px;background:rgba(255,255,255,.14)"></i><i style="display:block;height:10px;width:80%;margin-top:10px;border-radius:5px;background:rgba(255,255,255,.08)"></i></div>
+        <div class="row" style="padding:12px 4px 12px 12px"><span class="mg">Nt</span><div class="col f1"><span class="t-row ell">Notes</span><span class="t-meta">notes.example.org · socks5</span></div><span class="tap"><svg class="ic s20"><use href="#i-close"/></svg></span></div>
+      </div>
+      <div class="box" style="overflow:hidden">
+        <div style="height:110px;background:#26231F;position:relative;padding:14px"><span class="badge tag" style="position:absolute;top:10px;left:10px">LIVE</span><i style="display:block;height:10px;width:50%;margin-top:34px;border-radius:5px;background:rgba(255,255,255,.14)"></i><i style="display:block;height:10px;width:74%;margin-top:10px;border-radius:5px;background:rgba(255,255,255,.08)"></i></div>
+        <div class="row" style="padding:12px 4px 12px 12px"><span class="mg">Wm</span><div class="col f1"><span class="t-row ell">Webmail</span><span class="t-meta">mail.example.net · direct</span></div><span class="tap"><svg class="ic s20"><use href="#i-close"/></svg></span></div>
+      </div>
+      <p class="label sentence" style="margin:8px 4px 0;color:var(--room-ink)">SAVED</p>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(calc(92px*var(--scale)),1fr));gap:8px">
+        <div class="box col" style="padding:12px;gap:6px;align-items:center;text-align:center"><span class="mg">Fr</span><span class="t-row-idle">Forum</span><span class="t-meta">2h</span></div>
+        <div class="box col" style="padding:12px;gap:6px;align-items:center;text-align:center"><span class="mg">Rd</span><span class="t-row-idle">Reader</span><span class="t-meta">1d</span></div>
+        <div class="box col" style="padding:12px;gap:6px;align-items:center;text-align:center"><span class="mg">Bk</span><span class="t-row-idle">Bank</span><span class="t-meta">3d</span></div>
+        <div class="box col" style="padding:12px;gap:6px;align-items:center;text-align:center"><span class="mg">Mk</span><span class="t-row-idle">Marketplace</span><span class="t-meta">5d</span></div>
+        <div class="col" style="padding:12px;border:2px dashed var(--ink3);border-radius:var(--r-l);align-items:center;justify-content:center;min-height:96px"><svg class="ic"><use href="#i-plus"/></svg></div>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+</section>
+
+<section data-block="3b">
+<header><span class="bid">3b</span>Decoy vault — same shell, ordinary content, no privacy language
+<span class="note">As built: exactly 1b's widgets with the decoy's sites. An empty decoy's Personal workspace gets marker 0, so it is a Fern room like the real vault's: colour comes from the workspace, never from the vault. All four sites idle.</span></header>
+<div class="frames">
+<div class="phone room-fern">
+  <div class="sys"></div>
+  <div class="pad chips" style="padding-bottom:8px">
+    <span class="chip sel room-fern">Personal</span>
+    <span class="chip add" role="button" aria-label="New workspace"><svg class="ic s20"><use href="#i-plus"/></svg></span>
+  </div>
+  <div class="scroll">
+    <div class="room fill" style="margin:0 12px 8px">
+      <div class="box site"><span class="mg">Nw</span><div class="col f1"><span class="t-row-idle ell">News</span><span class="t-meta">news.example.com · direct</span></div><span class="t-meta age">2d</span><svg class="door ic" style="color:var(--ink3)"><use href="#i-door-idle"/></svg></div>
+      <div class="box site"><span class="mg">Wt</span><div class="col f1"><span class="t-row-idle ell">Weather</span><span class="t-meta">weather.example.com · direct</span></div><span class="t-meta age">4d</span><svg class="door ic" style="color:var(--ink3)"><use href="#i-door-idle"/></svg></div>
+      <div class="box site"><span class="mg">Rc</span><div class="col f1"><span class="t-row-idle ell">Recipes</span><span class="t-meta">cook.example.org · direct</span></div><span class="t-meta age">1w</span><svg class="door ic" style="color:var(--ink3)"><use href="#i-door-idle"/></svg></div>
+      <div class="box site"><span class="mg">Tt</span><div class="col f1"><span class="t-row-idle ell">Timetable</span><span class="t-meta">transit.example.com · direct</span></div><span class="t-meta age">2w</span><svg class="door ic" style="color:var(--ink3)"><use href="#i-door-idle"/></svg></div>
+    </div>
+  </div>
+  <div class="dfoot">
+    <div class="field f1"><svg class="ic s20 ink2"><use href="#i-search"/></svg><span class="hint f1">Search or type an address</span></div>
+    <span class="tap" role="button" aria-label="Add site" style="width:52px;height:52px;border-radius:16px;border:2px solid var(--ink3);color:var(--ink)"><svg class="ic"><use href="#i-plus"/></svg></span>
+  </div>
+  <nav class="tabbar">
+    <span class="ti sel"><span class="ind"><svg class="ic"><use href="#i-sites"/></svg></span>Sites</span>
+    <span class="ti"><span class="ind"><svg class="ic"><use href="#i-today"/></svg></span>Today</span>
+    <span class="ti"><span class="ind"><svg class="ic"><use href="#i-settings"/></svg></span>Settings</span>
+  </nav>
+</div>
+</div>
+</section>
+
 <!-- END BLOCKS -->
 </main>
 </body>

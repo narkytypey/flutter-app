@@ -69,3 +69,22 @@ marker 1 steel vs ink|#8FA5C8|#121110|3
 marker 2 amber vs ink|#E0B266|#121110|3
 marker 3 mauve vs ink|#C89BB4|#121110|3
 marker 4 stone vs ink|#A8A095|#121110|3
+# --- added 2026-10-06 with screens.html (pairings the mockups introduce)
+CSS badge (code) on surface-raised (10d)|#D9CFB8|#403C37|4.5
+JS badge (amber) on surface-raised (10d)|#E0B266|#403C37|4.5
+text-1 file kind on surface-sheet (7c)|#EDEAE4|#302D29|4.5
+on-jade label on jade inside danger-wash (8c)|#121110|#7FC8A9|4.5
+jade button fill vs danger-wash (8c)|#7FC8A9|#2C201D|3.0
+danger outline vs danger-wash (8c banner)|#EE8D79|#2C201D|3.0
+background-open light (edge) vs surface-sheet (2c)|#958D82|#302D29|3.0
+inert switch outline text-3 vs surface-group (2d)|#A8A095|#22201D|3.0
+step bar done text-1 vs ink (4a)|#EDEAE4|#121110|3.0
+load line text-2 vs surface-group track (8a)|#CBC4B9|#22201D|3.0
+chosen tab underline text-1 vs ink (2a)|#EDEAE4|#121110|3.0
+add-chip dashed edge vs ink (10e)|#958D82|#121110|3.0
+marker steel vs surface-raised selection ring context (10b)|#8FA5C8|#121110|3.0
+today bar fill text-2 vs track surface-group (5c)|#CBC4B9|#22201D|3.0
+danger text on ink, 4c headline|#EE8D79|#121110|4.5
+text-2 sub on surface-raised (6c sheet rows)|#CBC4B9|#403C37|4.5
+text-2 value on surface-sheet (sheet header)|#CBC4B9|#302D29|4.5
+step bar todo outline edge vs ink (4a/4b/5a)|#958D82|#121110|3.0
