@@ -89,12 +89,12 @@ A later fire must reinstall all of it (~10 min); set
   - [ ] screens.html: extended blocks
   - [ ] Accessibility pass (1.3, 2.0, 320px)
 - Direction B
-  - [ ] BRIEF.md
-  - [ ] TOKENS.md + tokens.css
-  - [ ] logos (4)
-  - [ ] screens.html: 10 mandatory blocks
-  - [ ] screens.html: extended blocks
-  - [ ] Accessibility pass
+  - [x] BRIEF.md
+  - [x] TOKENS.md + tokens.css
+  - [x] logos (4)
+  - [x] screens.html: 10 mandatory blocks
+  - [x] screens.html: extended blocks
+  - [x] Accessibility pass
 - Direction C
   - [ ] BRIEF.md
   - [ ] TOKENS.md + tokens.css
@@ -136,6 +136,8 @@ A later fire must reinstall all of it (~10 min); set
 - [ ] One-page rationale
 
 ## Log
+
+- fire-7a41e2: direction B complete — 30 blocks, four a11y runs clean (B/A11Y.md).
 
 - 2026-10-06T04:05Z fire-7a41e2: started. Heartbeat was 6 h stale (fire-cd6e6b's parallel direction agents stopped after logos at 22:23Z; no fire between). Taking over: screens for A/B/C next. Mirror branch is now this harness's `second/gracious-cannon-vgx0f2`.
 
