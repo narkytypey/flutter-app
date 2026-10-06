@@ -60,8 +60,9 @@
   .phone .fill { flex: 1 1 auto; min-height: 0; overflow-y: auto; overflow-x: hidden; }
   .phone .gutter { padding-left: var(--s4); padding-right: var(--s4); }
   .mono { font-family: var(--mono); }
-  .sc { display: inline-block; text-transform: lowercase; }
-  .sc::first-letter { text-transform: uppercase; }
+  /* Stored case is kept (VERDICT decision 1): labels render exactly as the
+     canvas stores them. .sc is a marker only, it transforms nothing. */
+  .sc { display: inline-block; }
   .ell { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .t1 { color: var(--text-1); } .t2 { color: var(--text-2); } .t3 { color: var(--text-3); }
   .jade { color: var(--jade); } .danger { color: var(--danger); }
@@ -91,14 +92,13 @@
   .meta .mono, .sub .mono { font-size: 0.97em; }
   .label-btn { font: 500 var(--fs-label)/1.25 var(--sans); }
   .section {
-    display: block; font: 600 var(--fs-section)/1.43 var(--sans); color: var(--text-2);
+    display: block; font: 600 var(--fs-meta)/1.38 var(--sans); letter-spacing: 0.04em; color: var(--text-2);
     padding: var(--s6) var(--s1) var(--s2);
   }
   .section:first-child { padding-top: var(--s4); }
   .badge {
     display: inline-block; flex: 0 0 auto; white-space: nowrap;
     font: 600 var(--fs-caption)/1.34 var(--sans); letter-spacing: 0.02em; color: var(--text-2);
-    border: 1px solid var(--line); border-radius: var(--r-xs); padding: 2px 6px;
   }
   .footnote { font: 400 var(--fs-meta)/1.55 var(--sans); color: var(--text-3); padding: var(--s5) var(--s1) var(--s6); margin: 0; }
 
@@ -129,12 +129,14 @@
         font: 600 min(calc(15px * var(--scale)), 20px)/1 var(--sans); background: var(--surface-raised); color: var(--text-1); }
   .mg.idle { background: var(--surface-group); color: var(--text-2); box-shadow: inset 0 0 0 1px var(--line); }
   .mg.sm { width: 36px; height: 36px; font-size: min(calc(13px * var(--scale)), 16px); }
-  .mg .lt { position: absolute; right: -3px; bottom: -3px; }
-  .lt { width: 12px; height: 12px; border-radius: 50%; flex: 0 0 auto; display: inline-block; }
+  .mg .lt { position: absolute; right: -4px; top: -4px; }
+  .mg .lt.live { box-shadow: 0 0 0 2px var(--surface-group); }
+  .lt { width: 10px; height: 10px; border-radius: 50%; flex: 0 0 auto; display: inline-block; }
   .lt.live { background: var(--jade); box-shadow: 0 0 0 2px var(--ink); }
   .lt.open { background: var(--amber); box-shadow: 0 0 0 2px var(--ink); }
   .lt.idle { background: var(--ink); border: 2px solid var(--edge); }
   .lt.bg { background: var(--edge); box-shadow: 0 0 0 2px var(--ink); }
+  .lt.ring { background: transparent; border: 2px solid var(--edge); }
   .lt.fail { background: var(--danger); }
 
   /* switches, radios */
@@ -144,12 +146,10 @@
   .sw.on { background: var(--text-1); border-color: var(--text-1); }
   .sw.on::after { top: 2px; left: 22px; width: 24px; height: 24px; background: var(--ink); }
   .sw.on > svg { position: absolute; top: 6px; left: 26px; width: 16px; height: 16px; z-index: 1; stroke: var(--text-1); stroke-width: 2.25; fill: none; stroke-linecap: round; stroke-linejoin: round; }
-  .sw.inert { background: transparent; border-color: var(--text-3); border-style: dashed; }
-  .sw.inert::after { top: 2px; left: 22px; width: 24px; height: 24px; background: var(--text-3); }
-  .sw.inert > svg { stroke: var(--ink); }
-  .radio { flex: 0 0 auto; width: 22px; height: 22px; border-radius: 50%; border: 2px solid var(--edge); position: relative; }
+  .sw.inert { opacity: .4; }
+  .radio { flex: 0 0 auto; width: 20px; height: 20px; border-radius: 50%; border: 2px solid var(--edge); position: relative; }
   .radio.on { border-color: var(--text-1); }
-  .radio.on::after { content: ""; position: absolute; inset: 4px; border-radius: 50%; background: var(--text-1); }
+  .radio.on::after { content: ""; position: absolute; inset: 3px; border-radius: 50%; background: var(--text-1); }
 
   /* buttons */
   .btn { display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center;
@@ -161,6 +161,10 @@
   .btn.ghost { background: transparent; color: var(--text-2); min-height: var(--target); }
   .btn.outline-danger { background: transparent; color: var(--danger); box-shadow: inset 0 0 0 1.5px var(--danger); }
   .btn.outline-danger small { display: block; font: 400 var(--fs-sub)/1.43 var(--sans); color: var(--text-2); margin-top: 2px; }
+  .btn.danger-text { background: transparent; color: var(--danger); font-weight: 600; min-height: var(--target); }
+  .btn.danger-text small { display: block; font: 400 var(--fs-sub)/1.43 var(--sans); color: var(--text-2); margin-top: 2px; }
+  .btn + .btn.danger-text { margin-top: var(--s6); }
+  .btn.wash { background: var(--danger-wash); color: var(--text-2); }   /* 10c Delete before the name is typed */
   .btn.disabled { background: var(--surface-group); color: var(--text-3); box-shadow: inset 0 0 0 1px var(--line); }
 
   /* fields, chips */
@@ -170,12 +174,13 @@
   .field.focus { box-shadow: inset 0 0 0 2px var(--text-1); }
   .field .v { flex: 1 1 auto; overflow-wrap: anywhere; }
   .field .ph { flex: 1 1 auto; color: var(--text-3); }
-  .flabel { display: block; font: 600 var(--fs-section)/1.43 var(--sans); color: var(--text-2); margin: var(--s5) 0 var(--s2); }
+  .flabel { display: block; font: 600 var(--fs-meta)/1.38 var(--sans); letter-spacing: 0.04em; color: var(--text-2); margin: var(--s5) 0 var(--s2); }
   .chips { display: flex; flex-wrap: wrap; gap: 0 var(--s2); align-items: center; }
   .chip { min-height: var(--target); display: inline-flex; align-items: center; flex: 0 1 auto; }
   .chip > span { display: inline-flex; align-items: center; gap: 6px; min-height: 36px; padding: 6px 14px; border-radius: var(--r-full);
                  border: 1px solid var(--line); font: 500 var(--fs-sub)/1.3 var(--sans); color: var(--text-2); overflow-wrap: anywhere; }
-  .chip.on > span { background: var(--surface-raised); border-color: var(--surface-raised); color: var(--text-1); font-weight: 600; }
+  .chip.on > span { background: var(--surface-raised); border-color: var(--text-1); box-shadow: inset 0 0 0 0.5px var(--text-1); color: var(--text-1); font-weight: 600; padding-left: 10px; }
+  .chip.on > span > .ic { stroke: var(--text-1); stroke-width: 2.25; }
 
   /* sheets */
   .scrim { position: absolute; inset: 0; background: rgba(0,0,0,.55); z-index: 4; }
@@ -183,9 +188,8 @@
            overflow-y: auto; overflow-x: hidden; background: var(--surface-sheet); border-top: 1px solid var(--line);
            border-radius: var(--r-xl) var(--r-xl) 0 0; box-shadow: var(--shadow-sheet); padding: 0 var(--s4) var(--s6); }
   .handle { width: 36px; height: 4px; border-radius: 2px; background: var(--edge); margin: var(--s3) auto var(--s4); }
-  .sheet .group { background: var(--surface-raised); border-color: var(--line); }
-  .sheet .group .row + .row { border-top-color: var(--line); }
-  .sheet .sub, .sheet .val, .sheet .meta { color: var(--text-2); }
+  .sheet .group { background: var(--surface-group); border-color: var(--line); }
+  .sheet .sub, .sheet .val { color: var(--text-2); }
   .sheet .mg { background: var(--surface-raised); }
 
   /* page placeholder (no real site, no text) */
@@ -197,31 +201,34 @@
 
   /* container chrome (2b) */
   .topbar { flex: 0 0 auto; display: flex; align-items: center; gap: var(--s2); min-height: 64px; padding: var(--s2); border-bottom: 1px solid var(--line); background: var(--ink); }
-  .pill { flex: 1 1 auto; display: flex; align-items: center; gap: var(--s1); min-height: 48px; padding: 4px 0 4px 6px;
+  .pill { flex: 1 1 auto; display: flex; align-items: center; gap: var(--s2); min-height: 48px; padding: 0 0 0 12px;
           border-radius: 24px; background: var(--surface-group); border: 1px solid var(--line); }
-  .pill.danger { box-shadow: inset 0 0 0 1.5px var(--danger); border-color: transparent; }
-  .pill .readout { display: flex; flex-wrap: wrap; align-items: center; gap: 2px 8px; flex: 1 1 auto; padding-left: 4px; }
-  .pill .host { font: 500 var(--fs-readout)/1.34 var(--mono); color: var(--text-1); flex: 1 1 7em; }
+  .pill.danger { border: 1.5px solid rgba(238, 141, 121, 0.5); }   /* C.danger @ 50 %, as built (TunnelHeader) */
+  .pill .readout { display: flex; flex-wrap: wrap; align-items: center; gap: 2px 8px; flex: 1 1 auto; padding: 6px 0; }
+  /* T.address: Plex Sans 16/500, never ellipsized. It breaks only after a dot
+     (<wbr>, the page's stand-in for breakAfterDots); the pill grows. */
+  .pill .host { font: 500 var(--fs-row)/1.25 var(--sans); color: var(--text-1); overflow-wrap: break-word; }
   .pill .tap { width: var(--target); }
-  .case { position: relative; flex: 0 0 auto; width: 34px; height: 34px; border-radius: 10px; display: inline-flex; align-items: center; justify-content: center;
-          border: 1.5px solid var(--text-2); font: 600 min(calc(13px * var(--scale)), 16px)/1 var(--sans); color: var(--text-1); }
-  .case.wipe { border-style: dashed; }
-  .case.throw { border-color: transparent; color: var(--text-2); }
-  .case .lt { position: absolute; right: -4px; bottom: -4px; width: 12px; height: 12px; }
-  .case .lt.live, .case .lt.open, .case .lt.fail { box-shadow: 0 0 0 2px var(--surface-group); }
+  .pill .lt { width: 8px; height: 8px; box-shadow: none; }
+  .pill .casei { width: 20px; height: 20px; color: var(--text-2); }
+  .ic.s22 { width: 22px; height: 22px; }
+  .legend { display: flex; flex-wrap: wrap; gap: 4px 14px; margin-top: 6px; }
+  .legend > span { display: inline-flex; align-items: center; gap: 6px; color: #CBC4B9; }
+  .legend .ic { width: 18px; height: 18px; color: #CBC4B9; }
   .panic { flex: 0 0 auto; width: var(--target); height: var(--target); border-radius: var(--r-md); display: inline-flex; align-items: center; justify-content: center;
            color: var(--danger); box-shadow: inset 0 0 0 1.5px var(--danger); }
   .botbar { flex: 0 0 auto; display: flex; align-items: center; justify-content: space-between; gap: var(--s1); min-height: 64px; padding: var(--s2) var(--s3); border-top: 1px solid var(--line); background: var(--ink); }
   .openpill { display: inline-flex; align-items: center; gap: 6px; min-height: var(--target); padding: 0 var(--s4); border-radius: var(--r-full);
-              background: var(--surface-raised); color: var(--text-1); font: 600 var(--fs-sub)/1.2 var(--sans); }
+              background: var(--surface-raised); color: var(--text-1); font: 600 var(--fs-meta)/1.2 var(--sans); }   /* T.tabSelected; chevron text-1, not jade */
 
   /* dashboard shell */
   .tabs { flex: 0 0 auto; display: grid; grid-template-columns: repeat(3, 1fr); border-top: 1px solid var(--line); background: var(--ink); padding: 6px 0 10px; }
   .tabs > div { display: flex; flex-direction: column; align-items: center; gap: 4px; min-height: 64px; justify-content: center; color: var(--text-2);
-                font: 500 var(--fs-caption)/1.34 var(--sans); }
-  .tabs .ind { width: 56px; height: 32px; border-radius: var(--r-full); display: inline-flex; align-items: center; justify-content: center; }
+                font: 500 var(--fs-meta)/1.23 var(--sans); }
+  .tabs .ind { width: 56px; height: 28px; border-radius: var(--r-full); display: inline-flex; align-items: center; justify-content: center; }
   .tabs .on { color: var(--text-1); font-weight: 600; }
-  .tabs .on .ind { background: var(--surface-raised); }
+  .tabs .on .ind { background: var(--surface-raised); box-shadow: inset 0 0 0 1.5px var(--text-2); }
+  .tabs .ic { width: 20px; height: 20px; }
   .dash-foot { flex: 0 0 auto; display: flex; gap: var(--s2); padding: var(--s3) var(--s4); border-top: 1px solid var(--line); align-items: stretch; }
   .search { flex: 1 1 auto; display: flex; align-items: center; gap: var(--s2); min-height: 52px; padding: var(--s2) var(--s4) var(--s2) var(--s3);
             border-radius: var(--r-md); background: var(--surface-group); box-shadow: inset 0 0 0 1.5px var(--edge); color: var(--text-3); font: 400 var(--fs-body)/1.3 var(--sans); }
@@ -239,7 +246,10 @@
   .pin { flex: 1 1 auto; display: flex; flex-direction: column; padding: 0 var(--s5); }
   .pin .msg { flex: 1 1 auto; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; gap: var(--s5); padding: var(--s4) 0; }
   .pin .msg.left { align-items: flex-start; text-align: left; }
-  .vmark { width: 56px; height: 56px; color: var(--text-2); }
+  .vmark { width: 56px; height: 56px; color: var(--text-1); }
+  .vring { width: 44px; height: 44px; border-radius: 14px; display: inline-flex; align-items: center; justify-content: center; color: var(--text-1); box-shadow: inset 0 0 0 1px var(--line); }
+  .vring .ic { width: 20px; height: 20px; }
+  .vring.err { color: var(--danger); box-shadow: inset 0 0 0 1.5px var(--danger); }
   .dots { display: flex; gap: 16px; }
   .dots i { width: 14px; height: 14px; border-radius: 50%; border: 2px solid var(--edge); display: block; }
   .dots i.f { background: var(--text-1); border-color: var(--text-1); }
@@ -252,17 +262,20 @@
   .stepbar { display: flex; gap: 6px; padding-top: var(--s4); }
   .stepbar i { flex: 1; height: 6px; border-radius: 3px; background: transparent; box-shadow: inset 0 0 0 1.5px var(--edge); }
   .stepbar i.d { background: var(--text-1); box-shadow: none; }
-  .tabstrip { flex: 0 0 auto; display: grid; grid-template-columns: repeat(4, 1fr); border-bottom: 1px solid var(--line); padding: 0 var(--s2); }
-  .tabstrip > span { display: flex; align-items: center; justify-content: center; text-align: center; min-height: var(--target); padding: var(--s2) 2px;
-                     font: 500 var(--fs-sub)/1.25 var(--sans); color: var(--text-2); border-bottom: 2px solid transparent; overflow-wrap: anywhere; }
-  .tabstrip > span.on { color: var(--text-1); font-weight: 600; border-bottom-color: var(--text-1); }
-  .sw-head { display: flex; justify-content: space-between; align-items: baseline; gap: var(--s3); padding: 0 var(--s1) var(--s3); font: 600 var(--fs-section)/1.43 var(--sans); }
+  .tabstrip { flex: 0 0 auto; display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; border-bottom: 1px solid var(--line); padding: 4px var(--s4) var(--s2); }
+  .tabstrip > span { display: flex; align-items: center; justify-content: center; gap: 4px; text-align: center; min-height: var(--target); padding: 0 6px;
+                     border-radius: var(--r-md); font: 500 var(--fs-sub)/1.25 var(--sans); color: var(--text-2); white-space: nowrap; }
+  .tabstrip > span.on, .seg > span.on { color: var(--text-1); font-weight: 600; box-shadow: inset 0 0 0 2px var(--text-1); }
+  .tabstrip .ic, .seg .ic { width: 16px; height: 16px; stroke-width: 2.25; }
+  .ck { display: inline-block; width: 16px; flex: 0 0 auto; }   /* the check's room, kept so choosing does not move the label */
+  .sw-head { display: flex; justify-content: space-between; align-items: baseline; gap: var(--s3); padding: 0 var(--s1) var(--s3); font: 600 var(--fs-meta)/1.38 var(--sans); }
+  .sw-head > :last-child { letter-spacing: 0.04em; }
   .cont { display: flex; align-items: center; gap: var(--s3); min-height: 72px; padding: var(--s2) 0 var(--s2) var(--s1); }
   .cont + .cont { border-top: 1px solid var(--line); }
   .cont .text { flex: 1 1 auto; display: flex; flex-direction: column; gap: 2px; }
-  .sw-actions { display: flex; gap: var(--s2); padding-top: var(--s4); align-items: stretch; }
-  .sw-actions .btn { flex: 1 1 auto; width: auto; }
-  .panic.big { width: 52px; height: auto; min-height: 52px; border-radius: var(--r-full); }
+  .sw-actions { display: flex; gap: var(--s6); padding-top: var(--s4); align-items: center; }   /* 24 dp between the wipe and panic */
+  .sw-actions .btn { flex: 1 1 auto; width: auto; min-height: var(--target); border-radius: var(--r-md); }
+  .panic.big { background: var(--danger-wash); }
   .sheet .lt.live, .sheet .lt.bg { box-shadow: 0 0 0 2px var(--surface-sheet); }
   .sheet .lt.idle { background: var(--surface-sheet); }
   .pin .msg.left { gap: var(--s3); }
@@ -272,7 +285,7 @@
   .cat { padding: var(--s2) var(--s1) var(--s3); }
   .cat .lbl { display: flex; justify-content: space-between; gap: var(--s3); font: 400 var(--fs-sub)/1.43 var(--sans); color: var(--text-1); }
   .cat .lbl .mono { color: var(--text-2); }
-  .bar { height: 8px; border-radius: 4px; background: var(--surface-group); margin-top: 6px; overflow: hidden; }
+  .bar { height: 8px; border-radius: 4px; background: var(--surface-group); margin-top: 6px; overflow: hidden; }   /* text-2 on a group track: never jade or amber */
   .bar > i { display: block; height: 100%; border-radius: 4px; background: var(--text-2); }
   .cats { padding: var(--s3) 0 var(--s2); border-bottom: 1px solid var(--line); }
   .site .count { flex: 0 0 auto; font: 400 var(--fs-sub)/1.43 var(--mono); color: var(--text-2); }
@@ -281,7 +294,7 @@
   .sheet .row.cat-row { min-height: 40px; padding-top: 6px; padding-bottom: 6px; padding-left: var(--s8); border-top: 0; }
   .sheet .row.cat-row .sub { flex: 1 1 auto; }
   .refuse { flex: 1 1 auto; display: flex; flex-direction: column; justify-content: center; padding: var(--s6) var(--s5) var(--s5); gap: var(--s4); }
-  .rmark { width: 56px; height: 56px; border-radius: 16px; display: inline-flex; align-items: center; justify-content: center; color: var(--danger); box-shadow: inset 0 0 0 1.5px var(--danger); }
+  .rmark { width: 48px; height: 48px; border-radius: 14px; display: inline-flex; align-items: center; justify-content: center; color: var(--danger); box-shadow: inset 0 0 0 1px rgba(238, 141, 121, 0.3); }
   .kv { display: flex; justify-content: space-between; gap: var(--s3); flex-wrap: wrap; }
   .kv > :first-child { color: var(--text-3); font: 400 var(--fs-sub)/1.43 var(--sans); }
   .kv > :last-child { color: var(--text-1); font: 400 var(--fs-sub)/1.43 var(--sans); text-align: right; }
@@ -320,20 +333,21 @@
   .kbadge.js { color: var(--amber); }
   .seg { display: grid; grid-template-columns: 1fr 1fr; gap: var(--s2); padding-top: var(--s4); }
   .seg > span { min-height: var(--target); display: flex; align-items: center; justify-content: center; border-radius: var(--r-md); border: 1px solid var(--line); font: 500 var(--fs-sub)/1.3 var(--sans); color: var(--text-2); text-align: center; padding: 4px; overflow-wrap: anywhere; }
-  .seg > span.on { background: var(--surface-raised); border-color: var(--surface-raised); color: var(--text-1); font-weight: 600; }
+  .seg > span { gap: 4px; }
+  .seg > span.on { background: var(--surface-raised); border-color: transparent; }
   .code { margin-top: var(--s5); background: var(--surface-group); border: 1px solid var(--line); border-radius: var(--r-lg); padding: var(--s3) var(--s3) var(--s3) 0; }
   .code .ln { display: grid; grid-template-columns: 36px 1fr; gap: var(--s2); font: 400 var(--fs-code)/1.7 var(--mono); }
   .code .ln > span { text-align: right; color: var(--text-3); }
   .code .ln > code { font: inherit; color: var(--code); white-space: pre-wrap; overflow-wrap: anywhere; }
-  .chip.x > span { padding-right: 4px; background: var(--surface-raised); border-color: var(--surface-raised); color: var(--text-1); }
+  .chip.x > span { padding-right: 4px; color: var(--text-1); }   /* line outline, no fill, as built */
   .chip.x .xbtn { width: 48px; height: 48px; margin: -12px -6px -12px -12px; display: inline-flex; align-items: center; justify-content: center; color: var(--text-2); }
-  .chip.add > span { border: 1.5px dashed var(--edge); color: var(--text-1); }
+  .chip.add > span { color: var(--text-1); }
   .panicpage { flex: 1 1 auto; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; gap: var(--s4); padding: var(--s6) var(--s6); }
   .pmark { width: 64px; height: 64px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; color: var(--danger); box-shadow: inset 0 0 0 1.5px var(--danger); }
   .status { width: 100%; text-align: left; }
   .status .row { min-height: 52px; }
-  .status .row .sc { color: var(--text-2); font: 400 var(--fs-sub)/1.43 var(--sans); }
-  .status .row .st { margin-left: auto; color: var(--text-1); font: 600 var(--fs-sub)/1.43 var(--sans); }
+  .status .row .sc { color: var(--text-2); font: 600 var(--fs-meta)/1.38 var(--sans); letter-spacing: 0.04em; }
+  .status .row .st { margin-left: auto; color: var(--text-1); font: 600 var(--fs-meta)/1.38 var(--sans); letter-spacing: 0.04em; }
   .defaults .row { align-items: flex-start; padding-left: 0; padding-right: 0; }
   .defaults .row + .row { border-top: 1px solid var(--line); }
   .defaults .row > .ic { margin-top: 2px; color: var(--text-1); }
@@ -346,18 +360,18 @@
   .steps > div { display: flex; align-items: flex-start; gap: var(--s3); font: 400 var(--fs-body)/1.4 var(--sans); color: var(--text-2); }
   .steps .ring { flex: 0 0 auto; width: 14px; height: 14px; border-radius: 50%; border: 2px solid var(--edge); margin-top: 4px; }
   .opening { flex: 1 1 auto; display: flex; flex-direction: column; justify-content: center; gap: var(--s5); padding: var(--s6) var(--s6); }
-  .banner { margin: var(--s2) var(--s3) 0; padding: var(--s4); background: var(--danger-wash); border-radius: var(--r-lg); box-shadow: inset 0 0 0 1.5px var(--danger); }
+  .banner { margin: var(--s2) var(--s3) 0; padding: var(--s4); background: var(--danger-wash); border-radius: var(--r-lg); box-shadow: inset 0 0 0 1px rgba(238, 141, 121, 0.28); }
   .banner .head { display: flex; gap: var(--s3); align-items: flex-start; }
-  .banner .head .ic { color: var(--danger); margin-top: 2px; }
+  .banner .head .ic { color: var(--danger); margin-top: 3px; width: 16px; height: 16px; }
+  .banner .title { font: 600 var(--fs-label)/1.25 var(--sans); color: var(--text-1); }
   .banner .text { display: flex; flex-direction: column; gap: 4px; }
   .banner .btns { display: flex; flex-wrap: wrap; gap: var(--s2); padding-top: var(--s4); }
   .banner .btns .btn { flex: 1 1 8em; width: auto; margin: 0; min-height: var(--target); }
   .frozen { filter: grayscale(1); opacity: .5; }
   .rowmenu { position: absolute; left: 0; right: 0; bottom: 0; z-index: 5; max-height: calc(100% - 24px); overflow-y: auto; padding: 0 var(--s4) var(--s6); }
-  .rowmenu .card { display: flex; align-items: center; gap: var(--s3); padding: var(--s3) var(--s4); background: var(--surface-sheet); border: 1px solid var(--line); border-radius: var(--r-lg); margin-bottom: var(--s3); }
+  .rowmenu .card { display: flex; align-items: center; gap: var(--s3); padding: var(--s3) var(--s4); background: var(--surface-group); border: 1px solid var(--line); border-radius: var(--r-lg); margin-bottom: var(--s3); }
   .rowmenu .card .text { flex: 1 1 auto; display: flex; flex-direction: column; gap: 2px; }
-  .rowmenu .group { background: var(--surface-raised); }
-  .rowmenu .group .row + .row { border-top-color: var(--line); }
+  .rowmenu .group { background: var(--surface-group); }
   .rowmenu .btn { margin-top: var(--s3); }
   .vmark.err { color: var(--danger); }
   .tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 150px), 1fr)); gap: var(--s3); }
@@ -384,6 +398,29 @@
   .row > .text { flex: 1 1 8em; }
   .row > .val { margin-left: auto; overflow-wrap: anywhere; }
   .kv > :last-child { overflow-wrap: anywhere; }
+  /* 9a — Android's recents (system UI around the app's card) */
+  .phone.recents { background: #0A0B0C; }   /* the system's recents backdrop, as the canvas draws it: not an app token */
+  .rec { flex: 1 1 auto; display: flex; flex-direction: column; justify-content: center; gap: var(--s6); padding: 0 0 40px; overflow: hidden; }
+  .rec-row { display: flex; gap: 14px; padding: 0 30px; align-items: center; }
+  .rec-card { width: 66%; flex: none; border-radius: 20px; overflow: hidden; background: var(--surface-group); border: 1px solid var(--line); }
+  .rec-card.other { width: 38%; opacity: .55; border-color: var(--line-soft); }
+  .rec-head { display: flex; align-items: center; gap: 10px; padding: 10px 14px; background: var(--surface-group); font: 500 var(--fs-meta)/1.38 var(--sans); color: var(--text-2); }
+  .rec-head .appicon { width: 24px; height: 24px; border-radius: 50%; flex: 0 0 auto; display: block; }
+  .rec-head .appicon.blank { background: var(--surface-raised); }
+  .rec-body { height: min(380px, calc(var(--ph) - 260px)); background: var(--ink); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: var(--s3); padding: var(--s3); text-align: center; }
+  .rec-card.other .rec-body { background: #1A1816; }
+  .rec-cap { margin: 0; padding: 0 var(--s6); text-align: center; font: 400 var(--fs-meta)/1.38 var(--sans); color: var(--text-3); }
+  /* 10c — the delete sheet */
+  .sheet .stat .row { min-height: 48px; }
+  .sheet .stat .row .sub { flex: 1 1 auto; }
+  .sheet .stat .row .val.t1 { color: var(--text-1); }
+  .field.onsheet { background: var(--surface-raised); }
+  .field.onsheet .ph { color: var(--text-2); }
+  .pair { display: flex; gap: var(--s2); padding-top: var(--s4); }
+  .pair .btn { flex: 1 1 0; width: auto; margin: 0; }
+  .skel { flex: 1 1 auto; opacity: .28; padding: 16px; display: flex; flex-direction: column; gap: 20px; }
+  .skel i { display: block; border-radius: 8px; background: var(--surface-group); height: 34px; }
+  .skel i.h { height: 14px; width: 40%; border-radius: 4px; background: var(--surface-sheet); }
 </style>
 </head>
 <body>
@@ -416,18 +453,26 @@
     <symbol id="i-reader" viewBox="0 0 24 24"><rect x="5" y="3.5" width="14" height="17" rx="2.5"/><path d="M8.5 8h7M8.5 11.5h7M8.5 15h4.5"/></symbol>
     <symbol id="i-link" viewBox="0 0 24 24"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/></symbol>
     <symbol id="i-globe" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="M4 12h16M12 4c2.4 2.3 3.5 5 3.5 8s-1.1 5.7-3.5 8c-2.4-2.3-3.5-5-3.5-8s1.1-5.7 3.5-8z"/></symbol>
-    <symbol id="i-shield" viewBox="0 0 24 24"><path d="M12 3.5l7 2.6v5.4c0 4.3-2.9 7.6-7 9-4.1-1.4-7-4.7-7-9V6.1z"/></symbol>
-    <symbol id="i-shield-half" viewBox="0 0 24 24"><path d="M12 3.5l7 2.6v5.4c0 4.3-2.9 7.6-7 9-4.1-1.4-7-4.7-7-9V6.1z"/><path d="M12 3.5v17" /><path d="M12 3.5l-7 2.6v5.4c0 4.3 2.9 7.6 7 9z" fill="currentColor" stroke="none"/></symbol>
-    <symbol id="i-panic" viewBox="0 0 24 24"><path d="M12 4.5v7.5"/><path d="M7.6 7.4a7 7 0 1 0 8.8 0"/></symbol>
-    <symbol id="i-vault" viewBox="0 0 24 24"><rect x="3.5" y="3.5" width="17" height="17" rx="5"/><path d="M3.5 9h17"/><circle cx="12" cy="14.5" r="2.4" fill="currentColor" stroke="none"/></symbol>
+    <symbol id="i-shield" viewBox="0 0 24 24"><path d="M12 3L19 6V12C19 16.5 16 19.5 12 21C8 19.5 5 16.5 5 12V6Z"/></symbol>
+    <symbol id="i-shield-half" viewBox="0 0 24 24"><path d="M12 3V21C8 19.5 5 16.5 5 12V6Z" fill="currentColor" stroke="none"/><path d="M12 3L19 6V12C19 16.5 16 19.5 12 21C8 19.5 5 16.5 5 12V6Z"/></symbol>
+    <symbol id="i-panic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3.2" fill="currentColor" stroke="none"/></symbol>
+    <symbol id="i-vault" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="6"/><path d="M3 9h18"/><circle cx="12" cy="15" r="3" fill="currentColor" stroke="none"/></symbol>
     <symbol id="i-fingerprint" viewBox="0 0 24 24"><path d="M6.2 17.5A10 10 0 0 1 5 12.5a7 7 0 0 1 12.6-4.2"/><path d="M19 11.5c.1.6.1 1.1.1 1.7 0 2-.4 3.9-1.1 5.6"/><path d="M8.9 19.6A12 12 0 0 1 8 14.5V12.5a4 4 0 0 1 8 0v1.5c0 1.6-.2 3.2-.7 4.7"/><path d="M12 12.5v2c0 2.5.5 4.8 1.4 6.5"/></symbol>
     <symbol id="i-backspace" viewBox="0 0 24 24"><path d="M9 5.5h10.5a1.5 1.5 0 0 1 1.5 1.5v10a1.5 1.5 0 0 1-1.5 1.5H9L3.5 12z"/><path d="M11.5 9.5l5 5M16.5 9.5l-5 5"/></symbol>
     <symbol id="i-refused" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="M6.4 6.4l11.2 11.2"/></symbol>
     <symbol id="i-contrast" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="M12 4a8 8 0 0 1 0 16z" fill="currentColor" stroke="none"/></symbol>
-    <symbol id="i-sites" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="4.5"/><path d="M4 9.5h16"/><circle cx="12" cy="14.5" r="1.8" fill="currentColor" stroke="none"/></symbol>
-    <symbol id="i-today" viewBox="0 0 24 24"><path d="M5 19.5V13M10 19.5V8M15 19.5v-4.5M20 19.5V5"/></symbol>
-    <symbol id="i-settings" viewBox="0 0 24 24"><path d="M4 7h9M17 7h3M4 17h3M11 17h9"/><circle cx="15" cy="7" r="2"/><circle cx="9" cy="17" r="2"/></symbol>
+    <symbol id="i-sites" viewBox="0 0 24 24"><rect x="4" y="4" width="6" height="6" rx="1.5"/><rect x="14" y="4" width="6" height="6" rx="1.5"/><rect x="4" y="14" width="6" height="6" rx="1.5"/><rect x="14" y="14" width="6" height="6" rx="1.5"/></symbol>
+    <symbol id="i-today" viewBox="0 0 24 24"><rect x="4" y="6" width="16" height="14" rx="2"/><path d="M4 10.5h16M8.5 3.5v4M15.5 3.5v4"/></symbol>
+    <symbol id="i-settings" viewBox="0 0 24 24"><path d="M4 7h9M17 7h3M4 12h3M11 12h9M4 17h7M15 17h5"/><circle cx="15" cy="7" r="2"/><circle cx="9" cy="12" r="2"/><circle cx="13" cy="17" r="2"/></symbol>
     <symbol id="i-direct" viewBox="0 0 24 24"><path d="M4 12h15M14 7l5 5-5 5"/></symbol>
+    <!-- Restyle v2 glyphs, drawn as lib/ui/core/icons.dart draws them. -->
+    <symbol id="i-shield-full" viewBox="0 0 24 24"><path d="M12 3L19 6V12C19 16.5 16 19.5 12 21C8 19.5 5 16.5 5 12V6Z" fill="currentColor"/></symbol>
+    <symbol id="i-case-solid" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="5"/><path d="M4 9.5h16"/></symbol>
+    <symbol id="i-case-broken" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="5" stroke-dasharray="3 2" stroke-linecap="butt"/><path d="M4 9.5h16"/></symbol>
+    <symbol id="i-case-double" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="5"/><path d="M4 9.5h16"/><rect x="1.5" y="1.5" width="21" height="21" rx="7" stroke-width="1"/></symbol>
+    <symbol id="i-sites-filled" viewBox="0 0 24 24"><g fill="currentColor"><rect x="4" y="4" width="6" height="6" rx="1.5"/><rect x="14" y="4" width="6" height="6" rx="1.5"/><rect x="4" y="14" width="6" height="6" rx="1.5"/><rect x="14" y="14" width="6" height="6" rx="1.5"/></g></symbol>
+    <symbol id="i-today-filled" viewBox="0 0 24 24"><rect x="4" y="6" width="16" height="14" rx="2" fill="currentColor"/><path d="M8.5 3.5v4M15.5 3.5v4"/></symbol>
+    <symbol id="i-settings-filled" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/><g fill="currentColor" stroke="none"><circle cx="15" cy="7" r="2.6"/><circle cx="9" cy="12" r="2.6"/><circle cx="13" cy="17" r="2.6"/></g></symbol>
   </defs>
 </svg>
 
@@ -435,11 +480,11 @@
 
 <!-- ═════════════════════════ 1b ═════════════════════════ -->
 <section class="block" data-block="1b">
-  <p class="tag"><b>1b</b>Session list — grouped by what is running, technical meta in mono, one-handed reach <i>(Plan 18 shell, as built)</i></p>
+  <p class="tag"><b>1b</b>Session list — grouped by what is running, technical meta in mono, one-handed reach <i>(Plan 18 shell, as built; idle rows have no ring)</i></p>
   <div class="phone">
     <div class="sys"></div>
     <div class="chips gutter" style="padding-top:4px;padding-bottom:4px">
-      <span class="chip on"><span>Personal</span></span>
+      <span class="chip on"><span><svg class="ic s16"><use href="#i-check"/></svg>Personal</span></span>
       <span class="chip"><span>Work</span></span>
       <span class="chip"><span>Ephemeral</span></span>
       <span class="tap" aria-label="New workspace"><svg class="ic s20"><use href="#i-plus"/></svg></span>
@@ -452,16 +497,16 @@
         <div class="site"><span class="mg">Wm<span class="lt live"></span></span>
           <div class="text"><span class="row-title ell">Webmail</span><span class="meta wrap"><span class="mono">mail.example.net</span> · direct</span></div>
           <span class="age">14m</span></div>
-        <div class="site idle"><span class="mg idle">Fr<span class="lt idle"></span></span>
+        <div class="site idle"><span class="mg idle">Fr</span>
           <div class="text"><span class="row-title ell">Forum</span><span class="meta wrap"><span class="mono">forum.example.com</span> · ephemeral</span></div>
           <span class="age">2h</span></div>
-        <div class="site idle"><span class="mg idle">Rd<span class="lt idle"></span></span>
+        <div class="site idle"><span class="mg idle">Rd</span>
           <div class="text"><span class="row-title ell">Reader</span><span class="meta wrap"><span class="mono">read.example.io</span> · direct</span></div>
           <span class="age">1d</span></div>
-        <div class="site idle"><span class="mg idle">Bk<span class="lt idle"></span></span>
+        <div class="site idle"><span class="mg idle">Bk</span>
           <div class="text"><span class="row-title ell">Bank</span><span class="meta wrap"><span class="mono">bank.example.com</span> · pin required</span></div>
           <span class="age">3d</span></div>
-        <div class="site idle"><span class="mg idle">Mk<span class="lt idle"></span></span>
+        <div class="site idle"><span class="mg idle">Mk</span>
           <div class="text"><span class="row-title ell">Marketplace</span><span class="meta wrap"><span class="mono">shop.example.com</span> · direct</span></div>
           <span class="age">5d</span></div>
       </div>
@@ -471,7 +516,7 @@
       <span class="addbtn" aria-label="Add site"><svg class="ic"><use href="#i-plus"/></svg></span>
     </div>
     <nav class="tabs">
-      <div class="on" aria-selected="true"><span class="ind"><svg class="ic"><use href="#i-sites"/></svg></span>Sites</div>
+      <div class="on" aria-selected="true"><span class="ind"><svg class="ic"><use href="#i-sites-filled"/></svg></span>Sites</div>
       <div><span class="ind"><svg class="ic"><use href="#i-today"/></svg></span>Today</div>
       <div><span class="ind"><svg class="ic"><use href="#i-settings"/></svg></span>Settings</div>
     </nav>
@@ -480,15 +525,16 @@
 
 <!-- ═════════════════════════ 2b ═════════════════════════ -->
 <section class="block" data-block="2b">
-  <p class="tag"><b>2b</b>Isolated container — minimal top bar, panic button always reachable <i>(Plan 12 layout C; dashed case = wipes on exit)</i></p>
+  <p class="tag"><b>2b</b>Isolated container — minimal top bar, panic button always reachable <i>(Plan 12 layout C, restyle v2: the case by storage, the shield by security level, the host never cut)</i></p>
+  <p class="tag legend" aria-label="Pill legend"><span><svg class="ic"><use href="#i-case-solid"/></svg>Keep for this site</span><span><svg class="ic"><use href="#i-case-broken"/></svg>Wipe on exit</span><span><svg class="ic"><use href="#i-case-double"/></svg>Tor</span><span><svg class="ic"><use href="#i-shield"/></svg>Standard</span><span><svg class="ic"><use href="#i-shield-half"/></svg>Safer</span><span><svg class="ic"><use href="#i-shield-full"/></svg>Safest</span></p>
   <div class="phone">
     <div class="sys"></div>
     <div class="topbar">
       <div class="pill">
-        <span class="case wipe">Fr<span class="lt live"></span></span>
-        <span class="readout"><span class="host wrap">forum.example.com</span><span class="badge">SOCKS5</span></span>
+        <span class="lt live"></span><svg class="ic casei" role="img" aria-label="Wipe on exit"><use href="#i-case-broken"/></svg>
+        <span class="readout"><span class="host">forum.<wbr>example.<wbr>com</span><span class="badge">SOCKS5</span></span>
         <span class="tap" aria-label="Reload"><svg class="ic s20"><use href="#i-reload"/></svg></span>
-        <span class="tap" aria-label="Site details" style="margin-right:2px"><svg class="ic"><use href="#i-shield"/></svg></span>
+        <span class="tap" aria-label="Site details"><svg class="ic s22"><use href="#i-shield"/></svg></span>
       </div>
       <span class="panic" aria-label="Panic"><svg class="ic"><use href="#i-panic"/></svg></span>
     </div>
@@ -513,7 +559,7 @@
       <span class="textbtn jade">Save</span>
     </div>
     <div class="tabstrip">
-      <span class="on">Basics</span><span>Network</span><span>Privacy</span><span>Appearance</span>
+      <span class="on"><svg class="ic"><use href="#i-check"/></svg>Basics</span><span><i class="ck"></i>Network</span><span><i class="ck"></i>Privacy</span><span><i class="ck"></i>Appearance</span>
     </div>
     <div class="fill gutter" style="padding-bottom:24px">
       <span class="flabel sc">ADDRESS</span>
@@ -522,7 +568,7 @@
       <div class="field"><span class="v">Forum</span><span class="mg sm">Fr</span></div>
       <span class="flabel sc">WORKSPACE</span>
       <div class="chips">
-        <span class="chip on"><span>Personal</span></span>
+        <span class="chip on"><span><svg class="ic s16"><use href="#i-check"/></svg>Personal</span></span>
         <span class="chip"><span>Work</span></span>
         <span class="chip"><span>Ephemeral</span></span>
       </div>
@@ -537,11 +583,11 @@
 
 <!-- ═════════════════════════ 2c ═════════════════════════ -->
 <section class="block" data-block="2c">
-  <p class="tag"><b>2c</b>Quick switcher drawer — thumb height, wipe and panic in the same sheet <i>(Plan 15 tabs; only the viewed container is jade)</i></p>
+  <p class="tag"><b>2c</b>Quick switcher drawer — thumb height, wipe and panic in the same sheet <i>(Plan 15 tabs; only the viewed container is jade, others an edge ring; 24 dp before panic)</i></p>
   <div class="phone">
     <div class="sys"></div>
     <div class="topbar" aria-hidden="true">
-      <div class="pill"><span class="case wipe">Fr<span class="lt live"></span></span><span class="readout"><span class="host wrap">forum.example.com</span><span class="badge">SOCKS5</span></span><span class="tap"><svg class="ic s20"><use href="#i-reload"/></svg></span><span class="tap"><svg class="ic"><use href="#i-shield"/></svg></span></div>
+      <div class="pill"><span class="lt live"></span><svg class="ic casei" role="img" aria-label="Wipe on exit"><use href="#i-case-broken"/></svg><span class="readout"><span class="host">forum.<wbr>example.<wbr>com</span><span class="badge">SOCKS5</span></span><span class="tap"><svg class="ic s20"><use href="#i-reload"/></svg></span><span class="tap"><svg class="ic s22"><use href="#i-shield"/></svg></span></div>
       <span class="panic"><svg class="ic"><use href="#i-panic"/></svg></span>
     </div>
     <div class="page"><i class="h"></i><i class="m"></i><i></i><i class="img"></i><i></i><i class="s"></i></div>
@@ -550,23 +596,23 @@
       <div class="handle"></div>
       <div class="sw-head"><span class="sc t1">3 OPEN SESSIONS</span><span class="sc t2 ell">PERSONAL</span></div>
       <div class="cont">
-        <span class="mg">Fr<span class="lt live"></span></span>
-        <div class="text"><span class="row-title ell">Forum</span><span class="sub">viewing now · socks5</span></div>
+        <span class="lt live"></span><span class="mg">Fr</span>
+        <div class="text"><span class="row-title ell">Forum</span><span class="meta">viewing now · socks5</span></div>
         <span class="tap" aria-label="Close"><svg class="ic s20"><use href="#i-close"/></svg></span>
       </div>
       <div class="cont">
-        <span class="mg">Nt<span class="lt bg"></span></span>
-        <div class="text"><span class="row-title ell">Notes</span><span class="sub">background · 2 min</span></div>
+        <span class="lt ring"></span><span class="mg">Nt</span>
+        <div class="text"><span class="row-title ell">Notes</span><span class="meta">background · 2 min</span></div>
         <span class="tap" aria-label="Close"><svg class="ic s20"><use href="#i-close"/></svg></span>
       </div>
       <div class="cont">
-        <span class="mg">Wm<span class="lt bg"></span></span>
-        <div class="text"><span class="row-title ell">Webmail</span><span class="sub">background · 14 min</span></div>
+        <span class="lt ring"></span><span class="mg">Wm</span>
+        <div class="text"><span class="row-title ell">Webmail</span><span class="meta">background · 14 min</span></div>
         <span class="tap" aria-label="Close"><svg class="ic s20"><use href="#i-close"/></svg></span>
       </div>
       <div class="sw-actions">
         <span class="btn neutral">Close all and wipe</span>
-        <span class="panic big" aria-label="Panic"><svg class="ic"><use href="#i-panic"/></svg></span>
+        <span class="panic big" aria-label="Panic"><svg class="ic s22"><use href="#i-panic"/></svg></span>
       </div>
     </div>
   </div>
@@ -574,7 +620,7 @@
 
 <!-- ═════════════════════════ 2d ═════════════════════════ -->
 <section class="block" data-block="2d">
-  <p class="tag"><b>2d</b>Settings — lock, vault and panic behaviour <i>(Settings tab; dashed switch = on and inert)</i></p>
+  <p class="tag"><b>2d</b>Settings — lock, vault and panic behaviour <i>(Settings tab; switches on = text-1 track, never jade; a dimmed switch is on and inert)</i></p>
   <div class="phone">
     <div class="sys"></div>
     <div class="hdr"><span class="screen-title">Settings</span></div>
@@ -598,10 +644,10 @@
       </div>
       <span class="section sc">VAULT</span>
       <div class="group">
-        <div class="row two"><div class="text"><span class="body">Decoy vault</span><span class="sub">A second PIN opens a harmless board</span></div><span class="sw inert"><svg viewBox="0 0 24 24"><use href="#i-check"/></svg></span></div>
+        <div class="row two"><div class="text"><span class="body">Decoy vault</span><span class="sub">A second PIN opens a harmless board</span></div><span class="sw on inert"><svg viewBox="0 0 24 24"><use href="#i-check"/></svg></span></div>
         <div class="row"><div class="text"><span class="body">Sites shown in decoy</span></div><span class="val">4 selected</span></div>
         <div class="row"><div class="text"><span class="body">Re-sync decoy now</span></div><svg class="ic s20 chev"><use href="#i-chev"/></svg></div>
-        <div class="row two"><div class="text"><span class="body">Hide from app switcher</span><span class="sub">Blurs previews, blocks screenshots</span></div><span class="sw inert"><svg viewBox="0 0 24 24"><use href="#i-check"/></svg></span></div>
+        <div class="row two"><div class="text"><span class="body">Hide from app switcher</span><span class="sub">Blurs previews, blocks screenshots</span></div><span class="sw on inert"><svg viewBox="0 0 24 24"><use href="#i-check"/></svg></span></div>
       </div>
       <span class="section sc">PANIC</span>
       <div class="group">
@@ -613,20 +659,20 @@
     <nav class="tabs">
       <div><span class="ind"><svg class="ic"><use href="#i-sites"/></svg></span>Sites</div>
       <div><span class="ind"><svg class="ic"><use href="#i-today"/></svg></span>Today</div>
-      <div class="on" aria-selected="true"><span class="ind"><svg class="ic"><use href="#i-settings"/></svg></span>Settings</div>
+      <div class="on" aria-selected="true"><span class="ind"><svg class="ic"><use href="#i-settings-filled"/></svg></span>Settings</div>
     </nav>
   </div>
 </section>
 
 <!-- ═════════════════════════ 3a ═════════════════════════ -->
 <section class="block" data-block="3a">
-  <p class="tag"><b>3a</b>Lock — one PIN field, no mention of vaults <i>(cold lock: no fingerprint; two digits entered)</i></p>
+  <p class="tag"><b>3a</b>Lock — one PIN field, no mention of vaults <i>(cold lock: no fingerprint; two digits entered; the mark is text-1, not jade)</i></p>
   <div class="phone">
     <div class="sys"></div>
     <div class="pin">
       <div class="msg">
-        <svg class="vmark" viewBox="0 0 48 48" aria-hidden="true"><rect x="6" y="6" width="36" height="36" rx="11" fill="none" stroke="currentColor" stroke-width="3"/><path d="M6 18H42" stroke="currentColor" stroke-width="3"/><circle cx="24" cy="30" r="5" fill="currentColor"/></svg>
-        <span class="body t2">Enter your PIN</span>
+        <span class="vring" aria-hidden="true"><svg class="ic"><use href="#i-vault"/></svg></span>
+        <span class="step-title">Enter your PIN</span>
         <div class="dots"><i class="f"></i><i class="f"></i><i></i><i></i><i></i><i></i></div>
       </div>
       <div class="keypad" aria-label="Keypad"><span>1</span><span>2</span><span>3</span><span>4</span><span>5</span><span>6</span><span>7</span><span>8</span><span>9</span><span class="blank"></span><span>0</span><span class="bs" aria-label="Delete"><svg class="ic s28"><use href="#i-backspace"/></svg></span></div>
@@ -654,7 +700,7 @@
 
 <!-- ═════════════════════════ 5c ═════════════════════════ -->
 <section class="block" data-block="5c">
-  <p class="tag"><b>5c</b>Today — a quiet log, not a dashboard of scary numbers <i>(Today tab; bars monochrome, no grade)</i></p>
+  <p class="tag"><b>5c</b>Today — a quiet log, not a dashboard of scary numbers <i>(Today tab; bars text-2, never jade or amber)</i></p>
   <div class="phone">
     <div class="sys"></div>
     <div class="hdr"><span class="screen-title">Today</span></div>
@@ -677,7 +723,7 @@
     </div>
     <nav class="tabs">
       <div><span class="ind"><svg class="ic"><use href="#i-sites"/></svg></span>Sites</div>
-      <div class="on" aria-selected="true"><span class="ind"><svg class="ic"><use href="#i-today"/></svg></span>Today</div>
+      <div class="on" aria-selected="true"><span class="ind"><svg class="ic"><use href="#i-today-filled"/></svg></span>Today</div>
       <div><span class="ind"><svg class="ic"><use href="#i-settings"/></svg></span>Settings</div>
     </nav>
   </div>
@@ -689,7 +735,7 @@
   <div class="phone">
     <div class="sys"></div>
     <div class="topbar" aria-hidden="true">
-      <div class="pill"><span class="case wipe">Fr<span class="lt live"></span></span><span class="readout"><span class="host wrap">forum.example.com</span><span class="badge">SOCKS5</span></span><span class="tap"><svg class="ic s20"><use href="#i-reload"/></svg></span><span class="tap"><svg class="ic"><use href="#i-shield"/></svg></span></div>
+      <div class="pill"><span class="lt live"></span><svg class="ic casei" role="img" aria-label="Wipe on exit"><use href="#i-case-broken"/></svg><span class="readout"><span class="host">forum.<wbr>example.<wbr>com</span><span class="badge">SOCKS5</span></span><span class="tap"><svg class="ic s20"><use href="#i-reload"/></svg></span><span class="tap"><svg class="ic s22"><use href="#i-shield"/></svg></span></div>
       <span class="panic"><svg class="ic"><use href="#i-panic"/></svg></span>
     </div>
     <div class="page"><i class="h"></i><i class="m"></i><i></i><i class="img"></i></div>
@@ -727,18 +773,18 @@
 
 <!-- ═════════════════════════ 8b ═════════════════════════ -->
 <section class="block" data-block="8b">
-  <p class="tag"><b>8b</b>Proxy unreachable — no silent fallback, the risky option is spelled out <i>(proxyUnreachable variant; header icons inert)</i></p>
+  <p class="tag"><b>8b</b>Proxy unreachable — no silent fallback, the risky option is spelled out <i>(proxyUnreachable variant; header icons inert; the risky choice a danger text button 24 dp below)</i></p>
   <div class="phone">
     <div class="sys"></div>
     <div class="topbar">
       <span class="tap inert" aria-hidden="true"><svg class="ic s20"><use href="#i-back"/></svg></span>
-      <div class="pill danger" style="padding-left:16px"><span class="lt fail"></span><span class="readout"><span class="host wrap">forum.example.com</span></span></div>
+      <div class="pill danger" style="padding-left:16px"><span class="lt fail"></span><span class="readout"><span class="host">forum.<wbr>example.<wbr>com</span></span></div>
       <span class="tap inert" aria-hidden="true"><svg class="ic s20"><use href="#i-reload"/></svg></span>
     </div>
     <div class="fill" style="display:flex;flex-direction:column">
       <div class="refuse">
-        <span class="rmark"><svg class="ic"><use href="#i-refused"/></svg></span>
-        <span class="screen-title">Proxy did not answer</span>
+        <span class="rmark"><svg class="ic s20"><use href="#i-refused"/></svg></span>
+        <span class="sheet-title">Proxy did not answer</span>
         <span class="muted">Forum is set to go through <span class="mono">socks5 · 127.0.0.1:9050</span> and nothing is listening there. The page was not loaded, so no request left your device.</span>
         <div class="infobox">
           <div class="kv"><span>Tunnel</span><span class="mono">socks5 · 127.0.0.1:9050</span></div>
@@ -747,9 +793,36 @@
         <div style="padding-top:8px">
           <span class="btn primary">Try again</span>
           <span class="btn neutral">Change proxy settings</span>
-          <span class="btn outline-danger">Open without the tunnel<small>This site will see your real IP</small></span>
+          <span class="btn danger-text">Open without the tunnel<small>This site will see your real IP</small></span>
         </div>
       </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═════════════════════════ 9a ═════════════════════════ -->
+<section class="block" data-block="9a">
+  <p class="tag"><b>9a</b>Recents — neutral name, blank card, no page title <i>(Android draws this screen; FLAG_SECURE blanks the card; the icon is the launcher icon, whose jewel is its only jade)</i></p>
+  <div class="phone recents">
+    <div class="sys"></div>
+    <div class="rec">
+      <div class="rec-row">
+        <div class="rec-card">
+          <div class="rec-head">
+            <svg class="appicon" viewBox="0 0 108 108" aria-hidden="true"><rect width="108" height="108" fill="#121110"/><g fill="none" stroke="#EDEAE4" stroke-width="6"><rect x="29" y="29" width="50" height="50" rx="15"/><path d="M29 45.7H79"/></g><circle cx="54" cy="62.3" r="8.3" fill="#7FC8A9"/></svg>
+            <span>Container</span>
+          </div>
+          <div class="rec-body">
+            <span class="vring" aria-hidden="true" style="color:var(--text-3)"><svg class="ic"><use href="#i-vault"/></svg></span>
+            <span class="meta">Content hidden</span>
+          </div>
+        </div>
+        <div class="rec-card other" aria-hidden="true">
+          <div class="rec-head"><span class="appicon blank"></span><span>Maps</span></div>
+          <div class="rec-body"></div>
+        </div>
+      </div>
+      <p class="rec-cap">Screenshots blocked while this app is open</p>
     </div>
   </div>
 </section>
@@ -761,8 +834,8 @@
     <div class="sys"></div>
     <div class="pin">
       <div class="msg">
-        <svg class="vmark" viewBox="0 0 48 48" aria-hidden="true"><rect x="6" y="6" width="36" height="36" rx="11" fill="none" stroke="currentColor" stroke-width="3"/><path d="M6 18H42" stroke="currentColor" stroke-width="3"/><circle cx="24" cy="30" r="5" fill="currentColor"/></svg>
-        <div style="display:flex;flex-direction:column;gap:4px"><span class="body t1" style="font-size:var(--fs-appbar);font-weight:600">Welcome back</span><span class="sub"><span class="mono">3</span> sessions still open · locks in <span class="mono">40s</span></span></div>
+        <span class="vring" aria-hidden="true"><svg class="ic"><use href="#i-vault"/></svg></span>
+        <div style="display:flex;flex-direction:column;gap:6px"><span class="step-title">Welcome back</span><span class="muted"><span class="mono">3</span> sessions still open · locks in <span class="mono">40s</span></span></div>
         <div class="dots"><i></i><i></i><i></i><i></i><i></i><i></i></div>
       </div>
       <div class="keypad" aria-label="Keypad"><span>1</span><span>2</span><span>3</span><span>4</span><span>5</span><span>6</span><span>7</span><span>8</span><span>9</span><span class="blank"></span><span>0</span><span class="bs" aria-label="Delete"><svg class="ic s28"><use href="#i-backspace"/></svg></span></div>
@@ -778,10 +851,10 @@
     <div class="sys"></div>
     <div class="pin">
       <div class="msg">
-        <svg class="vmark" viewBox="0 0 48 48" aria-hidden="true"><rect x="6" y="6" width="36" height="36" rx="11" fill="none" stroke="currentColor" stroke-width="3"/><path d="M6 18H42" stroke="currentColor" stroke-width="3"/><circle cx="24" cy="30" r="5" fill="currentColor"/></svg>
-        <span class="body t2">Enter your PIN</span>
+        <span class="vring" aria-hidden="true"><svg class="ic"><use href="#i-vault"/></svg></span>
+        <span class="step-title">Enter your PIN</span>
         <div class="dots"><i></i><i></i><i></i><i></i><i></i><i></i></div>
-        <div class="notice"><span class="body t1" style="font-weight:500">Locked after 1 minute in the background</span><span class="sub">Ephemeral sessions were closed and wiped. Saved sites will reopen where you left them.</span></div>
+        <div class="notice"><span class="muted">Locked after 1 minute in the background</span><span class="sub t3">Ephemeral sessions were closed and wiped. Saved sites will reopen where you left them.</span></div>
       </div>
       <div class="keypad" aria-label="Keypad"><span>1</span><span>2</span><span>3</span><span>4</span><span>5</span><span>6</span><span>7</span><span>8</span><span>9</span><span class="blank"></span><span>0</span><span class="bs" aria-label="Delete"><svg class="ic s28"><use href="#i-backspace"/></svg></span></div>
     </div>
@@ -813,11 +886,11 @@
 
 <!-- ═════════════════════════ 6a ═════════════════════════ -->
 <section class="block" data-block="6a">
-  <p class="tag"><b>6a</b>Permission request — one time by default, never remembered silently <i>(jade on Keep blocked, as the canvas draws it — BRIEF copy question 3)</i></p>
+  <p class="tag"><b>6a</b>Permission request — one time by default, never remembered silently <i>(a Tor site at Safer: double case, half shield; jade on Keep blocked, both Allow buttons neutral)</i></p>
   <div class="phone">
     <div class="sys"></div>
     <div class="topbar" aria-hidden="true">
-      <div class="pill"><span class="case throw"><svg class="ic s20"><use href="#i-globe"/></svg><span class="lt live"></span></span><span class="readout"><span class="host wrap">meet.example.com</span></span><span class="tap"><svg class="ic s20"><use href="#i-reload"/></svg></span><span class="tap"><svg class="ic"><use href="#i-shield"/></svg></span></div>
+      <div class="pill"><span class="lt live"></span><svg class="ic casei" role="img" aria-label="Keep for this site"><use href="#i-case-double"/></svg><span class="readout"><span class="host">meet.<wbr>example.<wbr>com</span><span class="badge">Tor</span></span><span class="tap"><svg class="ic s20"><use href="#i-reload"/></svg></span><span class="tap"><svg class="ic s22"><use href="#i-shield-half"/></svg></span></div>
       <span class="panic"><svg class="ic"><use href="#i-panic"/></svg></span>
     </div>
     <div class="page"><i class="img"></i><i class="h"></i><i class="m"></i><i></i><i class="s"></i></div>
@@ -842,7 +915,7 @@
   <div class="phone">
     <div class="sys"></div>
     <div class="topbar" aria-hidden="true">
-      <div class="pill"><span class="case wipe">Fr<span class="lt live"></span></span><span class="readout"><span class="host wrap">forum.example.com</span><span class="badge">SOCKS5</span></span><span class="tap"><svg class="ic s20"><use href="#i-reload"/></svg></span><span class="tap"><svg class="ic"><use href="#i-shield"/></svg></span></div>
+      <div class="pill"><span class="lt live"></span><svg class="ic casei" role="img" aria-label="Wipe on exit"><use href="#i-case-broken"/></svg><span class="readout"><span class="host">forum.<wbr>example.<wbr>com</span><span class="badge">SOCKS5</span></span><span class="tap"><svg class="ic s20"><use href="#i-reload"/></svg></span><span class="tap"><svg class="ic s22"><use href="#i-shield"/></svg></span></div>
       <span class="panic"><svg class="ic"><use href="#i-panic"/></svg></span>
     </div>
     <div class="page"><i class="h"></i><i class="m"></i><i></i><i class="s"></i><i class="img"></i></div>
@@ -917,6 +990,30 @@
   </div>
 </section>
 
+<!-- ═════════════════════════ 10c ═════════════════════════ -->
+<section class="block" data-block="10c">
+  <p class="tag"><b>10c</b>Deleting — an itemised list of what goes, typed confirmation <i>(name not typed yet: Delete inert on the danger wash; once it matches, a danger label and outline; no jade)</i></p>
+  <div class="phone">
+    <div class="sys"></div>
+    <div class="skel" aria-hidden="true"><i class="h"></i><i></i><i></i></div>
+    <div class="scrim"></div>
+    <div class="sheet">
+      <div class="handle"></div>
+      <span class="sheet-title wrap" style="display:block">Delete “Work”?</span>
+      <div class="group stat" style="margin-top:16px">
+        <div class="row"><span class="sub">Sites removed</span><span class="val t1">2</span></div>
+        <div class="row"><span class="sub">Logins destroyed</span><span class="val t1">2</span></div>
+        <div class="row"><span class="sub">Stored data wiped</span><span class="val t1">3 MB</span></div>
+        <div class="row"><span class="sub">Custom scripts kept</span><span class="val">In the script library</span></div>
+      </div>
+      <p class="sub" style="margin:16px 0 0">This cannot be undone and there is no backup unless you made one yourself.</p>
+      <span class="meta" style="display:block;margin:16px 0 8px">Type the name to confirm</span>
+      <div class="field onsheet"><span class="ph">Work</span></div>
+      <div class="pair"><span class="btn neutral">Cancel</span><span class="btn wash">Delete</span></div>
+    </div>
+  </div>
+</section>
+
 <!-- ═════════════════════════ 10d ═════════════════════════ -->
 <section class="block" data-block="10d">
   <p class="tag"><b>10d</b>Scripts and filters — one library, reused across sites <i>(canvas rule counts, illustrative)</i></p>
@@ -943,7 +1040,7 @@
 
 <!-- ═════════════════════════ 10e ═════════════════════════ -->
 <section class="block" data-block="10e">
-  <p class="tag"><b>10e</b>Script editor — code, then where it runs <i>(add chip dashed, as the canvas draws it)</i></p>
+  <p class="tag"><b>10e</b>Script editor — code, then where it runs <i>(chips outlined, no fill, as built; segment selected by outline and check)</i></p>
   <div class="phone">
     <div class="sys"></div>
     <div class="form-hdr" style="border-bottom:1px solid var(--line)">
@@ -952,7 +1049,7 @@
       <span class="textbtn jade">Save</span>
     </div>
     <div class="fill gutter" style="padding-bottom:24px">
-      <div class="seg"><span class="on">CSS</span><span>JavaScript</span></div>
+      <div class="seg"><span class="on"><svg class="ic"><use href="#i-check"/></svg>CSS</span><span>JavaScript</span></div>
       <div class="code">
         <div class="ln"><span>1</span><code>header, .sticky, [data-sticky] {</code></div>
         <div class="ln"><span>2</span><code>  position: static !important;</code></div>
@@ -984,7 +1081,7 @@
     <div class="fill" style="display:flex;flex-direction:column">
       <div class="panicpage">
         <span class="pmark"><svg class="ic s28"><use href="#i-panic"/></svg></span>
-        <span class="screen-title">Everything closed</span>
+        <span class="sheet-title">Everything closed</span>
         <span class="muted"><span class="mono">3</span> sessions destroyed, temporary storage wiped, app locked.</span>
         <div class="group status" style="margin-top:8px">
           <div class="row"><span class="sc">WEBVIEWS</span><span class="st sc">DESTROYED</span></div>
@@ -1028,7 +1125,7 @@
       <div class="chips">
         <span class="chip"><span>Personal</span></span>
         <span class="chip"><span>Work</span></span>
-        <span class="chip on"><span>Ephemeral</span></span>
+        <span class="chip on"><span><svg class="ic s16"><use href="#i-check"/></svg>Ephemeral</span></span>
         <span class="tap" aria-label="New workspace"><svg class="ic s20"><use href="#i-plus"/></svg></span>
       </div>
       <span class="badge sc" style="margin-left:auto">WIPES ON EXIT</span>
@@ -1045,7 +1142,7 @@
       <span class="addbtn jadefill" aria-label="Add site"><svg class="ic"><use href="#i-plus"/></svg></span>
     </div>
     <nav class="tabs">
-      <div class="on" aria-selected="true"><span class="ind"><svg class="ic"><use href="#i-sites"/></svg></span>Sites</div>
+      <div class="on" aria-selected="true"><span class="ind"><svg class="ic"><use href="#i-sites-filled"/></svg></span>Sites</div>
       <div><span class="ind"><svg class="ic"><use href="#i-today"/></svg></span>Today</div>
       <div><span class="ind"><svg class="ic"><use href="#i-settings"/></svg></span>Settings</div>
     </nav>
@@ -1059,7 +1156,7 @@
     <div class="sys"></div>
     <div class="topbar">
       <span class="tap" aria-label="Back"><svg class="ic"><use href="#i-back"/></svg></span>
-      <div class="pill" style="padding-left:16px"><span class="lt open"></span><span class="readout"><span class="host wrap">forum.example.com</span></span></div>
+      <div class="pill" style="padding-left:16px"><span class="lt open"></span><span class="readout"><span class="host">forum.<wbr>example.<wbr>com</span></span></div>
       <span class="tap" aria-label="Close"><svg class="ic"><use href="#i-close"/></svg></span>
     </div>
     <div class="loadline"><i></i></div>
@@ -1080,17 +1177,17 @@
 
 <!-- ═════════════════════════ 8c ═════════════════════════ -->
 <section class="block" data-block="8c">
-  <p class="tag"><b>8c</b>Tunnel dropped mid-session — page frozen, decision surfaced at the top <i>(a small tinted panel, never a red screen)</i></p>
+  <p class="tag"><b>8c</b>Tunnel dropped mid-session — page frozen, decision surfaced at the top <i>(a danger-wash panel, never a red screen; Reconnect the one jade, Close and wipe neutral)</i></p>
   <div class="phone">
     <div class="sys"></div>
     <div class="topbar" style="border-bottom:0">
       <span class="tap inert" aria-hidden="true"><svg class="ic s20"><use href="#i-back"/></svg></span>
-      <div class="pill danger" style="padding-left:16px"><span class="lt fail"></span><span class="readout"><span class="host wrap">forum.example.com</span></span></div>
+      <div class="pill danger" style="padding-left:16px"><span class="lt fail"></span><span class="readout"><span class="host">forum.<wbr>example.<wbr>com</span></span></div>
       <span class="tap inert" aria-hidden="true"><svg class="ic s20"><use href="#i-reload"/></svg></span>
     </div>
     <div class="banner">
       <div class="head"><svg class="ic s20"><use href="#i-refused"/></svg>
-        <div class="text"><span class="row-title">Tunnel dropped</span><span class="sub">The page is paused. Nothing further has been requested since the connection failed just now.</span></div>
+        <div class="text"><span class="title">Tunnel dropped</span><span class="sub">The page is paused. Nothing further has been requested since the connection failed just now.</span></div>
       </div>
       <div class="btns"><span class="btn primary">Reconnect</span><span class="btn neutral">Close and wipe</span></div>
     </div>
@@ -1100,14 +1197,14 @@
 
 <!-- ═════════════════════════ 7b ═════════════════════════ -->
 <section class="block" data-block="7b">
-  <p class="tag"><b>7b</b>Long-press on a row — wipe sits apart from the rest <i>(rows as built, 2026-10-05 ruling)</i></p>
+  <p class="tag"><b>7b</b>Long-press on a row — wipe sits apart from the rest <i>(rows as built, 2026-10-05 ruling; both wipe rows in danger)</i></p>
   <div class="phone">
     <div class="sys"></div>
     <div class="fill gutter" aria-hidden="true" style="padding-top:60px">
       <div class="group">
         <div class="site"><span class="mg">Nt<span class="lt live"></span></span><div class="text"><span class="row-title ell">Notes</span><span class="meta wrap"><span class="mono">notes.example.org</span> · socks5</span></div><span class="age">now</span></div>
         <div class="site"><span class="mg">Wm<span class="lt live"></span></span><div class="text"><span class="row-title ell">Webmail</span><span class="meta wrap"><span class="mono">mail.example.net</span> · direct</span></div><span class="age">14m</span></div>
-        <div class="site idle"><span class="mg idle">Fr<span class="lt idle"></span></span><div class="text"><span class="row-title ell">Forum</span><span class="meta wrap"><span class="mono">forum.example.com</span> · ephemeral</span></div><span class="age">2h</span></div>
+        <div class="site idle"><span class="mg idle">Fr</span><div class="text"><span class="row-title ell">Forum</span><span class="meta wrap"><span class="mono">forum.example.com</span> · ephemeral</span></div><span class="age">2h</span></div>
       </div>
     </div>
     <div class="scrim"></div>
@@ -1118,7 +1215,7 @@
         <div class="row"><span class="body">Edit settings</span></div>
       </div>
       <div class="group">
-        <div class="row"><span class="body">Wipe this site's data</span></div>
+        <div class="row"><span class="body danger">Wipe this site's data</span></div>
         <div class="row"><span class="body danger">Remove site</span></div>
       </div>
       <span class="btn neutral">Cancel</span>
@@ -1154,10 +1251,10 @@
     <div class="sys"></div>
     <div class="pin">
       <div class="msg">
-        <svg class="vmark err" viewBox="0 0 48 48" aria-hidden="true"><rect x="6" y="6" width="36" height="36" rx="11" fill="none" stroke="currentColor" stroke-width="3"/><path d="M6 18H42" stroke="currentColor" stroke-width="3"/><circle cx="24" cy="30" r="5" fill="currentColor"/></svg>
-        <span class="body danger" style="font-weight:500">Wrong PIN · <span class="mono">3</span> tries left</span>
+        <span class="vring err" aria-hidden="true"><svg class="ic"><use href="#i-vault"/></svg></span>
+        <span class="step-title danger">Wrong PIN · <span class="mono" style="font-weight:500">3</span> tries left</span>
         <div class="dots err"><i></i><i></i><i></i><i></i><i></i><i></i></div>
-        <span class="sub" style="max-width:280px">After 5 wrong tries the app waits 30 seconds before accepting another.</span>
+        <span class="muted" style="max-width:300px">After 5 wrong tries the app waits 30 seconds before accepting another.</span>
       </div>
       <div class="keypad" aria-label="Keypad"><span>1</span><span>2</span><span>3</span><span>4</span><span>5</span><span>6</span><span>7</span><span>8</span><span>9</span><span class="blank"></span><span>0</span><span class="bs" aria-label="Delete"><svg class="ic s28"><use href="#i-backspace"/></svg></span></div>
     </div>
@@ -1221,15 +1318,15 @@
   <div class="phone">
     <div class="sys"></div>
     <div class="chips gutter" style="padding-top:4px;padding-bottom:4px">
-      <span class="chip on"><span>Personal</span></span>
+      <span class="chip on"><span><svg class="ic s16"><use href="#i-check"/></svg>Personal</span></span>
       <span class="tap" aria-label="New workspace"><svg class="ic s20"><use href="#i-plus"/></svg></span>
     </div>
     <div class="fill gutter" style="padding-top:8px;padding-bottom:16px">
       <div class="group">
-        <div class="site idle"><span class="mg idle">Nw<span class="lt idle"></span></span><div class="text"><span class="row-title ell">News</span><span class="meta wrap"><span class="mono">news.example.com</span> · direct</span></div><span class="age">2d</span></div>
-        <div class="site idle"><span class="mg idle">Wt<span class="lt idle"></span></span><div class="text"><span class="row-title ell">Weather</span><span class="meta wrap"><span class="mono">weather.example.com</span> · direct</span></div><span class="age">4d</span></div>
-        <div class="site idle"><span class="mg idle">Rc<span class="lt idle"></span></span><div class="text"><span class="row-title ell">Recipes</span><span class="meta wrap"><span class="mono">cook.example.org</span> · direct</span></div><span class="age">1w</span></div>
-        <div class="site idle"><span class="mg idle">Tt<span class="lt idle"></span></span><div class="text"><span class="row-title ell">Timetable</span><span class="meta wrap"><span class="mono">transit.example.com</span> · direct</span></div><span class="age">2w</span></div>
+        <div class="site idle"><span class="mg idle">Nw</span><div class="text"><span class="row-title ell">News</span><span class="meta wrap"><span class="mono">news.example.com</span> · direct</span></div><span class="age">2d</span></div>
+        <div class="site idle"><span class="mg idle">Wt</span><div class="text"><span class="row-title ell">Weather</span><span class="meta wrap"><span class="mono">weather.example.com</span> · direct</span></div><span class="age">4d</span></div>
+        <div class="site idle"><span class="mg idle">Rc</span><div class="text"><span class="row-title ell">Recipes</span><span class="meta wrap"><span class="mono">cook.example.org</span> · direct</span></div><span class="age">1w</span></div>
+        <div class="site idle"><span class="mg idle">Tt</span><div class="text"><span class="row-title ell">Timetable</span><span class="meta wrap"><span class="mono">transit.example.com</span> · direct</span></div><span class="age">2w</span></div>
       </div>
     </div>
     <div class="dash-foot">
@@ -1237,7 +1334,7 @@
       <span class="addbtn" aria-label="Add site"><svg class="ic"><use href="#i-plus"/></svg></span>
     </div>
     <nav class="tabs">
-      <div class="on" aria-selected="true"><span class="ind"><svg class="ic"><use href="#i-sites"/></svg></span>Sites</div>
+      <div class="on" aria-selected="true"><span class="ind"><svg class="ic"><use href="#i-sites-filled"/></svg></span>Sites</div>
       <div><span class="ind"><svg class="ic"><use href="#i-today"/></svg></span>Today</div>
       <div><span class="ind"><svg class="ic"><use href="#i-settings"/></svg></span>Settings</div>
     </nav>
