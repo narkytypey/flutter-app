@@ -28,8 +28,11 @@ class Monogram extends StatelessWidget {
       height: size,
       alignment: Alignment.center,
       decoration: BoxDecoration(
-        color: open ? C.monogramOpen : C.raised,
+        color: open ? C.monogramOpen : C.surface,
         borderRadius: BorderRadius.circular(radius),
+        // An idle monogram sits on a group of the same tone; the outline
+        // keeps its square.
+        border: open ? null : Border.all(color: C.line),
       ),
       // Grows with the text scale until it fills the square, then stops:
       // at a large scale two letters would otherwise be clipped to one.

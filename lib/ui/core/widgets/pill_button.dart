@@ -7,11 +7,16 @@ enum PillTone {
   /// Jade fill, dark label. At most one per screen.
   primary,
 
-  /// The `#1C2124` fill used for everything else.
+  /// The raised fill used for everything else.
   neutral,
 
-  /// A 28%-alpha danger border with danger text. Danger is never a fill.
+  /// A 1.5 dp danger outline with danger text. Danger is never a fill.
   dangerOutline,
+
+  /// Danger text alone, no fill or outline: a risky choice that must not
+  /// carry a button's weight (`8b`'s "Open without the tunnel"; restyle v2
+  /// §5, §8).
+  dangerText,
 }
 
 /// The rounded action button. Heights and radii differ per screen, so both are
@@ -23,7 +28,7 @@ class PillButton extends StatelessWidget {
     required this.onTap,
     this.sublabel,
     this.tone = PillTone.neutral,
-    this.height = 48,
+    this.height = 52,
     this.radius,
     this.padding,
   });
@@ -42,18 +47,16 @@ class PillButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final r = BorderRadius.circular(radius ?? height / 2);
+    // Never under the 48 dp target, whatever a call site passes (v2 §5).
+    final minHeight = height < 48 ? 48.0 : height;
+    final r = BorderRadius.circular(radius ?? minHeight / 2);
     final enabled = onTap != null;
 
     final (Color? fill, Border? border, Color labelColor, int weight) = switch (tone) {
-      PillTone.primary => (C.jade, null, C.bg, 600),
-      PillTone.neutral => (C.button, null, enabled ? C.textSecondary : C.textDim, 500),
-      PillTone.dangerOutline => (
-          null,
-          Border.all(color: C.danger.withValues(alpha: 0.28)),
-          C.danger,
-          500,
-        ),
+      PillTone.primary => (C.jade, null, C.onJade, 600),
+      PillTone.neutral => (C.button, null, enabled ? C.textPrimary : C.textMuted, 500),
+      PillTone.dangerOutline => (null, Border.all(color: C.danger, width: 1.5), C.danger, 500),
+      PillTone.dangerText => (null, null, C.danger, 600),
     };
 
     return Material(
@@ -65,7 +68,7 @@ class PillButton extends StatelessWidget {
         child: Container(
           // A minimum, not a fixed height: a large text scale grows the pill
           // instead of overflowing its label and sublabel.
-          constraints: BoxConstraints(minHeight: height),
+          constraints: BoxConstraints(minHeight: minHeight),
           padding: padding,
           decoration: BoxDecoration(borderRadius: r, border: border),
           alignment: Alignment.center,
@@ -74,12 +77,13 @@ class PillButton extends StatelessWidget {
             children: [
               Text(label,
                   textAlign: TextAlign.center,
-                  style: ui(size: 14.5, weight: weight, color: labelColor)),
+                  style: T.label.copyWith(
+                      color: labelColor, fontWeight: weight == 600 ? FontWeight.w600 : FontWeight.w500)),
               if (sublabel != null) ...[
-                const SizedBox(height: 1),
+                const SizedBox(height: 2),
                 Text(sublabel!,
                     textAlign: TextAlign.center,
-                    style: ui(size: 10.5, color: C.dangerMuted)),
+                    style: T.sub),
               ],
             ],
           ),

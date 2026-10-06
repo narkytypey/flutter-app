@@ -9,7 +9,7 @@ class DashedBox extends StatelessWidget {
     super.key,
     required this.size,
     required this.radius,
-    this.color = C.line16,
+    this.color = C.edge,
   });
 
   final double size;

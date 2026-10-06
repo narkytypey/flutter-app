@@ -5,7 +5,8 @@ import '../tokens.dart';
 import '../typography.dart';
 
 /// A settings line: title, optional subtitle, and either a control or a value
-/// on the right. Hairline underneath, never a card.
+/// on the right. Hairline underneath; restyle v2 sets it in a group's rows
+/// (min 56 dp).
 class SettingRow extends StatelessWidget {
   const SettingRow({
     super.key,
@@ -32,10 +33,11 @@ class SettingRow extends StatelessWidget {
       onTap: onTap,
       child: DecoratedBox(
         decoration: const BoxDecoration(
-          border: Border(bottom: BorderSide(color: C.line06)),
+          border: Border(bottom: BorderSide(color: C.lineSoft)),
         ),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 15),
+        child: Container(
+          constraints: const BoxConstraints(minHeight: 56),
+          padding: const EdgeInsets.symmetric(vertical: 14),
           child: Row(
             children: [
               Expanded(
@@ -45,8 +47,8 @@ class SettingRow extends StatelessWidget {
                   children: [
                     Text(title, style: T.body),
                     if (subtitle != null) ...[
-                      const SizedBox(height: 3),
-                      Text(subtitle!, style: ui(size: 11, color: C.textFaint)),
+                      const SizedBox(height: 2),
+                      Text(subtitle!, style: T.sub),
                     ],
                   ],
                 ),
@@ -63,12 +65,12 @@ class SettingRow extends StatelessWidget {
                       overflow: TextOverflow.ellipsis,
                       textAlign: TextAlign.end,
                       style: monoValue
-                          ? mono(size: 12, color: C.textMuted)
-                          : ui(size: 12.5, color: C.textMuted)),
+                          ? T.value
+                          : T.sub),
                 ),
               ],
               if (trailing == null && value == null && onTap != null)
-                const AppIcon(AppGlyph.forward, size: 16, color: C.textFaint),
+                const AppIcon(AppGlyph.forward, size: 18, color: C.chevron),
             ],
           ),
         ),

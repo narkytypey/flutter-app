@@ -290,7 +290,7 @@ void main() {
     await tester.tap(findIconTap('Back'));
     expect(backs, 1);
     expect(findGlyph(AppGlyph.forward), findsWidgets);
-    expect(tester.getSize(findGlyph(AppGlyph.forward).first), const Size(16, 16));
+    expect(tester.getSize(findGlyph(AppGlyph.forward).first), const Size(18, 18));
   });
 
   testWidgets('BROWSING has Default route, its proxy value in mono, and it reports a tap',

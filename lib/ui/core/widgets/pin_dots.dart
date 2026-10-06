@@ -23,10 +23,10 @@ class PinDots extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       children: [
         for (var i = 0; i < length; i++) ...[
-          if (i > 0) const SizedBox(width: 14),
+          if (i > 0) const SizedBox(width: 16),
           Container(
-            width: 11,
-            height: 11,
+            width: 14,
+            height: 14,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
               color: !error && i < filled ? C.textPrimary : null,
@@ -34,7 +34,7 @@ class PinDots extends StatelessWidget {
                 color: error
                     ? C.pinError
                     : (i < filled ? C.textPrimary : C.pinEmpty),
-                width: 1.5,
+                width: 2,
               ),
             ),
           ),

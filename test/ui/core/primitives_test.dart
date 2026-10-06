@@ -36,7 +36,7 @@ void main() {
     expect(glyphsRight, row.right);
   });
 
-  testWidgets('a live rail is jade, an idle rail is a hairline', (tester) async {
+  testWidgets('a live light is jade, an idle light is an edge ring (restyle v2 §5)', (tester) async {
     await _pump(tester, const Row(children: [StatusRail(live: true), StatusRail(live: false)]));
 
     final railFinders = find.byType(StatusRail);
@@ -51,8 +51,9 @@ void main() {
         .decoration! as BoxDecoration;
 
     expect(live.color, C.jade);
-    expect(idle.color, C.line09);
-    expect(tester.getSize(railFinders.first).width, 3);
+    expect(idle.color, isNull);
+    expect((idle.border! as Border).top.color, C.edge);
+    expect(tester.getSize(railFinders.first).width, 10);
   });
 
   testWidgets('an open monogram is brighter than an idle one', (tester) async {

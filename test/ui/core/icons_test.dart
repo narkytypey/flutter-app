@@ -91,7 +91,7 @@ void main() {
         warnIfMissed: false);
     await tester.tap(find.byWidgetPredicate((w) => w is IconTap && w.label == 'Forward'));
     expect(taps, 1);
-    expect(tester.getSize(find.byType(IconTap).first), const Size(40, 40));
+    expect(tester.getSize(find.byType(IconTap).first), const Size(48, 48));
   });
 
   testWidgets('the restyle v2 glyphs paint at small and large sizes', (tester) async {

@@ -92,7 +92,7 @@ void main() {
     expect(calls, ['forward', 'switcher', 'menu']);
     expect(_glyph(tester, AppGlyph.back).color, C.textDisabled);
     expect(_glyph(tester, AppGlyph.forward).color, C.icon);
-    expect(tester.getSize(_icon('Back')), const Size(40, 40));
+    expect(tester.getSize(_icon('Back')), const Size(48, 48));
   });
 
   testWidgets('the bottom bar is flat footer with a hairline above, its pill named for screen readers', (tester) async {

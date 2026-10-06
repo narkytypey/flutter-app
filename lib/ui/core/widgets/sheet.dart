@@ -6,9 +6,9 @@ import 'hairline.dart';
 
 /// The bottom-sheet chrome shared by specs `6a`, `6c`, `7b` and `7c`.
 ///
-/// Spec values, identical in all four blocks: background `#141719`, a 1px top
-/// border at 9% white, a 22px radius on the top corners only, and a soft
-/// upward shadow so the sheet reads as lifted off the page behind it.
+/// Restyle v2 §4: the sheet tone, a 1px top edge in the line tone, a 28px
+/// radius on the top corners only, and one soft upward shadow — the only
+/// shadow in the app.
 class BottomSheetSurface extends StatelessWidget {
   const BottomSheetSurface({
     super.key,
@@ -40,15 +40,13 @@ class BottomSheetSurface extends StatelessWidget {
       padding: padding,
       decoration: BoxDecoration(
         color: C.sheet,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(22)),
-        border: Border(
-          top: BorderSide(color: Colors.white.withValues(alpha: 0.09)),
-        ),
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(R.sheet)),
+        border: const Border(top: BorderSide(color: C.line)),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.55),
             blurRadius: 40,
-            offset: const Offset(0, -20),
+            offset: const Offset(0, -12),
           ),
         ],
       ),
@@ -105,16 +103,16 @@ class SheetGroup extends StatelessWidget {
     for (var i = 0; i < children.length; i++) {
       rows.add(children[i]);
       if (i != children.length - 1) {
-        rows.add(Hairline(color: Colors.white.withValues(alpha: 0.05)));
+        rows.add(const Hairline(color: C.lineSoft));
       }
     }
 
     return ClipRRect(
-      borderRadius: BorderRadius.circular(16),
+      borderRadius: BorderRadius.circular(R.group),
       child: DecoratedBox(
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+          borderRadius: BorderRadius.circular(R.group),
+          border: Border.all(color: C.line),
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -126,8 +124,8 @@ class SheetGroup extends StatelessWidget {
   }
 }
 
-/// One tappable row inside a [SheetGroup]. Spec `7b`: 15px vertical padding,
-/// 16px horizontal, `#15181B` fill, 14.5px label.
+/// One tappable row inside a [SheetGroup]: min 56 dp, 16px horizontal, the
+/// group tone, a row-title label (restyle v2 §4).
 class SheetRow extends StatelessWidget {
   const SheetRow({
     super.key,
@@ -149,13 +147,14 @@ class SheetRow extends StatelessWidget {
       onTap: onTap,
       child: Container(
         color: C.surface,
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 15),
+        constraints: const BoxConstraints(minHeight: 56),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         child: Row(
           children: [
             Expanded(
               child: Text(
                 label,
-                style: ui(size: 14.5, color: labelColor ?? C.textPrimary),
+                style: T.body.copyWith(color: labelColor ?? C.textPrimary),
               ),
             ),
             if (trailing != null) trailing!,

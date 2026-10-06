@@ -52,7 +52,7 @@ class PinKeypad extends StatelessWidget {
                             button: true,
                             child: const AppIcon(AppGlyph.backspace, size: 24, color: C.textSecondary),
                           )
-                        : Text(key, style: ui(size: 22, color: C.textSecondary)),
+                        : Text(key, style: T.keypad),
                   ),
                 ),
               ),

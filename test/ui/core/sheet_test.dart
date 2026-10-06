@@ -7,7 +7,7 @@ import 'package:container/ui/core/widgets/sheet.dart';
 void main() {
   Widget host(Widget child) => MaterialApp(home: Scaffold(body: child));
 
-  testWidgets('BottomSheetSurface uses the sheet colour and a 22px top radius',
+  testWidgets('BottomSheetSurface uses the sheet colour and a 28px top radius (restyle v2 §4)',
       (tester) async {
     await tester.pumpWidget(host(
       const BottomSheetSurface(children: [Text('body')]),
@@ -21,7 +21,7 @@ void main() {
     expect(decoration.color, C.sheet);
     expect(
       decoration.borderRadius,
-      const BorderRadius.vertical(top: Radius.circular(22)),
+      const BorderRadius.vertical(top: Radius.circular(28)),
     );
     expect(find.text('body'), findsOneWidget);
   });

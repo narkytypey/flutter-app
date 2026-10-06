@@ -13,7 +13,7 @@ class IconTap extends StatelessWidget {
     required this.glyph,
     required this.label,
     required this.onTap,
-    this.size = 40,
+    this.size = 48,
     this.iconSize = 20,
     this.color = C.icon,
     this.background,
@@ -28,7 +28,7 @@ class IconTap extends StatelessWidget {
   final Color color;
   final Color? background;
 
-  /// Corner radius; null draws a circle, like `2b`'s 40px round targets.
+  /// Corner radius; null draws a circle, a 48 dp round target (restyle v2 §5).
   final double? radius;
 
   @override
@@ -44,7 +44,7 @@ class IconTap extends StatelessWidget {
         decoration: corner == null
             ? BoxDecoration(color: background, shape: BoxShape.circle)
             : BoxDecoration(color: background, borderRadius: BorderRadius.circular(corner)),
-        child: AppIcon(glyph, size: iconSize, color: onTap == null ? C.textDisabled : color),
+        child: AppIcon(glyph, size: iconSize, color: onTap == null ? C.textFaint : color),
       ),
     );
     final name = label;
