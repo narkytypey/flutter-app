@@ -48,7 +48,7 @@ void main() {
     for (final tab in ['Basics', 'Network', 'Privacy', 'Appearance']) {
       expect(find.text(tab), findsOneWidget);
     }
-    expect(tester.getSize(findIconTap('Close')), const Size(24, 24));
+    expect(tester.getSize(findIconTap('Close')), const Size(48, 48));
   });
 
   testWidgets('Basics shows address, name, workspace chips and cookie choice',

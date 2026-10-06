@@ -14,6 +14,7 @@ import '../../../core/widgets/icon_tap.dart';
 import '../view_models/add_site_view.dart';
 import 'appearance_tab.dart';
 import 'basics_tab.dart';
+import 'form_segment.dart';
 import 'network_tab.dart';
 import 'privacy_tab.dart';
 
@@ -216,40 +217,50 @@ class _AddSiteScreenState extends State<AddSiteScreen> {
         child: Column(
           children: [
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+              padding: const EdgeInsets.fromLTRB(4, 8, 4, 0),
               child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   // Leaves without saving, like `10b`'s × (and system back).
                   IconTap(
                     glyph: AppGlyph.close,
                     label: 'Close',
                     onTap: () => Navigator.pop(context),
-                    size: 24,
-                    iconSize: 20,
+                    iconSize: 22,
                   ),
                   // An edited site's form is titled with its name (user's
                   // ruling 2026-10-05); only a new site's reads `Add site`.
-                  Flexible(
+                  Expanded(
                     child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 12),
+                      padding: const EdgeInsets.symmetric(horizontal: 8),
                       child: Text(
                         _title(),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: ui(size: 15, weight: 600, color: C.textPrimary),
+                        textAlign: TextAlign.center,
+                        style: T.appBarTitle,
                       ),
                     ),
                   ),
-                  // Dimmed and inert, like an inert toggle, while the address
-                  // is not one the engine would load.
+                  // The screen's one jade (restyle v2 §8). Dimmed and inert,
+                  // like an inert toggle, while the address is not one the
+                  // engine would load.
                   ListenableBuilder(
                     listenable: _urlController,
                     builder: (context, _) => GestureDetector(
+                      behavior: HitTestBehavior.opaque,
                       onTap: _address == null ? null : _save,
-                      child: Opacity(
-                        opacity: _address == null ? 0.4 : 1,
-                        child: Text('Save', style: ui(size: 14, weight: 500, color: C.jade)),
+                      child: ConstrainedBox(
+                        constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 12),
+                          child: Center(
+                            widthFactor: 1,
+                            child: Opacity(
+                              opacity: _address == null ? 0.4 : 1,
+                              child: Text('Save', style: T.label.copyWith(color: C.jade)),
+                            ),
+                          ),
+                        ),
                       ),
                     ),
                   ),
@@ -257,46 +268,33 @@ class _AddSiteScreenState extends State<AddSiteScreen> {
               ),
             ),
             DecoratedBox(
-              decoration: const BoxDecoration(border: Border(bottom: BorderSide(color: C.line07))),
+              decoration: const BoxDecoration(border: Border(bottom: BorderSide(color: C.line))),
               child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 18),
+                padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
                 child: Row(
                   children: [
-                    for (var i = 0; i < _tabs.length; i++) Expanded(child: _tab(i)),
+                    for (var i = 0; i < _tabs.length; i++) ...[
+                      if (i > 0) const SizedBox(width: 4),
+                      Expanded(
+                        child: FormSegment(
+                          label: _tabs[i],
+                          selected: i == _tabIndex,
+                          outlined: false,
+                          onTap: () => setState(() => _tabIndex = i),
+                        ),
+                      ),
+                    ],
                   ],
                 ),
               ),
             ),
             Expanded(
               child: SingleChildScrollView(
-                padding: const EdgeInsets.all(18),
+                padding: const EdgeInsets.fromLTRB(16, 20, 16, 24),
                 child: _body(),
               ),
             ),
           ],
-        ),
-      ),
-    );
-  }
-
-  Widget _tab(int index) {
-    final active = index == _tabIndex;
-    return GestureDetector(
-      onTap: () => setState(() => _tabIndex = index),
-      child: Container(
-        padding: const EdgeInsets.fromLTRB(4, 11, 4, 10),
-        decoration: BoxDecoration(
-          border: Border(bottom: BorderSide(color: active ? C.jade : Colors.transparent, width: 2)),
-        ),
-        alignment: Alignment.center,
-        // One line, shrunk to fit at a large text scale rather than broken
-        // mid-word ("Networ / k").
-        child: FittedBox(
-          fit: BoxFit.scaleDown,
-          child: Text(_tabs[index],
-              maxLines: 1,
-              softWrap: false,
-              style: ui(size: 12.5, weight: 500, color: active ? C.textPrimary : C.tabInactive)),
         ),
       ),
     );

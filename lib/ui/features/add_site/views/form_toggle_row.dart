@@ -2,9 +2,10 @@ import 'package:flutter/material.dart';
 
 import '../../../core/tokens.dart';
 import '../../../core/typography.dart';
+import '../../../core/widgets/app_toggle.dart';
 
-/// A form line with a title, an optional subtitle and the add-site form's own
-/// switch: `2a`'s Network tab and the Default route screen.
+/// A form line with a title, an optional subtitle and a v2 [AppToggle]:
+/// `2a`'s tabs and the Default route screen.
 class FormToggleRow extends StatelessWidget {
   const FormToggleRow({
     super.key,
@@ -32,47 +33,30 @@ class FormToggleRow extends StatelessWidget {
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
       onTap: onChanged == null ? null : () => onChanged!(!value),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(title, style: ui(size: 14, color: C.textPrimary)),
-                if (subtitle != null) ...[
-                  const SizedBox(height: 3),
-                  Text(subtitle!, style: ui(size: 11, color: C.textFaint)),
-                ],
-              ],
-            ),
-          ),
-          GestureDetector(
-            key: switchKey,
-            onTap: onChanged == null ? null : () => onChanged!(!value),
-            child: Opacity(
-              opacity: onChanged == null ? 0.4 : 1,
-              child: Container(
-                width: 44,
-                height: 26,
-                padding: const EdgeInsets.symmetric(horizontal: 3),
-                alignment: value ? Alignment.centerRight : Alignment.centerLeft,
-                decoration: BoxDecoration(
-                  color: value ? C.jade : C.trackOff,
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: Container(
-                  width: 20,
-                  height: 20,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: value ? C.bg : C.knobOff,
-                  ),
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(minHeight: 56),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          child: Row(
+            children: [
+              Expanded(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(title, style: T.body.copyWith(color: C.textPrimary)),
+                    if (subtitle != null) ...[
+                      const SizedBox(height: 2),
+                      Text(subtitle!, style: T.sub),
+                    ],
+                  ],
                 ),
               ),
-            ),
+              const SizedBox(width: 12),
+              AppToggle(key: switchKey, value: value, onChanged: onChanged),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }

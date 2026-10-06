@@ -64,7 +64,7 @@ class NetworkTab extends StatelessWidget {
           userController: userController,
           passwordController: passwordController,
         ),
-        const SizedBox(height: 18),
+        const SizedBox(height: 12),
         FormToggleRow(
           title: 'Block WebRTC',
           subtitle: 'Prevents real IP leaking past the proxy',
@@ -72,7 +72,6 @@ class NetworkTab extends StatelessWidget {
           value: blockWebRtc || (proxyEnabled && webRtcLocked(proxyMode)),
           onChanged: proxyEnabled && webRtcLocked(proxyMode) ? null : onBlockWebRtcChanged,
         ),
-        const SizedBox(height: 14),
         FormToggleRow(
           title: 'Block trackers and ads',
           subtitle: switch (rulesMatchedToday) {

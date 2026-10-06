@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 
-import '../../../core/tokens.dart';
 import '../../../core/typography.dart';
+import '../../../core/widgets/group.dart';
+import 'form_toggle_row.dart';
 
 /// Spec `2a`, Privacy tab. Every hardware permission defaults off; the two
 /// shields default on. `showInDecoy` writes `Site.showInDecoy`, a
@@ -49,111 +50,46 @@ class PrivacyTab extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Padding(
-          padding: const EdgeInsets.only(bottom: 12),
+          padding: const EdgeInsets.only(bottom: 8),
           child: Text('HARDWARE · ALL OFF BY DEFAULT', style: _label),
         ),
-        _bareRow('Camera', allowCamera, onAllowCameraChanged),
-        _bareRow('Microphone', allowMicrophone, onAllowMicrophoneChanged),
-        _bareRow('Location', allowLocation, onAllowLocationChanged),
-        _bareRow('Clipboard', allowClipboard, onAllowClipboardChanged),
+        Group(
+          children: [
+            FormToggleRow(title: 'Camera', value: allowCamera, onChanged: onAllowCameraChanged),
+            FormToggleRow(
+                title: 'Microphone', value: allowMicrophone, onChanged: onAllowMicrophoneChanged),
+            FormToggleRow(title: 'Location', value: allowLocation, onChanged: onAllowLocationChanged),
+            FormToggleRow(
+                title: 'Clipboard', value: allowClipboard, onChanged: onAllowClipboardChanged),
+          ],
+        ),
         Padding(
-          padding: const EdgeInsets.fromLTRB(0, 22, 0, 12),
+          padding: const EdgeInsets.fromLTRB(0, 24, 0, 8),
           child: Text('SHIELDS', style: _label),
         ),
-        _detailedRow(
-          title: 'Anti-fingerprinting',
-          subtitle: 'Noise for canvas, WebGL and audio readouts',
-          value: antiFingerprinting,
-          onChanged: onAntiFingerprintingChanged,
-        ),
-        _detailedRow(
-          title: 'Ask for PIN before opening',
-          subtitle: 'Biometric accepted',
-          value: requirePin,
-          onChanged: onRequirePinChanged,
-        ),
-        _detailedRow(
-          title: 'Show in decoy vault',
-          subtitle: 'Visible when the second PIN is used',
-          value: showInDecoy,
-          onChanged: onShowInDecoyChanged,
+        Group(
+          children: [
+            FormToggleRow(
+              title: 'Anti-fingerprinting',
+              subtitle: 'Noise for canvas, WebGL and audio readouts',
+              value: antiFingerprinting,
+              onChanged: onAntiFingerprintingChanged,
+            ),
+            FormToggleRow(
+              title: 'Ask for PIN before opening',
+              subtitle: 'Biometric accepted',
+              value: requirePin,
+              onChanged: onRequirePinChanged,
+            ),
+            FormToggleRow(
+              title: 'Show in decoy vault',
+              subtitle: 'Visible when the second PIN is used',
+              value: showInDecoy,
+              onChanged: onShowInDecoyChanged,
+            ),
+          ],
         ),
       ],
-    );
-  }
-
-  Widget _bareRow(String title, bool value, ValueChanged<bool> onChanged) {
-    return _rowTap(value, onChanged, Container(
-      padding: const EdgeInsets.symmetric(vertical: 14),
-      decoration: const BoxDecoration(border: Border(top: BorderSide(color: C.line06))),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(title, style: ui(size: 14, color: C.textPrimary)),
-          _switch(value: value, onChanged: onChanged),
-        ],
-      ),
-    ));
-  }
-
-  Widget _detailedRow({
-    required String title,
-    required String subtitle,
-    required bool value,
-    required ValueChanged<bool> onChanged,
-  }) {
-    return _rowTap(value, onChanged, Container(
-      padding: const EdgeInsets.symmetric(vertical: 14),
-      decoration: const BoxDecoration(border: Border(top: BorderSide(color: C.line06))),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(title, style: ui(size: 14, color: C.textPrimary)),
-                const SizedBox(height: 3),
-                Text(subtitle, style: ui(size: 11, color: C.textFaint)),
-              ],
-            ),
-          ),
-          _switch(value: value, onChanged: onChanged),
-        ],
-      ),
-    ));
-  }
-
-  /// A tap anywhere on a switch's row toggles it, not only on the switch.
-  Widget _rowTap(bool value, ValueChanged<bool> onChanged, Widget child) {
-    return GestureDetector(
-      behavior: HitTestBehavior.opaque,
-      onTap: () => onChanged(!value),
-      child: child,
-    );
-  }
-
-  Widget _switch({required bool value, required ValueChanged<bool> onChanged}) {
-    return GestureDetector(
-      onTap: () => onChanged(!value),
-      child: Container(
-        width: 44,
-        height: 26,
-        padding: const EdgeInsets.symmetric(horizontal: 3),
-        alignment: value ? Alignment.centerRight : Alignment.centerLeft,
-        decoration: BoxDecoration(
-          color: value ? C.jade : C.trackOff,
-          borderRadius: BorderRadius.circular(20),
-        ),
-        child: Container(
-          width: 20,
-          height: 20,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            color: value ? C.bg : C.knobOff,
-          ),
-        ),
-      ),
     );
   }
 }
