@@ -6,6 +6,7 @@ import '../../../core/icons.dart';
 import '../../../core/tokens.dart';
 import '../../../core/typography.dart';
 import '../../../core/widgets/app_toggle.dart';
+import '../../../core/widgets/group.dart';
 import '../../../core/widgets/icon_tap.dart';
 import 'filter_list_section.dart';
 
@@ -47,6 +48,7 @@ class ScriptsAndFiltersScreen extends StatelessWidget {
   final VoidCallback onNewScript;
   final VoidCallback onBack;
 
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -55,9 +57,9 @@ class ScriptsAndFiltersScreen extends StatelessWidget {
         child: Column(
           children: [
             Container(
-              padding: const EdgeInsets.fromLTRB(18, 14, 18, 12),
+              padding: const EdgeInsets.fromLTRB(4, 8, 16, 8),
               decoration: const BoxDecoration(
-                border: Border(bottom: BorderSide(color: C.line06)),
+                border: Border(bottom: BorderSide(color: C.line)),
               ),
               child: Row(
                 children: [
@@ -65,10 +67,8 @@ class ScriptsAndFiltersScreen extends StatelessWidget {
                     glyph: AppGlyph.back,
                     label: 'Back',
                     onTap: onBack,
-                    size: 20,
-                    iconSize: 18,
                   ),
-                  const SizedBox(width: 10),
+                  const SizedBox(width: 4),
                   Expanded(
                     child: Text(
                       'Scripts and filters',
@@ -82,7 +82,7 @@ class ScriptsAndFiltersScreen extends StatelessWidget {
             ),
             Expanded(
               child: ListView(
-                padding: const EdgeInsets.all(18),
+                padding: const EdgeInsets.fromLTRB(S.s4, S.s4, S.s4, S.s6),
                 children: [
                   FilterListSection(
                     lists: filterLists,
@@ -90,82 +90,116 @@ class ScriptsAndFiltersScreen extends StatelessWidget {
                     onToggle: onToggleFilterList,
                   ),
                   Padding(
-                    padding: const EdgeInsets.fromLTRB(0, 24, 0, 4),
-                    child: Text('MY SCRIPTS',
-                        style: ui(
-                            size: 10.5,
-                            weight: 600,
-                            letterSpacing: 1.05,
-                            color: C.textFaint)),
+                    padding: const EdgeInsets.fromLTRB(4, S.s6, 4, S.s2),
+                    child: Text('MY SCRIPTS', style: T.sectionLabel),
                   ),
-                  for (final script in scripts)
-                    GestureDetector(
-                      onTap: () => onOpenScript(script.id),
+                  if (scripts.isNotEmpty)
+                    Group(
+                      padding: EdgeInsets.zero,
+                      children: [
+                        for (final script in scripts)
+                          _ScriptRow(
+                            script: script,
+                            subtitle: scriptSubtitle(script,
+                                siteNamesById: siteNamesById),
+                            onTap: () => onOpenScript(script.id),
+                            onToggle: () => onToggleScript(script.id),
+                          ),
+                      ],
+                    ),
+                  Padding(
+                    padding: const EdgeInsets.only(top: S.s2),
+                    child: GestureDetector(
+                      // The whole row, not only its glyphs.
                       behavior: HitTestBehavior.opaque,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        decoration: const BoxDecoration(
-                          border: Border(bottom: BorderSide(color: C.line06)),
-                        ),
+                      onTap: onNewScript,
+                      child: ConstrainedBox(
+                        constraints: const BoxConstraints(minHeight: 56),
                         child: Row(
                           children: [
-                            Container(
-                              width: 34,
-                              height: 34,
-                              alignment: Alignment.center,
-                              decoration: BoxDecoration(
-                                color: C.raised,
-                                borderRadius: BorderRadius.circular(9),
-                              ),
-                              child: Text(script.kind.badge,
-                                  style: ui(
-                                      size: 12, color: script.kind.badgeColor)),
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Text(script.name,
-                                      style:
-                                          ui(size: 14, color: C.textPrimary)),
-                                  const SizedBox(height: 3),
-                                  Text(
-                                    scriptSubtitle(script,
-                                        siteNamesById: siteNamesById),
-                                    style: ui(size: 11.5, color: C.textFaint),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            AppToggle(
-                              value: script.enabled,
-                              onChanged: (_) => onToggleScript(script.id),
+                            const SizedBox(width: S.s4),
+                            const AppIcon(AppGlyph.plus, size: 18, color: C.jade),
+                            const SizedBox(width: S.s3),
+                            Flexible(
+                              child: Text('New script',
+                                  style: T.label.copyWith(color: C.jade)),
                             ),
                           ],
                         ),
                       ),
                     ),
-                  Padding(
-                    padding: const EdgeInsets.only(top: 18),
-                    child: GestureDetector(
-                      // The whole row, not only its glyphs.
-                      behavior: HitTestBehavior.opaque,
-                      onTap: onNewScript,
-                      child: Row(
-                        children: [
-                          const AppIcon(AppGlyph.plus, size: 18, color: C.jade),
-                          const SizedBox(width: 11),
-                          Text('New script',
-                              style:
-                                  ui(size: 14.5, weight: 500, color: C.jade)),
-                        ],
-                      ),
-                    ),
                   ),
                 ],
               ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// `10d`'s badge colour for a script kind (restyle v2 §2.8): the view's
+/// choice, not the domain model's. CSS in the code tone, JS in amber.
+Color scriptBadgeColor(ScriptKind kind) => switch (kind) {
+      ScriptKind.css => C.code,
+      ScriptKind.js => C.warning,
+    };
+
+class _ScriptRow extends StatelessWidget {
+  const _ScriptRow({
+    required this.script,
+    required this.subtitle,
+    required this.onTap,
+    required this.onToggle,
+  });
+
+  final UserScript script;
+  final String subtitle;
+  final VoidCallback onTap;
+  final VoidCallback onToggle;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      behavior: HitTestBehavior.opaque,
+      child: Container(
+        constraints: const BoxConstraints(minHeight: 72),
+        padding: const EdgeInsets.symmetric(horizontal: S.s4, vertical: 14),
+        child: Row(
+          children: [
+            Container(
+              width: 36,
+              height: 36,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                color: C.button,
+                borderRadius: BorderRadius.circular(R.monogram),
+              ),
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Text(script.kind.badge,
+                    style: T.barBadge
+                        .copyWith(color: scriptBadgeColor(script.kind))),
+              ),
+            ),
+            const SizedBox(width: S.s3),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(script.name, style: T.body),
+                  const SizedBox(height: 2),
+                  Text(subtitle, style: T.sub),
+                ],
+              ),
+            ),
+            const SizedBox(width: S.s3),
+            AppToggle(
+              value: script.enabled,
+              onChanged: (_) => onToggle(),
             ),
           ],
         ),

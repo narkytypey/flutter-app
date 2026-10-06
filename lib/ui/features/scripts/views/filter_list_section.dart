@@ -4,6 +4,7 @@ import '../../../../domain/models/filter_list.dart';
 import '../../../core/tokens.dart';
 import '../../../core/typography.dart';
 import '../../../core/widgets/app_toggle.dart';
+import '../../../core/widgets/group.dart';
 
 /// Digit-group commas, hand-rolled — no `intl` dependency for one format.
 String formatRuleCount(int n) {
@@ -42,51 +43,51 @@ class FilterListSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Padding(
-          padding: const EdgeInsets.only(bottom: 4),
-          child: Text('FILTER LISTS',
-              style: ui(
-                  size: 10.5,
-                  weight: 600,
-                  letterSpacing: 1.05,
-                  color: C.textFaint)),
+          padding: const EdgeInsets.fromLTRB(4, 0, 4, S.s2),
+          child: Text('FILTER LISTS', style: T.sectionLabel),
         ),
-        for (final list in lists)
-          GestureDetector(
-            onTap: () => onToggle(list.id),
-            behavior: HitTestBehavior.opaque,
-            child: Container(
-              padding: const EdgeInsets.symmetric(vertical: 14),
-              decoration: const BoxDecoration(
-                border: Border(bottom: BorderSide(color: C.line06)),
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisSize: MainAxisSize.min,
+        if (lists.isNotEmpty)
+          Group(
+            padding: EdgeInsets.zero,
+            children: [
+              for (final list in lists)
+                GestureDetector(
+                  onTap: () => onToggle(list.id),
+                  behavior: HitTestBehavior.opaque,
+                  child: Container(
+                    constraints: const BoxConstraints(minHeight: 72),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: S.s4, vertical: 14),
+                    child: Row(
                       children: [
-                        Text(list.name, style: ui(size: 14, color: C.textPrimary)),
-                        const SizedBox(height: 3),
-                        Text(
-                          list.enabled
-                              ? '${formatRuleCount(list.ruleCount)} rules · ${updatedAgoLabel(now, list.updatedAt)}'
-                              : '${formatRuleCount(list.ruleCount)} rules · off',
-                          style: ui(size: 11.5, color: C.textFaint),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(list.name, style: T.body),
+                              const SizedBox(height: 2),
+                              Text(
+                                list.enabled
+                                    ? '${formatRuleCount(list.ruleCount)} rules · ${updatedAgoLabel(now, list.updatedAt)}'
+                                    : '${formatRuleCount(list.ruleCount)} rules · off',
+                                style: T.sub,
+                              ),
+                            ],
+                          ),
                         ),
+                        const SizedBox(width: S.s3),
+                        AppToggle(
+                            value: list.enabled,
+                            onChanged: (_) => onToggle(list.id)),
                       ],
                     ),
                   ),
-                  const SizedBox(width: 12),
-                  AppToggle(
-                      value: list.enabled, onChanged: (_) => onToggle(list.id)),
-                ],
-              ),
-            ),
+                ),
+            ],
           ),
       ],
     );

@@ -55,60 +55,44 @@ class _DeleteWorkspaceSheetState extends State<DeleteWorkspaceSheet> {
         // only curly-quoted string in the canvas file, and the canvas is
         // authoritative over the plan file, which wrote it with straight
         // quotes. Do not "normalise" these to " on a later pass.
-        Text('Delete “${widget.workspaceName}”?',
-            style: ui(size: 17, weight: 600, letterSpacing: -0.17)),
-        const SizedBox(height: 16),
-        ClipRRect(
-          borderRadius: BorderRadius.circular(14),
-          child: DecoratedBox(
-            decoration: BoxDecoration(border: Border.all(color: C.line08)),
-            child: Column(
-              children: [
-                _statRow('Sites removed', '${widget.sitesRemoved}'),
-                _statRow('Logins destroyed', '${widget.sitesRemoved}'),
-                _statRow('Stored data wiped',
-                    wholeMegabytes(widget.storageBytesWiped)),
-                _statRow('Custom scripts kept', 'In the script library',
-                    muted: true),
-              ],
-            ),
-          ),
+        Text('Delete “${widget.workspaceName}”?', style: T.sheetTitle),
+        const SizedBox(height: S.s4),
+        SheetGroup(
+          children: [
+            _statRow('Sites removed', '${widget.sitesRemoved}'),
+            _statRow('Logins destroyed', '${widget.sitesRemoved}'),
+            _statRow('Stored data wiped',
+                wholeMegabytes(widget.storageBytesWiped)),
+            _statRow('Custom scripts kept', 'In the script library',
+                muted: true),
+          ],
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: S.s4),
         Text(
           'This cannot be undone and there is no backup unless you made one yourself.',
-          style: ui(size: 12.5, height: 1.6, color: C.textMuted),
+          style: T.sub,
         ),
-        const SizedBox(height: 16),
-        Text('Type the name to confirm',
-            style: ui(size: 11.5, color: C.textFaint)),
-        const SizedBox(height: 8),
-        Container(
-          height: 46,
-          padding: const EdgeInsets.symmetric(horizontal: 13),
-          alignment: Alignment.centerLeft,
-          decoration: BoxDecoration(
-            color: C.surface,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: C.line10),
-          ),
+        const SizedBox(height: S.s4),
+        Text('Type the name to confirm', style: T.meta),
+        const SizedBox(height: S.s2),
+        _SheetInputFrame(
           child: TextField(
             controller: _controller,
-            style: ui(size: 14, color: C.textSecondary),
+            style: T.body,
             decoration: InputDecoration(
               border: InputBorder.none,
               isDense: true,
               contentPadding: EdgeInsets.zero,
               hintText: widget.workspaceName,
-              hintStyle: ui(size: 14, color: C.textDisabled),
+              hintStyle: T.body.copyWith(color: C.textMuted),
             ),
           ),
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: S.s4),
         Row(
           children: [
             Expanded(child: PillButton(label: 'Cancel', onTap: widget.onCancel)),
-            const SizedBox(width: 9),
+            const SizedBox(width: S.s2),
             Expanded(
               child: _DeleteButton(enabled: _confirmed, onTap: widget.onDelete),
             ),
@@ -121,16 +105,16 @@ class _DeleteWorkspaceSheetState extends State<DeleteWorkspaceSheet> {
   Widget _statRow(String label, String value, {bool muted = false}) {
     return Container(
       color: C.surface,
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      constraints: const BoxConstraints(minHeight: 48),
+      padding: const EdgeInsets.symmetric(horizontal: S.s4, vertical: S.s3),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Expanded(child: Text(label, style: ui(size: 13, color: C.textTertiary))),
-          const SizedBox(width: 12),
+          Expanded(child: Text(label, style: T.sub)),
+          const SizedBox(width: S.s3),
           Flexible(
             child: Text(value,
                 textAlign: TextAlign.end,
-                style: ui(size: 13, color: muted ? C.textMuted : C.textPrimary)),
+                style: muted ? T.sub : T.sub.copyWith(color: C.textPrimary)),
           ),
         ],
       ),
@@ -138,10 +122,43 @@ class _DeleteWorkspaceSheetState extends State<DeleteWorkspaceSheet> {
   }
 }
 
-/// Spec `10c`'s Delete button fills `#241C1D` (danger surface) with a
-/// `#8A6A62` (danger-muted) label and a 28%-alpha danger border — a
-/// combination none of Plan 1's [PillTone] values produce, so it is a small
-/// local button rather than a fourth bespoke tone added for one screen.
+/// An input on a sheet (restyle v2 §2.1, §4): the raised tone, radius 14, a
+/// 1.5 dp edge border that turns 2 dp text-1 while the field has focus.
+class _SheetInputFrame extends StatelessWidget {
+  const _SheetInputFrame({required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return Focus(
+      canRequestFocus: false,
+      skipTraversal: true,
+      child: Builder(builder: (context) {
+        final focused = Focus.of(context).hasFocus;
+        return Container(
+          constraints: const BoxConstraints(minHeight: 48),
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: S.s3),
+          alignment: Alignment.centerLeft,
+          decoration: BoxDecoration(
+            color: C.button,
+            borderRadius: BorderRadius.circular(R.input),
+            border: Border.all(
+              color: focused ? C.textPrimary : C.edge,
+              width: focused ? 2 : 1.5,
+            ),
+          ),
+          child: child,
+        );
+      }),
+    );
+  }
+}
+
+/// Spec `10c`'s Delete (restyle v2 §8): the danger wash with a danger label
+/// and, once the typed name matches, a 1.5 dp danger outline. Before that it
+/// is inert: a readable tone and no outline (§2.2), so it does not read as
+/// something to tap.
 class _DeleteButton extends StatelessWidget {
   const _DeleteButton({required this.enabled, required this.onTap});
 
@@ -150,26 +167,26 @@ class _DeleteButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final r = BorderRadius.circular(R.full);
     return Material(
+      key: const Key('delete-workspace-button'),
       color: C.dangerSurface,
-      borderRadius: BorderRadius.circular(24),
+      borderRadius: r,
       child: InkWell(
         onTap: enabled ? onTap : null,
-        borderRadius: BorderRadius.circular(24),
+        borderRadius: r,
         child: Container(
-          height: 48,
+          constraints: const BoxConstraints(minHeight: 52),
           alignment: Alignment.center,
+          padding: const EdgeInsets.symmetric(horizontal: S.s3, vertical: S.s2),
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(24),
-            border: Border.all(
-                color: C.danger.withValues(alpha: enabled ? 0.28 : 0.1)),
+            borderRadius: r,
+            border: enabled ? Border.all(color: C.danger, width: 1.5) : null,
           ),
           child: Text(
             'Delete',
-            style: ui(
-                size: 14.5,
-                weight: 500,
-                color: enabled ? C.dangerMuted : C.textDisabled),
+            textAlign: TextAlign.center,
+            style: T.label.copyWith(color: enabled ? C.danger : C.textMuted),
           ),
         ),
       ),

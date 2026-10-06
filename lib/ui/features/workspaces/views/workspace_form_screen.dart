@@ -7,7 +7,9 @@ import '../../../core/icons.dart';
 import '../../../core/tokens.dart';
 import '../../../core/typography.dart';
 import '../../../core/widgets/app_toggle.dart';
+import '../../../core/widgets/group.dart';
 import '../../../core/widgets/icon_tap.dart';
+import '../../container/views/address_edit_bar.dart' show InputFrame;
 
 class WorkspaceFormResult {
   const WorkspaceFormResult({
@@ -89,6 +91,7 @@ class _WorkspaceFormScreenState extends State<WorkspaceFormScreen> {
       showInDecoy: _showInDecoy,
     ));
 
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -96,57 +99,45 @@ class _WorkspaceFormScreenState extends State<WorkspaceFormScreen> {
       body: SafeArea(
         child: Column(
           children: [
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+            Container(
+              padding: const EdgeInsets.fromLTRB(4, 8, 4, 8),
+              decoration: const BoxDecoration(
+                border: Border(bottom: BorderSide(color: C.line)),
+              ),
               child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   IconTap(
                     glyph: AppGlyph.close,
                     label: 'Close',
                     onTap: widget.onClose,
-                    size: 24,
-                    iconSize: 20,
                   ),
                   Expanded(
                     child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 12),
+                      padding: const EdgeInsets.symmetric(horizontal: S.s2),
                       child: Text(
                         widget.title,
                         textAlign: TextAlign.center,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: ui(size: 15, weight: 600),
+                        style: T.appBarTitle,
                       ),
                     ),
                   ),
-                  GestureDetector(
-                    onTap: _save,
-                    child: Text('Save',
-                        style: ui(size: 14, weight: 500, color: C.jade)),
-                  ),
+                  _FormSaveAction(onTap: _save),
                 ],
               ),
             ),
             Expanded(
               child: ListView(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+                padding: const EdgeInsets.fromLTRB(S.s4, S.s4, S.s4, S.s6),
                 children: [
                   _fieldLabel('NAME'),
-                  const SizedBox(height: 8),
-                  Container(
-                    height: 46,
-                    padding: const EdgeInsets.symmetric(horizontal: 13),
-                    alignment: Alignment.centerLeft,
-                    decoration: BoxDecoration(
-                      color: C.surface,
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: C.jade.withValues(alpha: 0.35)),
-                    ),
+                  const SizedBox(height: S.s2),
+                  InputFrame(
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: S.s3),
                     child: TextField(
                       controller: _nameController,
-                      style: ui(size: 14, color: C.textSecondary),
+                      style: T.body,
                       decoration: const InputDecoration(
                         border: InputBorder.none,
                         isDense: true,
@@ -154,72 +145,60 @@ class _WorkspaceFormScreenState extends State<WorkspaceFormScreen> {
                       ),
                     ),
                   ),
-                  const SizedBox(height: 20),
+                  const SizedBox(height: S.s6),
                   _fieldLabel('MARKER'),
-                  const SizedBox(height: 9),
-                  Row(
+                  const SizedBox(height: S.s1),
+                  Wrap(
+                    spacing: S.s1,
                     children: [
-                      for (var i = 0; i < C.markers.length; i++) ...[
-                        if (i != 0) const SizedBox(width: 12),
-                        GestureDetector(
+                      for (var i = 0; i < C.markers.length; i++)
+                        _MarkerSwatch(
                           key: Key('marker-$i'),
+                          index: i,
+                          selected: i == _markerIndex,
                           onTap: () => setState(() => _markerIndex = i),
-                          child: Container(
-                            width: 30,
-                            height: 30,
-                            decoration: BoxDecoration(
-                              color: C.markers[i],
-                              borderRadius: BorderRadius.circular(8),
-                              border: i == _markerIndex
-                                  ? Border.all(color: C.textPrimary, width: 2)
-                                  : null,
-                            ),
-                          ),
                         ),
-                      ],
                     ],
                   ),
-                  const SizedBox(height: 20),
+                  const SizedBox(height: S.s5),
                   _fieldLabel('STORAGE'),
-                  const SizedBox(height: 9),
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(12),
-                    child: DecoratedBox(
-                      decoration:
-                          BoxDecoration(border: Border.all(color: C.line08)),
-                      child: Column(
-                        children: [
-                          _storageOption(
-                            title: 'Keep between sessions',
-                            subtitle: 'Stays signed in',
-                            selected: _storageRule == StorageRule.keep,
-                            onTap: () =>
-                                setState(() => _storageRule = StorageRule.keep),
-                          ),
-                          Container(height: 1, color: C.bg),
-                          _storageOption(
-                            title: 'Wipe when the app closes',
-                            subtitle: 'Nothing survives a restart',
-                            selected: _storageRule == StorageRule.wipeOnExit,
-                            onTap: () => setState(
-                                () => _storageRule = StorageRule.wipeOnExit),
-                          ),
-                        ],
+                  const SizedBox(height: S.s2),
+                  Group(
+                    padding: EdgeInsets.zero,
+                    children: [
+                      _storageOption(
+                        title: 'Keep between sessions',
+                        subtitle: 'Stays signed in',
+                        selected: _storageRule == StorageRule.keep,
+                        onTap: () =>
+                            setState(() => _storageRule = StorageRule.keep),
                       ),
-                    ),
+                      _storageOption(
+                        title: 'Wipe when the app closes',
+                        subtitle: 'Nothing survives a restart',
+                        selected: _storageRule == StorageRule.wipeOnExit,
+                        onTap: () => setState(
+                            () => _storageRule = StorageRule.wipeOnExit),
+                      ),
+                    ],
                   ),
-                  const SizedBox(height: 4),
-                  _toggleRow(
-                    title: 'Ask for PIN to enter',
-                    subtitle: 'Applies to the whole workspace',
-                    value: _requirePin,
-                    onChanged: (v) => setState(() => _requirePin = v),
-                  ),
-                  _toggleRow(
-                    title: 'Show in decoy vault',
-                    subtitle: 'Off keeps it invisible behind the second PIN',
-                    value: _showInDecoy,
-                    onChanged: (v) => setState(() => _showInDecoy = v),
+                  const SizedBox(height: S.s4),
+                  Group(
+                    padding: EdgeInsets.zero,
+                    children: [
+                      _toggleRow(
+                        title: 'Ask for PIN to enter',
+                        subtitle: 'Applies to the whole workspace',
+                        value: _requirePin,
+                        onChanged: (v) => setState(() => _requirePin = v),
+                      ),
+                      _toggleRow(
+                        title: 'Show in decoy vault',
+                        subtitle: 'Off keeps it invisible behind the second PIN',
+                        value: _showInDecoy,
+                        onChanged: (v) => setState(() => _showInDecoy = v),
+                      ),
+                    ],
                   ),
                 ],
               ),
@@ -230,9 +209,7 @@ class _WorkspaceFormScreenState extends State<WorkspaceFormScreen> {
     );
   }
 
-  Widget _fieldLabel(String text) => Text(text,
-      style:
-          ui(size: 10.5, weight: 600, letterSpacing: 1.05, color: C.textFaint));
+  Widget _fieldLabel(String text) => Text(text, style: T.sectionLabel);
 
   Widget _storageOption({
     required String title,
@@ -240,41 +217,32 @@ class _WorkspaceFormScreenState extends State<WorkspaceFormScreen> {
     required bool selected,
     required VoidCallback onTap,
   }) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        color: C.surface,
-        padding: const EdgeInsets.all(13),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(title,
-                      style: ui(
-                          size: 13.5,
-                          color: selected ? C.textPrimary : C.textTertiary)),
-                  const SizedBox(height: 3),
-                  Text(subtitle, style: ui(size: 11, color: C.textFaint)),
-                ],
+    return Semantics(
+      selected: selected,
+      inMutuallyExclusiveGroup: true,
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: onTap,
+        child: Container(
+          constraints: const BoxConstraints(minHeight: 72),
+          padding: const EdgeInsets.symmetric(horizontal: S.s4, vertical: 14),
+          child: Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(title, style: selected ? T.rowTitle : T.rowTitleIdle),
+                    const SizedBox(height: 2),
+                    Text(subtitle, style: T.sub),
+                  ],
+                ),
               ),
-            ),
-            const SizedBox(width: 12),
-            Container(
-              width: 16,
-              height: 16,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: C.bg,
-                border: Border.all(
-                    color: selected ? C.jade : C.idleDot,
-                    width: selected ? 5 : 1.5),
-              ),
-            ),
-          ],
+              const SizedBox(width: S.s3),
+              _FormRadio(selected: selected),
+            ],
+          ),
         ),
       ),
     );
@@ -290,23 +258,140 @@ class _WorkspaceFormScreenState extends State<WorkspaceFormScreen> {
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
       onTap: () => onChanged(!value),
-      child: Padding(
-        padding: const EdgeInsets.only(top: 16),
+      child: Container(
+        constraints: const BoxConstraints(minHeight: 72),
+        padding: const EdgeInsets.symmetric(horizontal: S.s4, vertical: 14),
         child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
                 children: [
-                  Text(title, style: ui(size: 14, color: C.textPrimary)),
-                  const SizedBox(height: 3),
-                  Text(subtitle, style: ui(size: 11, color: C.textFaint)),
+                  Text(title, style: T.body),
+                  const SizedBox(height: 2),
+                  Text(subtitle, style: T.sub),
                 ],
               ),
             ),
+            const SizedBox(width: S.s3),
             AppToggle(value: value, onChanged: onChanged),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+/// A marker swatch in `10b`'s picker: a 48 dp target around a 32 dp swatch.
+/// The chosen one carries a 2 dp text-1 ring and a check, so the choice is
+/// never told by colour alone (restyle v2 §1.4).
+class _MarkerSwatch extends StatelessWidget {
+  const _MarkerSwatch({
+    super.key,
+    required this.index,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final int index;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      button: true,
+      selected: selected,
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: onTap,
+        child: SizedBox(
+          width: 48,
+          height: 48,
+          child: Center(
+            child: Container(
+              width: 36,
+              height: 36,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(R.monogram),
+                border: selected
+                    ? Border.all(color: C.textPrimary, width: 2)
+                    : null,
+              ),
+              child: Container(
+                width: 28,
+                height: 28,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: C.markers[index],
+                  borderRadius: BorderRadius.circular(R.badge),
+                ),
+                child: selected
+                    ? const AppIcon(AppGlyph.check, size: 16, color: C.bg)
+                    : null,
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// A radio (restyle v2 §5): 20 dp, a 2 dp edge ring; selected, a 2 dp text-1
+/// ring around a 10 dp dot. Not jade: a choice is a position.
+class _FormRadio extends StatelessWidget {
+  const _FormRadio({required this.selected});
+
+  final bool selected;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 20,
+      height: 20,
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        border: Border.all(color: selected ? C.textPrimary : C.edge, width: 2),
+      ),
+      child: selected
+          ? Container(
+              width: 10,
+              height: 10,
+              decoration: const BoxDecoration(
+                  color: C.textPrimary, shape: BoxShape.circle),
+            )
+          : null,
+    );
+  }
+}
+
+/// A centred form's `Save` (`10b`, `10e`): the screen's one jade action, a
+/// 48 dp target.
+class _FormSaveAction extends StatelessWidget {
+  const _FormSaveAction({required this.onTap});
+
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      button: true,
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: onTap,
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: S.s3),
+            child: Center(
+              widthFactor: 1,
+              child: Text('Save', style: T.label.copyWith(color: C.jade)),
+            ),
+          ),
         ),
       ),
     );

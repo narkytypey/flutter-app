@@ -1,18 +1,11 @@
-import 'package:flutter/material.dart' show Color;
-
-/// Spec `10d`'s badge colours: CSS reads `#9FD8C0` (the jade-code tone code
-/// blocks use elsewhere), JS reads `#D6A45B` (warning).
+/// What a library script is. The badge's colour is the view's choice
+/// (restyle v2 §2.8): a domain model holds no colours.
 enum ScriptKind {
   css('CSS'),
   js('JS');
 
   const ScriptKind(this.badge);
   final String badge;
-
-  Color get badgeColor => switch (this) {
-        ScriptKind.css => const Color(0xFF9FD8C0),
-        ScriptKind.js => const Color(0xFFD6A45B),
-      };
 }
 
 class UserScript {

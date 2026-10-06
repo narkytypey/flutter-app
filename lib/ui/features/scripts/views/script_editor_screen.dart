@@ -7,6 +7,7 @@ import '../../../core/icons.dart';
 import '../../../core/tokens.dart';
 import '../../../core/typography.dart';
 import '../../../core/widgets/app_toggle.dart';
+import '../../../core/widgets/group.dart';
 import '../../../core/widgets/icon_tap.dart';
 
 class ScriptSiteChip {
@@ -100,75 +101,61 @@ class _ScriptEditorScreenState extends State<ScriptEditorScreen> {
         child: Column(
           children: [
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+              padding: const EdgeInsets.fromLTRB(4, 8, 4, 8),
               decoration: const BoxDecoration(
-                border: Border(bottom: BorderSide(color: C.line06)),
+                border: Border(bottom: BorderSide(color: C.line)),
               ),
               child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   IconTap(
                     glyph: AppGlyph.back,
                     label: 'Back',
                     onTap: widget.onClose,
-                    size: 20,
-                    iconSize: 18,
                   ),
                   Expanded(
                     child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 12),
+                      padding: const EdgeInsets.symmetric(horizontal: S.s2),
                       child: Text(
                         widget.title,
                         textAlign: TextAlign.center,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: ui(size: 15, weight: 600),
+                        style: T.appBarTitle,
                       ),
                     ),
                   ),
-                  GestureDetector(
-                    onTap: _save,
-                    child: Text('Save',
-                        style: ui(size: 14, weight: 500, color: C.jade)),
-                  ),
+                  _SaveAction(onTap: _save),
                 ],
               ),
             ),
             Expanded(
               child: ListView(
-                padding: const EdgeInsets.all(18),
+                padding: const EdgeInsets.fromLTRB(S.s4, S.s4, S.s4, S.s6),
                 children: [
                   Row(
                     children: [
                       Expanded(child: _kindTab(ScriptKind.css, 'CSS')),
-                      const SizedBox(width: 8),
+                      const SizedBox(width: S.s2),
                       Expanded(child: _kindTab(ScriptKind.js, 'JavaScript')),
                     ],
                   ),
-                  const SizedBox(height: 20),
+                  const SizedBox(height: S.s4),
                   _CodeEditor(controller: _codeController),
-                  const SizedBox(height: 20),
-                  Text('RUNS ON',
-                      style: ui(
-                          size: 10.5,
-                          weight: 600,
-                          letterSpacing: 1.05,
-                          color: C.textFaint)),
-                  const SizedBox(height: 10),
+                  const SizedBox(height: S.s6),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 4),
+                    child: Text('RUNS ON', style: T.sectionLabel),
+                  ),
+                  const SizedBox(height: S.s1),
                   Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
+                    spacing: S.s2,
                     children: [
                       for (final site in widget.appliedSites)
                         GestureDetector(
+                          behavior: HitTestBehavior.opaque,
                           onTap: () => widget.onRemoveSite(site.id),
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 12, vertical: 8),
-                            decoration: BoxDecoration(
-                              color: C.button,
-                              borderRadius: BorderRadius.circular(20),
-                            ),
+                          child: _chipFrame(
+                            outlined: true,
                             child: Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
@@ -176,74 +163,78 @@ class _ScriptEditorScreenState extends State<ScriptEditorScreen> {
                                   child: Text(site.name,
                                       maxLines: 1,
                                       overflow: TextOverflow.ellipsis,
-                                      style: ui(size: 12.5, color: C.textSecondary)),
+                                      style: T.sub
+                                          .copyWith(color: C.textPrimary)),
                                 ),
-                                const SizedBox(width: 6),
+                                const SizedBox(width: S.s2),
                                 Semantics(
                                   label: 'Remove',
                                   button: true,
                                   child: const AppIcon(AppGlyph.close,
-                                      size: 12, color: C.textSecondary),
+                                      size: 16, color: C.textMuted),
                                 ),
                               ],
                             ),
                           ),
                         ),
                       GestureDetector(
+                        behavior: HitTestBehavior.opaque,
                         onTap: widget.onAddSite,
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 12, vertical: 8),
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(20),
-                            border: Border.all(
-                                color: Colors.white.withValues(alpha: 0.15)),
-                          ),
+                        // Inert once every site is on the script: a readable
+                        // tone and no outline (restyle v2 §2.2), so it does
+                        // not read as something to tap.
+                        child: _chipFrame(
+                          outlined: widget.onAddSite != null,
                           child: Text('+ Add site',
-                              style: ui(
-                                  size: 12.5,
+                              style: T.sub.copyWith(
                                   color: widget.onAddSite == null
-                                      ? C.textDisabled
-                                      : C.jade)),
+                                      ? C.textFaint
+                                      : C.textPrimary)),
                         ),
                       ),
                     ],
                   ),
-                  const SizedBox(height: 20),
+                  const SizedBox(height: S.s4),
                   // The whole row is the hit target, not just the switch —
                   // the same treatment `FilterListSection` gives its rows.
-                  GestureDetector(
-                    onTap: () => setState(
-                        () => _runAtDocumentStart = !_runAtDocumentStart),
-                    behavior: HitTestBehavior.opaque,
-                    child: Container(
-                      padding: const EdgeInsets.only(top: 14),
-                      decoration: const BoxDecoration(
-                        border: Border(top: BorderSide(color: C.line06)),
-                      ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text('Run before the page paints',
-                                    style: ui(size: 14, color: C.textPrimary)),
-                                const SizedBox(height: 3),
-                                Text('Prevents a flash of the hidden elements',
-                                    style: ui(size: 11.5, color: C.textFaint)),
-                              ],
-                            ),
+                  Group(
+                    padding: EdgeInsets.zero,
+                    children: [
+                      GestureDetector(
+                        onTap: () => setState(
+                            () => _runAtDocumentStart = !_runAtDocumentStart),
+                        behavior: HitTestBehavior.opaque,
+                        child: Container(
+                          constraints: const BoxConstraints(minHeight: 72),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: S.s4, vertical: 14),
+                          child: Row(
+                            children: [
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Text('Run before the page paints',
+                                        style: T.body),
+                                    const SizedBox(height: 2),
+                                    Text(
+                                        'Prevents a flash of the hidden elements',
+                                        style: T.sub),
+                                  ],
+                                ),
+                              ),
+                              const SizedBox(width: S.s3),
+                              AppToggle(
+                                value: _runAtDocumentStart,
+                                onChanged: (v) =>
+                                    setState(() => _runAtDocumentStart = v),
+                              ),
+                            ],
                           ),
-                          AppToggle(
-                            value: _runAtDocumentStart,
-                            onChanged: (v) =>
-                                setState(() => _runAtDocumentStart = v),
-                          ),
-                        ],
+                        ),
                       ),
-                    ),
+                    ],
                   ),
                 ],
               ),
@@ -254,21 +245,96 @@ class _ScriptEditorScreenState extends State<ScriptEditorScreen> {
     );
   }
 
+  /// A chip (restyle v2 §5): a 48 dp target around a 36 dp chip with a line
+  /// outline.
+  Widget _chipFrame({required bool outlined, required Widget child}) {
+    return ConstrainedBox(
+      constraints: const BoxConstraints(minHeight: 48),
+      child: Center(
+        widthFactor: 1,
+        heightFactor: 1,
+        child: Container(
+          constraints: const BoxConstraints(minHeight: 36),
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(18),
+            border: outlined ? Border.all(color: C.line) : null,
+          ),
+          child: child,
+        ),
+      ),
+    );
+  }
+
+  /// A segment (restyle v2 §5): selected is a 2 dp text-1 outline and a
+  /// check on the raised fill, never jade.
   Widget _kindTab(ScriptKind kind, String label) {
     final selected = _kind == kind;
-    return GestureDetector(
-      onTap: () => setState(() => _kind = kind),
-      child: Container(
-        height: 38,
-        alignment: Alignment.center,
-        decoration: BoxDecoration(
-          color: selected ? C.selected : null,
-          borderRadius: BorderRadius.circular(11),
-          border: Border.all(color: selected ? C.line10 : C.line07),
+    return Semantics(
+      button: true,
+      selected: selected,
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: () => setState(() => _kind = kind),
+        child: Container(
+          constraints: const BoxConstraints(minHeight: 48),
+          padding: const EdgeInsets.symmetric(horizontal: S.s2, vertical: S.s2),
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: selected ? C.selected : null,
+            borderRadius: BorderRadius.circular(R.input),
+            border: selected
+                ? Border.all(color: C.textPrimary, width: 2)
+                : Border.all(color: C.line),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (selected) ...[
+                const AppIcon(AppGlyph.check, size: 16, color: C.textPrimary),
+                const SizedBox(width: 6),
+              ],
+              Flexible(
+                child: Text(label,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: selected
+                        ? T.label
+                        : T.label.copyWith(
+                            color: C.textMuted, fontWeight: FontWeight.w500)),
+              ),
+            ],
+          ),
         ),
-        child: Text(label,
-            style:
-                ui(size: 13, color: selected ? C.textPrimary : C.tabInactive)),
+      ),
+    );
+  }
+}
+
+/// `10e`'s `Save`: the screen's one jade action, a 48 dp target.
+class _SaveAction extends StatelessWidget {
+  const _SaveAction({required this.onTap});
+
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      button: true,
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: onTap,
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: S.s3),
+            child: Center(
+              widthFactor: 1,
+              child: Text('Save', style: T.label.copyWith(color: C.jade)),
+            ),
+          ),
+        ),
       ),
     );
   }
@@ -288,8 +354,8 @@ class _CodeEditor extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(
         color: C.surface,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: C.line09),
+        borderRadius: BorderRadius.circular(R.input),
+        border: Border.all(color: C.edge, width: 1.5),
       ),
       clipBehavior: Clip.antiAlias,
       child: SingleChildScrollView(
@@ -306,8 +372,7 @@ class _CodeEditor extends StatelessWidget {
                     return Text(
                       List.generate(lineCount, (i) => '${i + 1}').join('\n'),
                       textAlign: TextAlign.right,
-                      style:
-                          mono(size: 11.5, height: 1.9, color: C.textDisabled),
+                      style: T.code.copyWith(color: C.textFaint),
                     );
                   },
                 ),
@@ -319,7 +384,7 @@ class _CodeEditor extends StatelessWidget {
                     controller: controller,
                     maxLines: null,
                     scrollPhysics: const NeverScrollableScrollPhysics(),
-                    style: mono(size: 11.5, height: 1.9, color: C.jadeCode),
+                    style: T.code,
                     decoration: const InputDecoration(
                       border: InputBorder.none,
                       isDense: true,
