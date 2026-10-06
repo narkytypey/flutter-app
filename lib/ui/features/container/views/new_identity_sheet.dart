@@ -20,7 +20,7 @@ class NewIdentitySheet extends StatelessWidget {
   Widget build(BuildContext context) {
     return BottomSheetSurface(
       children: [
-        Text('New identity for this site?', style: ui(size: 17, weight: 600, letterSpacing: -0.17)),
+        Text('New identity for this site?', style: T.sheetTitle),
         const SizedBox(height: 8),
         Text(
           'Its logins, storage and downloads are destroyed, and it starts over at its first page.',
@@ -31,7 +31,7 @@ class NewIdentitySheet extends StatelessWidget {
           SheetRow(label: 'New identity', labelColor: C.danger, onTap: onNewIdentity),
         ]),
         const SizedBox(height: 10),
-        PillButton(label: 'Cancel', height: 50, onTap: onCancel),
+        PillButton(label: 'Cancel', onTap: onCancel),
       ],
     );
   }

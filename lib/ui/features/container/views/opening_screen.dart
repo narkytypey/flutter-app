@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 
 import '../../../../domain/models/open_step.dart';
+import '../../../core/host_text.dart';
 import '../../../core/icons.dart';
 import '../../../core/tokens.dart';
 import '../../../core/typography.dart';
@@ -10,6 +11,11 @@ import '../../../core/widgets/icon_tap.dart';
 
 /// Spec `8a` — shown while a container is coming up: the checklist of what is
 /// being applied before the page appears, and nothing else loads meanwhile.
+///
+/// Restyle v2 §8 `8a`: the current step in text-1, pending ones in text-3,
+/// done ones in text-2 behind a text-2 check; no jade anywhere (nothing is
+/// live yet: the pill's light is amber); the progress line is text-2; every
+/// line wraps, the host after its dots, and nothing is cut short.
 class OpeningBody extends StatelessWidget {
   const OpeningBody({
     super.key,
@@ -32,9 +38,10 @@ class OpeningBody extends StatelessWidget {
         child: Column(
           children: [
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              constraints: const BoxConstraints(minHeight: 64),
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
               decoration: const BoxDecoration(
-                border: Border(bottom: BorderSide(color: C.line07)),
+                border: Border(bottom: BorderSide(color: C.line)),
               ),
               child: Row(
                 children: [
@@ -42,34 +49,30 @@ class OpeningBody extends StatelessWidget {
                     glyph: AppGlyph.back,
                     label: 'Back',
                     onTap: onCancel,
-                    size: 32,
-                    iconSize: 18,
+                    iconSize: 22,
                   ),
                   Expanded(
                     child: Container(
-                      height: 34,
-                      padding: const EdgeInsets.symmetric(horizontal: 12),
+                      constraints: const BoxConstraints(minHeight: 48),
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
                       decoration: BoxDecoration(
                         color: C.surface,
-                        borderRadius: BorderRadius.circular(17),
-                        border: Border.all(color: C.line08),
+                        borderRadius: BorderRadius.circular(24),
+                        border: Border.all(color: C.line),
                       ),
                       child: Row(
                         children: [
                           Container(
-                            width: 6,
-                            height: 6,
+                            width: 8,
+                            height: 8,
                             decoration: const BoxDecoration(
                               color: C.warning,
                               shape: BoxShape.circle,
                             ),
                           ),
-                          const SizedBox(width: 7),
+                          const SizedBox(width: 8),
                           Expanded(
-                            child: Text(host,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: ui(size: 11.5, color: C.pillText)),
+                            child: HostText(host, style: T.address.copyWith(color: C.pillText)),
                           ),
                         ],
                       ),
@@ -79,8 +82,7 @@ class OpeningBody extends StatelessWidget {
                     glyph: AppGlyph.close,
                     label: 'Close',
                     onTap: onCancel,
-                    size: 32,
-                    iconSize: 16,
+                    iconSize: 20,
                   ),
                 ],
               ),
@@ -92,7 +94,7 @@ class OpeningBody extends StatelessWidget {
                   Container(color: C.barTrack),
                   FractionallySizedBox(
                     widthFactor: progress.clamp(0.0, 1.0),
-                    child: Container(color: C.jade),
+                    child: Container(color: C.textMuted),
                   ),
                 ],
               ),
@@ -100,7 +102,7 @@ class OpeningBody extends StatelessWidget {
             Expanded(
               child: Center(
                 child: SingleChildScrollView(
-                  padding: const EdgeInsets.symmetric(horizontal: 34),
+                  padding: const EdgeInsets.symmetric(horizontal: 24),
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -122,10 +124,10 @@ class OpeningBody extends StatelessWidget {
               ),
             ),
             Padding(
-              padding: const EdgeInsets.fromLTRB(34, 0, 34, 30),
+              padding: const EdgeInsets.fromLTRB(24, 0, 24, 30),
               child: Text(
                 'Nothing loads until the tunnel is up.',
-                style: ui(size: 12, height: 1.6, color: C.textDim),
+                style: T.sub.copyWith(color: C.textFaint),
               ),
             ),
           ],
@@ -146,9 +148,9 @@ class _StepRow extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       children: [
         _StepMarker(step.state),
-        const SizedBox(width: 11),
+        const SizedBox(width: 12),
         Flexible(
-          child: Text(step.label, style: ui(size: 13.5, color: _labelColor(step.state))),
+          child: Text(step.label, style: T.bodyMuted.copyWith(color: _labelColor(step.state))),
         ),
       ],
     );
@@ -156,8 +158,8 @@ class _StepRow extends StatelessWidget {
 
   Color _labelColor(OpenStepState state) => switch (state) {
         OpenStepState.done => C.textMuted,
-        OpenStepState.running => C.textSecondary,
-        OpenStepState.pending => C.textDim,
+        OpenStepState.running => C.textPrimary,
+        OpenStepState.pending => C.textFaint,
       };
 }
 
@@ -169,19 +171,18 @@ class _StepMarker extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return switch (state) {
-      OpenStepState.done => const AppIcon(AppGlyph.check, size: 14, color: C.jade),
+      OpenStepState.done => const AppIcon(AppGlyph.check, size: 14, color: C.textMuted),
       OpenStepState.running => const SizedBox(
-          width: 11,
-          height: 11,
+          width: 14,
+          height: 14,
           child: CustomPaint(painter: _RingGapPainter()),
         ),
       OpenStepState.pending => Container(
-          width: 11,
-          height: 11,
+          width: 14,
+          height: 14,
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(5.5),
-            border: const Border.fromBorderSide(
-                BorderSide(color: C.textDim, width: 1.5)),
+            borderRadius: BorderRadius.circular(7),
+            border: const Border.fromBorderSide(BorderSide(color: C.edge, width: 2)),
           ),
         ),
     };
@@ -200,7 +201,7 @@ class _RingGapPainter extends CustomPainter {
     final paint = Paint()
       ..color = C.warning
       ..style = PaintingStyle.stroke
-      ..strokeWidth = 1.5;
+      ..strokeWidth = 2;
     final rect = Offset.zero & size;
     const gap = 0.5; // radians, centred on the top of the ring
     canvas.drawArc(rect.deflate(paint.strokeWidth / 2),

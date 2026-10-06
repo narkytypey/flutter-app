@@ -1,12 +1,15 @@
 import 'package:flutter/material.dart';
 
 import '../../../../domain/models/switcher_entry.dart';
+import '../../../core/host_text.dart';
 import '../../../core/icons.dart';
 import '../../../core/tokens.dart';
 import '../../../core/typography.dart';
 import '../../../core/widgets/hairline.dart';
 import '../../../core/widgets/icon_tap.dart';
 import '../../../core/widgets/monogram.dart';
+import '../../../core/widgets/status_rail.dart';
+import 'container_bottom_bar.dart';
 
 /// Spec `2c` — the quick switcher drawer. Both destructive actions (wipe,
 /// panic) live on this sheet by design and neither gets a confirmation
@@ -18,6 +21,11 @@ import '../../../core/widgets/monogram.dart';
 /// own row's container or page. A hairline falls only between container
 /// groups. The body scrolls under the fixed handle, so many pages never
 /// overflow the sheet.
+///
+/// Restyle v2 §8 `2c`: the header count is set exactly like the bottom
+/// bar's `N OPEN`; the viewed container has the jade light, the others an
+/// edge ring; hosts wrap and are never cut short; 24 dp between "Close all
+/// and wipe" and the panic tile.
 class SwitcherSheet extends StatelessWidget {
   const SwitcherSheet({
     super.key,
@@ -44,10 +52,17 @@ class SwitcherSheet extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return DecoratedBox(
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         color: C.sheet,
-        border: Border(top: BorderSide(color: C.line09)),
-        borderRadius: BorderRadius.vertical(top: Radius.circular(22)),
+        border: const Border(top: BorderSide(color: C.line)),
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(R.sheet)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.55),
+            blurRadius: 40,
+            offset: const Offset(0, -12),
+          ),
+        ],
       ),
       child: Padding(
         padding: const EdgeInsets.fromLTRB(0, 10, 0, 16),
@@ -69,18 +84,13 @@ class SwitcherSheet extends StatelessWidget {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Padding(
-                      padding: const EdgeInsets.fromLTRB(18, 0, 18, 10),
+                      padding: const EdgeInsets.fromLTRB(16, 0, 16, 10),
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           Text(
                             '${entries.length} OPEN SESSIONS',
-                            style: ui(
-                              size: 10,
-                              weight: 500,
-                              letterSpacing: 1.0,
-                              color: C.jade,
-                            ),
+                            style: ContainerBottomBar.openCountStyle,
                           ),
                           const SizedBox(width: 12),
                           Flexible(
@@ -89,12 +99,7 @@ class SwitcherSheet extends StatelessWidget {
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                               textAlign: TextAlign.end,
-                              style: ui(
-                                size: 10,
-                                weight: 500,
-                                letterSpacing: 0.6,
-                                color: C.textFaint,
-                              ),
+                              style: T.sectionLabel,
                             ),
                           ),
                         ],
@@ -119,31 +124,31 @@ class SwitcherSheet extends StatelessWidget {
                       if (i != entries.length - 1) const Hairline(),
                     ],
                     Padding(
-                      padding: const EdgeInsets.fromLTRB(18, 16, 18, 0),
+                      padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
                       child: Row(
                         children: [
                           Expanded(
                             child: GestureDetector(
+                              key: const Key('close-all-and-wipe'),
                               onTap: onCloseAllAndWipe,
                               child: Container(
-                                height: 46,
+                                constraints: const BoxConstraints(minHeight: 48),
+                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                                 alignment: Alignment.center,
                                 decoration: BoxDecoration(
                                   color: C.button,
-                                  borderRadius: BorderRadius.circular(14),
+                                  borderRadius: BorderRadius.circular(R.input),
                                 ),
                                 child: Text(
                                   'Close all and wipe',
-                                  style: ui(
-                                    size: 13.5,
-                                    weight: 500,
-                                    color: C.textSecondary,
-                                  ),
+                                  textAlign: TextAlign.center,
+                                  style: T.label.copyWith(fontWeight: FontWeight.w500),
                                 ),
                               ),
                             ),
                           ),
-                          const SizedBox(width: 10),
+                          // Restyle v2 §8 `2c`: kept apart from the wipe.
+                          const SizedBox(width: 24),
                           Semantics(
                             label: 'Panic',
                             button: true,
@@ -152,19 +157,18 @@ class SwitcherSheet extends StatelessWidget {
                             child: GestureDetector(
                               onTap: onPanic,
                               child: Container(
-                                width: 46,
-                                height: 46,
+                                key: const Key('switcher-panic'),
+                                width: 48,
+                                height: 48,
                                 alignment: Alignment.center,
                                 decoration: BoxDecoration(
-                                  color: C.danger.withValues(alpha: 0.14),
-                                  borderRadius: BorderRadius.circular(14),
-                                  border: Border.all(
-                                    color: C.danger.withValues(alpha: 0.3),
-                                  ),
+                                  color: C.dangerSurface,
+                                  borderRadius: BorderRadius.circular(R.input),
+                                  border: Border.all(color: C.danger, width: 1.5),
                                 ),
                                 child: const AppIcon(
                                   AppGlyph.panic,
-                                  size: 18,
+                                  size: 22,
                                   color: C.danger,
                                 ),
                               ),
@@ -184,28 +188,6 @@ class SwitcherSheet extends StatelessWidget {
   }
 }
 
-/// The 3×38 rail on a switcher row. Unlike Plan 1's `StatusRail` (jade or
-/// grey — live vs. never-opened), a backgrounded session here is still
-/// running, just not the one on screen, so spec `2c` keeps it jade at 45%
-/// opacity rather than the grey `StatusRail.live == false` would draw.
-class _SessionRail extends StatelessWidget {
-  const _SessionRail({required this.live});
-
-  final bool live;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: 3,
-      height: 38,
-      decoration: BoxDecoration(
-        color: live ? C.jade : C.jade.withValues(alpha: 0.45),
-        borderRadius: BorderRadius.circular(2),
-      ),
-    );
-  }
-}
-
 class _SwitcherRow extends StatelessWidget {
   const _SwitcherRow(
     this.entry, {
@@ -216,8 +198,7 @@ class _SwitcherRow extends StatelessWidget {
 
   final SwitcherEntry entry;
 
-  /// The header above already supplies the gap to the first row (`0 18px
-  /// 10px`), so the first row's own top padding is 0 — every later row gets
+  /// The header above already supplies the gap to the first row, so the first row's own top padding is 0 — every later row gets
   /// the full 14px spec `2c` draws between rows.
   final bool isFirst;
   final VoidCallback onView;
@@ -229,10 +210,11 @@ class _SwitcherRow extends StatelessWidget {
       behavior: HitTestBehavior.opaque,
       onTap: onView,
       child: Padding(
-        padding: EdgeInsets.fromLTRB(18, isFirst ? 0 : 14, 18, 14),
+        padding: EdgeInsets.fromLTRB(16, isFirst ? 0 : 8, 4, 8),
         child: Row(
           children: [
-            _SessionRail(live: entry.live),
+            // The viewed container's jade light; a background one's edge ring.
+            StatusRail(live: entry.live),
             const SizedBox(width: 12),
             Monogram(entry.monogram),
             const SizedBox(width: 12),
@@ -245,15 +227,10 @@ class _SwitcherRow extends StatelessWidget {
                     entry.name,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: ui(size: 14.5, weight: 500, color: C.textPrimary),
+                    style: T.rowTitle,
                   ),
-                  const SizedBox(height: 3),
-                  Text(
-                    entry.meta,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: ui(size: 10.5, color: C.textFaint),
-                  ),
+                  const SizedBox(height: 2),
+                  Text(entry.meta, style: T.meta),
                 ],
               ),
             ),
@@ -262,8 +239,7 @@ class _SwitcherRow extends StatelessWidget {
               glyph: AppGlyph.close,
               label: 'Close',
               onTap: onClose,
-              size: 24,
-              iconSize: 16,
+              iconSize: 20,
               color: C.textFaint,
             ),
           ],
@@ -273,8 +249,8 @@ class _SwitcherRow extends StatelessWidget {
   }
 }
 
-/// One page under its container (tabs spec §5.1): page data only, no rail
-/// and no jade. Indented to the container row's text column: rail, gap,
+/// One page under its container (tabs spec §5.1): page data only, no light
+/// and no jade. Indented to the container row's text column: light, gap,
 /// monogram, gap.
 class _PageRow extends StatelessWidget {
   const _PageRow(this.page, {required this.onView, required this.onClose});
@@ -289,7 +265,7 @@ class _PageRow extends StatelessWidget {
       behavior: HitTestBehavior.opaque,
       onTap: onView,
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(18 + 3 + 12 + 36 + 12, 0, 18, 12),
+        padding: const EdgeInsets.fromLTRB(16 + 10 + 12 + 36 + 12, 0, 4, 8),
         child: Row(
           children: [
             Expanded(
@@ -301,19 +277,11 @@ class _PageRow extends StatelessWidget {
                     page.title,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: ui(
-                      size: 13,
-                      weight: 500,
-                      color: page.current ? C.textPrimary : C.textMuted,
-                    ),
+                    style: page.current ? T.rowTitle : T.rowTitleIdle,
                   ),
                   const SizedBox(height: 2),
-                  Text(
-                    page.host,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: mono(size: 10.5, color: C.textFaint),
-                  ),
+                  // Restyle v2 §1.6: never cut short; it wraps after a dot.
+                  HostText(page.host, style: T.metaValue),
                 ],
               ),
             ),
@@ -322,8 +290,7 @@ class _PageRow extends StatelessWidget {
               glyph: AppGlyph.close,
               label: 'Close',
               onTap: onClose,
-              size: 24,
-              iconSize: 16,
+              iconSize: 20,
               color: C.textFaint,
             ),
           ],

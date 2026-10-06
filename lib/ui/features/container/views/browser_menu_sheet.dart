@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../core/host_text.dart';
 import '../../../core/icons.dart';
 import '../../../core/tokens.dart';
 import '../../../core/typography.dart';
@@ -70,9 +71,9 @@ class BrowserMenuSheet extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(0, 10, 0, 12),
       children: [
         Container(
-          padding: const EdgeInsets.fromLTRB(18, 0, 18, 14),
+          padding: const EdgeInsets.fromLTRB(16, 0, 16, 14),
           decoration: const BoxDecoration(
-            border: Border(bottom: BorderSide(color: C.line06)),
+            border: Border(bottom: BorderSide(color: C.lineSoft)),
           ),
           child: Row(
             children: [
@@ -85,12 +86,10 @@ class BrowserMenuSheet extends StatelessWidget {
                     Text(name,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: ui(size: 15, weight: 600)),
-                    const SizedBox(height: 3),
-                    Text(subtitle,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: mono(size: 10.5, color: C.textFaint)),
+                        style: T.appBarTitle),
+                    const SizedBox(height: 2),
+                    // Restyle v2 §1.6: the host is never cut short.
+                    Text.rich(hostSpan(subtitle), style: T.metaValue),
                   ],
                 ),
               ),
@@ -99,9 +98,6 @@ class BrowserMenuSheet extends StatelessWidget {
         ),
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 14),
-          decoration: const BoxDecoration(
-            border: Border(bottom: BorderSide(color: C.line06)),
-          ),
           child: Row(
             children: [
               Expanded(child: _Tile(glyph: AppGlyph.reload, label: 'Reload', onTap: onReload)),
@@ -111,17 +107,32 @@ class BrowserMenuSheet extends StatelessWidget {
             ],
           ),
         ),
-        _MenuRow(label: 'Security level', meta: securityLevelMeta, onTap: onSecurityLevel),
-        _MenuRow(label: 'New identity', onTap: onNewIdentity),
-        _MenuRow(label: 'Today', meta: '$blockedToday BLOCKED', onTap: onToday),
-        _MenuRow(label: 'Scripts and filters', onTap: onScripts),
-        _MenuRow(label: 'Workspaces', onTap: onWorkspaces),
-        _MenuRow(label: 'Settings', onTap: onSettings),
-        _MenuRow(label: 'All sites', onTap: onAllSites, divider: false),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: SheetGroup(children: [
+            _menuRow('Security level', onSecurityLevel, meta: securityLevelMeta),
+            _menuRow('New identity', onNewIdentity),
+            _menuRow('Today', onToday, meta: '$blockedToday BLOCKED'),
+            _menuRow('Scripts and filters', onScripts),
+            _menuRow('Workspaces', onWorkspaces),
+            _menuRow('Settings', onSettings),
+            _menuRow('All sites', onAllSites),
+          ]),
+        ),
       ],
     );
   }
 }
+
+/// A ☰ row (restyle v2 §4): a [SheetRow] ending in its mono meta — `Today`'s
+/// blocked count, or the security level — or else a chevron.
+Widget _menuRow(String label, VoidCallback onTap, {String? meta}) => SheetRow(
+      label: label,
+      onTap: onTap,
+      trailing: meta != null
+          ? Padding(padding: const EdgeInsets.only(left: 12), child: Text(meta, style: T.value))
+          : const AppIcon(AppGlyph.forward, size: 18, color: C.chevron),
+    );
 
 class _Tile extends StatelessWidget {
   const _Tile({required this.glyph, required this.label, required this.onTap});
@@ -139,56 +150,18 @@ class _Tile extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           Container(
-            width: 44,
-            height: 44,
+            width: 48,
+            height: 48,
             alignment: Alignment.center,
             decoration: BoxDecoration(
               color: C.button,
-              borderRadius: BorderRadius.circular(13),
+              borderRadius: BorderRadius.circular(R.input),
             ),
-            child: AppIcon(glyph),
+            child: AppIcon(glyph, size: 22),
           ),
-          const SizedBox(height: 7),
-          Text(label,
-              textAlign: TextAlign.center,
-              style: ui(size: 11, color: C.textTertiary)),
+          const SizedBox(height: 8),
+          Text(label, textAlign: TextAlign.center, style: T.meta.copyWith(color: C.textMuted)),
         ],
-      ),
-    );
-  }
-}
-
-class _MenuRow extends StatelessWidget {
-  const _MenuRow({required this.label, required this.onTap, this.meta, this.divider = true});
-
-  final String label;
-  final VoidCallback onTap;
-
-  /// Mono text in place of the chevron: `Today`'s blocked count, or the
-  /// security level.
-  final String? meta;
-  final bool divider;
-
-  @override
-  Widget build(BuildContext context) {
-    final meta = this.meta;
-    return GestureDetector(
-      behavior: HitTestBehavior.opaque,
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
-        decoration: divider
-            ? const BoxDecoration(border: Border(bottom: BorderSide(color: C.line05)))
-            : null,
-        child: Row(
-          children: [
-            Expanded(child: Text(label, style: ui(size: 14, color: C.textPrimary))),
-            if (meta != null)
-              Text(meta, style: mono(size: 10.5, color: C.textFaint))
-            else
-              const AppIcon(AppGlyph.forward, size: 14, color: C.textFaint),
-          ],
-        ),
       ),
     );
   }

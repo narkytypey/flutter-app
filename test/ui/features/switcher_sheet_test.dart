@@ -1,9 +1,12 @@
+import 'package:container/ui/core/widgets/status_rail.dart';
+import 'package:container/ui/features/container/views/container_bottom_bar.dart';
 import 'package:container/domain/models/switcher_entry.dart';
 import 'package:container/ui/core/icons.dart';
 import 'package:container/ui/core/tokens.dart';
 import 'package:container/ui/core/widgets/hairline.dart';
 import 'package:container/ui/features/container/views/switcher_sheet.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../../support/glyph_finders.dart';
@@ -264,7 +267,11 @@ void main() {
     for (final text in find.text(long).evaluate()) {
       expect(tester.getSize(find.byWidget(text.widget)).height, lessThan(26));
     }
-    expect(tester.getSize(find.text('$long.com')).height, lessThan(20));
+    // Restyle v2 §1.6: the host is never cut short; it wraps instead.
+    final host = tester.renderObject<RenderParagraph>(
+        find.descendant(of: find.text('$long.com'), matching: find.byType(RichText)));
+    expect(host.didExceedMaxLines, isFalse);
+    expect(host.maxLines, isNull);
   });
 
   testWidgets('three containers of six pages each scroll instead of overflowing',
@@ -309,7 +316,34 @@ void main() {
 
     expect(find.bySemanticsLabel('Panic'), findsOneWidget);
     expect(findIconTap('Close'), findsWidgets);
-    expect(tester.getSize(findGlyph(AppGlyph.panic)), const Size(18, 18));
+    expect(tester.getSize(findGlyph(AppGlyph.panic)), const Size(22, 22));
     semantics.dispose();
+  });
+
+  // Restyle v2 §8 `2c` (Plan 21 Task 5).
+  testWidgets('v2: 24 dp between Close all and wipe and the panic tile', (tester) async {
+    await _pump(tester);
+
+    final gap = tester.getTopLeft(find.byKey(const Key('switcher-panic'))).dx -
+        tester.getTopRight(find.byKey(const Key('close-all-and-wipe'))).dx;
+    expect(gap, greaterThanOrEqualTo(24));
+    expect(tester.getSize(find.byKey(const Key('switcher-panic'))), const Size(48, 48));
+  });
+
+  testWidgets("v2: the header count is set exactly like the bottom bar's N OPEN",
+      (tester) async {
+    await _pump(tester);
+
+    expect(tester.widget<Text>(find.text('3 OPEN SESSIONS')).style,
+        ContainerBottomBar.openCountStyle);
+  });
+
+  testWidgets('v2: the viewed container has the jade light, the rest an edge ring',
+      (tester) async {
+    await _pump(tester);
+
+    final lights = tester.widgetList<StatusRail>(find.byType(StatusRail)).toList();
+    expect(lights.first.live, isTrue);
+    expect(lights.skip(1).every((light) => !light.live && light.showIdle), isTrue);
   });
 }

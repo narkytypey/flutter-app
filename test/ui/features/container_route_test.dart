@@ -601,7 +601,7 @@ void main() {
     expect(find.text('Starting a clean container'), findsOneWidget);
     expect(findIconTap('Back'), findsOneWidget);
     expect(findIconTap('Close'), findsOneWidget);
-    expect(tester.getSize(findIconTap('Back')), const Size(32, 32));
+    expect(tester.getSize(findIconTap('Back')), const Size(48, 48));
 
     gate.complete();
     await tester.pump();
