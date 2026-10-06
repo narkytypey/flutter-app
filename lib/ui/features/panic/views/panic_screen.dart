@@ -5,6 +5,7 @@ import '../../../core/icons.dart';
 import '../../../core/tokens.dart';
 import '../../../core/typography.dart';
 import '../../../core/widgets/centered_scroll.dart';
+import '../../../core/widgets/group.dart';
 import '../../../core/widgets/pill_button.dart';
 
 class PanicScreen extends StatelessWidget {
@@ -21,11 +22,13 @@ class PanicScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Panic is not a different colour (restyle v2 §8): the page, with the
+    // status words in text-1 and no jade, since nothing here is live.
     return Scaffold(
-      backgroundColor: C.bgPanic,
+      backgroundColor: C.bg,
       body: SafeArea(
         child: CenteredScroll(
-          padding: const EdgeInsets.symmetric(horizontal: 34),
+          padding: const EdgeInsets.symmetric(horizontal: S.s5),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
@@ -35,59 +38,51 @@ class PanicScreen extends StatelessWidget {
                 alignment: Alignment.center,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  border: Border.all(color: C.danger.withValues(alpha: 0.35)),
+                  border: Border.all(color: C.danger, width: 1.5),
                 ),
                 child: const AppIcon(AppGlyph.panic, size: 20, color: C.danger),
               ),
-              const SizedBox(height: 30),
-              Text('Everything closed', style: ui(size: 18, weight: 600)),
-              const SizedBox(height: 10),
+              const SizedBox(height: S.s6),
+              Text('Everything closed',
+                  textAlign: TextAlign.center, style: T.sheetTitle),
+              const SizedBox(height: S.s2),
               Text(
                 '${report.sessionsDestroyed} '
                 '${report.sessionsDestroyed == 1 ? 'session' : 'sessions'} destroyed, temporary '
                 'storage wiped, app locked.',
                 textAlign: TextAlign.center,
-                style: ui(size: 13, color: C.textMuted, height: 1.6),
+                style: T.bodyMuted,
               ),
-              const SizedBox(height: 30),
-              Container(
-                decoration: BoxDecoration(
-                  border: Border.all(color: C.line07),
-                  borderRadius: BorderRadius.circular(14),
-                ),
-                clipBehavior: Clip.antiAlias,
-                child: Column(
-                  children: [
-                    for (final (label, state) in _lines) ...[
-                      if (label != _lines.first.$1) const SizedBox(height: 1),
-                      ColoredBox(
-                        color: C.sheet,
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 14, vertical: 12),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Expanded(
-                                child: Text(label,
-                                    style: ui(size: 11.5, color: C.textMuted)),
-                              ),
-                              const SizedBox(width: 12),
-                              Text(state,
-                                  style: ui(
-                                      size: 11.5, weight: 500, color: C.jade)),
-                            ],
-                          ),
+              const SizedBox(height: S.s6),
+              Group(
+                children: [
+                  for (final (label, state) in _lines)
+                    ConstrainedBox(
+                      constraints: const BoxConstraints(minHeight: 48),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(vertical: S.s3),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: Text(label, style: T.sectionLabel),
+                            ),
+                            const SizedBox(width: S.s3),
+                            Flexible(
+                              child: Text(state,
+                                  textAlign: TextAlign.end,
+                                  style: T.sectionLabel
+                                      .copyWith(color: C.textPrimary)),
+                            ),
+                          ],
                         ),
                       ),
-                    ],
-                  ],
-                ),
+                    ),
+                ],
               ),
-              const SizedBox(height: 30),
+              const SizedBox(height: S.s6),
               PillButton(
                 label: 'Unlock',
-                height: 48,
+                padding: const EdgeInsets.symmetric(horizontal: S.s7),
                 onTap: onUnlock,
               ),
             ],
