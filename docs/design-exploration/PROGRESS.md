@@ -4,11 +4,11 @@ Read this first. It is the only thing that carries across a restart.
 
 ## Where I got to
 
-Phases 0–9 done. Branch `restyle-implementation` (not merged; no PR). Last gates at a34c7ad: analyze clean, flutter test 1142/1142, APK zero e:. Not verified on a device. Look first at docs/design-exploration/RATIONALE.md, then debate/VERDICT.md "Unresolved", then the spec §12.
+Phases 0–9 done, and Plan 24 (light variant, after the user's answers in DECISIONS D9). Branch `restyle-implementation` (not merged; no PR). Last gates at f3cf6a4 (Plan 24): analyze clean, flutter test 1151/1151, APK zero e:. Not verified on a device. Look first at docs/design-exploration/RATIONALE.md, then debate/VERDICT.md "Unresolved", then the spec §12.
 
 ## Heartbeat
 
-2026-10-06T18:10Z · fire-cd6e6b (run complete)
+2026-10-06T22:10Z · fire-3e91b7 (optional Plan 23 Task 7)
 
 ## Branch
 
@@ -16,7 +16,7 @@ restyle-implementation (phase 8; phases 0–7 are on design-exploration-restyle,
 
 ## Next action
 
-None queued. Awaiting the owner: the six open questions (RATIONALE.md "Your decisions"), a device check of each plan\'s "Device checks", and whether to merge. Optional leftover: Plan 23 Task 7 (motion), not done.
+fire-3e91b7 is doing the optional Plan 23 Task 7 (motion). Otherwise awaiting the owner: the six open questions (RATIONALE.md "Your decisions"), a device check of each plan\'s "Device checks", and whether to merge. Optional leftover: Plan 23 Task 7 (motion), not done.
 
 ## Toolchain
 
@@ -139,6 +139,8 @@ A later fire must reinstall all of it (~10 min); set
 - [x] One-page rationale
 
 ## Log
+
+- 2026-10-06T22:10Z fire-3e91b7: started; nothing queued, run complete and Plan 24 done. Taking the optional Plan 23 Task 7 (motion), view-only.
 
 - 2026-10-06T18:10Z fire-cd6e6b: phase 9 done — B screens.html at 32 blocks with folds (a9bfaca), interaction-study.html, RATIONALE.md. Run complete.
 
