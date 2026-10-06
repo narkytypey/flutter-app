@@ -214,7 +214,7 @@ body {
 .obar .opill { flex: 1 1 auto; display: flex; align-items: center; gap: var(--s2); min-height: 48px; padding: 6px var(--s4); border-radius: 24px; background: var(--group); border: 1px solid var(--line); }
 .oline { flex: 0 0 2px; background: var(--group); position: relative; }
 .oline > i { position: absolute; left: 0; top: 0; bottom: 0; width: 0; background: var(--text-2); transition: width 600ms var(--ease-effect); }
-.opening { flex: 1 1 auto; display: flex; flex-direction: column; justify-content: center; padding: 0 var(--s6); gap: var(--s5); }
+.obody { flex: 1 1 auto; display: flex; flex-direction: column; justify-content: center; padding: 0 var(--s6); gap: var(--s5); }
 .screen-title { font: 600 22px/28px var(--sans); }
 .steps { display: flex; flex-direction: column; gap: 14px; }
 .steps > div { display: flex; align-items: flex-start; gap: var(--s3); font: 400 15px/22px var(--sans); color: var(--text-3); }
@@ -240,8 +240,8 @@ body {
 .keypad > span.blank, .keypad > span.bs { background: none; color: var(--text-2); }
 
 /* ── dashboard (1b / Plan 18 shell, Plan 21 as built) ── */
-.chips { display: flex; flex-wrap: wrap; gap: 0 var(--s2); align-items: center; padding: 4px var(--s4); }
-.chip { min-height: 48px; display: inline-flex; align-items: center; }
+.chips { display: flex; flex-wrap: nowrap; overflow: hidden; gap: 0 var(--s2); align-items: center; padding: 4px var(--s4); }
+.chip { min-height: 48px; display: inline-flex; align-items: center; flex: 0 0 auto; }
 .chip > span { display: inline-flex; align-items: center; gap: 6px; min-height: 36px; padding: 6px 14px; border-radius: var(--r-full);
                border: 1px solid var(--line); font: 500 14px/1.3 var(--sans); color: var(--text-2); }
 .chip.on > span { background: var(--raised); border: 1.5px solid var(--text-1); color: var(--text-1); font-weight: 600; padding-left: 10px; }
@@ -342,7 +342,8 @@ body {
 :root.reduced .touch.on { animation: touchR 520ms linear forwards; }
 @keyframes touchR { 0%, 70% { opacity: .85; } 100% { opacity: 0; } }
 
-@media (max-width: 420px) {
+@media (max-width: 600px) {
+  .top { position: static; }
   .top h1 { font-size: 16px; flex-basis: 100%; }
 }
 </style>
@@ -433,9 +434,9 @@ body {
     </dl>
     <div class="detail">
       <div class="zoom" aria-hidden="true"><span class="case stack" data-case style="width:64px;height:64px">
-        <svg class="on" data-k="solid" style="width:64px;height:64px" viewBox="0 0 24 24"><use href="#i-case-solid"/></svg>
-        <svg data-k="broken" style="width:64px;height:64px" viewBox="0 0 24 24"><use href="#i-case-broken"/></svg>
-        <svg data-k="double" style="width:64px;height:64px" viewBox="0 0 24 24"><use href="#i-case-double"/></svg></span></div>
+        <svg class="ic on" data-k="solid" style="width:64px;height:64px" viewBox="0 0 24 24"><use href="#i-case-solid"/></svg>
+        <svg class="ic" data-k="broken" style="width:64px;height:64px" viewBox="0 0 24 24"><use href="#i-case-broken"/></svg>
+        <svg class="ic" data-k="double" style="width:64px;height:64px" viewBox="0 0 24 24"><use href="#i-case-double"/></svg></span></div>
       <span>The case at ×3.2. Stroked like an <span class="mono">AppIcon</span>, so the cross-fade has to read at 20 dp.</span>
     </div>
     <div class="phone" data-frame aria-label="Protective change study" role="img"></div>
@@ -602,7 +603,7 @@ body {
       '<div class="opill"><span class="light opening"></span><span class="host">' + HOST + '</span></div>' +
       '<span class="tap">' + ic('i-close', 's20') + '</span></div>' +
       '<div class="oline"><i data-oline></i></div>' +
-      '<div class="opening"><span class="screen-title">Starting a clean container</span><div class="steps">' +
+      '<div class="obody"><span class="screen-title">Starting a clean container</span><div class="steps">' +
         '<div><span class="ring"></span><span>Fresh session, no shared cookies</span></div>' +
         '<div><span class="ring"></span><span>Filter lists loaded</span></div>' +
         '<div><span class="ring"></span><span>Fingerprint noise injected</span></div>' +
@@ -813,6 +814,7 @@ body {
     var frame = q(card, '[data-frame]');
     var c = { key: key, card: card, frame: frame, def: studies[key], timers: [], visible: true, phase: q(card, '[data-phase]') };
     c.def.build(frame);
+    c.def.reset(frame, card);
     var zoom = q(card, '.zoom [data-vmark]');
     if (zoom) zoom.innerHTML = vmark();
     cards.push(c);

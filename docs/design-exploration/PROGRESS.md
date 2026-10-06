@@ -4,11 +4,11 @@ Read this first. It is the only thing that carries across a restart.
 
 ## Where I got to
 
-Phases 0–8 done. Plans 20–23 executed on `restyle-implementation` (analyze clean, 1142/1142, APK zero e: at a34c7ad). Not verified on a device. Phase 9 extras next.
+Phases 0–9 done. Branch `restyle-implementation` (not merged; no PR). Last gates at a34c7ad: analyze clean, flutter test 1142/1142, APK zero e:. Not verified on a device. Look first at docs/design-exploration/RATIONALE.md, then debate/VERDICT.md "Unresolved", then the spec §12.
 
 ## Heartbeat
 
-2026-10-06T15:40Z · fire-cd6e6b (resumed after session limit)
+2026-10-06T18:10Z · fire-cd6e6b (run complete)
 
 ## Branch
 
@@ -16,7 +16,7 @@ restyle-implementation (phase 8; phases 0–7 are on design-exploration-restyle,
 
 ## Next action
 
-Phase 9: all 32 blocks in B/screens.html with the verdict folds, interaction study, one-page rationale.
+None queued. Awaiting the owner: the six open questions (RATIONALE.md "Your decisions"), a device check of each plan\'s "Device checks", and whether to merge. Optional leftover: Plan 23 Task 7 (motion), not done.
 
 ## Toolchain
 
@@ -134,11 +134,13 @@ A later fire must reinstall all of it (~10 min); set
 
 ### Phase 9 — If budget remains
 - [x] Finish screen waves
-- [ ] All 32 blocks in winner's screens.html
-- [ ] Interaction study
-- [ ] One-page rationale
+- [x] All 32 blocks in winner's screens.html
+- [x] Interaction study
+- [x] One-page rationale
 
 ## Log
+
+- 2026-10-06T18:10Z fire-cd6e6b: phase 9 done — B screens.html at 32 blocks with folds (a9bfaca), interaction-study.html, RATIONALE.md. Run complete.
 
 - 2026-10-06T15:40Z fire-cd6e6b: Plan 23 done after a session-limit stop (agents resumed from the tree). Merged worktree, removed aliases; analyze clean, 1142/1142, APK zero e:. Phase 9 next.
 
