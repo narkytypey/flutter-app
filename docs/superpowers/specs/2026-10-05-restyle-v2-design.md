@@ -34,7 +34,7 @@ Plex Mono for values), 48 dp targets, a 13 sp floor.
 
 ## 1. Principles
 
-1. **Dark only** (CLAUDE.md global constraint kept). No light theme, no toggle.
+1. ~~**Dark only.**~~ **Dark first, with a light variant that follows the system setting** (user's ruling 2026-10-06, §9). No toggle.
 2. **Jade means live, or the one affirmative action — never a position.**
    Switches, checks, active tabs, step bars and markers are not jade. At most
    one jade *role* per screen (a live light repeated on several rows is one
@@ -405,13 +405,55 @@ Structure, order and copy are as built everywhere. Notes are visual only.
 
 ## 9. Light mode
 
-**None.** v2 is dark only, keeping the CLAUDE.md constraint. Consequences:
-nothing changes in `lib/data/services/secure_window.dart` (it sets
-`FLAG_SECURE` and the recents label only); `android/app/src/main/res/values/styles.xml`
-and `values-night/styles.xml` stay `Theme.Black` (both dark on purpose, so
-WebView force-darkens pages), and `test/android_theme_test.dart` stays as it
-is. Pages are told `prefers-color-scheme: dark` inside dark chrome — there is
-no seam. A light variant is §12 Q1.
+~~**None.** v2 is dark only.~~ **User's ruling 2026-10-06 (§12 Q1, DECISIONS
+D9): a light variant.** Built by Plan 24.
+
+- **When:** the app follows the phone's system setting
+  (`MediaQuery.platformBrightness`). There is no in-app switch, so there is no
+  new copy, and nothing differs by vault. A change of system setting while the
+  app is open applies at once.
+- **Same roles, second values.** Every `C.*` name keeps its role; light gives
+  it a second value. Jade stays the one live/affirmative colour, darkened to
+  spruce so it reads on a light page. Nothing about layout, type, targets or
+  icons changes.
+- **Android window themes stay dark.** `values/styles.xml` and
+  `values-night/styles.xml` stay `Theme.Black` so WebView force-darkens pages
+  (`test/android_theme_test.dart`). Consequences, accepted: a light phone sees
+  the dark launch frame before Flutter's first frame, and pages inside light
+  chrome are still asked `prefers-color-scheme: dark` when Force dark mode is on
+  (a seam on `2b`, the cost the verdict named).
+- **Status bar:** dark icons on light, light icons on dark
+  (`SystemUiOverlayStyle`).
+
+| `C.*` | Dark | Light | Role |
+|---|---|---|---|
+| `bg` | `#121110` | `#F3F0EA` | page |
+| `bgReader` | `#15120E` | `#F6F1E7` | reader page |
+| `surface`, `skeleton`, `barTrack` | `#22201D` | `#FFFFFF` / `#E9E4DC` / `#E9E4DC` | group |
+| `sheet` | `#302D29` | `#FAF8F4` | sheet |
+| `button`, `selected`, `monogramOpen` | `#403C37` | `#E3DDD3` | raised |
+| `textPrimary`, `textSecondary`, `monogramText`, `pillText`, `focus` | `#EDEAE4` | `#1C1A17` | text-1 |
+| `textTertiary`, `textMuted`, `icon`, `tabInactive` | `#CBC4B9` | `#4B453D` | text-2 |
+| `textFaint`, `chevron`, `knobOff` | `#A8A095` | `#686157` | text-3 |
+| `edge`, `handle`, `idleDot`, `pinEmpty` | `#958D82` | `#857D72` | edge |
+| `line` / `lineSoft` | text-1 at 14 % / 8 % | text-1 at 14 % / 8 % | rules |
+| `jade` | `#7FC8A9` | `#1D6B57` | live / one action |
+| `onJade` | `#121110` | `#FFFFFF` | label on jade |
+| `code` | `#D9CFB8` | `#7A5718` | code |
+| `danger`, `pinError` | `#EE8D79` | `#B3261E` | danger |
+| `dangerSurface` | `#2C201D` | `#FBEAE6` | danger-wash |
+| `warning` | `#E0B266` | `#8A5800` | opening / warning |
+| `readerMuted` / `readerTitle` / `readerBody` | as §2.5 | `#5E564B` / `#2B2620` / `#3A342C` | reader |
+| `markers` | as §2.6 | `#7D6532`, `#3D5F8F`, `#8A5800`, `#8A4F72`, `#6E675D` | workspace markers |
+
+**Measured (light), WCAG 2.1:** text-1 12.86–17.36:1, text-2 7.01–9.47:1,
+text-3 4.53–6.11:1 on all four surfaces (so, as in dark, text-3 is allowed on
+raised at 4.53); jade text 4.72–6.38:1; white on jade 6.38:1; code
+4.85–6.55:1; danger 4.84–6.54:1, on danger-wash 5.61:1; edge 3.01–4.06:1;
+reader muted/title/body on the reader page 6.41/13.32/10.93:1; markers
+4.89–6.50:1. Warning is ≥ 5.31:1 on page, group and sheet (4.47:1 on raised,
+where it is never set). Surfaces: page/group 1.14:1, raised/group 1.35:1 —
+told apart, as in dark, by `C.line` outlines, not by fill alone.
 
 ## 10. Non-goals
 
@@ -422,7 +464,7 @@ no seam. A light variant is §12 Q1.
 - **No behaviour changes.** Taps, gestures, state, storage, routing, Kotlin:
   untouched. `6a`'s jade moving to "Keep blocked" is colour only; both buttons
   do what they do today.
-- No light theme, no new settings or toggles, no new dependency.
+- No in-app theme toggle (the light variant follows the system setting, §9), no new settings, no new dependency.
 - No change to the Android theme, the manifest's label or `secure_window.dart`.
 
 ## 11. Testing and verification
