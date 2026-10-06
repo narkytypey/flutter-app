@@ -2,12 +2,19 @@ import 'package:flutter/widgets.dart';
 
 import 'tokens.dart';
 
-const _figtree = 'Figtree';
+const _sans = 'IBMPlexSans';
 const _plexMono = 'IBMPlexMono';
 
-/// Figtree is bundled as a variable font, so every style sets both
-/// [TextStyle.fontWeight] and an explicit `wght` variation. Setting only one
-/// of the two renders at the wrong weight on some engine versions.
+/// IBM Plex Sans is bundled as three static faces (400, 500, 600), so a
+/// weight maps to the nearest one: 600 and above is SemiBold, 400 and below
+/// Regular. Restyle v2 spec §3.1.
+FontWeight _sansWeight(int weight) => weight >= 600
+    ? FontWeight.w600
+    : weight >= 500
+        ? FontWeight.w500
+        : FontWeight.w400;
+
+/// Every word of UI (spec §3.1).
 TextStyle ui({
   required double size,
   int weight = 400,
@@ -16,59 +23,99 @@ TextStyle ui({
   double? letterSpacing,
 }) {
   return TextStyle(
-    fontFamily: _figtree,
+    fontFamily: _sans,
     fontSize: size,
     height: height,
     letterSpacing: letterSpacing,
     color: color,
-    fontWeight: FontWeight.values[(weight ~/ 100) - 1],
-    fontVariations: [FontVariation('wght', weight.toDouble())],
+    fontWeight: _sansWeight(weight),
   );
 }
 
+/// Values you could copy: hosts in rows, addresses, ports, counts, PIN
+/// digits, code (spec §1.5). Plex Mono is bundled at 400 and 500.
 TextStyle mono({
   required double size,
   int weight = 400,
   Color color = C.textSecondary,
   double? height,
+  double? letterSpacing,
 }) {
   return TextStyle(
     fontFamily: _plexMono,
     fontSize: size,
     height: height,
+    letterSpacing: letterSpacing,
     color: color,
-    fontWeight: FontWeight.values[(weight ~/ 100) - 1],
+    fontWeight: weight >= 500 ? FontWeight.w500 : FontWeight.w400,
   );
 }
 
-/// Named styles that recur across the screen set.
+/// Named styles — restyle v2 spec §3.2. Line heights are the spec's sp
+/// values, given to Flutter as a multiple of the size.
 abstract final class T {
-  static TextStyle get screenTitle => ui(size: 16, weight: 600);
-  static TextStyle get sheetTitle => ui(size: 17, weight: 600, letterSpacing: -0.17);
-  static TextStyle get stepTitle => ui(size: 22, weight: 600, letterSpacing: -0.22);
-  static TextStyle get appBarTitle => ui(size: 15, weight: 600);
+  /// The Today total (`5c`).
+  static TextStyle get display =>
+      mono(size: 40, weight: 500, height: 48 / 40, letterSpacing: -0.4, color: C.textPrimary);
 
-  static TextStyle get rowTitle => ui(size: 14.5, weight: 500);
-  static TextStyle get rowTitleIdle => ui(size: 14.5, weight: 500, color: C.textTertiary);
+  static TextStyle get stepTitle =>
+      ui(size: 26, weight: 600, height: 32 / 26, letterSpacing: -0.26);
+  static TextStyle get screenTitle => ui(size: 22, weight: 600, height: 28 / 22);
+  static TextStyle get sheetTitle => ui(size: 20, weight: 600, height: 26 / 20);
 
-  static TextStyle get body => ui(size: 14);
-  static TextStyle get bodyMuted => ui(size: 13, color: C.textMuted, height: 1.65);
+  /// Centred form titles (`2a`, `10b`, `10e`).
+  static TextStyle get appBarTitle => ui(size: 18, weight: 600, height: 24 / 18);
 
-  static TextStyle get meta => ui(size: 10.5, color: C.textFaint);
-  static TextStyle get metaIdle => ui(size: 10.5, color: C.textDim);
+  /// A PIN keypad digit.
+  static TextStyle get keypad => mono(size: 28, height: 32 / 28, color: C.textPrimary);
 
-  /// 10px / 500 / .1em uppercase — the section label used across the set.
+  static TextStyle get rowTitle => ui(size: 16, weight: 500, height: 22 / 16);
+
+  /// Idle is said by the missing light, not by fading the name far.
+  static TextStyle get rowTitleIdle =>
+      ui(size: 16, weight: 500, height: 22 / 16, color: C.textTertiary);
+
+  static TextStyle get body => ui(size: 16, height: 24 / 16);
+
+  /// A button's label. Primary (jade) buttons pass `color: C.onJade`.
+  static TextStyle get label => ui(size: 16, weight: 600, height: 20 / 16);
+
+  /// The host in the address pill: the UI face, not Mono (spec §1.5).
+  static TextStyle get address => ui(size: 16, weight: 500, height: 20 / 16);
+
+  static TextStyle get bodyMuted => ui(size: 15, height: 22 / 15, color: C.textMuted);
+
+  /// A row's subtitle.
+  static TextStyle get sub => ui(size: 14, height: 20 / 14, color: C.textMuted);
+
+  /// A value in a row (a proxy address, a count).
+  static TextStyle get value => mono(size: 14, height: 20 / 14, color: C.textMuted);
+
+  static TextStyle get meta => ui(size: 13, height: 18 / 13, color: C.textFaint);
+  static TextStyle get metaIdle => ui(size: 13, height: 18 / 13, color: C.textFaint);
+
+  /// A host inside a meta line.
+  static TextStyle get metaValue => mono(size: 13, height: 18 / 13, color: C.textFaint);
+
+  /// Section labels keep their stored case (spec §3.2): 13 / 600 / +0.52.
   static TextStyle get sectionLabel =>
-      ui(size: 10, weight: 500, letterSpacing: 1.0, color: C.textFaint);
+      ui(size: 13, weight: 600, height: 18 / 13, letterSpacing: 0.52, color: C.textMuted);
   static TextStyle get sectionLabelLive =>
-      ui(size: 10, weight: 500, letterSpacing: 1.0, color: C.jade);
+      ui(size: 13, weight: 600, height: 18 / 13, letterSpacing: 0.52, color: C.jade);
 
-  /// The workspace summary on the right of the dashboard bar (spec `1b`).
-  static TextStyle get barSummary => ui(size: 10, color: C.textFaint);
+  /// The summary beside a bar (spec `1b`).
+  static TextStyle get barSummary => ui(size: 13, height: 18 / 13, color: C.textFaint);
 
-  /// The storage-rule badge that replaces it (spec `5b`).
+  /// Route and format badges (`SOCKS5`, `PDF`, `WIPES ON EXIT`): the one
+  /// place under 13 sp, always beside another cue.
   static TextStyle get barBadge =>
-      ui(size: 10.5, weight: 500, letterSpacing: 0.63, color: C.textFaint);
+      ui(size: 12, weight: 600, height: 16 / 12, letterSpacing: 0.24, color: C.textMuted);
 
-  static TextStyle get code => mono(size: 11.5, height: 1.9, color: C.jadeCode);
+  /// The dashboard's tab labels; the selected tab passes `weight: 600`
+  /// through [tabSelected].
+  static TextStyle get tab => ui(size: 13, weight: 500, height: 16 / 13, color: C.textMuted);
+  static TextStyle get tabSelected =>
+      ui(size: 13, weight: 600, height: 16 / 13, color: C.textPrimary);
+
+  static TextStyle get code => mono(size: 13, height: 22 / 13, color: C.code);
 }

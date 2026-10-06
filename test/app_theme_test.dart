@@ -11,7 +11,7 @@ void main() {
     expect(theme.brightness, Brightness.dark);
     expect(theme.scaffoldBackgroundColor, const Color(0xFF121110));
     expect(theme.colorScheme.primary, const Color(0xFF7FC8A9));
-    expect(theme.textTheme.bodyMedium!.fontFamily, 'Figtree');
+    expect(theme.textTheme.bodyMedium!.fontFamily, 'IBMPlexSans');
   });
 
   test('the restyle names four canvas colours without changing them', () {

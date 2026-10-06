@@ -86,3 +86,15 @@ removal of the retired `C.*` aliases. Four plans, each ending green on all
 three gates. `superpowers:writing-plans` is not installed in this session,
 so the plans follow the repo's existing plan format by hand (Plan 17's
 shape).
+
+## D8 — Plex Sans ships unsubset (Plan 20 Task 2)
+
+IBM Plex's licence is OFL 1.1 **with Reserved Font Name "Plex"**. A subset is
+a Modified Version under the OFL, and a Modified Version may not keep a
+reserved name, so a subset could not be called IBM Plex Sans. The three
+static TTFs ship as downloaded from Google Fonts (205 KB each, 615 KB; net
++553 KB against Figtree's 62 KB), unmodified, with IBM's licence beside them
+(`assets/fonts/OFL-IBMPlex.txt`). This is spec §12 Q5's "full" branch. Every
+non-ASCII character `lib/` renders (`— · × – → “ ” ‹ … ° §`) is in the font;
+the symbols it lacks (`☰ ⌫ ▸ ◑ ▲ ◉`) occur only in comments, or as the
+keypad's key value, which is never drawn as text.

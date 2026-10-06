@@ -7,7 +7,7 @@ ThemeData containerTheme() {
   return ThemeData(
     useMaterial3: true,
     brightness: Brightness.dark,
-    fontFamily: 'Figtree',
+    fontFamily: 'IBMPlexSans',
     scaffoldBackgroundColor: C.bg,
     canvasColor: C.bg,
     colorScheme: const ColorScheme.dark(
@@ -18,9 +18,9 @@ ThemeData containerTheme() {
       secondary: C.jade,
       error: C.danger,
     ),
-    dividerColor: C.line06,
-    splashColor: C.line05,
-    highlightColor: C.line05,
+    dividerColor: C.lineSoft,
+    splashColor: C.lineSoft,
+    highlightColor: C.lineSoft,
     textTheme: TextTheme(
       titleLarge: T.stepTitle,
       titleMedium: T.screenTitle,
