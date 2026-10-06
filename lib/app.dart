@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import 'ui/core/palette_scope.dart';
 import 'ui/core/theme.dart';
 import 'ui/core/tokens.dart';
 
@@ -15,8 +16,24 @@ class ContainerApp extends StatelessWidget {
     return MaterialApp(
       title: 'Container',
       debugShowCheckedModeBanner: false,
-      theme: containerTheme(),
-      home: home ?? Scaffold(backgroundColor: C.bg),
+      // The app follows the phone's light/dark setting (spec §9); there is no
+      // switch of its own.
+      theme: containerTheme(Brightness.light),
+      darkTheme: containerTheme(Brightness.dark),
+      themeMode: ThemeMode.system,
+      // C switches at once; the Material theme must not lag behind it.
+      themeAnimationDuration: Duration.zero,
+      builder: (context, child) => PaletteScope(child: child ?? const SizedBox.shrink()),
+      home: home ?? const _BareSurface(),
     );
   }
+}
+
+/// The default home: an empty page in the active palette. It reads [C] in its
+/// own build, below `PaletteScope`, never in [ContainerApp]'s.
+class _BareSurface extends StatelessWidget {
+  const _BareSurface();
+
+  @override
+  Widget build(BuildContext context) => Scaffold(backgroundColor: C.bg);
 }
