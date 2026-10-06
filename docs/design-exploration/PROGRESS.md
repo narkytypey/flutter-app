@@ -8,7 +8,7 @@ Phases 0–9 done, and Plan 24 (light variant, after the user's answers in DECIS
 
 ## Heartbeat
 
-2026-10-06T22:10Z · fire-3e91b7 (optional Plan 23 Task 7)
+2026-10-06T22:45Z · fire-3e91b7 (optional Plan 23 Task 7)
 
 ## Branch
 
@@ -140,6 +140,7 @@ A later fire must reinstall all of it (~10 min); set
 
 ## Log
 
+- 2026-10-06T22:45Z fire-3e91b7: Plan 23 Task 7 pill motion committed (D10; unlock half skipped). `flutter analyze` clean, `flutter test` 1156/1156. `flutter build apk --debug` NOT YET RUN to completion: Maven Central answers 429 (rate limit) through this environment's proxy; retrying. No Kotlin changed.
 - 2026-10-06T22:10Z fire-3e91b7: started; nothing queued, run complete and Plan 24 done. Taking the optional Plan 23 Task 7 (motion), view-only.
 
 - 2026-10-06T18:10Z fire-cd6e6b: phase 9 done — B screens.html at 32 blocks with folds (a9bfaca), interaction-study.html, RATIONALE.md. Run complete.

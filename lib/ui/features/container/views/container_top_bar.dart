@@ -84,6 +84,13 @@ class ContainerTopBar extends StatelessWidget {
     return kind == CaseKind.keep ? AppGlyph.caseSolid : AppGlyph.caseBroken;
   }
 
+  /// Restyle v2 §7, a protective change applying: the case redraws over
+  /// [caseDuration] and the light goes amber → jade over [lightDuration];
+  /// with animations turned off in the system, both take [stillDuration].
+  static const caseDuration = Duration(milliseconds: 320);
+  static const lightDuration = Duration(milliseconds: 150);
+  static const stillDuration = Duration(milliseconds: 100);
+
   static AppGlyph shieldGlyph(SecurityLevel level) => switch (level) {
         SecurityLevel.standard => AppGlyph.shield,
         SecurityLevel.safer => AppGlyph.shieldHalf,
@@ -118,8 +125,11 @@ class ContainerTopBar extends StatelessWidget {
                   border: Border.all(color: C.line),
                 ),
                 child: LayoutBuilder(builder: (context, constraints) {
+                  final still = MediaQuery.disableAnimationsOf(context);
+                  final glyph = caseGlyph(caseKind, tor: tor);
                   final lead = [
-                    Container(
+                    AnimatedContainer(
+                      duration: still ? stillDuration : lightDuration,
                       width: 8,
                       height: 8,
                       decoration: BoxDecoration(
@@ -131,7 +141,12 @@ class ContainerTopBar extends StatelessWidget {
                     Semantics(
                       container: true,
                       label: caseLabel(caseKind),
-                      child: AppIcon(caseGlyph(caseKind, tor: tor), size: 20, color: C.textMuted),
+                      child: AnimatedSwitcher(
+                        duration: still ? stillDuration : caseDuration,
+                        switchInCurve: still ? Curves.linear : Curves.easeOutCubic,
+                        switchOutCurve: still ? Curves.linear : Curves.easeOutCubic,
+                        child: AppIcon(glyph, key: ValueKey(glyph), size: 20, color: C.textMuted),
+                      ),
                     ),
                     const SizedBox(width: 8),
                     Expanded(

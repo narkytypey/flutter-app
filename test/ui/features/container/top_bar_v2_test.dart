@@ -100,6 +100,8 @@ void main() {
     expect(find.bySemanticsLabel('Wipe on exit'), findsOneWidget);
 
     await _pump(tester, tor: true, routeLabel: 'Tor');
+    // The case cross-fades (restyle v2 §7); the old one is gone once it ends.
+    await tester.pumpAndSettle();
     expect(findGlyph(AppGlyph.caseDouble), findsOneWidget);
     expect(findGlyph(AppGlyph.caseSolid), findsNothing);
     expect(find.bySemanticsLabel('Keep for this site'), findsOneWidget);

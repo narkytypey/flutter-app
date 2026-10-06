@@ -61,7 +61,16 @@ As Plan 20. In addition:
 
 ### Task 7 (optional): The two motion moments
 
-- [ ] Unlock: the vault mark's seam lifts 2 dp and fades, 320 ms `Curves.easeOutCubic`, inside the lock body's transition; protective change: the pill's case cross-fades solid ↔ broken over 320 ms on reopen-in-place. Both 100 ms cross-fades under `MediaQuery.disableAnimations`. Widget tests pump the durations. Skip if it needs any controller change.
+- [~] Unlock: the vault mark's seam lifts 2 dp and fades, 320 ms `Curves.easeOutCubic`, inside the lock body's transition; protective change: the pill's case cross-fades solid ↔ broken over 320 ms on reopen-in-place. Both 100 ms cross-fades under `MediaQuery.disableAnimations`. Widget tests pump the durations. Skip if it needs any controller change.
+
+**Done in part (2026-10-06, fire 3e91b7; DECISIONS D10):** the protective
+change is built in `ContainerTopBar` (`caseDuration` 320 ms, `lightDuration`
+150 ms, `stillDuration` 100 ms under `MediaQuery.disableAnimations`), tested
+by `test/ui/features/container/top_bar_motion_test.dart` (5). The unlock
+moment is not built: `AppGate` unmounts the lock screen the frame the vault
+opens, so it would need a shell change on the lock boundary. One expectation
+waits out the cross-fade: `top_bar_v2_test.dart`'s case test settles before
+asserting the old case is gone (its assertions are unchanged).
 
 ### Task 8: Verification and records
 

@@ -118,3 +118,21 @@ How the light variant is built (decided here, reversible; Plan 24): it
 and both vaults look the same. The Android window themes stay dark (they
 exist so WebView force-darkens pages, `test/android_theme_test.dart`), so a
 light phone sees a dark launch frame before the first Flutter frame.
+
+## D10 — Motion: the pill's moment only (fire 3e91b7, Plan 23 Task 7)
+
+Spec §7 names two moments. Only the protective change is built: the pill's
+case cross-fades (`AnimatedSwitcher`, 320 ms `easeOutCubic`) and its light
+moves amber → jade (`AnimatedContainer`, 150 ms); with the system's
+animations off both are 100 ms. It lives in `ContainerTopBar` alone.
+
+The unlock moment is **not built**. The lock screen is unmounted the frame
+`AppGate` switches to `SessionOpen`, so nothing on it can play a 320 ms lift
+"inside the lock body's transition" — there is no such transition. Building
+one means `AppGate` keeping the lock screen (or the vault) mounted across the
+switch, and `AppGate` is the boundary `6a5f013` made tear everything down on
+leaving `SessionOpen`; an `AnimatedSwitcher` there would also keep an open
+vault on screen for its fade on every lock. That is a shell change on a
+security boundary, which Task 7 says to skip. If the owner wants it, it needs
+a ruling on fading in only (the dashboard over the lock screen, never the
+reverse).
