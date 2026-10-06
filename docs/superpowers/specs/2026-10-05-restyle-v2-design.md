@@ -445,23 +445,24 @@ no seam. A light variant is §12 Q1.
 - **Not verified on a device** until someone runs the device checks each plan
   lists.
 
-## 12. Open questions (assumed answer in bold)
+## 12. Open questions — answered by the user, 2026-10-06
 
-1. Dark only, or a light variant later? **Dark only.**
+1. Dark only, or a light variant later? **A light variant** (built by Plan 24;
+   see §9).
 2. Sentence case for stored all-caps labels? **No — stored case kept.**
 3. Layout rulings raised by the debate (`6c` leading with protection, panic
-   out of the top-right corner, `☰` → `⋮`, Tor before SOCKS5): **canvas order
-   kept.**
-4. A visible word for wipe-on-exit/throwaway in the pill? **Shape +
-   screen-reader label only.**
-5. Plex Sans subset (≈246 KB) or full static (≈555 KB)? **Subset if
-   `fonttools` is available to the build session, else full.**
-6. `6a`'s jade on "Keep blocked" (canvas) rather than "Allow once" (as
-   built)? **Keep blocked.**
+   out of the top-right corner, `☰` → `⋮`, Tor before SOCKS5): **no changes
+   until the user has seen the restyle on a device.**
+4. A visible word for wipe-on-exit/throwaway in the pill? **Yes** — the words
+   themselves are new copy and wait for the user's wording; until then, shape
+   + screen-reader label only.
+5. Plex Sans subset or full? Settled by DECISIONS D8: **full, unsubset** (OFL
+   Reserved Font Name).
+6. `6a`'s jade on "Keep blocked"? **Yes, confirmed.**
 
-Also recommended, not decided: a rule that a real per-workspace byte count
-(`10a`/`10c`) needs a threat-model ruling first, because a lightly used decoy
-would read "0 MB" beside the real vault.
+Also ruled: a real per-workspace byte count (`10a`/`10c`) **needs a
+threat-model ruling first** (a lightly used decoy would read "0 MB" beside
+the real vault).
 
 ## 13. Self-review
 

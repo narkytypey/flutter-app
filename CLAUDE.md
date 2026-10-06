@@ -65,7 +65,7 @@ fetched at runtime. No code generation anywhere (no `build_runner`,
 
 ## Global constraints (apply everywhere, not just Plan 1)
 
-- **Android only, dark theme only.** No light theme, no toggle.
+- **Android only.** ~~Dark theme only.~~ **User's ruling 2026-10-06 (restyle v2, `docs/design-exploration/DECISIONS.md` D9): a light variant**, following the phone's system setting, with no in-app toggle (Plan 24). The Android window themes stay dark so WebView force-darkens pages (`test/android_theme_test.dart`).
 - **No network requests of the app's own, except connecting to the Tor
   network when the user has chosen Tor** (user's ruling, 2026-10-04, Plan
   19). No account, sync, analytics, or telemetry, ever. Tor runs only while a

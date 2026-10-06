@@ -98,3 +98,23 @@ static TTFs ship as downloaded from Google Fonts (205 KB each, 615 KB; net
 non-ASCII character `lib/` renders (`— · × – → “ ” ‹ … ° §`) is in the font;
 the symbols it lacks (`☰ ⌫ ▸ ◑ ▲ ◉`) occur only in comments, or as the
 keypad's key value, which is never drawn as text.
+
+## D9 — The user's answers to the open questions (2026-10-06)
+
+Asked after the run finished; answered by the user in one message:
+1. **Light variant: yes** (overrides CLAUDE.md's "dark theme only").
+2. Sentence case: **no**, stored case stays.
+3. Layout rulings (`6c` order, panic's corner, `☰`/`⋮`, Tor first): **no
+   changes until the user has seen the restyle on a device.**
+4. A visible word for wipe-on-exit/throwaway in the pill: **yes** — the
+   wording is new copy, so it waits for the user's words.
+5. Real storage sizes on `10a`/`10c`: **yes**, they need a threat-model
+   ruling first.
+6. `6a`'s jade on "Keep blocked": **yes, confirmed.**
+7. Do not merge to `main`; commit on `restyle-implementation`.
+
+How the light variant is built (decided here, reversible; Plan 24): it
+**follows the phone's system setting** — no in-app switch, so no new copy,
+and both vaults look the same. The Android window themes stay dark (they
+exist so WebView force-darkens pages, `test/android_theme_test.dart`), so a
+light phone sees a dark launch frame before the first Flutter frame.
