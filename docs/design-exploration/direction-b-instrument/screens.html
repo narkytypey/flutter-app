@@ -377,8 +377,13 @@
   .live-card .preview i.h { height: 16px; width: 60%; background: #322F2B; }
   .live-card .site { border-top: 1px solid var(--line); padding-right: var(--s1); }
   .saved-tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 96px), 1fr)); gap: var(--s2); }
-  .saved-tiles .tile { min-height: 0; align-items: flex-start; }
+  .saved-tiles .tile { min-height: 0; align-items: stretch; }
+  .saved-tiles .tile .mg { align-self: flex-start; }
   .saved-tiles .tile.add { min-height: 112px; align-items: center; }
+  .row { flex-wrap: wrap; row-gap: 4px; }
+  .row > .text { flex: 1 1 8em; }
+  .row > .val { margin-left: auto; overflow-wrap: anywhere; }
+  .kv > :last-child { overflow-wrap: anywhere; }
 </style>
 </head>
 <body>

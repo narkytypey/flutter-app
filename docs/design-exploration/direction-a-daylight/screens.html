@@ -187,9 +187,10 @@ body.theme-dark .frame-note { color: #B4BBB6; }
 
 /* browser chrome */
 .topbar { background: var(--card); padding: 8px 4px 8px 8px; display: flex; align-items: center; gap: 4px; flex: none; position: relative; z-index: 1; box-shadow: 0 1px 0 var(--outline-variant), 0 2px 8px rgba(26,29,27,.06); }
-.pill { flex: 1 1 auto; min-width: 0; min-height: 48px; border-radius: 999px; background: var(--tonal); display: flex; align-items: center; gap: 4px; padding: 0 0 0 12px; }
+.pill { flex: 1 1 auto; min-width: 0; min-height: 48px; border-radius: 24px; background: var(--tonal); display: flex; flex-wrap: wrap; align-items: center; gap: 0 4px; padding: 0 0 0 12px; }
+.pend { display: flex; align-items: center; gap: 4px; margin-left: auto; flex: none; }
 .pill.dng { background: var(--card); border: 1.5px solid var(--danger); }
-.pill .host { flex: 1 1 auto; margin-left: 4px; font-size: var(--fs-address); font-weight: 500; line-height: 1.375; color: var(--ink); }
+.pill .host { flex: 1 1 calc(7rem - 40px); margin-left: 4px; font-size: var(--fs-address); font-weight: 500; line-height: 1.375; color: var(--ink); }
 .ctype { position: relative; flex: none; width: 24px; height: 24px; color: var(--ink2); }
 .ctype .livedot { position: absolute; right: -3px; bottom: -2px; width: 10px; height: 10px; border: 2px solid var(--tonal); }
 .pill.dng .ctype .livedot { border-color: var(--card); }
@@ -408,9 +409,9 @@ body.theme-dark .frame-note { color: #B4BBB6; }
       <div class="pill">
         <span class="ctype"><svg class="ic"><use href="#i-box-dashed"/></svg><span class="livedot"></span></span>
         <span class="host ell">forum.example.com</span>
-        <span class="route">SOCKS5</span>
+        <span class="pend"><span class="route">SOCKS5</span>
         <span class="inpill" aria-label="Reload"><svg class="ic s20"><use href="#i-reload"/></svg></span>
-        <span class="inpill shield" aria-label="Site details"><svg class="ic"><use href="#i-shield"/></svg></span>
+        <span class="inpill shield" aria-label="Site details"><svg class="ic"><use href="#i-shield"/></svg></span></span>
       </div>
       <span class="panic" aria-label="Panic"><svg class="ic"><use href="#i-panic"/></svg></span>
     </div>
@@ -428,9 +429,9 @@ body.theme-dark .frame-note { color: #B4BBB6; }
       <div class="pill">
         <span class="ctype"><svg class="ic"><use href="#i-box-dashed"/></svg><span class="livedot"></span></span>
         <span class="host ell">forum.example.com</span>
-        <span class="route">SOCKS5</span>
+        <span class="pend"><span class="route">SOCKS5</span>
         <span class="inpill"><svg class="ic s20"><use href="#i-reload"/></svg></span>
-        <span class="inpill shield"><svg class="ic"><use href="#i-shield"/></svg></span>
+        <span class="inpill shield"><svg class="ic"><use href="#i-shield"/></svg></span></span>
       </div>
       <span class="panic"><svg class="ic"><use href="#i-panic"/></svg></span>
     </div>
@@ -529,9 +530,9 @@ body.theme-dark .frame-note { color: #B4BBB6; }
       <div class="pill">
         <span class="ctype"><svg class="ic"><use href="#i-box-dashed"/></svg><span class="livedot"></span></span>
         <span class="host ell">forum.example.com</span>
-        <span class="route">SOCKS5</span>
+        <span class="pend"><span class="route">SOCKS5</span>
         <span class="inpill"><svg class="ic s20"><use href="#i-reload"/></svg></span>
-        <span class="inpill shield"><svg class="ic"><use href="#i-shield"/></svg></span>
+        <span class="inpill shield"><svg class="ic"><use href="#i-shield"/></svg></span></span>
       </div>
       <span class="panic"><svg class="ic"><use href="#i-panic"/></svg></span>
     </div>
@@ -695,9 +696,9 @@ body.theme-dark .frame-note { color: #B4BBB6; }
       <div class="pill">
         <span class="ctype"><svg class="ic"><use href="#i-box-dashed"/></svg><span class="livedot"></span></span>
         <span class="host ell">forum.example.com</span>
-        <span class="route">SOCKS5</span>
+        <span class="pend"><span class="route">SOCKS5</span>
         <span class="inpill"><svg class="ic s20"><use href="#i-reload"/></svg></span>
-        <span class="inpill shield"><svg class="ic"><use href="#i-shield"/></svg></span>
+        <span class="inpill shield"><svg class="ic"><use href="#i-shield"/></svg></span></span>
       </div>
       <span class="panic"><svg class="ic"><use href="#i-panic"/></svg></span>
     </div>
@@ -840,8 +841,8 @@ body.theme-dark .frame-note { color: #B4BBB6; }
       <div class="pill">
         <span class="ctype"><svg class="ic"><use href="#i-box"/></svg><span class="livedot"></span></span>
         <span class="host ell">meet.example.com</span>
-        <span class="inpill"><svg class="ic s20"><use href="#i-reload"/></svg></span>
-        <span class="inpill shield"><svg class="ic"><use href="#i-shield"/></svg></span>
+        <span class="pend"><span class="inpill"><svg class="ic s20"><use href="#i-reload"/></svg></span>
+        <span class="inpill shield"><svg class="ic"><use href="#i-shield"/></svg></span></span>
       </div>
       <span class="panic"><svg class="ic"><use href="#i-panic"/></svg></span>
     </div>
@@ -870,9 +871,9 @@ body.theme-dark .frame-note { color: #B4BBB6; }
       <div class="pill">
         <span class="ctype"><svg class="ic"><use href="#i-box-dashed"/></svg><span class="livedot"></span></span>
         <span class="host ell">forum.example.com</span>
-        <span class="route">SOCKS5</span>
+        <span class="pend"><span class="route">SOCKS5</span>
         <span class="inpill"><svg class="ic s20"><use href="#i-reload"/></svg></span>
-        <span class="inpill shield"><svg class="ic"><use href="#i-shield"/></svg></span>
+        <span class="inpill shield"><svg class="ic"><use href="#i-shield"/></svg></span></span>
       </div>
       <span class="panic"><svg class="ic"><use href="#i-panic"/></svg></span>
     </div>
