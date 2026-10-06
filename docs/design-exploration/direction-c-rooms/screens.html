@@ -715,6 +715,134 @@ section[data-block] > header .note { display: block; margin-top: 4px; opacity: .
 </div>
 </section>
 
+<section data-block="9b">
+<header><span class="bid">9b</span>Back within the grace period — sessions kept, one tap to resume
+<span class="note">As built (biometrics on for this vault, so the fingerprint shows). A full PIN still works; the fingerprint resumes. The mark's door is ajar here: the sessions behind it are still open.</span></header>
+<div class="frames">
+<div class="phone">
+  <div class="sys"></div>
+  <div class="lock">
+    <div class="msg" style="gap:14px">
+      <svg class="lockmark" style="color:var(--ink)" aria-hidden="true"><use href="#i-room"/></svg>
+      <p class="t-appbar" style="margin:6px 0 0">Welcome back</p>
+      <p class="t-meta" style="margin:0">3 sessions still open · locks in 40s</p>
+      <div class="dots" style="margin-top:8px"><i></i><i></i><i></i><i></i><i></i><i></i></div>
+    </div>
+    <div class="kp" style="padding-bottom:4px"><div class="keypad"><span class="key">1</span><span class="key">2</span><span class="key">3</span><span class="key">4</span><span class="key">5</span><span class="key">6</span><span class="key">7</span><span class="key">8</span><span class="key">9</span><span class="key blank"></span><span class="key">0</span><span class="key bs" role="button" aria-label="Delete"><svg class="ic s28"><use href="#i-bs"/></svg></span></div></div>
+    <div class="col" role="button" style="align-items:center;gap:6px;padding:10px 0 22px;min-height:48px">
+      <svg class="ic s28" style="color:var(--ink)" aria-hidden="true"><use href="#i-fp"/></svg>
+      <span class="t-meta" style="color:var(--ink2)">Use fingerprint</span>
+    </div>
+  </div>
+</div>
+</div>
+</section>
+
+<section data-block="9c">
+<header><span class="bid">9c</span>Past the timer — ephemeral sessions were already destroyed
+<span class="note">As built. No fingerprint (resume-only). The notice is a plain box, not a warning: nothing went wrong.</span></header>
+<div class="frames">
+<div class="phone">
+  <div class="sys"></div>
+  <div class="lock">
+    <div class="msg" style="gap:16px">
+      <svg class="lockmark" style="color:var(--ink)" aria-hidden="true"><use href="#i-room"/></svg>
+      <p class="t-appbar" style="margin:0">Enter your PIN</p>
+      <div class="dots"><i></i><i></i><i></i><i></i><i></i><i></i></div>
+      <div class="box" style="border-radius:var(--r-m);padding:14px 16px;text-align:left;width:100%">
+        <p class="t-body" style="margin:0 0 6px;font-weight:600">Locked after 1 minute in the background</p>
+        <p class="t-muted" style="margin:0">Ephemeral sessions were closed and wiped. Saved sites will reopen where you left them.</p>
+      </div>
+    </div>
+    <div class="kp"><div class="keypad"><span class="key">1</span><span class="key">2</span><span class="key">3</span><span class="key">4</span><span class="key">5</span><span class="key">6</span><span class="key">7</span><span class="key">8</span><span class="key">9</span><span class="key blank"></span><span class="key">0</span><span class="key bs" role="button" aria-label="Delete"><svg class="ic s28"><use href="#i-bs"/></svg></span></div></div>
+  </div>
+</div>
+</div>
+</section>
+
+<section data-block="6b">
+<header><span class="bid">6b</span>Reader mode — text only, controls out of the way
+<span class="note">As built (standard size, normal contrast). The reader follows the theme like the rest of the chrome (TOKENS §1.6). A thin room wall under the header says whose page this is.</span></header>
+<div class="frames">
+<div class="phone room-fern" style="background:var(--reader-bg)">
+  <div class="sys"></div>
+  <div class="top" style="border-bottom:3px solid var(--wall);padding-bottom:4px">
+    <span class="tap" role="button" aria-label="Back" style="color:var(--reader-host)"><svg class="ic"><use href="#i-back"/></svg></span>
+    <span class="t t-label sentence ell center" style="color:var(--reader-host);display:block">READER · 6 MIN</span>
+    <span class="textbtn" role="button" style="color:var(--reader-host)">Aa</span>
+    <span class="tap" role="button" aria-label="Reader theme" style="color:var(--reader-host)"><svg class="ic"><use href="#i-contrast"/></svg></span>
+  </div>
+  <div class="scroll"><article style="padding:24px 24px 40px">
+    <p class="t-value" style="color:var(--reader-host);margin:0 0 16px">forum.example.com</p>
+    <h1 style="font:700 calc(26px*var(--scale))/1.25 var(--ui);letter-spacing:-.01em;color:var(--reader-title);margin:0 0 18px">What a container actually isolates, and what it cannot</h1>
+    <p style="font:400 calc(17px*var(--scale))/1.7 var(--ui);color:var(--reader-body);margin:0 0 14px">Separate storage stops one site from reading another's cookies. It does not hide the fact that a request came from this device, which is what the proxy layer is for.</p>
+    <p style="font:400 calc(17px*var(--scale))/1.7 var(--ui);color:var(--reader-body);margin:0 0 14px">The two protections are often confused. Keeping them separate in your head makes it easier to decide which sites need which.</p>
+    <p style="font:400 calc(17px*var(--scale))/1.7 var(--ui);color:var(--reader-body);margin:0">A site that needs a login and a site you want to read anonymously are different problems, and they belong in different workspaces.</p>
+  </article></div>
+</div>
+</div>
+</section>
+
+<section data-block="6a">
+<header><span class="bid">6a</span>Permission request — one time by default, never remembered silently
+<span class="note">As built, except the solid pill: Rooms follows the canvas (authoritative here, per the inventory) and makes "Keep blocked" the one solid pill; the code fills "Allow once". Order unchanged. The page behind is a throwaway (meet.example.com is not a saved site), so its chrome has no room.</span></header>
+<div class="frames">
+<div class="phone room-none">
+  <div class="sys hatch"></div>
+  <div class="chrome-top">
+    <div class="addr" style="border-color:var(--ink3)">
+      <svg class="door" style="color:var(--ink);width:16px;height:20px"><use href="#i-door-open"/></svg>
+      <div class="hc"><span class="host ell">meet.example.com</span></div>
+      <span class="tap"><svg class="ic s20"><use href="#i-reload"/></svg></span>
+      <span class="tap"><svg class="ic s20"><use href="#i-shield"/></svg></span>
+    </div>
+    <span class="panic"><svg class="ic s20"><use href="#i-panic"/></svg></span>
+  </div>
+  <div class="walled" style="background:#26231F"><div class="webpage"><i class="h"></i><i class="img"></i><i></i></div></div>
+  <div class="scrim"></div>
+  <div class="sheet" style="padding-top:24px">
+    <h2 class="t-sheet" style="margin:0">meet.example.com wants your microphone</h2>
+    <p class="t-muted" style="margin:0 0 6px">It is blocked right now. Allowing it applies to this site only, inside this container.</p>
+    <span class="pill secondary">Allow once</span>
+    <span class="pill secondary">Allow while this site is open</span>
+    <span class="pill primary">Keep blocked</span>
+  </div>
+</div>
+</div>
+</section>
+
+<section data-block="7c">
+<header><span class="bid">7c</span>Blocked download — says what it is and where it would land
+<span class="note">As built. The held file sits on the room's tint: it is still inside Forum's container. Discard is the solid pill (as canvas and code).</span></header>
+<div class="frames">
+<div class="phone room-fern">
+  <div class="sys" style="background:var(--tint)"></div>
+  <div class="chrome-top">
+    <div class="addr">
+      <svg class="door" style="color:var(--ink);width:16px;height:20px"><use href="#i-door-open"/></svg>
+      <div class="hc"><span class="host ell">forum.example.com</span><span class="badge">SOCKS5</span></div>
+      <span class="tap"><svg class="ic s20"><use href="#i-reload"/></svg></span>
+      <span class="tap"><svg class="ic s20"><use href="#i-shield"/></svg></span>
+    </div>
+    <span class="panic"><svg class="ic s20"><use href="#i-panic"/></svg></span>
+  </div>
+  <div class="walled" style="background:#26231F"><div class="webpage"><i class="h"></i><i></i><i style="width:70%"></i><i class="img"></i></div></div>
+  <div class="scrim"></div>
+  <div class="sheet" style="padding-top:24px">
+    <h2 class="t-sheet" style="margin:0">Download held</h2>
+    <p class="t-muted" style="margin:0">Files leave the container when they are saved. This one would go to your device storage where other apps can read it.</p>
+    <div class="row" style="background:var(--tint);border-radius:var(--r-l);padding:14px;align-items:flex-start">
+      <span class="kind" style="background:var(--box)">PDF</span>
+      <div class="col f1" style="gap:2px"><span class="t-body" style="font-weight:600">statement-june.pdf</span><span class="t-meta" style="color:var(--room-ink)">1.4 MB · from forum.example.com</span></div>
+    </div>
+    <span class="pill secondary">Keep inside this container</span>
+    <span class="pill secondary">Save to device storage</span>
+    <span class="pill primary">Discard</span>
+  </div>
+</div>
+</div>
+</section>
+
 <!-- END BLOCKS -->
 </main>
 </body>
