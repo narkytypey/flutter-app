@@ -4,11 +4,11 @@ Read this first. It is the only thing that carries across a restart.
 
 ## Where I got to
 
-Phases 0–4 and 6 done (spec written). Phase 5 index.html being built by a subagent. Phase 7 (plans) next.
+Phases 0–7 done (index.html, spec, plans 20–23). Phase 8 on branch `restyle-implementation`.
 
 ## Heartbeat
 
-2026-10-06T11:00Z · fire-cd6e6b (resumed)
+2026-10-06T11:25Z · fire-cd6e6b (resumed)
 
 ## Branch
 
@@ -16,7 +16,7 @@ design-exploration-restyle
 
 ## Next action
 
-Phase 7: write plans 20 (foundation), 21 (dashboard + chrome), 22 (setup + lock), 23 (settings, management, sheets, failure states) in docs/superpowers/plans/2026-10-05-restyle-v2-NN-*.md.
+Phase 8: execute Plan 20 (foundation) on `restyle-implementation`, task by task, gates after each.
 
 ## Toolchain
 
@@ -111,22 +111,25 @@ A later fire must reinstall all of it (~10 min); set
 - [x] VERDICT.md
 
 ### Phase 5 — Comparison page
-- [ ] index.html
+- [x] index.html
 
 ### Phase 6 — Spec
 - [x] docs/superpowers/specs/2026-10-05-restyle-v2-design.md
 - [x] Self-review paragraph
 
 ### Phase 7 — Plans
-- [ ] Read existing plans and Known cross-plan issues
-- [ ] Plan 20 — foundation
-- [ ] Plan 21+ — screen waves
-- [ ] Plans committed
+- [x] Read existing plans and Known cross-plan issues
+- [x] Plan 20 — foundation
+- [x] Plan 21+ — screen waves
+- [x] Plans committed
 
 ### Phase 8 — Execute (branch restyle-implementation)
-- [ ] Toolchain check recorded
-- [ ] Cut restyle-implementation
-- [ ] Execute plans task by task (tasks listed here once plans exist)
+- [x] Toolchain check recorded
+- [x] Cut restyle-implementation
+- [ ] Plan 20: T1 tokens · T2 Plex Sans + scale · T3 glyphs · T4 shared widgets · T5 launcher icon · T6 verify
+- [ ] Plan 21: T1 shell/chips/tabs · T2 rows · T3 pill · T4 bars · T5 2c/menu/8a · T6 verify
+- [ ] Plan 22: T1 lock · T2 setup · T3 panic · T4 verify
+- [ ] Plan 23: T1 settings · T2 2a · T3 10a–e · T4 today/reader · T5 sheets/failures · T6 aliases · T7 motion (opt) · T8 verify
 - [ ] CLAUDE.md plan rows
 
 ### Phase 9 — If budget remains
@@ -136,6 +139,8 @@ A later fire must reinstall all of it (~10 min); set
 - [ ] One-page rationale
 
 ## Log
+
+- 11:25Z fire-cd6e6b: index.html (subagent), plans 20–23 written. Toolchain reinstalled this fire (Flutter 3.47.2 + SDK). Cutting restyle-implementation.
 
 - 11:00Z fire-cd6e6b: spec written (docs/superpowers/specs/2026-10-05-restyle-v2-design.md).
 
