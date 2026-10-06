@@ -13,6 +13,11 @@ analyzer:
   exclude:
     - build/**
     - android/**
+  errors:
+    # Restyle v2 keeps its retired colour names as deprecated aliases while
+    # Plans 20-23 migrate the screens; Plan 23 Task 6 deletes the aliases
+    # and this line.
+    deprecated_member_use_from_same_package: ignore
 
 linter:
   # The lint rules applied to this project can be customized in the
