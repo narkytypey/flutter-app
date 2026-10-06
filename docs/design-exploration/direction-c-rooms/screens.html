@@ -225,6 +225,11 @@ section[data-block] > header .note { display: block; margin-top: 4px; opacity: .
 .badge, .openpill, .seg, .chip, .savebtn, .textbtn { white-space: nowrap; }
 .mono, .t-value, .t-code { overflow-wrap: anywhere; }
 .sheet > *, .form > *, .col > * { flex-shrink: 0; }
+.swatch { flex: none; width: 48px; height: 48px; border-radius: 14px; background: var(--wall); color: var(--on-wall); display: grid; place-items: center; }
+.swatch.sel { box-shadow: 0 0 0 3px var(--page), 0 0 0 6px var(--ink); }
+.code { display: flex; background: var(--sunken); border-radius: var(--r-m); padding: 12px 12px 12px 0; font: 400 calc(14px*var(--scale))/1.57 var(--mono); }
+.code .gut { flex: none; text-align: right; color: var(--ink3); padding: 0 10px 0 12px; white-space: pre; }
+.code pre { margin: 0; font: inherit; color: var(--ink); white-space: pre-wrap; overflow-wrap: anywhere; flex: 1 1 auto; min-width: 0; }
 .hr { height: 1px; background: var(--divider); flex: none; }
 </style>
 </head>
@@ -838,6 +843,151 @@ section[data-block] > header .note { display: block; margin-top: 4px; opacity: .
     <span class="pill secondary">Keep inside this container</span>
     <span class="pill secondary">Save to device storage</span>
     <span class="pill primary">Discard</span>
+  </div>
+</div>
+</div>
+</section>
+
+<section data-block="10a">
+<header><span class="bid">10a</span>Workspaces — what each one keeps
+<span class="note">As built (sizes are the canvas's; the device reads 0 MB). Each workspace is drawn as its room: a wall-coloured tile with its door. "New workspace" is the screen's one solid pill.</span></header>
+<div class="frames">
+<div class="phone">
+  <div class="sys"></div>
+  <div class="top"><span class="tap ink" role="button" aria-label="Back"><svg class="ic"><use href="#i-back"/></svg></span><h1 class="t t-screen" style="margin:0;padding-left:0">Workspaces</h1></div>
+  <div class="scroll"><div class="form" style="padding-top:4px">
+    <div class="box row room-fern" style="padding:14px 8px 14px 14px;border-left:6px solid var(--wall)"><span class="swatch"><svg class="door" style="width:18px;height:22px"><use href="#i-door-open"/></svg></span><div class="col f1"><span class="t-row">Personal</span><span class="t-meta">6 sites · cookies kept · 12 MB</span></div><svg class="ic s20 ink3"><use href="#i-fwd"/></svg></div>
+    <div class="box row room-lake" style="padding:14px 8px 14px 14px;border-left:6px solid var(--wall)"><span class="swatch"><svg class="door" style="width:18px;height:22px"><use href="#i-door-open"/></svg></span><div class="col f1"><span class="t-row">Work</span><span class="t-meta">2 sites · cookies kept · 3 MB</span></div><svg class="ic s20 ink3"><use href="#i-fwd"/></svg></div>
+    <div class="box row room-graphite" style="padding:14px 8px 14px 14px;border-left:6px solid var(--wall)"><span class="swatch"><svg class="ic" aria-label="Wipe on exit"><use href="#i-flame"/></svg></span><div class="col f1"><span class="t-row">Ephemeral</span><span class="t-meta">1 site · wipes on exit · nothing stored</span></div><svg class="ic s20 ink3"><use href="#i-fwd"/></svg></div>
+    <span class="pill primary" style="margin-top:8px"><svg class="ic s20"><use href="#i-plus"/></svg>New workspace</span>
+    <p class="t-meta" style="margin:8px 4px">The same site can live in more than one workspace. Each copy has its own login and its own history.</p>
+  </div></div>
+</div>
+</div>
+</section>
+
+<section data-block="10b">
+<header><span class="bid">10b</span>New workspace — name, marker, storage rule
+<span class="note">As built (canvas sample: Research, the blue marker, Keep). The name and marker sit inside a live preview of the room being made: picking a marker repaints it. Markers are the five room families; none is red.</span></header>
+<div class="frames">
+<div class="phone">
+  <div class="sys"></div>
+  <div class="top">
+    <span class="tap ink" role="button" aria-label="Close"><svg class="ic"><use href="#i-close"/></svg></span>
+    <span class="t t-appbar ell">New workspace</span>
+    <span class="savebtn">Save</span>
+  </div>
+  <div class="scroll"><div class="form">
+    <div class="room room-lake" style="padding:16px;gap:10px">
+      <p class="label sentence" style="color:var(--room-ink)">NAME</p>
+      <div class="field focus"><span class="f1">Research</span></div>
+      <p class="label sentence" style="color:var(--room-ink);margin-top:6px">MARKER</p>
+      <div class="chips" style="gap:10px">
+        <span class="swatch room-fern" role="radio"></span>
+        <span class="swatch sel room-lake" role="radio" aria-checked="true"><svg class="ic"><use href="#i-check"/></svg></span>
+        <span class="swatch room-ochre" role="radio"></span>
+        <span class="swatch room-plum" role="radio"></span>
+        <span class="swatch room-graphite" role="radio"></span>
+      </div>
+    </div>
+    <p class="label sentence">STORAGE</p>
+    <div class="group">
+      <div class="opt"><div class="col f1"><span class="gt" style="font-weight:600">Keep between sessions</span><span class="gs">Stays signed in</span></div><span class="radio on"></span></div>
+      <div class="opt"><div class="col f1"><span class="gt"><svg class="ic s16" aria-hidden="true" style="vertical-align:-2px;margin-right:4px;color:var(--ink2)"><use href="#i-flame"/></svg>Wipe when the app closes</span><span class="gs">Nothing survives a restart</span></div><span class="radio"></span></div>
+    </div>
+    <div class="group" style="margin-top:6px">
+      <div class="opt"><div class="col f1"><span class="gt">Ask for PIN to enter</span><span class="gs">Applies to the whole workspace</span></div><span class="sw"></span></div>
+      <div class="opt"><div class="col f1"><span class="gt">Show in decoy vault</span><span class="gs">Off keeps it invisible behind the second PIN</span></div><span class="sw"></span></div>
+    </div>
+  </div></div>
+</div>
+</div>
+</section>
+
+<section data-block="10d">
+<header><span class="bid">10d</span>Scripts and filters — one library, reused across sites
+<span class="note">As built (rule counts are the canvas's illustrative figures; the bundled lists hold 22, 22 and 13). No update block: the lists are bundled. No room colour: the library belongs to no room.</span></header>
+<div class="frames">
+<div class="phone">
+  <div class="sys"></div>
+  <div class="top"><span class="tap ink" role="button" aria-label="Back"><svg class="ic"><use href="#i-back"/></svg></span><h1 class="t t-screen" style="margin:0;padding-left:0">Scripts and filters</h1></div>
+  <div class="scroll"><div class="form" style="padding-top:4px">
+    <p class="label sentence">FILTER LISTS</p>
+    <div class="group">
+      <div class="opt"><div class="col f1"><span class="gt">Trackers and ads</span><span class="t-value" style="font-size:calc(13px*var(--scale))">84,102 rules · updated 2 days ago</span></div><span class="sw on"></span></div>
+      <div class="opt"><div class="col f1"><span class="gt">Cookie notices</span><span class="t-value" style="font-size:calc(13px*var(--scale))">11,430 rules · updated 2 days ago</span></div><span class="sw on"></span></div>
+      <div class="opt"><div class="col f1"><span class="gt">Social embeds</span><span class="t-value" style="font-size:calc(13px*var(--scale))">2,908 rules · off</span></div><span class="sw"></span></div>
+    </div>
+    <p class="label sentence" style="margin-top:14px">MY SCRIPTS</p>
+    <div class="group">
+      <div class="opt"><span class="kind">CSS</span><div class="col f1"><span class="gt">Hide sticky headers</span><span class="gs">Applied to 4 sites</span></div><span class="sw on"></span></div>
+      <div class="opt"><span class="kind">CSS</span><div class="col f1"><span class="gt">Wider reading column</span><span class="gs">Applied to 1 site</span></div><span class="sw on"></span></div>
+      <div class="opt"><span class="kind">JS</span><div class="col f1"><span class="gt">Auto-expand comments</span><span class="gs">Applied to 1 site · runs at load</span></div><span class="sw"></span></div>
+    </div>
+    <span class="pill primary" style="margin-top:8px"><svg class="ic s20"><use href="#i-plus"/></svg>New script</span>
+  </div></div>
+</div>
+</div>
+</section>
+
+<section data-block="10e">
+<header><span class="bid">10e</span>Script editor — code, then where it runs
+<span class="note">As built. Site chips wear each site's room colour (News, from the canvas, is shown in Fern). "+ Add site" is dashed, as the canvas draws it. Save is the one solid pill.</span></header>
+<div class="frames">
+<div class="phone">
+  <div class="sys"></div>
+  <div class="top">
+    <span class="tap ink" role="button" aria-label="Back"><svg class="ic"><use href="#i-back"/></svg></span>
+    <span class="t t-appbar ell">Hide sticky headers</span>
+    <span class="savebtn">Save</span>
+  </div>
+  <div class="scroll"><div class="form">
+    <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px"><span class="seg sel">CSS</span><span class="seg">JavaScript</span></div>
+    <div class="code"><span class="gut">1
+2
+3
+4
+5
+6</span><pre>header, .sticky, [data-sticky] {
+  position: static !important;
+}
+
+.cookie-banner, .ad-slot {
+  display: none !important;</pre></div>
+    <p class="label sentence" style="margin-top:10px">RUNS ON</p>
+    <div class="chips">
+      <span class="chip room-fern" style="padding-right:4px">Forum<span class="tap" role="button" aria-label="Remove" style="min-width:32px;min-height:32px;color:var(--room-ink)"><svg class="ic s16"><use href="#i-close"/></svg></span></span>
+      <span class="chip room-fern" style="padding-right:4px">Reader<span class="tap" role="button" aria-label="Remove" style="min-width:32px;min-height:32px;color:var(--room-ink)"><svg class="ic s16"><use href="#i-close"/></svg></span></span>
+      <span class="chip room-fern" style="padding-right:4px">Marketplace<span class="tap" role="button" aria-label="Remove" style="min-width:32px;min-height:32px;color:var(--room-ink)"><svg class="ic s16"><use href="#i-close"/></svg></span></span>
+      <span class="chip room-fern" style="padding-right:4px">News<span class="tap" role="button" aria-label="Remove" style="min-width:32px;min-height:32px;color:var(--room-ink)"><svg class="ic s16"><use href="#i-close"/></svg></span></span>
+      <span class="chip" style="background:transparent;color:var(--ink);border:2px dashed var(--ink3)">+ Add site</span>
+    </div>
+    <div class="group" style="margin-top:10px">
+      <div class="opt"><div class="col f1"><span class="gt">Run before the page paints</span><span class="gs">Prevents a flash of the hidden elements</span></div><span class="sw on"></span></div>
+    </div>
+  </div></div>
+</div>
+</div>
+</section>
+
+<section data-block="3c">
+<header><span class="bid">3c</span>Panic — no confirmation dialog, it just happens and reports after
+<span class="note">As built. The ordinary paper page, not a red screen: danger is the mark's outline only. Each line of the report ends in an ink check. Unlock is the one solid pill.</span></header>
+<div class="frames">
+<div class="phone">
+  <div class="sys"></div>
+  <div class="lock" style="justify-content:center">
+    <div class="msg" style="gap:16px;flex:0 0 auto">
+      <span style="width:64px;height:64px;border-radius:50%;border:2px solid var(--danger);color:var(--danger);display:grid;place-items:center"><svg class="ic s28"><use href="#i-panic"/></svg></span>
+      <h1 class="t-sheet" style="margin:4px 0 0">Everything closed</h1>
+      <p class="t-muted" style="margin:0">3 sessions destroyed, temporary storage wiped, app locked.</p>
+      <div class="group" style="width:100%;text-align:left;margin-top:8px">
+        <div class="opt"><span class="t-label sentence f1" style="display:block">WEBVIEWS</span><span class="t-body sentence" style="font-weight:600">DESTROYED</span><svg class="ic s20"><use href="#i-check"/></svg></div>
+        <div class="opt"><span class="t-label sentence f1" style="display:block">EPHEMERAL DATA</span><span class="t-body sentence" style="font-weight:600">WIPED</span><svg class="ic s20"><use href="#i-check"/></svg></div>
+        <div class="opt"><span class="t-label sentence f1" style="display:block">MEMORY</span><span class="t-body sentence" style="font-weight:600">CLEARED</span><svg class="ic s20"><use href="#i-check"/></svg></div>
+      </div>
+      <span class="pill primary" style="margin-top:12px">Unlock</span>
+    </div>
   </div>
 </div>
 </div>

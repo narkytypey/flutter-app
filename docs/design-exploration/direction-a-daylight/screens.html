@@ -260,6 +260,13 @@ body.theme-dark .frame-note { color: #B4BBB6; }
 .progress { height: 3px; background: var(--tonal); flex: none; }
 .progress > i { display: block; height: 100%; width: 60%; background: var(--accent); }
 
+.tilegrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 6.5rem), 1fr)); gap: 12px; }
+.stile { background: var(--card); border-radius: var(--r-lg); padding: 14px; display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.stile .top { display: flex; justify-content: space-between; align-items: flex-start; gap: 6px; flex-wrap: wrap; }
+.tag { font-size: var(--fs-badge); font-weight: 700; letter-spacing: .3px; padding: 2px 6px; border-radius: var(--r-xs); background: var(--tonal); color: var(--ink); }
+.stile.add { background: transparent; border: 1.5px dashed var(--outline); align-items: center; justify-content: center; color: var(--ink2); min-height: 120px; }
+.preview { height: 96px; background: var(--tonal); display: grid; place-items: center; color: var(--ink2); }
+
 /* dashboard */
 .chiprow { display: flex; align-items: center; gap: 8px; padding: 8px 8px 8px 16px; flex: none; flex-wrap: wrap; }
 .chiprow .chips { flex: 1 1 auto; min-width: 0; }
@@ -1158,3 +1165,136 @@ body.theme-dark .frame-note { color: #B4BBB6; }
     </div>
   </div>
 </section>
+
+<!-- ===================== 4b ===================== -->
+<section data-block="4b">
+  <div class="blabel">4b · Setup: the decoy<span>Canvas: “Setup — the decoy, explained once and never again”. “Sites to show” stays inert, as built.</span></div>
+  <div class="phone">
+    <div class="statusbar"></div>
+    <div class="pinwrap">
+      <div class="steps"><i class="on"></i><i class="on"></i><i></i></div>
+      <div class="scroll" style="display:flex;flex-direction:column;justify-content:center;padding:24px 0">
+        <div class="t-step">A second PIN, if you want one</div>
+        <p class="t-body2" style="margin:12px 0 20px">If someone makes you unlock the app, this PIN opens a plain board with only the sites you choose. Nothing on it hints that anything else exists.</p>
+        <div class="group">
+          <div class="row"><span class="txt t-body">Set up a decoy PIN</span><span class="sw-hit"><span class="sw on"></span></span></div>
+          <div class="row two"><span class="txt"><span class="t-body">Sites to show</span><span class="t-meta">Pick after setup</span></span><svg class="ic s20" style="color:var(--ink-disabled)"><use href="#i-forward"/></svg></div>
+        </div>
+      </div>
+      <div style="padding:8px 0 16px;flex:none" class="stack">
+        <span class="btn filled">Continue</span>
+        <span class="btn" style="background:transparent;color:var(--ink2);min-height:48px">Skip for now</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== 4c ===================== -->
+<section data-block="4c">
+  <div class="blabel">4c · Wrong PIN<span>Canvas: “Wrong PIN — counts down without naming what is behind it”. Danger as text, ring and a small tinted mark.</span></div>
+  <div class="phone">
+    <div class="statusbar"></div>
+    <div class="pinwrap">
+      <div class="pinmsg">
+        <span class="mark dng"><svg style="width:32px;height:32px"><use href="#logo-cur"/></svg></span>
+        <span class="t-body danger" style="margin-top:24px;font-size:var(--fs-sheet);font-weight:600">Wrong PIN · 3 tries left</span>
+        <div class="dots"><span class="dot err"></span><span class="dot err"></span><span class="dot err"></span><span class="dot err"></span><span class="dot err"></span><span class="dot err"></span></div>
+        <p class="t-meta" style="margin:20px 0 0;max-width:280px">After 5 wrong tries the app waits 30 seconds before accepting another.</p>
+      </div>
+      <div class="keypad">
+        <span class="key">1</span><span class="key">2</span><span class="key">3</span>
+        <span class="key">4</span><span class="key">5</span><span class="key">6</span>
+        <span class="key">7</span><span class="key">8</span><span class="key">9</span>
+        <span class="key blank"></span><span class="key">0</span><span class="key bs" aria-label="Delete"><svg class="ic s32"><use href="#i-backspace"/></svg></span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== 1a ===================== -->
+<section data-block="1a">
+  <div class="blabel">1a · Quiet grid (canvas mock — never built)<span>Canvas: “Quiet grid — monogram tiles, one status line, badges only when they mean something”. Mocked from the canvas file's own strings; the app builds 1b instead.</span></div>
+  <div class="phone">
+    <div class="statusbar"></div>
+    <div class="appbar notback" style="padding-right:4px">
+      <span class="t-screen" style="flex:0 1 auto;display:flex;align-items:center;gap:4px;min-width:0"><span class="ell">Personal</span><svg class="ic s20"><use href="#i-down"/></svg></span>
+      <span class="grow"></span>
+      <span class="btn-icon ink"><svg class="ic"><use href="#i-search"/></svg></span>
+      <span class="btn-icon ink"><svg class="ic"><use href="#i-more"/></svg></span>
+    </div>
+    <div class="scroll pad" style="padding-bottom:24px">
+      <div class="tilegrid">
+        <div class="stile"><div class="top"><span class="mg-wrap"><span class="mg-b open"><i>Nt</i></span><span class="livedot" style="border-color:var(--card)"></span></span><span class="tag">PROXY</span></div><span class="t-row ell">Notes</span><span class="t-meta">Open · now</span></div>
+        <div class="stile"><div class="top"><span class="mg-wrap"><span class="mg-b open"><i>Wm</i></span><span class="livedot" style="border-color:var(--card)"></span></span></div><span class="t-row ell">Webmail</span><span class="t-meta">Open · 14 min</span></div>
+        <div class="stile"><div class="top"><span class="mg-b"><i>Fr</i></span><span class="tag">TEMP</span></div><span class="t-row-idle ell">Forum</span><span class="t-meta">Idle · 2 h</span></div>
+        <div class="stile"><div class="top"><span class="mg-b"><i>Rd</i></span></div><span class="t-row-idle ell">Reader</span><span class="t-meta">Idle · yesterday</span></div>
+        <div class="stile"><div class="top"><span class="mg-b"><i>Bk</i></span><span class="tag">LOCK</span></div><span class="t-row-idle ell">Bank</span><span class="t-meta">Idle · 3 d</span></div>
+        <div class="stile"><div class="top"><span class="mg-b"><i>Mk</i></span></div><span class="t-row-idle ell">Marketplace</span><span class="t-meta">Idle · 5 d</span></div>
+        <div class="stile add"><svg class="ic"><use href="#i-plus"/></svg><span class="t-meta" style="font-weight:600">Add site</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== 1c ===================== -->
+<section data-block="1c">
+  <div class="blabel">1c · Live tiles (canvas mock — never built)<span>Canvas: “Live tiles — full-width rows for open sessions with a page preview, small tiles below”. Mocked from the canvas file's own strings; superseded by 1b and 2c.</span></div>
+  <div class="phone">
+    <div class="statusbar"></div>
+    <div class="appbar notback" style="padding-right:4px">
+      <span style="flex:1 1 auto;min-width:0;display:flex;flex-direction:column">
+        <span class="t-label sentence">WORKSPACE</span>
+        <span class="t-screen" style="display:flex;align-items:center;gap:4px"><span class="ell">Personal</span><svg class="ic s20"><use href="#i-down"/></svg></span>
+      </span>
+      <span class="btn-icon ink"><svg class="ic"><use href="#i-search"/></svg></span>
+    </div>
+    <div class="scroll pad" style="padding-bottom:24px">
+      <span class="t-label live sentence section-label first blocklevel">LIVE</span>
+      <div class="group"><div class="preview t-caption">page preview</div>
+        <div class="row two mg" style="padding-right:4px"><span class="mg-b open"><i>Nt</i></span><span class="txt"><span class="t-row ell">Notes</span><span class="t-value wrap">notes.example.org · socks5</span></span><span class="btn-icon"><svg class="ic s20"><use href="#i-close"/></svg></span></div></div>
+      <div class="group"><div class="preview t-caption">page preview</div>
+        <div class="row two mg" style="padding-right:4px"><span class="mg-b open"><i>Wm</i></span><span class="txt"><span class="t-row ell">Webmail</span><span class="t-value wrap">mail.example.net · direct</span></span><span class="btn-icon"><svg class="ic s20"><use href="#i-close"/></svg></span></div></div>
+      <span class="t-label sentence section-label blocklevel">SAVED</span>
+      <div class="tilegrid">
+        <div class="stile"><span class="mg-b"><i>Fr</i></span><span class="t-row-idle ell">Forum</span><span class="t-meta">2h</span></div>
+        <div class="stile"><span class="mg-b"><i>Rd</i></span><span class="t-row-idle ell">Reader</span><span class="t-meta">1d</span></div>
+        <div class="stile"><span class="mg-b"><i>Bk</i></span><span class="t-row-idle ell">Bank</span><span class="t-meta">3d</span></div>
+        <div class="stile"><span class="mg-b"><i>Mk</i></span><span class="t-row-idle ell">Marketplace</span><span class="t-meta">5d</span></div>
+        <div class="stile add" style="min-height:100px"><svg class="ic"><use href="#i-plus"/></svg></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== 3b ===================== -->
+<section data-block="3b">
+  <div class="blabel">3b · Decoy vault (the same dashboard)<span>Canvas: “Decoy vault — same shell, ordinary content, no privacy language”. Identical widgets to 1b; only the data differs.</span></div>
+  <div class="phone">
+    <div class="statusbar"></div>
+    <div class="chiprow">
+      <div class="chips"><span class="chip sel"><svg class="ic s18"><use href="#i-check"/></svg>Personal</span></div>
+      <span class="addbtn" aria-label="New workspace"><span><svg class="ic s20"><use href="#i-plus"/></svg></span></span>
+    </div>
+    <div class="scroll pad">
+      <div class="group">
+        <div class="row two mg"><span class="mg-b"><i>Nw</i></span><span class="txt"><span class="t-row-idle ell">News</span><span class="t-value wrap">news.example.com · direct</span></span><span class="age">2d</span></div>
+        <div class="row two mg"><span class="mg-b"><i>Wt</i></span><span class="txt"><span class="t-row-idle ell">Weather</span><span class="t-value wrap">weather.example.com · direct</span></span><span class="age">4d</span></div>
+        <div class="row two mg"><span class="mg-b"><i>Rc</i></span><span class="txt"><span class="t-row-idle ell">Recipes</span><span class="t-value wrap">cook.example.org · direct</span></span><span class="age">1w</span></div>
+        <div class="row two mg"><span class="mg-b"><i>Tt</i></span><span class="txt"><span class="t-row-idle ell">Timetable</span><span class="t-value wrap">transit.example.com · direct</span></span><span class="age">2w</span></div>
+      </div>
+    </div>
+    <div class="footer">
+      <div class="search"><svg class="ic"><use href="#i-search"/></svg><span class="ell">Search or type an address</span></div>
+      <span class="plus48" aria-label="Add site"><svg class="ic"><use href="#i-plus"/></svg></span>
+    </div>
+    <div class="navbar">
+      <div class="nav on"><span class="ind"><svg class="ic"><use href="#i-sites"/></svg></span><span class="t-bar">Sites</span></div>
+      <div class="nav"><span class="ind"><svg class="ic"><use href="#i-today"/></svg></span><span class="t-bar">Today</span></div>
+      <div class="nav"><span class="ind"><svg class="ic"><use href="#i-settings"/></svg></span><span class="t-bar">Settings</span></div>
+    </div>
+  </div>
+</section>
+
+</main>
+</body>
+</html>
