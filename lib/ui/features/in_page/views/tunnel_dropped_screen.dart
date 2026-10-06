@@ -4,6 +4,7 @@ import '../../../core/icons.dart';
 import '../../../core/tokens.dart';
 import '../../../core/typography.dart';
 import '../../../core/widgets/page_skeleton.dart';
+import 'proxy_unreachable_screen.dart' show TunnelHeader;
 
 /// Spec `8c` — the page freezes and the decision surfaces at the top,
 /// instead of a dialog stealing focus from a page the user was reading.
@@ -28,59 +29,14 @@ class TunnelDroppedScreen extends StatelessWidget {
       body: SafeArea(
         child: Column(
           children: [
+            TunnelHeader(host: host, rule: false),
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-              child: Row(
-                children: [
-                  const SizedBox(
-                    width: 32,
-                    height: 32,
-                    child: Center(child: AppIcon(AppGlyph.back, size: 18)),
-                  ),
-                  Expanded(
-                    child: Container(
-                      height: 34,
-                      padding: const EdgeInsets.symmetric(horizontal: 12),
-                      decoration: BoxDecoration(
-                        color: C.surface,
-                        borderRadius: BorderRadius.circular(17),
-                        border: Border.all(color: C.danger.withValues(alpha: 0.25)),
-                      ),
-                      child: Row(
-                        children: [
-                          Container(
-                            width: 6,
-                            height: 6,
-                            decoration: const BoxDecoration(color: C.danger, shape: BoxShape.circle),
-                          ),
-                          const SizedBox(width: 7),
-                          Flexible(
-                            child: Text(
-                              host,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: ui(size: 11.5, color: C.textTertiary),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                  const SizedBox(
-                    width: 32,
-                    height: 32,
-                    child: Center(child: AppIcon(AppGlyph.reload, size: 16)),
-                  ),
-                ],
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(12, 4, 12, 0),
+              padding: const EdgeInsets.fromLTRB(S.s3, S.s1, S.s3, 0),
               child: Container(
-                padding: const EdgeInsets.all(14),
+                padding: const EdgeInsets.all(S.s4),
                 decoration: BoxDecoration(
-                  color: C.dangerPanel,
-                  borderRadius: BorderRadius.circular(16),
+                  color: C.dangerSurface,
+                  borderRadius: BorderRadius.circular(R.group),
                   border: Border.all(color: C.danger.withValues(alpha: 0.28)),
                 ),
                 child: Column(
@@ -90,41 +46,41 @@ class TunnelDroppedScreen extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         const AppIcon(AppGlyph.refused, size: 16, color: C.danger),
-                        const SizedBox(width: 11),
+                        const SizedBox(width: S.s3),
                         Expanded(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text('Tunnel dropped', style: ui(size: 14.5, weight: 600)),
-                              const SizedBox(height: 5),
+                              Text('Tunnel dropped', style: T.label),
+                              const SizedBox(height: S.s1),
                               Text(
                                 'The page is paused. Nothing further has been requested '
                                 'since the connection failed $droppedAgoLabel.',
-                                style: ui(size: 12.5, height: 1.6, color: C.dangerMuted),
+                                style: T.sub,
                               ),
                             ],
                           ),
                         ),
                       ],
                     ),
-                    const SizedBox(height: 12),
+                    const SizedBox(height: S.s4),
                     Row(
                       children: [
                         Expanded(
                           child: _TunnelActionButton(
                             label: 'Reconnect',
                             background: C.jade,
-                            labelColor: C.bg,
+                            labelColor: C.onJade,
                             weight: 600,
                             onTap: onReconnect,
                           ),
                         ),
-                        const SizedBox(width: 9),
+                        const SizedBox(width: S.s2),
                         Expanded(
                           child: _TunnelActionButton(
                             label: 'Close and wipe',
-                            background: C.dangerSurface,
-                            labelColor: C.textSecondary,
+                            background: C.button,
+                            labelColor: C.textPrimary,
                             weight: 500,
                             onTap: onCloseAndWipe,
                           ),
@@ -153,10 +109,9 @@ class TunnelDroppedScreen extends StatelessWidget {
   }
 }
 
-/// The two-button row's fills (`#7FC8A9` jade, `#241C1D` danger surface with
-/// plain secondary text) match neither existing [PillTone] exactly, so this
-/// is a small local button rather than a third bespoke tone added to a
-/// shared primitive for one screen.
+/// The banner's two buttons, side by side: jade `Reconnect` (the one
+/// affirmative action, restyle v2 §8) and a neutral `Close and wipe`. A
+/// small local button keeps them in the banner's row at their own width.
 class _TunnelActionButton extends StatelessWidget {
   const _TunnelActionButton({
     required this.label,
@@ -176,14 +131,19 @@ class _TunnelActionButton extends StatelessWidget {
   Widget build(BuildContext context) {
     return Material(
       color: background,
-      borderRadius: BorderRadius.circular(21),
+      borderRadius: BorderRadius.circular(R.full),
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(21),
+        borderRadius: BorderRadius.circular(R.full),
         child: Container(
-          height: 42,
+          constraints: const BoxConstraints(minHeight: 48),
+          padding: const EdgeInsets.symmetric(horizontal: S.s2, vertical: S.s1),
           alignment: Alignment.center,
-          child: Text(label, style: ui(size: 13.5, weight: weight, color: labelColor)),
+          child: Text(label,
+              textAlign: TextAlign.center,
+              style: T.label.copyWith(
+                  color: labelColor,
+                  fontWeight: weight >= 600 ? FontWeight.w600 : FontWeight.w500)),
         ),
       ),
     );

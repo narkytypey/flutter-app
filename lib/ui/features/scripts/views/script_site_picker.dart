@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../../domain/models/site.dart';
+import '../../../core/host_text.dart';
 import '../../../core/tokens.dart';
 import '../../../core/typography.dart';
 import '../../../core/widgets/monogram.dart';
@@ -28,7 +29,7 @@ class ScriptSitePicker extends StatelessWidget {
         Flexible(
           child: ListView(
             shrinkWrap: true,
-            padding: const EdgeInsets.symmetric(horizontal: 18),
+            padding: const EdgeInsets.symmetric(horizontal: 16),
             children: [
               for (var i = 0; i < sites.length; i++)
                 _SiteRow(
@@ -57,9 +58,10 @@ class _SiteRow extends StatelessWidget {
       behavior: HitTestBehavior.opaque,
       onTap: onTap,
       child: Container(
+        constraints: const BoxConstraints(minHeight: 72),
         padding: const EdgeInsets.symmetric(vertical: 12),
         decoration: showDivider
-            ? const BoxDecoration(border: Border(bottom: BorderSide(color: C.line05)))
+            ? const BoxDecoration(border: Border(bottom: BorderSide(color: C.lineSoft)))
             : null,
         child: Row(
           children: [
@@ -71,13 +73,9 @@ class _SiteRow extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(site.name, style: T.rowTitle),
-                  const SizedBox(height: 3),
-                  Text(
-                    site.host,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: mono(size: 10.5, color: C.textFaint),
-                  ),
+                  const SizedBox(height: 2),
+                  // Never ellipsized: it wraps after a dot (restyle v2 §1.6).
+                  HostText(site.host, style: T.metaValue),
                 ],
               ),
             ),

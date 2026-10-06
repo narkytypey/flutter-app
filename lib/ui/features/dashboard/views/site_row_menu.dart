@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../core/host_text.dart';
 import '../../../core/tokens.dart';
 import '../../../core/typography.dart';
 import '../../../core/widgets/monogram.dart';
@@ -52,30 +53,27 @@ class SiteRowMenu extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
+            padding: const EdgeInsets.symmetric(horizontal: S.s4),
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: S.s3),
               decoration: BoxDecoration(
-                color: C.barTrack,
-                borderRadius: BorderRadius.circular(14),
-                border: Border.all(color: Colors.white.withValues(alpha: 0.09)),
+                color: C.surface,
+                borderRadius: BorderRadius.circular(R.input),
+                border: Border.all(color: C.line),
               ),
               child: Row(
                 children: [
                   Monogram(monogram),
-                  const SizedBox(width: 12),
+                  const SizedBox(width: S.s3),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(name, style: T.rowTitle, maxLines: 1, overflow: TextOverflow.ellipsis),
-                        const SizedBox(height: 3),
-                        Text(
-                          subtitle,
-                          style: ui(size: 11, color: C.textFaint),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
+                        const SizedBox(height: 2),
+                        // The site's address: it wraps after its dots and is
+                        // never cut short (restyle v2 §1.6).
+                        HostText(subtitle, style: T.metaValue),
                       ],
                     ),
                   ),
@@ -84,7 +82,7 @@ class SiteRowMenu extends StatelessWidget {
             ),
           ),
           Padding(
-            padding: const EdgeInsets.fromLTRB(16, 10, 16, 20),
+            padding: const EdgeInsets.fromLTRB(S.s4, S.s3, S.s4, S.s5),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
@@ -97,12 +95,12 @@ class SiteRowMenu extends StatelessWidget {
                     ),
                   ],
                 ),
-                const SizedBox(height: 10),
+                const SizedBox(height: S.s3),
                 SheetGroup(
                   children: [
                     SheetRow(
                       label: "Wipe this site's data",
-                      labelColor: C.textSecondary,
+                      labelColor: C.danger,
                       onTap: () => onAction(SiteRowAction.wipeData),
                     ),
                     SheetRow(
@@ -112,8 +110,8 @@ class SiteRowMenu extends StatelessWidget {
                     ),
                   ],
                 ),
-                const SizedBox(height: 10),
-                PillButton(label: 'Cancel', height: 50, onTap: onCancel),
+                const SizedBox(height: S.s3),
+                PillButton(label: 'Cancel', onTap: onCancel),
               ],
             ),
           ),

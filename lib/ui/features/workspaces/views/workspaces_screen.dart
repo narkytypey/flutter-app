@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../core/icons.dart';
 import '../../../core/tokens.dart';
 import '../../../core/typography.dart';
+import '../../../core/widgets/group.dart';
 import '../../../core/widgets/icon_tap.dart';
 
 class WorkspaceListItem {
@@ -47,9 +48,9 @@ class WorkspacesScreen extends StatelessWidget {
         child: Column(
           children: [
             Container(
-              padding: const EdgeInsets.fromLTRB(18, 14, 18, 12),
+              padding: const EdgeInsets.fromLTRB(4, 8, 16, 8),
               decoration: const BoxDecoration(
-                border: Border(bottom: BorderSide(color: C.line06)),
+                border: Border(bottom: BorderSide(color: C.line)),
               ),
               child: Row(
                 children: [
@@ -57,48 +58,57 @@ class WorkspacesScreen extends StatelessWidget {
                     glyph: AppGlyph.back,
                     label: 'Back',
                     onTap: onBack,
-                    size: 20,
-                    iconSize: 18,
                   ),
-                  const SizedBox(width: 10),
-                  Text('Workspaces', style: T.screenTitle),
+                  const SizedBox(width: 4),
+                  Expanded(child: Text('Workspaces', style: T.screenTitle)),
                 ],
               ),
             ),
             Expanded(
               child: ListView(
-                padding: const EdgeInsets.fromLTRB(18, 8, 18, 18),
+                padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
                 children: [
-                  for (final item in items)
-                    _WorkspaceRow(
-                      item: item,
-                      onTap: () => onOpen(item.id),
-                      onLongPress:
-                          onDelete == null ? null : () => onDelete!(item.id),
+                  if (items.isNotEmpty)
+                    Group(
+                      children: [
+                        for (final item in items)
+                          _WorkspaceRow(
+                            item: item,
+                            onTap: () => onOpen(item.id),
+                            onLongPress: onDelete == null
+                                ? null
+                                : () => onDelete!(item.id),
+                          ),
+                      ],
                     ),
                   Padding(
-                    padding: const EdgeInsets.only(top: 20),
+                    padding: const EdgeInsets.only(top: 8),
                     child: GestureDetector(
                       // The whole row, not only its glyphs.
                       behavior: HitTestBehavior.opaque,
                       onTap: onNewWorkspace,
-                      child: Row(
-                        children: [
-                          const AppIcon(AppGlyph.plus, size: 18, color: C.jade),
-                          const SizedBox(width: 11),
-                          Text('New workspace',
-                              style:
-                                  ui(size: 14.5, weight: 500, color: C.jade)),
-                        ],
+                      child: ConstrainedBox(
+                        constraints: const BoxConstraints(minHeight: 56),
+                        child: Row(
+                          children: [
+                            const SizedBox(width: 16),
+                            const AppIcon(AppGlyph.plus, size: 18, color: C.jade),
+                            const SizedBox(width: 12),
+                            Flexible(
+                              child: Text('New workspace',
+                                  style: T.label.copyWith(color: C.jade)),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                   ),
                   Padding(
-                    padding: const EdgeInsets.only(top: 22),
+                    padding: const EdgeInsets.fromLTRB(4, 16, 4, 0),
                     child: Text(
                       'The same site can live in more than one workspace. Each copy has '
                       'its own login and its own history.',
-                      style: ui(size: 12, height: 1.6, color: C.textDim),
+                      style: T.sub,
                     ),
                   ),
                 ],
@@ -125,35 +135,48 @@ class _WorkspaceRow extends StatelessWidget {
       onLongPress: onLongPress,
       behavior: HitTestBehavior.opaque,
       child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 16),
-        decoration: const BoxDecoration(
-          border: Border(bottom: BorderSide(color: C.line06)),
-        ),
+        constraints: const BoxConstraints(minHeight: 72),
+        padding: const EdgeInsets.symmetric(vertical: 14),
         child: Row(
           children: [
-            Container(
-              width: 8,
-              height: 8,
-              decoration: BoxDecoration(
-                color: C.markers[item.markerIndex],
-                borderRadius: BorderRadius.circular(2),
-              ),
-            ),
+            WorkspaceMarker(index: item.markerIndex),
             const SizedBox(width: 12),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
                 children: [
-                  Text(item.name, style: ui(size: 15, weight: 500)),
-                  const SizedBox(height: 4),
-                  Text(item.statsLine,
-                      style: ui(size: 11.5, color: C.textFaint)),
+                  Text(item.name, style: T.rowTitle),
+                  const SizedBox(height: 2),
+                  Text(item.statsLine, style: T.sub),
                 ],
               ),
             ),
-            const AppIcon(AppGlyph.forward, size: 16, color: C.textFaint),
+            const SizedBox(width: 8),
+            const AppIcon(AppGlyph.forward, size: 18, color: C.chevron),
           ],
         ),
+      ),
+    );
+  }
+}
+
+/// A workspace's marker (restyle v2 §2.6): data, not identity, and never
+/// jade, so it is not mistaken for a live light.
+class WorkspaceMarker extends StatelessWidget {
+  const WorkspaceMarker({super.key, required this.index, this.size = 10});
+
+  final int index;
+  final double size;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        color: C.markers[index],
+        borderRadius: BorderRadius.circular(3),
       ),
     );
   }

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../../domain/models/route_failure_copy.dart';
+import '../../../core/host_text.dart';
 import '../../../core/icons.dart';
 import '../../../core/tokens.dart';
 import '../../../core/typography.dart';
@@ -48,10 +49,10 @@ class ProxyUnreachableScreen extends StatelessWidget {
       body: SafeArea(
         child: Column(
           children: [
-            _TunnelHeader(host: host),
+            TunnelHeader(host: host),
             Expanded(
               child: CenteredScroll(
-                padding: const EdgeInsets.symmetric(horizontal: 30),
+                padding: const EdgeInsets.symmetric(horizontal: S.s6),
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -66,49 +67,46 @@ class ProxyUnreachableScreen extends StatelessWidget {
                       ),
                       child: const AppIcon(AppGlyph.refused, size: 20, color: C.danger),
                     ),
-                    const SizedBox(height: 18),
-                    Text(
-                      proxyFailureHeadline(failure),
-                      style: ui(size: 19, weight: 600, letterSpacing: -0.19),
-                    ),
+                    const SizedBox(height: S.s4),
+                    Text(proxyFailureHeadline(failure), style: T.sheetTitle),
                     if (detail != null) ...[
-                      const SizedBox(height: 18),
-                      Text(
-                        detail,
-                        style: ui(size: 13.5, height: 1.7, color: C.textMuted),
-                      ),
+                      const SizedBox(height: S.s3),
+                      Text(detail, style: T.bodyMuted),
                     ],
-                    const SizedBox(height: 18),
+                    const SizedBox(height: S.s5),
                     Container(
                       width: double.infinity,
-                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
+                      padding: const EdgeInsets.symmetric(horizontal: S.s4, vertical: S.s3),
                       decoration: BoxDecoration(
-                        color: C.sheet,
-                        borderRadius: BorderRadius.circular(14),
-                        border: Border.all(color: C.line08),
+                        color: C.surface,
+                        borderRadius: BorderRadius.circular(R.input),
+                        border: Border.all(color: C.line),
                       ),
                       child: Column(
                         children: [
                           _InfoRow(label: 'Tunnel', value: tunnelDescriptor),
-                          const SizedBox(height: 7),
+                          const SizedBox(height: S.s2),
                           _InfoRow(label: 'Last worked', value: lastWorkedLabel),
                         ],
                       ),
                     ),
-                    const SizedBox(height: 22),
+                    const SizedBox(height: S.s6),
                     PillButton(label: 'Try again', tone: PillTone.primary, onTap: onTryAgain),
-                    const SizedBox(height: 9),
+                    const SizedBox(height: S.s2),
                     PillButton(label: 'Change proxy settings', onTap: onChangeProxySettings),
+                    // The risky choice is text, set apart (restyle v2 §5,
+                    // §8): it must not carry a button's weight beside the
+                    // safe ones.
                     if (onOpenWithoutTunnel case final openDirect?) ...[
-                      const SizedBox(height: 9),
+                      const SizedBox(height: S.s6),
                       PillButton(
                         label: 'Open without the tunnel',
                         sublabel: 'This site will see your real IP',
-                        tone: PillTone.dangerOutline,
+                        tone: PillTone.dangerText,
                         onTap: openDirect,
                       ),
                     ],
-                    const SizedBox(height: 20),
+                    const SizedBox(height: S.s5),
                   ],
                 ),
               ),
@@ -120,57 +118,57 @@ class ProxyUnreachableScreen extends StatelessWidget {
   }
 }
 
-/// The site pill in a danger tint, shared by `8b` and `8c` — both show a
-/// tunnel that is not currently working.
-class _TunnelHeader extends StatelessWidget {
-  const _TunnelHeader({required this.host});
+/// The site pill in a danger tint, shared by `8b` and `8c`: both show a
+/// tunnel that is not currently working. Its marks are decoration, as the
+/// canvas draws them. The host wraps after its dots and the pill grows; it is
+/// never cut short (restyle v2 §1.6).
+class TunnelHeader extends StatelessWidget {
+  const TunnelHeader({super.key, required this.host, this.rule = true});
 
   final String host;
+
+  /// The rule under the header (`8b`); `8c`'s banner sits right under it.
+  final bool rule;
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      decoration: const BoxDecoration(border: Border(bottom: BorderSide(color: C.line07))),
+      padding: const EdgeInsets.symmetric(horizontal: S.s1, vertical: S.s2),
+      decoration: rule
+          ? const BoxDecoration(border: Border(bottom: BorderSide(color: C.line)))
+          : null,
       child: Row(
         children: [
           const SizedBox(
-            width: 32,
-            height: 32,
+            width: 48,
+            height: 48,
             child: Center(child: AppIcon(AppGlyph.back, size: 18)),
           ),
           Expanded(
             child: Container(
-              height: 34,
-              padding: const EdgeInsets.symmetric(horizontal: 12),
+              constraints: const BoxConstraints(minHeight: 48),
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: S.s2),
               decoration: BoxDecoration(
                 color: C.surface,
-                borderRadius: BorderRadius.circular(17),
-                border: Border.all(color: C.danger.withValues(alpha: 0.25)),
+                borderRadius: BorderRadius.circular(24),
+                border: Border.all(color: C.danger.withValues(alpha: 0.5), width: 1.5),
               ),
               child: Row(
                 children: [
                   Container(
-                    width: 6,
-                    height: 6,
+                    width: 10,
+                    height: 10,
                     decoration: const BoxDecoration(color: C.danger, shape: BoxShape.circle),
                   ),
-                  const SizedBox(width: 7),
-                  Flexible(
-                    child: Text(
-                      host,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: ui(size: 11.5, color: C.textTertiary),
-                    ),
-                  ),
+                  const SizedBox(width: S.s2),
+                  Expanded(child: HostText(host, style: T.address)),
                 ],
               ),
             ),
           ),
           const SizedBox(
-            width: 32,
-            height: 32,
+            width: 48,
+            height: 48,
             child: Center(child: AppIcon(AppGlyph.reload, size: 16)),
           ),
         ],
@@ -189,16 +187,16 @@ class _InfoRow extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: ui(size: 12, color: C.textFaint)),
-        const SizedBox(width: 12),
+        Text(label, style: T.sub.copyWith(color: C.textFaint)),
+        const SizedBox(width: S.s3),
+        // The tunnel names a host: it wraps after its dots, never cut short.
         Flexible(
-          child: Text(
+          child: HostText(
             value,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
             textAlign: TextAlign.end,
-            style: ui(size: 12, color: C.textSecondary),
+            style: T.sub.copyWith(color: C.textPrimary),
           ),
         ),
       ],

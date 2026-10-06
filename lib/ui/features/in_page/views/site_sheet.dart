@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../../domain/models/blocked_tally.dart';
 import '../../../../domain/models/permissions.dart';
 import '../../../../domain/models/permissions_in_use.dart';
+import '../../../core/host_text.dart';
 import '../../../core/tokens.dart';
 import '../../../core/typography.dart';
 import '../../../core/widgets/app_toggle.dart';
@@ -104,7 +105,7 @@ class SiteSheet extends StatelessWidget {
     return BottomSheetSurface(
       showHandle: true,
       scrolls: false,
-      padding: const EdgeInsets.fromLTRB(0, 10, 0, 18),
+      padding: const EdgeInsets.fromLTRB(0, 10, 0, S.s5),
       children: [
         Flexible(
           child: SingleChildScrollView(
@@ -112,16 +113,16 @@ class SiteSheet extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 Padding(
-                  padding: const EdgeInsets.fromLTRB(18, 0, 18, 16),
+                  padding: const EdgeInsets.fromLTRB(S.s5, 0, S.s2, S.s3),
                   child: Container(
-                    padding: const EdgeInsets.only(bottom: 16),
+                    padding: const EdgeInsets.only(bottom: S.s3),
                     decoration: const BoxDecoration(
-                      border: Border(bottom: BorderSide(color: C.line06)),
+                      border: Border(bottom: BorderSide(color: C.line)),
                     ),
                     child: Row(
                       children: [
-                        Monogram(monogram, size: 40, radius: 11, fontSize: 15),
-                        const SizedBox(width: 12),
+                        Monogram(monogram, size: 40, radius: R.monogram, fontSize: 15),
+                        const SizedBox(width: S.s3),
                         Expanded(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
@@ -129,18 +130,29 @@ class SiteSheet extends StatelessWidget {
                               Text(name,
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
-                                  style: ui(size: 15.5, weight: 600)),
-                              const SizedBox(height: 3),
-                              Text(subtitle,
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: ui(size: 11.5, color: C.textFaint)),
+                                  style: T.appBarTitle),
+                              const SizedBox(height: 2),
+                              // Starts with the site's host: it wraps after
+                              // its dots, never cut short (restyle v2 §1.6).
+                              HostText(subtitle, style: T.meta),
                             ],
                           ),
                         ),
+                        // The sheet's one jade action (restyle v2 §8), a
+                        // 48 dp target.
                         GestureDetector(
+                          behavior: HitTestBehavior.opaque,
                           onTap: onEdit,
-                          child: Text('Edit', style: ui(size: 13, weight: 500, color: C.jade)),
+                          child: ConstrainedBox(
+                            constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: S.s3),
+                              child: Center(
+                                widthFactor: 1,
+                                child: Text('Edit', style: T.label.copyWith(color: C.jade)),
+                              ),
+                            ),
+                          ),
                         ),
                       ],
                     ),
@@ -156,12 +168,13 @@ class SiteSheet extends StatelessWidget {
                 _SheetInfoRow(
                   label: 'Blocked here',
                   value: '$blockedCount ${blockedCount == 1 ? 'request' : 'requests'}',
+                  valueStyle: T.value,
                   showDivider: categories.isEmpty,
                 ),
                 if (categories.isNotEmpty)
                   Container(
                     decoration: const BoxDecoration(
-                      border: Border(bottom: BorderSide(color: C.line05)),
+                      border: Border(bottom: BorderSide(color: C.lineSoft)),
                     ),
                     child: _CategoryRows(categories),
                   ),
@@ -203,11 +216,11 @@ class SiteSheet extends StatelessWidget {
                     showDivider: i != permissions.length - 1,
                   ),
                 Padding(
-                  padding: const EdgeInsets.fromLTRB(18, 14, 18, 0),
+                  padding: const EdgeInsets.fromLTRB(S.s5, S.s4, S.s5, 0),
                   child: PillButton(
                     label: 'Close and wipe this session',
-                    height: 46,
-                    radius: 14,
+                    height: 48,
+                    radius: R.input,
                     onTap: onCloseAndWipe,
                   ),
                 ),
@@ -226,12 +239,18 @@ class SiteSheet extends StatelessWidget {
 
   Widget _permissionTrailing(PermissionInUse p) {
     if (!p.whileOpen) {
-      return Text('Allowed', style: ui(size: 12.5, color: C.textMuted));
+      return Text('Allowed', style: T.sub);
     }
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
       onTap: () => onRevoke(p.kind),
-      child: Text('Revoke', style: ui(size: 13, weight: 500, color: C.textPrimary)),
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
+        child: Center(
+          widthFactor: 1,
+          child: Text('Revoke', style: T.body.copyWith(fontWeight: FontWeight.w500)),
+        ),
+      ),
     );
   }
 }
@@ -254,18 +273,18 @@ class _CategoryRows extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(32, 0, 18, 12),
+      padding: const EdgeInsets.fromLTRB(36, 0, S.s5, S.s3),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           for (var i = 0; i < categories.length; i++)
             Padding(
-              padding: EdgeInsets.only(top: i == 0 ? 0 : 6),
+              padding: EdgeInsets.only(top: i == 0 ? 0 : S.s2),
               child: Row(
                 children: [
-                  Text(categories[i].$1.label, style: ui(size: 12.5, color: C.textMuted)),
-                  const Spacer(),
-                  Text('${categories[i].$2}', style: mono(size: 11, color: C.textFaint)),
+                  Expanded(child: Text(categories[i].$1.label, style: T.sub)),
+                  const SizedBox(width: S.s3),
+                  Text('${categories[i].$2}', style: T.value),
                 ],
               ),
             ),
@@ -282,10 +301,14 @@ class _SheetInfoRow extends StatelessWidget {
     this.trailing,
     this.showDivider = true,
     this.onTap,
+    this.valueStyle,
   });
 
   final String label;
   final String? value;
+
+  /// The value's style; a row subtitle unless a count (Mono) asks otherwise.
+  final TextStyle? valueStyle;
   final Widget? trailing;
   final bool showDivider;
   final VoidCallback? onTap;
@@ -293,27 +316,28 @@ class _SheetInfoRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final row = Container(
-      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+      constraints: const BoxConstraints(minHeight: 56),
+      padding: const EdgeInsets.symmetric(horizontal: S.s5, vertical: S.s2),
       decoration: BoxDecoration(
-        border: showDivider ? const Border(bottom: BorderSide(color: C.line05)) : null,
+        border: showDivider ? const Border(bottom: BorderSide(color: C.lineSoft)) : null,
       ),
       // On a narrow phone the longer label or value wraps rather than
       // overflowing the row: the sheet scrolls, so a taller row is fine.
       child: Row(
         children: trailing != null
             ? [
-                Expanded(child: Text(label, style: ui(size: 14, color: C.textPrimary))),
+                Expanded(child: Text(label, style: T.body)),
                 const SizedBox(width: 12),
                 trailing!,
               ]
             : [
-                Text(label, style: ui(size: 14, color: C.textPrimary)),
+                Text(label, style: T.body),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Text(
                     value!,
                     textAlign: TextAlign.end,
-                    style: ui(size: 12.5, color: C.textMuted),
+                    style: valueStyle ?? T.sub,
                   ),
                 ),
               ],
