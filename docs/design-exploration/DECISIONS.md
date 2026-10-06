@@ -74,3 +74,15 @@ no file, so its agents died with it. This session (cd6e6b, back from a session
 limit) takes over at round 2. `tools/push.sh` mirrors to this session's
 harness branch `second/gracious-cannon-1eynaf` again, and now adds the
 session's attribution trailers to every commit.
+
+## D7 — File dates and the plan seam (fire cd6e6b, 2026-10-06)
+
+The spec and plans carry 2026-10-05, the date the run started, so the run's
+files share one date as the prompt's `<today>` intended at launch. Plans are
+numbered 20–23: 20 foundation (tokens, type, fonts, theme, icons, shared
+widgets, launcher icon); 21 dashboard and container chrome; 22 setup, lock
+and PIN; 23 settings, management, sheets and failure states, ending with the
+removal of the retired `C.*` aliases. Four plans, each ending green on all
+three gates. `superpowers:writing-plans` is not installed in this session,
+so the plans follow the repo's existing plan format by hand (Plan 17's
+shape).

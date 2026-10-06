@@ -4,11 +4,11 @@ Read this first. It is the only thing that carries across a restart.
 
 ## Where I got to
 
-Phases 0–4 done. Verdict: **B — Instrument**, revised, with seven folds from A and C (debate/VERDICT.md). Phase 5 next.
+Phases 0–4 and 6 done (spec written). Phase 5 index.html being built by a subagent. Phase 7 (plans) next.
 
 ## Heartbeat
 
-2026-10-06T10:40Z · fire-cd6e6b (resumed)
+2026-10-06T11:00Z · fire-cd6e6b (resumed)
 
 ## Branch
 
@@ -16,7 +16,7 @@ design-exploration-restyle
 
 ## Next action
 
-Phase 5: write docs/design-exploration/index.html (comparison page, B marked winner).
+Phase 7: write plans 20 (foundation), 21 (dashboard + chrome), 22 (setup + lock), 23 (settings, management, sheets, failure states) in docs/superpowers/plans/2026-10-05-restyle-v2-NN-*.md.
 
 ## Toolchain
 
@@ -114,8 +114,8 @@ A later fire must reinstall all of it (~10 min); set
 - [ ] index.html
 
 ### Phase 6 — Spec
-- [ ] docs/superpowers/specs/2026-10-05-restyle-v2-design.md
-- [ ] Self-review paragraph
+- [x] docs/superpowers/specs/2026-10-05-restyle-v2-design.md
+- [x] Self-review paragraph
 
 ### Phase 7 — Plans
 - [ ] Read existing plans and Known cross-plan issues
@@ -136,6 +136,8 @@ A later fire must reinstall all of it (~10 min); set
 - [ ] One-page rationale
 
 ## Log
+
+- 11:00Z fire-cd6e6b: spec written (docs/superpowers/specs/2026-10-05-restyle-v2-design.md).
 
 - 10:40Z fire-cd6e6b: round 2 done (7 files); VERDICT.md written — B Instrument wins, folds from A/C, 6 unresolved questions.
 
