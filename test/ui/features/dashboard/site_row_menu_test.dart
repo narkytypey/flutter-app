@@ -54,7 +54,9 @@ void main() {
     expect(openGroup.children.length, 2);
   });
 
-  testWidgets('Remove site is the only row drawn in danger colour',
+  // Restyle v2 §8: `Remove site` and the wipe row are danger; the rest are
+  // not.
+  testWidgets('Remove site and the wipe row are the rows drawn in danger colour',
       (tester) async {
     await tester.pumpWidget(host());
 
@@ -64,7 +66,7 @@ void main() {
     );
     expect(
       tester.widget<Text>(find.text("Wipe this site's data")).style!.color,
-      C.textSecondary,
+      C.danger,
     );
     expect(
       tester.widget<Text>(find.text('Edit settings')).style!.color,

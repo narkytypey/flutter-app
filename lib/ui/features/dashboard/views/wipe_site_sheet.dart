@@ -20,18 +20,18 @@ class WipeSiteSheet extends StatelessWidget {
   Widget build(BuildContext context) {
     return BottomSheetSurface(
       children: [
-        Text("Wipe this site's data?", style: ui(size: 17, weight: 600, letterSpacing: -0.17)),
-        const SizedBox(height: 8),
+        Text("Wipe this site's data?", style: T.sheetTitle),
+        const SizedBox(height: S.s2),
         Text(
           'Its logins, storage and downloads are destroyed. The site stays in its workspace.',
           style: T.bodyMuted,
         ),
-        const SizedBox(height: 18),
+        const SizedBox(height: S.s5),
         SheetGroup(children: [
           SheetRow(label: 'Wipe', labelColor: C.danger, onTap: onWipe),
         ]),
-        const SizedBox(height: 10),
-        PillButton(label: 'Cancel', height: 50, onTap: onCancel),
+        const SizedBox(height: S.s3),
+        PillButton(label: 'Cancel', onTap: onCancel),
       ],
     );
   }
