@@ -4,11 +4,11 @@ Read this first. It is the only thing that carries across a restart.
 
 ## Where I got to
 
-Phases 0–3 done (all three directions, 30+ blocks each, a11y clean). Phase 4 debate in progress.
+Phases 0–4 done. Verdict: **B — Instrument**, revised, with seven folds from A and C (debate/VERDICT.md). Phase 5 next.
 
 ## Heartbeat
 
-2026-10-06T09:58Z · fire-cd6e6b (resumed)
+2026-10-06T10:40Z · fire-cd6e6b (resumed)
 
 ## Branch
 
@@ -16,7 +16,7 @@ design-exploration-restyle
 
 ## Next action
 
-Phase 4: round-2 agents (7) relaunched 09:58Z, writing to debate/round-2/; when all seven files exist, write VERDICT.md yourself.
+Phase 5: write docs/design-exploration/index.html (comparison page, B marked winner).
 
 ## Toolchain
 
@@ -106,9 +106,9 @@ A later fire must reinstall all of it (~10 min); set
 ### Phase 4 — Debate
 - [x] Round 1: advocate A, B, C
 - [x] Round 1: critics threat-model, accessibility, implementation-cost, familiarity
-- [ ] Round 2: advocate rebuttals A, B, C
-- [ ] Round 2: critic replies (4)
-- [ ] VERDICT.md
+- [x] Round 2: advocate rebuttals A, B, C
+- [x] Round 2: critic replies (4)
+- [x] VERDICT.md
 
 ### Phase 5 — Comparison page
 - [ ] index.html
@@ -136,6 +136,8 @@ A later fire must reinstall all of it (~10 min); set
 - [ ] One-page rationale
 
 ## Log
+
+- 10:40Z fire-cd6e6b: round 2 done (7 files); VERDICT.md written — B Instrument wins, folds from A/C, 6 unresolved questions.
 
 - 2026-10-06T09:58Z fire-cd6e6b (resumed after its session limit): heartbeat 5.5 h stale, no round-2 file on origin. Taking over: relaunching round 2 (7 agents). Mirror branch back to `second/gracious-cannon-1eynaf`.
 
