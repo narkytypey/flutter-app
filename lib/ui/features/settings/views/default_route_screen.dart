@@ -76,26 +76,28 @@ class _DefaultRouteScreenState extends State<DefaultRouteScreen> {
         body: SafeArea(
           child: Column(
             children: [
-              Padding(
-                padding: const EdgeInsets.fromLTRB(18, 14, 18, 12),
+              Container(
+                constraints: const BoxConstraints(minHeight: 64),
+                padding: const EdgeInsets.fromLTRB(4, 8, 16, 8),
+                decoration: const BoxDecoration(
+                  border: Border(bottom: BorderSide(color: C.line)),
+                ),
                 child: Row(
                   children: [
                     IconTap(
                       glyph: AppGlyph.back,
                       label: 'Back',
                       onTap: () => Navigator.maybePop(context),
-                      size: 20,
-                      iconSize: 18,
+                      iconSize: 22,
                     ),
-                    const SizedBox(width: 10),
-                    Text('Default route', style: T.screenTitle),
+                    const SizedBox(width: 4),
+                    Expanded(child: Text('Default route', style: T.screenTitle)),
                   ],
                 ),
               ),
-              const Divider(height: 1, color: C.line06),
               Expanded(
                 child: ListView(
-                  padding: const EdgeInsets.all(18),
+                  padding: const EdgeInsets.fromLTRB(16, 20, 16, 24),
                   children: [
                     RouteFields(
                       proxyEnabled: _enabled,

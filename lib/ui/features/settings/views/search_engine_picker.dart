@@ -21,7 +21,7 @@ class SearchEnginePicker extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(0, 10, 0, 18),
       children: [
         Padding(
-          padding: const EdgeInsets.fromLTRB(18, 0, 18, 12),
+          padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
           child: Text('Search engine', style: T.sheetTitle),
         ),
         for (final engine in SearchEngine.values)
@@ -29,16 +29,17 @@ class SearchEnginePicker extends StatelessWidget {
             behavior: HitTestBehavior.opaque,
             onTap: () => onPick(engine),
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 15),
+              constraints: const BoxConstraints(minHeight: 56),
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
               decoration: const BoxDecoration(
-                border: Border(top: BorderSide(color: C.line05)),
+                border: Border(top: BorderSide(color: C.lineSoft)),
               ),
               child: Row(
                 children: [
                   Expanded(
-                    child: Text(engine.label, style: ui(size: 14.5, color: C.textPrimary)),
+                    child: Text(engine.label, style: T.body),
                   ),
-                  if (engine == current) const AppIcon(AppGlyph.check, size: 15, color: C.jade),
+                  if (engine == current) const AppIcon(AppGlyph.check, size: 20, color: C.textPrimary),
                 ],
               ),
             ),

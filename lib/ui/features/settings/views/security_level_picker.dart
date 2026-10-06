@@ -7,7 +7,7 @@ import '../../../core/typography.dart';
 import '../../../core/widgets/sheet.dart';
 
 /// Privacy-controls spec §2.3, built like `SearchEnginePicker`, with the
-/// current row checked in its jade.
+/// current row checked (in text-1: a check is a position, never jade).
 ///
 /// [SecurityLevelPicker.vault] is Settings' picker for the vault default: the
 /// three levels. [SecurityLevelPicker.site] is the ☰ and `6c` picker for one
@@ -43,7 +43,7 @@ class SecurityLevelPicker extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(0, 10, 0, 18),
       children: [
         Padding(
-          padding: const EdgeInsets.fromLTRB(18, 0, 18, 12),
+          padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
           child: Text('Security level', style: T.sheetTitle),
         ),
         if (vaultDefault != null)
@@ -84,9 +84,10 @@ class _LevelRow extends StatelessWidget {
       behavior: HitTestBehavior.opaque,
       onTap: onTap,
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 13),
+        constraints: const BoxConstraints(minHeight: 72),
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
         decoration: const BoxDecoration(
-          border: Border(top: BorderSide(color: C.line05)),
+          border: Border(top: BorderSide(color: C.lineSoft)),
         ),
         child: Row(
           children: [
@@ -94,13 +95,16 @@ class _LevelRow extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(title, style: ui(size: 14.5, color: C.textPrimary)),
-                  const SizedBox(height: 3),
-                  Text(line, style: ui(size: 12, color: C.textFaint)),
+                  Text(title, style: T.body),
+                  const SizedBox(height: 2),
+                  Text(line, style: T.sub),
                 ],
               ),
             ),
-            if (checked) const AppIcon(AppGlyph.check, size: 15, color: C.jade),
+            if (checked) ...[
+              const SizedBox(width: 12),
+              const AppIcon(AppGlyph.check, size: 20, color: C.textPrimary),
+            ],
           ],
         ),
       ),

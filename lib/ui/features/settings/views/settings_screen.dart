@@ -4,6 +4,7 @@ import '../../../core/icons.dart';
 import '../../../core/tokens.dart';
 import '../../../core/typography.dart';
 import '../../../core/widgets/app_toggle.dart';
+import '../../../core/widgets/group.dart';
 import '../../../core/widgets/icon_tap.dart';
 import '../../../core/widgets/setting_row.dart';
 
@@ -76,8 +77,12 @@ class SettingsScreen extends StatelessWidget {
       body: SafeArea(
         child: Column(
           children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(18, 14, 18, 12),
+            Container(
+              constraints: const BoxConstraints(minHeight: 64),
+              padding: EdgeInsets.fromLTRB(onBack != null ? 4 : 16, 8, 16, 8),
+              decoration: const BoxDecoration(
+                border: Border(bottom: BorderSide(color: C.line)),
+              ),
               child: Row(
                 children: [
                   if (onBack != null) ...[
@@ -85,107 +90,113 @@ class SettingsScreen extends StatelessWidget {
                       glyph: AppGlyph.back,
                       label: 'Back',
                       onTap: onBack,
-                      size: 20,
-                      iconSize: 18,
+                      iconSize: 22,
                     ),
-                    const SizedBox(width: 10),
+                    const SizedBox(width: 4),
                   ],
-                  Text('Settings', style: T.screenTitle),
+                  Expanded(child: Text('Settings', style: T.screenTitle)),
                 ],
               ),
             ),
-            const Divider(height: 1, color: C.line06),
             Expanded(
               child: ListView(
-                padding: const EdgeInsets.all(18),
+                padding: const EdgeInsets.fromLTRB(16, 20, 16, 24),
                 children: [
-                  Text('LOCK', style: T.sectionLabel),
-                  SettingRow(
-                    title: 'Unlock with biometrics',
-                    subtitle: 'PIN always available as fallback',
-                    // The whole row toggles, not only the switch.
-                    onTap: biometricsAvailable
-                        ? () => onChanged('biometrics', !biometrics)
-                        : null,
-                    trailing: AppToggle(
-                      value: biometrics,
-                      onChanged: biometricsAvailable
-                          ? (v) => onChanged('biometrics', v)
+                  _section('LOCK', [
+                    SettingRow(
+                      title: 'Unlock with biometrics',
+                      subtitle: 'PIN always available as fallback',
+                      // The whole row toggles, not only the switch.
+                      onTap: biometricsAvailable
+                          ? () => onChanged('biometrics', !biometrics)
                           : null,
+                      trailing: AppToggle(
+                        value: biometrics,
+                        onChanged: biometricsAvailable
+                            ? (v) => onChanged('biometrics', v)
+                            : null,
+                      ),
                     ),
-                  ),
-                  SettingRow(
-                      title: 'Auto-lock',
-                      value: autoLockLabel,
-                      onTap: () => onTap('autoLock')),
-                  SettingRow(
-                      title: 'Change main PIN', onTap: () => onTap('changePin')),
-                  const SizedBox(height: 24),
-                  Text('MANAGE', style: T.sectionLabel),
-                  SettingRow(title: 'Workspaces', onTap: () => onTap('workspaces')),
-                  SettingRow(
-                      title: 'Scripts and filters', onTap: () => onTap('scripts')),
-                  const SizedBox(height: 24),
-                  Text('BROWSING', style: T.sectionLabel),
-                  SettingRow(
-                    title: 'Search engine',
-                    value: searchEngineName,
-                    onTap: () => onTap('searchEngine'),
-                  ),
-                  SettingRow(
-                    title: 'Default route',
-                    value: defaultRouteLabel,
-                    monoValue: defaultRouteMono,
-                    onTap: () => onTap('defaultRoute'),
-                  ),
-                  SettingRow(
-                    title: 'Security level',
-                    value: securityLevelName,
-                    onTap: () => onTap('securityLevel'),
-                  ),
+                    SettingRow(
+                        title: 'Auto-lock',
+                        value: autoLockLabel,
+                        onTap: () => onTap('autoLock')),
+                    SettingRow(
+                        title: 'Change main PIN', onTap: () => onTap('changePin')),
+                  ]),
+                  _gap,
+                  _section('MANAGE', [
+                    SettingRow(title: 'Workspaces', onTap: () => onTap('workspaces')),
+                    SettingRow(
+                        title: 'Scripts and filters', onTap: () => onTap('scripts')),
+                  ]),
+                  _gap,
+                  _section('BROWSING', [
+                    SettingRow(
+                      title: 'Search engine',
+                      value: searchEngineName,
+                      onTap: () => onTap('searchEngine'),
+                    ),
+                    SettingRow(
+                      title: 'Default route',
+                      value: defaultRouteLabel,
+                      monoValue: defaultRouteMono,
+                      onTap: () => onTap('defaultRoute'),
+                    ),
+                    SettingRow(
+                      title: 'Security level',
+                      value: securityLevelName,
+                      onTap: () => onTap('securityLevel'),
+                    ),
+                  ]),
                   if (decoyEnabled) ...[
-                    const SizedBox(height: 24),
-                    Text('VAULT', style: T.sectionLabel),
-                    SettingRow(
-                      title: 'Decoy vault',
-                      subtitle: 'A second PIN opens a harmless board',
-                      // Shown, not offered (user's ruling, 2026-09-30):
-                      // turning a decoy off is not built.
-                      trailing: AppToggle(value: decoyEnabled),
-                    ),
-                    SettingRow(
-                        title: 'Sites shown in decoy',
-                        value: '$decoySiteCount selected',
-                        onTap: () => onTap('decoySites')),
-                    SettingRow(
-                        title: 'Re-sync decoy now',
-                        onTap: () => onTap('resyncDecoy')),
-                    SettingRow(
-                      title: 'Hide from app switcher',
-                      subtitle: 'Blurs previews, blocks screenshots',
-                      // Always on (user's ruling, 2026-09-30): FLAG_SECURE is
-                      // set before the window exists, never per screen.
-                      trailing: AppToggle(value: hideFromSwitcher),
-                    ),
+                    _gap,
+                    _section('VAULT', [
+                      SettingRow(
+                        title: 'Decoy vault',
+                        subtitle: 'A second PIN opens a harmless board',
+                        // Shown, not offered (user's ruling, 2026-09-30):
+                        // turning a decoy off is not built.
+                        trailing: AppToggle(value: decoyEnabled),
+                      ),
+                      SettingRow(
+                          title: 'Sites shown in decoy',
+                          value: '$decoySiteCount selected',
+                          onTap: () => onTap('decoySites')),
+                      SettingRow(
+                          title: 'Re-sync decoy now',
+                          onTap: () => onTap('resyncDecoy')),
+                      SettingRow(
+                        title: 'Hide from app switcher',
+                        subtitle: 'Blurs previews, blocks screenshots',
+                        // Always on (user's ruling, 2026-09-30): FLAG_SECURE is
+                        // set before the window exists, never per screen.
+                        trailing: AppToggle(value: hideFromSwitcher),
+                      ),
+                    ]),
                   ],
-                  const SizedBox(height: 24),
-                  Text('PANIC', style: T.sectionLabel),
-                  SettingRow(
-                    title: 'Trigger by flipping face down',
-                    subtitle: 'Uses the accelerometer',
-                    onTap: () => onChanged('panicOnFlip', !panicOnFlip),
-                    trailing: AppToggle(
-                      value: panicOnFlip,
-                      onChanged: (v) => onChanged('panicOnFlip', v),
+                  _gap,
+                  _section('PANIC', [
+                    SettingRow(
+                      title: 'Trigger by flipping face down',
+                      subtitle: 'Uses the accelerometer',
+                      onTap: () => onChanged('panicOnFlip', !panicOnFlip),
+                      trailing: AppToggle(
+                        value: panicOnFlip,
+                        onChanged: (v) => onChanged('panicOnFlip', v),
+                      ),
                     ),
-                  ),
-                  // The only behaviour there is (user's ruling, 2026-09-30).
-                  SettingRow(title: 'On panic', value: onPanicLabel),
-                  const SizedBox(height: 22),
-                  Text(
-                    'Nothing leaves this device. There is no account and no '
-                    'sync.',
-                    style: ui(size: 11, color: C.textDim, height: 1.6),
+                    // The only behaviour there is (user's ruling, 2026-09-30).
+                    SettingRow(title: 'On panic', value: onPanicLabel),
+                  ]),
+                  const SizedBox(height: 20),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 4),
+                    child: Text(
+                      'Nothing leaves this device. There is no account and no '
+                      'sync.',
+                      style: T.meta,
+                    ),
                   ),
                 ],
               ),
@@ -195,4 +206,27 @@ class SettingsScreen extends StatelessWidget {
       ),
     );
   }
+
+  static const _gap = SizedBox(height: 24);
+
+  /// A section label above its [Group] (restyle v2 §8 `2d`). [SettingRow]
+  /// draws its own soft rule underneath, so the group adds none; the last
+  /// row's rule lies on the group's outline.
+  Widget _section(String label, List<Widget> rows) => Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(4, 0, 4, 8),
+            child: Text(label, style: T.sectionLabel),
+          ),
+          Group(
+            dividers: false,
+            children: [
+              // Each row's ripple shows above the group's fill.
+              for (final row in rows)
+                Material(type: MaterialType.transparency, child: row),
+            ],
+          ),
+        ],
+      );
 }

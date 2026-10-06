@@ -286,7 +286,7 @@ void main() {
       ),
     ));
 
-    expect(tester.getSize(findGlyph(AppGlyph.back)), const Size(18, 18));
+    expect(tester.getSize(findGlyph(AppGlyph.back)), const Size(22, 22));
     await tester.tap(findIconTap('Back'));
     expect(backs, 1);
     expect(findGlyph(AppGlyph.forward), findsWidgets);
