@@ -18,6 +18,7 @@
   var r = document.documentElement;
   r.style.setProperty('--pw', w + 'px');
   r.style.setProperty('--ph', h + 'px');
+  r.style.setProperty('--key-h', h < 640 ? '52px' : '64px');
   r.style.setProperty('--scale', s);
   if (q.get('theme') === 'dark') r.setAttribute('data-theme', 'dark');
 })();
@@ -74,7 +75,7 @@ section[data-block] > header .note { display: block; margin-top: 4px; opacity: .
 .pill.dangerline { border: 2px solid var(--danger); color: var(--danger); flex-direction: column; gap: 2px; }
 .pill.dangerline small { font: 500 calc(13px*var(--scale))/1.38 var(--ui); }
 .pill.small { min-height: 48px; width: auto; padding: 10px 18px; }
-.textbtn { min-height: 48px; display: inline-flex; align-items: center; padding: 0 12px; border-radius: 999px; font: 650 calc(16px*var(--scale))/1.25 var(--ui); color: var(--ink); }
+.textbtn { min-height: 48px; min-width: 48px; justify-content: center; display: inline-flex; align-items: center; padding: 0 12px; border-radius: 999px; font: 650 calc(16px*var(--scale))/1.25 var(--ui); color: var(--ink); }
 .savebtn { min-height: 48px; display: inline-flex; align-items: center; padding: 0 20px; border-radius: 999px; background: var(--ink); color: var(--on-ink); font: 650 calc(16px*var(--scale))/1.25 var(--ui); flex: none; }
 
 /* switches: on = ink, off = ink3 outline */
@@ -106,10 +107,10 @@ section[data-block] > header .note { display: block; margin-top: 4px; opacity: .
 
 /* chips (room doors) */
 .chips { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
-.chip { min-height: 40px; display: inline-flex; align-items: center; gap: 6px; padding: 8px 16px; border-radius: 999px; background: var(--tint); color: var(--room-ink);
-  font: 650 calc(15px*var(--scale))/1.33 var(--ui); margin: 4px 0; }
+.chip { min-height: 48px; display: inline-flex; align-items: center; gap: 6px; padding: 8px 16px; border-radius: 999px; background: var(--tint); color: var(--room-ink);
+  font: 650 calc(15px*var(--scale))/1.33 var(--ui); margin: 0; }
 .chip.sel { background: var(--wall); color: var(--on-wall); }
-.chip.add { background: transparent; color: var(--ink2); border: 2px solid var(--ink3); padding: 0; width: 40px; justify-content: center; }
+.chip.add { background: transparent; color: var(--ink2); border: 2px solid var(--ink3); padding: 0; width: 48px; justify-content: center; }
 .seg { min-height: 48px; display: flex; align-items: center; justify-content: center; gap: 6px; padding: 10px 14px; border-radius: 999px; border: 2px solid var(--ink3);
   font: 650 calc(15px*var(--scale))/1.33 var(--ui); color: var(--ink); text-align: center; }
 .seg.sel { background: var(--box); color: var(--ink); border: 3px solid var(--ink); font-weight: 700; }
@@ -148,7 +149,7 @@ section[data-block] > header .note { display: block; margin-top: 4px; opacity: .
 .chrome-top { flex: none; display: flex; align-items: center; gap: 8px; padding: 6px 8px 8px 10px; background: var(--tint); }
 .addr { flex: 1 1 auto; min-width: 0; min-height: 56px; display: flex; align-items: center; gap: 6px; padding: 4px 4px 4px 14px; background: var(--box); border: var(--pill-wall-w) solid var(--wall); border-radius: 999px; }
 .addr .host { font: 600 calc(16px*var(--scale))/1.375 var(--ui); color: var(--ink); }
-.addr .tap { min-width: 44px; min-height: 44px; }
+.addr .tap { min-width: 48px; min-height: 48px; }
 .panic { flex: none; width: 48px; height: 48px; border-radius: 14px; background: var(--danger-tint); color: var(--danger); display: grid; place-items: center; }
 .walled { flex: 1 1 auto; margin: 0 8px; border: var(--wall-w) solid var(--wall); border-radius: 18px; overflow: hidden; position: relative; display: flex; flex-direction: column; min-height: 0; }
 .loadline { height: 3px; background: #F2EBE0; width: 46%; border-radius: 0 3px 3px 0; }
@@ -179,7 +180,7 @@ section[data-block] > header .note { display: block; margin-top: 4px; opacity: .
 .dots i.f { background: var(--ink); border-color: var(--ink); }
 .dots.err i { border-color: var(--danger); }
 .keypad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px 20px; width: 100%; max-width: 292px; margin: 0 auto; }
-.key { height: 64px; border-radius: 999px; background: var(--sunken); display: grid; place-items: center; font: 500 calc(28px*var(--scale))/1.14 var(--ui); color: var(--ink); }
+.key { height: var(--key-h, 64px); border-radius: 999px; background: var(--sunken); display: grid; place-items: center; font: 500 calc(28px*var(--scale))/1.14 var(--ui); color: var(--ink); }
 .key.blank { background: transparent; }
 .key.bs { background: transparent; color: var(--ink2); }
 @media (max-height: 700px) { .key { height: 56px; } }
@@ -722,7 +723,7 @@ section[data-block] > header .note { display: block; margin-top: 4px; opacity: .
 
 <section data-block="9b">
 <header><span class="bid">9b</span>Back within the grace period — sessions kept, one tap to resume
-<span class="note">As built (biometrics on for this vault, so the fingerprint shows). A full PIN still works; the fingerprint resumes. The mark's door is ajar here: the sessions behind it are still open.</span></header>
+<span class="note">As built (biometrics on for this vault, so the fingerprint shows). A full PIN still works; the fingerprint resumes.</span></header>
 <div class="frames">
 <div class="phone">
   <div class="sys"></div>
@@ -1290,7 +1291,7 @@ section[data-block] > header .note { display: block; margin-top: 4px; opacity: .
   <div class="form room-lake"><div class="box row" style="padding:14px;border-left:6px solid var(--wall)"><span class="swatch"></span><span class="t-row">Work</span></div></div>
   <div class="scrim"></div>
   <div class="sheet room-lake" style="padding-top:20px">
-    <div class="row" style="gap:12px"><span class="swatch" style="width:36px;height:36px;border-radius:10px"></span><h2 class="t-sheet f1" style="margin:0">Delete “Work”?</h2></div>
+    <div class="row" style="gap:12px"><span class="swatch deco" aria-hidden="true" style="width:36px;height:36px;border-radius:10px"></span><h2 class="t-sheet f1" style="margin:0">Delete “Work”?</h2></div>
     <div class="group">
       <div class="opt"><span class="gt f1">Sites removed</span><span class="t-value" style="color:var(--ink)">2</span></div>
       <div class="opt"><span class="gt f1">Logins destroyed</span><span class="t-value" style="color:var(--ink)">2</span></div>

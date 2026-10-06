@@ -205,3 +205,8 @@ light: danger text on box|#B0362A|#FFFCF6|4.5
 dark: danger text on box|#F0897A|#37332D|4.5
 light: focus ring (lake wall) vs paper|#2C6AA3|#F2EBE0|3
 dark: focus ring (lake wall) vs paper|#7FB0E3|#1A1815|3
+# ---- added in the screens pass (see A11Y.md): 8c's banner text on dangerTint ----
+light: ink text on dangerTint|#1E1B16|#F7E0DA|4.5
+light: ink2 text on dangerTint|#4A453C|#F7E0DA|4.5
+dark: ink text on dangerTint|#F2EDE3|#3B201C|4.5
+dark: ink2 text on dangerTint|#CEC7B9|#3B201C|4.5
