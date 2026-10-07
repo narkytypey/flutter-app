@@ -823,7 +823,9 @@ class _ContainerRouteState extends ConsumerState<ContainerRoute> {
     final pageId = viewed.viewedPageId;
     if (!viewed.openReturned || pageId == null) {
       return OpeningBody(
-        host: opened.host, steps: openStepsFor(opened, torPercent: torPercent), progress: 0.6,
+        host: opened.host,
+        steps: openStepsFor(opened, torPercent: torPercent, applied: viewed.openReturned),
+        progress: 0.6,
         onCancel: () => _cancelOpening(viewed),
       );
     }
@@ -933,7 +935,9 @@ class _ContainerRouteState extends ConsumerState<ContainerRoute> {
       if (viewed.phase == SessionPhase.opening)
         Positioned.fill(
           child: OpeningBody(
-            host: opened.host, steps: openStepsFor(opened, torPercent: torPercent), progress: 0.6,
+            host: opened.host,
+            steps: openStepsFor(opened, torPercent: torPercent, applied: true),
+            progress: 0.6,
             onCancel: () => _cancelOpening(viewed),
           ),
         ),

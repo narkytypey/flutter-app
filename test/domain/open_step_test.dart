@@ -42,6 +42,36 @@ void main() {
     expect(steps, hasLength(2));
   });
 
+  group('states', () {
+    List<OpenStepState> states(List<OpenStep> steps) => [for (final s in steps) s.state];
+
+    test('before the open returns, the first line runs and the rest wait', () {
+      expect(states(openStepsFor(_site())), [
+        OpenStepState.running,
+        OpenStepState.pending,
+        OpenStepState.pending,
+        OpenStepState.pending,
+      ]);
+    });
+
+    test('once applied, every line is done but the tunnel, which runs (spec 8a)', () {
+      expect(states(openStepsFor(_site(), applied: true)), [
+        OpenStepState.done,
+        OpenStepState.done,
+        OpenStepState.done,
+        OpenStepState.running,
+      ]);
+    });
+
+    test('a direct site with no shields runs its one line until live', () {
+      expect(
+        states(openStepsFor(_site(mode: ProxyMode.direct, trackers: false, fingerprint: false),
+            applied: true)),
+        [OpenStepState.running],
+      );
+    });
+  });
+
   group('Tor', () {
     test('a Tor site connects to Tor, not to an address', () {
       final steps = openStepsFor(_site(mode: ProxyMode.tor));
