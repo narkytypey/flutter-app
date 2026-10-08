@@ -1540,7 +1540,8 @@ void main() {
 
     expect(find.byType(ThrowawaySaveBar), findsOneWidget);
     expect(_icon('Stop'), findsOneWidget);
-    expect(find.text('SOCKS5'), findsOneWidget);
+    // A throwaway names its case beside its route (user's ruling 2026-10-08).
+    expect(find.text('THROWAWAY · SOCKS5'), findsOneWidget);
     expect(tester.takeException(), isNull);
 
     await tester.tap(_icon('Menu'));
@@ -2124,6 +2125,27 @@ void main() {
       await tester.tap(_icon('Site details'));
       await settleReopen(tester);
     }
+
+    // The user's ruling of 2026-10-08 (restyle v2 spec §12 Q4): the pill says
+    // the case in words, not only in the case mark's shape.
+    testWidgets('a wipe-on-exit container says so in the pill, with its route',
+        (tester) async {
+      final engine = FakeContainerEngine();
+      final site = _socksSite().copyWith(cookiePolicy: CookiePolicy.wipeOnExit);
+      await pumpOpen(tester, engine, site);
+
+      expect(find.text('WIPE ON EXIT · SOCKS5'), findsOneWidget);
+      expect(find.text('SOCKS5'), findsNothing);
+    });
+
+    testWidgets('a container that keeps its storage names only its route',
+        (tester) async {
+      final engine = FakeContainerEngine();
+      await pumpOpen(tester, engine, _socksSite());
+
+      expect(find.text('SOCKS5'), findsOneWidget);
+      expect(find.textContaining('WIPE ON EXIT'), findsNothing);
+    });
 
     testWidgets("☰'s Security level picks Safest: written, reopened unwiped at the page shown",
         (tester) async {

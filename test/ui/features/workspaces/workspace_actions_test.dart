@@ -4,7 +4,6 @@ import 'package:container/data/services/app_database.dart';
 import 'package:container/data/services/fake_container_engine.dart';
 import 'package:container/domain/models/site.dart';
 import 'package:container/domain/models/workspace.dart';
-import 'package:container/domain/services/workspace_storage_service.dart';
 import 'package:container/ui/features/workspaces/view_models/workspace_actions.dart';
 import 'package:container/ui/features/workspaces/views/workspace_form_screen.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -36,7 +35,6 @@ void main() {
       workspaces: SqliteWorkspaceRepository(database),
       sites: SqliteSiteRepository(database),
       engine: engine,
-      storage: FakeWorkspaceStorageService({'ws-personal': 12 * 1024 * 1024}),
     );
     await SqliteWorkspaceRepository(database).upsert(personal);
     await SqliteWorkspaceRepository(database).upsert(work);
@@ -51,8 +49,8 @@ void main() {
     final items = await actions.listItems();
 
     expect(items.map((i) => i.name), ['Personal', 'Work']);
-    expect(items.first.statsLine, '1 site · cookies kept · 12 MB');
-    expect(items.last.statsLine, '2 sites · cookies kept · 0 MB');
+    expect(items.first.statsLine, '1 site · cookies kept');
+    expect(items.last.statsLine, '2 sites · cookies kept');
   });
 
   test('creating a workspace appends it after the existing ones', () async {
@@ -102,7 +100,6 @@ void main() {
       workspaces: SqliteWorkspaceRepository(database),
       sites: SqliteSiteRepository(database),
       engine: ordered,
-      storage: FakeWorkspaceStorageService(const {}),
     );
     await ordered.open(site('mail', 'ws-work'));
 
@@ -123,7 +120,6 @@ void main() {
       workspaces: SqliteWorkspaceRepository(database),
       sites: SqliteSiteRepository(database),
       engine: engine,
-      storage: FakeWorkspaceStorageService(const {}),
       ensureOneWorkspace: () => ensureWorkspace(database),
     );
 

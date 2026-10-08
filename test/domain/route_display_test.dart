@@ -10,10 +10,29 @@ Site _site(ProxyMode mode, {String url = 'https://forum.example.com', String? ho
 void main() {
   // Plan D6: Tor is a name, so it reads `Tor` wherever a route is named.
   test('the top bar names no direct route, Tor as Tor, and proxies in capitals', () {
-    expect(topBarRouteLabel(ProxyMode.direct), '');
-    expect(topBarRouteLabel(ProxyMode.socks5), 'SOCKS5');
-    expect(topBarRouteLabel(ProxyMode.http), 'HTTP');
-    expect(topBarRouteLabel(ProxyMode.tor), 'Tor');
+    expect(topBarRouteLabel(ProxyMode.direct, CaseKind.keep), '');
+    expect(topBarRouteLabel(ProxyMode.socks5, CaseKind.keep), 'SOCKS5');
+    expect(topBarRouteLabel(ProxyMode.http, CaseKind.keep), 'HTTP');
+    expect(topBarRouteLabel(ProxyMode.tor, CaseKind.keep), 'Tor');
+  });
+
+  // The user's ruling of 2026-10-08 (restyle v2 spec §12 Q4): the pill says
+  // the case in words as well as in the case mark's shape. No new word —
+  // `THROWAWAY` is `address_suggestion.dart`'s tag and `Wipe on exit` is `2a`
+  // and `6c`'s copy — and the all-capitals tag keeps saying `TOR`, which is
+  // the rule this file already states for the throwaway tag.
+  test('a throwaway says so in the pill, with its route', () {
+    expect(topBarRouteLabel(ProxyMode.direct, CaseKind.throwaway), 'THROWAWAY');
+    expect(topBarRouteLabel(ProxyMode.socks5, CaseKind.throwaway), 'THROWAWAY · SOCKS5');
+    expect(topBarRouteLabel(ProxyMode.http, CaseKind.throwaway), 'THROWAWAY · HTTP');
+    expect(topBarRouteLabel(ProxyMode.tor, CaseKind.throwaway), 'THROWAWAY · TOR');
+  });
+
+  test('a wipe-on-exit site says so in the pill, with its route', () {
+    expect(topBarRouteLabel(ProxyMode.direct, CaseKind.wipe), 'WIPE ON EXIT');
+    expect(topBarRouteLabel(ProxyMode.socks5, CaseKind.wipe), 'WIPE ON EXIT · SOCKS5');
+    expect(topBarRouteLabel(ProxyMode.http, CaseKind.wipe), 'WIPE ON EXIT · HTTP');
+    expect(topBarRouteLabel(ProxyMode.tor, CaseKind.wipe), 'WIPE ON EXIT · TOR');
   });
 
   test("2c's line names Tor as Tor and the rest as before", () {

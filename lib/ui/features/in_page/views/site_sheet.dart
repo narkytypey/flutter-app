@@ -158,8 +158,13 @@ class SiteSheet extends StatelessWidget {
                     ),
                   ),
                 ),
-                _SheetInfoRow(label: 'Proxy', value: proxyDescriptor, onTap: onProxy),
-                _SheetInfoRow(label: 'Cookies', value: cookiesDescriptor),
+                // The user's ruling of 2026-10-08: `6c` is opened by tapping
+                // the pill's shield, so it leads with protection — the level,
+                // what was blocked, and the three shields. The four rows the
+                // canvas itself draws (Proxy, Cookies, Force dark mode,
+                // Desktop view) follow, keeping the canvas's order among
+                // themselves; everything above them is Plan 16's, which the
+                // canvas never ordered.
                 _SheetInfoRow(
                   label: 'Security level',
                   value: securityLevelValue,
@@ -198,6 +203,8 @@ class SiteSheet extends StatelessWidget {
                     onChanged: onAntiFingerprintingChanged,
                   ),
                 ),
+                _SheetInfoRow(label: 'Proxy', value: proxyDescriptor, onTap: onProxy),
+                _SheetInfoRow(label: 'Cookies', value: cookiesDescriptor),
                 _SheetInfoRow(
                   label: 'Force dark mode',
                   onTap: _toggle(forceDark, onForceDarkChanged),

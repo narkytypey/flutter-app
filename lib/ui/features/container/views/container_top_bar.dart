@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../../domain/models/route_display.dart';
 import '../../../../domain/models/security_level.dart';
 import '../../../core/host_text.dart';
 import '../../../core/icons.dart';
@@ -8,10 +9,7 @@ import '../../../core/typography.dart';
 import '../../../core/widgets/icon_tap.dart';
 import 'panic_square.dart';
 
-/// What the pill's case says about the container's storage (restyle v2 §8
-/// `2b`): a saved site that keeps its storage, one that wipes on exit, or a
-/// throwaway (which is wiped when it closes).
-enum CaseKind { keep, wipe, throwaway }
+export '../../../../domain/models/route_display.dart' show CaseKind;
 
 /// Browser-chrome spec §6.1's top bar (layout C), restyled to v2 §8 `2b`: a
 /// bar of at least 64 dp, a pill of at least 48 dp. Inside the pill, left to

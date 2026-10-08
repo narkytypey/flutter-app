@@ -5,12 +5,34 @@ import 'site.dart';
 // name, so it reads `Tor` wherever a route is named (built-in Tor spec §7,
 // plan D6); only the all-capitals throwaway tag says `TOR`.
 
+/// What the pill's case says about the container's storage (restyle v2 §8
+/// `2b`): a saved site that keeps its storage, one that wipes on exit, or a
+/// throwaway (which is wiped when it closes).
+enum CaseKind { keep, wipe, throwaway }
+
 /// The container's top bar. There is no DIRECT label (browser-chrome spec §4.4).
-String topBarRouteLabel(ProxyMode mode) => switch (mode) {
-      ProxyMode.direct => '',
-      ProxyMode.tor => 'Tor',
-      ProxyMode.socks5 || ProxyMode.http => mode.name.toUpperCase(),
-    };
+///
+/// A container that does not keep its storage also says so in words, beside
+/// the case mark's shape (user's ruling 2026-10-08, restyle v2 spec §12 Q4).
+/// No word is invented: `THROWAWAY` is the tag `address_suggestion.dart`
+/// already draws, and `Wipe on exit` is `2a`'s and `6c`'s own copy. The tag
+/// is all capitals, so the route beside it is too — which is why a throwaway
+/// on Tor reads `TOR` here while a keep site's bare badge still reads `Tor`.
+String topBarRouteLabel(ProxyMode mode, CaseKind caseKind) {
+  final route = switch (mode) {
+    ProxyMode.direct => '',
+    ProxyMode.tor => 'Tor',
+    ProxyMode.socks5 || ProxyMode.http => mode.name.toUpperCase(),
+  };
+  final tag = switch (caseKind) {
+    CaseKind.keep => '',
+    CaseKind.wipe => 'WIPE ON EXIT',
+    CaseKind.throwaway => 'THROWAWAY',
+  };
+  if (tag.isEmpty) return route;
+  if (route.isEmpty) return tag;
+  return '$tag · ${route.toUpperCase()}';
+}
 
 /// `2c`'s viewed container: `viewing now · socks5`, `viewing now · Tor`.
 String switcherRouteName(ProxyMode mode) => mode == ProxyMode.tor ? 'Tor' : mode.name;

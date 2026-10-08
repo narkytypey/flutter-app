@@ -2,7 +2,6 @@ import '../../../../data/services/app_database.dart' show newProfileId;
 import '../../../../data/services/container_engine.dart';
 import '../../../../domain/models/workspace.dart';
 import '../../../../domain/repositories/repositories.dart';
-import '../../../../domain/services/workspace_storage_service.dart';
 import '../../../../domain/workspace_stats.dart';
 import '../views/workspace_form_screen.dart';
 import '../views/workspaces_screen.dart';
@@ -13,7 +12,6 @@ class WorkspaceActions {
     required this.workspaces,
     required this.sites,
     required this.engine,
-    required this.storage,
     this.ensureOneWorkspace,
   });
 
@@ -25,7 +23,6 @@ class WorkspaceActions {
   final WorkspaceRepository workspaces;
   final SiteRepository sites;
   final ContainerEngine engine;
-  final WorkspaceStorageService storage;
 
   Future<List<WorkspaceListItem>> listItems() async {
     return [
@@ -37,7 +34,6 @@ class WorkspaceActions {
           statsLine: workspaceStatsLine(
             storageRule: workspace.storageRule,
             siteCount: (await sites.inWorkspace(workspace.id)).length,
-            storageBytes: await storage.bytesFor(workspace.id),
           ),
         ),
     ];

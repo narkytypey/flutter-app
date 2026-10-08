@@ -1,7 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../data/services/app_database.dart' show ensureWorkspace;
-import '../../../../domain/services/workspace_storage_service.dart';
 import '../../container/view_models/providers.dart' show containerEngineProvider;
 import '../../dashboard/view_models/providers.dart'
     show
@@ -17,8 +16,6 @@ import 'workspace_actions.dart';
 
 /// No real byte count exists yet — see Plan 5's Known gaps. Until one does,
 /// every workspace reads as storing nothing.
-final workspaceStorageServiceProvider =
-    Provider<WorkspaceStorageService>((ref) => FakeWorkspaceStorageService());
 
 final workspaceActionsProvider = Provider<WorkspaceActions>((ref) {
   final database = ref.watch(databaseProvider);
@@ -26,7 +23,6 @@ final workspaceActionsProvider = Provider<WorkspaceActions>((ref) {
     workspaces: ref.watch(workspaceRepositoryProvider),
     sites: ref.watch(siteRepositoryProvider),
     engine: ref.watch(containerEngineProvider),
-    storage: ref.watch(workspaceStorageServiceProvider),
     ensureOneWorkspace: () => ensureWorkspace(database),
   );
 });

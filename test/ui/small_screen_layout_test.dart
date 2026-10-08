@@ -140,7 +140,6 @@ void main() {
       DeleteWorkspaceSheet(
         workspaceName: _longName,
         sitesRemoved: 12,
-        storageBytesWiped: 123456789,
         onCancel: () {},
         onDelete: () {},
       ),

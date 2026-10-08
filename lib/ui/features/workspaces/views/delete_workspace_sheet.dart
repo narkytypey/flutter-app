@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 
 import '../../../../domain/workspace_deletion.dart';
-import '../../../../domain/workspace_stats.dart';
 import '../../../core/tokens.dart';
 import '../../../core/typography.dart';
 import '../../../core/widgets/pill_button.dart';
@@ -13,14 +12,12 @@ class DeleteWorkspaceSheet extends StatefulWidget {
     super.key,
     required this.workspaceName,
     required this.sitesRemoved,
-    required this.storageBytesWiped,
     required this.onCancel,
     required this.onDelete,
   });
 
   final String workspaceName;
   final int sitesRemoved;
-  final int storageBytesWiped;
   final VoidCallback onCancel;
   final VoidCallback onDelete;
 
@@ -61,8 +58,6 @@ class _DeleteWorkspaceSheetState extends State<DeleteWorkspaceSheet> {
           children: [
             _statRow('Sites removed', '${widget.sitesRemoved}'),
             _statRow('Logins destroyed', '${widget.sitesRemoved}'),
-            _statRow('Stored data wiped',
-                wholeMegabytes(widget.storageBytesWiped)),
             _statRow('Custom scripts kept', 'In the script library',
                 muted: true),
           ],

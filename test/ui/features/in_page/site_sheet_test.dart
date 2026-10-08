@@ -62,6 +62,33 @@ void main() {
     );
   }
 
+  // User's ruling 2026-10-08: `6c` is reached by tapping the pill's shield,
+  // so it leads with protection. The four rows the canvas itself draws
+  // (Proxy, Cookies, Force dark mode, Desktop view) stay together, in the
+  // canvas's order, below them.
+  testWidgets('6c leads with protection, then the container rows', (tester) async {
+    await tester.pumpWidget(host(permissions: const [
+      PermissionInUse(PermissionKind.camera, whileOpen: true),
+    ]));
+
+    double y(String label) => tester.getTopLeft(find.text(label)).dy;
+
+    for (final (above, below) in const [
+      ('Security level', 'Blocked here'),
+      ('Blocked here', 'Block WebRTC'),
+      ('Block WebRTC', 'Block trackers and ads'),
+      ('Block trackers and ads', 'Anti-fingerprinting'),
+      ('Anti-fingerprinting', 'Proxy'),
+      ('Proxy', 'Cookies'),
+      ('Cookies', 'Force dark mode'),
+      ('Force dark mode', 'Desktop view'),
+      ('Desktop view', 'Camera'),
+      ('Camera', 'Close and wipe this session'),
+    ]) {
+      expect(y(above), lessThan(y(below)), reason: '$above must sit above $below');
+    }
+  });
+
   // User's ruling 2026-10-05: the route can change while browsing.
   testWidgets('a tap on the Proxy row reports it', (tester) async {
     var taps = 0;

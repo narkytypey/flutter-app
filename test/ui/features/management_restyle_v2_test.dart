@@ -49,7 +49,6 @@ void main() {
         body: DeleteWorkspaceSheet(
           workspaceName: 'Work',
           sitesRemoved: 1,
-          storageBytesWiped: 0,
           onCancel: () {},
           onDelete: () {},
         ),

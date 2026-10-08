@@ -9,7 +9,6 @@ void main() {
         body: DeleteWorkspaceSheet(
           workspaceName: 'Work',
           sitesRemoved: 2,
-          storageBytesWiped: 3 * 1024 * 1024,
           onCancel: onCancel ?? () {},
           onDelete: onDelete ?? () {},
         ),
@@ -28,8 +27,10 @@ void main() {
     expect(find.text('Sites removed'), findsOneWidget);
     expect(find.text('Logins destroyed'), findsOneWidget);
     expect(find.text('2'), findsNWidgets(2));
-    expect(find.text('Stored data wiped'), findsOneWidget);
-    expect(find.text('3 MB'), findsOneWidget);
+    // The user's ruling of 2026-10-08: no stored-data size until the threat
+    // model allows one.
+    expect(find.text('Stored data wiped'), findsNothing);
+    expect(find.textContaining('MB'), findsNothing);
     expect(find.text('Custom scripts kept'), findsOneWidget);
     expect(find.text('In the script library'), findsOneWidget);
     expect(

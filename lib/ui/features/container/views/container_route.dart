@@ -48,7 +48,6 @@ import '../../workspaces/views/workspaces_route.dart';
 import '../view_models/open_containers.dart';
 import '../view_models/providers.dart';
 import 'container_screen.dart';
-import 'container_top_bar.dart' show CaseKind;
 import 'container_web_view.dart';
 import 'new_identity_sheet.dart';
 import 'opening_screen.dart';
@@ -840,6 +839,13 @@ class _ContainerRouteState extends ConsumerState<ContainerRoute> {
     );
     final previous = neighbours.previous;
     final next = neighbours.next;
+    // The pill draws this as a shape, and names it beside the route (user's
+    // ruling 2026-10-08).
+    final caseKind = viewed.throwaway
+        ? CaseKind.throwaway
+        : opened.cookiePolicy == CookiePolicy.wipeOnExit
+            ? CaseKind.wipe
+            : CaseKind.keep;
     return Stack(children: [
       ContainerScreen(
         // Dashboard spec §9: switched in place, as a tap on a `2c` row is.
@@ -849,7 +855,7 @@ class _ContainerRouteState extends ConsumerState<ContainerRoute> {
         // whenever the page has none (`about:blank`, a failed load).
         host: pageHost.isEmpty ? opened.host : pageHost,
         // There is no DIRECT label (spec §4.4).
-        routeLabel: topBarRouteLabel(opened.proxyMode),
+        routeLabel: topBarRouteLabel(opened.proxyMode, caseKind),
         live: viewed.phase == SessionPhase.live,
         navigation: navigation,
         openCount: state.openCount,
@@ -874,11 +880,7 @@ class _ContainerRouteState extends ConsumerState<ContainerRoute> {
         securityLevelMeta: level.meta,
         // Restyle v2 §8 `2b`: the pill's case and shield, from what the
         // container already holds.
-        caseKind: viewed.throwaway
-            ? CaseKind.throwaway
-            : opened.cookiePolicy == CookiePolicy.wipeOnExit
-                ? CaseKind.wipe
-                : CaseKind.keep,
+        caseKind: caseKind,
         tor: opened.proxyMode == ProxyMode.tor,
         securityLevel: level,
         findResult: _findResult,

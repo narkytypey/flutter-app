@@ -32,7 +32,6 @@ class WorkspacesRoute extends ConsumerWidget {
     final workspace = await _workspaceById(ref, id);
     if (workspace == null) return;
     final sites = await scope.read(siteRepositoryProvider).inWorkspace(id);
-    final bytes = await scope.read(workspaceStorageServiceProvider).bytesFor(id);
     if (!context.mounted) return;
     showModalBottomSheet<void>(
       context: context,
@@ -45,7 +44,6 @@ class WorkspacesRoute extends ConsumerWidget {
         child: DeleteWorkspaceSheet(
           workspaceName: workspace.name,
           sitesRemoved: sites.length,
-          storageBytesWiped: bytes,
           onCancel: () => Navigator.pop(sheetContext),
           onDelete: () async {
             Navigator.pop(sheetContext);

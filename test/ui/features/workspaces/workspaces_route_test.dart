@@ -60,7 +60,7 @@ void main() {
   testWidgets('lists the vault\'s workspaces with their stats', (tester) async {
     await pump(tester);
     expect(find.text('Work'), findsOneWidget);
-    expect(find.text('1 site · cookies kept · 0 MB'), findsOneWidget);
+    expect(find.text('1 site · cookies kept'), findsOneWidget);
   });
 
   testWidgets('New workspace opens the form and saving adds a row', (tester) async {
