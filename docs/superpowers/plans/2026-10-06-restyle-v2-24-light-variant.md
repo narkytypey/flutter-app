@@ -225,6 +225,27 @@ status bar icons and the launch frame are the "Device checks" below.
 - Check that the status bar icons stay readable in both themes.
 - Look at the launch frame on a light phone: it is dark, by design (spec §9).
 
+### Done (2026-10-08, emulator)
+
+Pixel_9 (API 36, WebView 154; **not a physical phone**). The emulator's system
+theme was **light**, so the whole app came up in the light palette — the first
+time this variant has run anywhere but a test.
+
+- **Switched with the app open** (`cmd uimode night yes` / `no`), in all three
+  places the check asks for: on the dashboard, **inside an open container**
+  (both bars re-themed, the page itself was not reloaded), and **with the `6c`
+  sheet up** (the sheet, its rows, its switches and the scrim all re-themed in
+  place). That last one is the case this plan worries about, since the sheet
+  lives on the open vault's own navigator below `PaletteScope`.
+- **Status bar icons stay readable**: dark glyphs on the light palette, light
+  glyphs on the dark one, switching with the theme.
+- **Jade → spruce** holds where it matters: the dashboard's `+` is spruce with
+  a **white** glyph on an empty workspace (the decoy's) — the one colour this
+  plan's light sweep found and fixed (`C.bg` → `C.onJade`) — and neutral on a
+  workspace that has sites, which is `emphasise` behaving correctly.
+- **Not separately captured**: the dark launch frame on a light phone. It is
+  spec §9's accepted deviation and the Android themes were not touched.
+
 ## Known gaps
 
 - The dark launch frame on a light phone.

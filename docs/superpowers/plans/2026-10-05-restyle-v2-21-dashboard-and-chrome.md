@@ -160,6 +160,32 @@ were added:
 
 `2b` on a long host at font scale 2.0 (whole host, pill grows); a wipe-on-exit site, a throwaway and a Tor site show their case; the shield changes with `6c`'s level; `1b` idle rows show no ring.
 
+### Done (2026-10-08, emulator)
+
+Pixel_9 (API 36, WebView 154; **not a physical phone**), light theme.
+
+- **A long host at font scale 2.0**: `a-rather-long-subdomain.forum.example.com`
+  showed **whole** at 1.0 and at 2.0; the pill grew (163→601 px) and at 2.0 the
+  reload and shield moved **under** the host, as the plan says they should.
+- **The host is never cut**, tested with the spec's own attack shape: a
+  throwaway on `forum.example.com.evil.io` at font scale 2.0 wrapped to
+  `forum.example.` / `com.evil.io` — the real domain stayed visible. Before
+  this plan it would have ellipsized after `forum.example.com`.
+- **All three cases seen and told apart**: solid on a Keep site (ExD, label
+  `Keep for this site`), broken on a throwaway (label `Wipe on exit`), double
+  on a Tor site (`check.torproject.org`, with the `Tor` badge in Mono under
+  the host).
+- **The shield follows `6c`'s level**: ExD at Safest drew the filled shield;
+  changed to Standard through ☰, the same pill drew the outline shield.
+- **`1b` idle rows show no ring**; only the open site carried the jade light at
+  its monogram's corner.
+- **`8a`** on the Tor open: no jade, the amber dot in the pill, the load line,
+  and `Connecting to Tor · 50%` wrapping cleanly.
+
+**Found, not this plan's**: `8a` draws every step as a pending circle and never
+marks one done — the Plan 17 finding (`openStepsFor` makes every step
+`pending`). A fix for it exists on branch `second/tender-mccarthy-90488l`.
+
 ## Known gaps
 
 - A visible word for the case (spec §12 Q4) is not drawn.

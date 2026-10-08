@@ -283,6 +283,26 @@ restyle v2's eight; `IconTap` default 48); `test/ui/core/primitives_test.dart`
 
 On an emulator or phone: the launcher icon (adaptive, and themed with Android 13+ themed icons on); the lock screen's case mark; switches on `2d` read on/off without colour; the dashboard at 320 × 568 and font scale 2.0.
 
+### Done (2026-10-08, emulator)
+
+Pixel_9 (API 36, WebView 154; **not a physical phone**), the branch's own
+x64-only debug build installed over the existing vault. The emulator's system
+theme was **light**, so everything below was seen in the light variant
+(Plan 24) unless it says otherwise.
+
+- **Launcher icon**: the new adaptive icon on the home screen — jade ring,
+  dark body, cream case mark with a jade dot. **Not checked: the Android 13+
+  themed-icon variant** (themed icons were never turned on).
+- **The lock screen's case mark**: drawn above `Enter your PIN`; after a wrong
+  PIN it, the headline and the six dots are all danger (see Plan 22).
+- **Switches read on/off without colour**: on `6c` and on `2d`, on is knob
+  right + a check on the knob, off is knob left and no check, in both themes.
+- **320 × 568 dp** (`wm size 640x1136`, `wm density 320`) at font scale **1.0
+  and 1.3**: no overflow; the list scrolls, the search field and tab bar fit.
+- **Font scale 2.0** on the dashboard and the ☰ menu: no overflow; hosts wrap,
+  rows grow, `Copy link` wraps inside its tile. The workspace chips scroll
+  sideways, as they are meant to.
+
 ## Known gaps
 
 - Literal `ui(size:)` calls (175) still carry canvas sizes until Plans 21–23; screens look mixed between plans.

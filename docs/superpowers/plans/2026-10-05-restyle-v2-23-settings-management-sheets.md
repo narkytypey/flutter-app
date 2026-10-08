@@ -160,6 +160,33 @@ work was resumed from the tree, not redone.
 
 `6a` with "Keep blocked" in jade; `8b` for SOCKS5, Tor-clearnet and Tor-onion; `6c`'s switches; Settings in the decoy (no VAULT section).
 
+### Done (2026-10-08, emulator)
+
+Pixel_9 (API 36, WebView 154; **not a physical phone**), light theme.
+
+- **`6a` with the jade on "Keep blocked"**: `localhost wants your camera`, with
+  `Allow once` and `Allow while this site is open` neutral and **`Keep
+  blocked` jade** (spruce, in the light variant). Words and order unchanged.
+  Raised by `tool/device-check/pages.py`'s `/ask.html` on a direct localhost
+  container.
+- **`8b` for SOCKS5**: a site whose proxy is not listening showed `Proxy did
+  not answer`, the tunnel and `Last worked` rows in a `Group`, `Try again`
+  jade, `Change proxy settings` neutral, and **`Open without the tunnel` as
+  danger text, set well below them** with its `This site will see your real
+  IP` subtitle.
+- **`6c`'s switches**: all six read on/off by knob position and the knob's
+  check, with `Edit` the one jade on the sheet.
+- **Settings in the decoy**: `LOCK`, `MANAGE`, `BROWSING`, `PANIC` — and **no
+  `VAULT` section**, as intended.
+- Also seen: the security-level picker marks its row with a **text-1 check**,
+  not jade; `2a`'s `FormSegment` marks the selected tab and the selected route
+  chip with an outline **and** a check; `7b` shows only Open, Edit settings and
+  the wipe group.
+
+**Not done**: `8b` for Tor-clearnet and Tor-onion — only the SOCKS5 shape was
+raised. Both use the same `TunnelHeader` and button order, but neither was
+seen.
+
 ## Known gaps
 
 `10a`/`10c` storage sizes are unchanged behaviour (spec §12 note).

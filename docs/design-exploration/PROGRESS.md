@@ -4,7 +4,7 @@ Read this first. It is the only thing that carries across a restart.
 
 ## Where I got to
 
-Phases 0–9 done, and Plan 24 (light variant, after the user's answers in DECISIONS D9). Branch `restyle-implementation` (not merged; no PR). Last gates at 73a9dd1 (Plan 23 Task 7, pill motion): analyze clean, flutter test 1156/1156, APK zero e:. Not verified on a device. Look first at docs/design-exploration/RATIONALE.md, then debate/VERDICT.md "Unresolved", then the spec §12.
+Phases 0–9 done, and Plan 24 (light variant, after the user's answers in DECISIONS D9). Branch `restyle-implementation` (not merged; no PR). Last gates at 73a9dd1 (Plan 23 Task 7, pill motion): analyze clean, flutter test 1156/1156, APK zero e:. **Gates re-run independently 2026-10-08 on the owner's machine at a77d0a1: analyze clean, flutter test 1156/1156, `flutter build apk --debug` zero `e:`. Device-checked the same day on an emulator** — every check on all five plans' sheets except `8b` for Tor routes and the themed launcher icon; results are in each plan's "Device checks" and in the CLAUDE.md rows. Look first at docs/design-exploration/RATIONALE.md, then debate/VERDICT.md "Unresolved", then the spec §12.
 
 ## Heartbeat
 
@@ -16,7 +16,7 @@ restyle-implementation (phase 8; phases 0–7 are on design-exploration-restyle,
 
 ## Next action
 
-None queued (Plan 23 Task 7's pill motion done; its unlock half needs a ruling, DECISIONS D10). Awaiting the owner: the six open questions (RATIONALE.md "Your decisions"), a device check of each plan\'s "Device checks", and whether to merge. 
+None queued (Plan 23 Task 7's pill motion done; its unlock half needs a ruling, DECISIONS D10). The device check is **done** (2026-10-08, emulator). Awaiting the owner: RATIONALE.md "Your decisions" 3 (the layout rulings, which were deferred until the restyle had been seen on a device — that has now happened), 4 (a word for wipe-on-exit in the pill), 5 (storage sizes), and 7 (whether to merge). 
 
 ## Toolchain
 
@@ -140,6 +140,27 @@ A later fire must reinstall all of it (~10 min); set
 - [x] One-page rationale
 
 ## Log
+
+- 2026-10-08 (owner's machine, session flutter-app-65, not a fire): gates
+  re-run at a77d0a1 — `flutter analyze` clean, `flutter test` **1156/1156**,
+  `flutter build apk --debug` zero `e:`. Then the **first device check of this
+  whole restyle**, on the Pixel_9 emulator (API 36, WebView 154; not a physical
+  phone), with the branch's own x64-only build installed over the existing
+  vault. Every check on all five plans' sheets was seen except `8b` for
+  Tor-clearnet/Tor-onion and the Android 13+ themed icon. Highlights: the
+  emulator was in **light mode**, so Plan 24's variant ran for real and
+  re-themed live on the dashboard, inside an open container and with the `6c`
+  sheet up; the address pill kept `forum.example.com.evil.io` whole at font
+  scale 2.0; all three case marks were told apart; `6a`'s jade sat on `Keep
+  blocked`; the decoy's Settings had no VAULT section; `3c` was seen after a
+  real panic (run with the owner's go-ahead, vault then set up again with the
+  same PINs); and built-in Tor reached check.torproject.org's
+  "Congratulations". **No bug was found that this restyle introduced.** Two
+  older ones were: `8a` draws every step as pending (Plan 17's finding, fix on
+  `second/tender-mccarthy-90488l`), and `2a`'s Network tab draws the
+  SOCKS5/HTTP/Tor chips and HOST/PORT while "Route through proxy" is off, so
+  picking Tor with the switch off saves a direct site (pre-existing in
+  `RouteFields` on `main`).
 
 - 2026-10-08T02:06Z fire-k4m2qa: started, found the run still complete with nothing queued and no new owner rulings on any branch. Stood down; no code or gates run.
 - 2026-10-08T00:05Z fire-xnuycv: started, found the run still complete with nothing queued and no new owner rulings on the branch. Stood down; no code or gates run.

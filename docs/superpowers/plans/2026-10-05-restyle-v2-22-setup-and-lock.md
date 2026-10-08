@@ -119,6 +119,27 @@ merged tree: `flutter analyze` clean, `flutter test` **1104/1104**,
 
 Lock in portrait and landscape at font scale 1.0 and 2.0; a wrong PIN's ring; `3c` after a panic.
 
+### Done (2026-10-08, emulator)
+
+Pixel_9 (API 36, WebView 154; **not a physical phone**), light theme. The
+panic was run with the owner's go-ahead, and the vault was set up again
+afterwards with the same PINs, which is how the setup screens below were seen.
+
+- **Lock in portrait at 1.0**: case mark, `Enter your PIN`, six dots, keypad.
+- **Lock in landscape at 1.0 and at 2.0**: `PinLayout` holds — the message and
+  dots on the left, the keypad on the right, nothing clipped at either scale.
+- **A wrong PIN**: the case mark, `Wrong PIN · 4 tries left` and the six dots
+  all turn danger; the footnote stays muted.
+- **`3c` after a real panic** (the container's panic square): `Everything
+  closed`, `3 sessions destroyed, temporary storage wiped, app locked.`, the
+  three status lines in a `Group` with their words in text-1 (**no jade**),
+  `Unlock` neutral, on `C.bg`. The app stayed up, and the wipe reached disk:
+  `meta.bin` and both stores gone, profiles journaled, `tor-wipe-pending`
+  written.
+- **Setup, seen on the way back** (`4a`/`4b`/`5a`): the step bar shows position
+  only, never jade; `5a`'s four checks are text-1 and its one jade is
+  `Add your first site`; `4a`'s `Continue` is dim until six digits are in.
+
 ## Known gaps
 
 The unlock motion is optional (Plan 23 Task 7).
