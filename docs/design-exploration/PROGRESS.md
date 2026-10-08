@@ -8,7 +8,7 @@ Phases 0–9 done, and Plan 24 (light variant, after the user's answers in DECIS
 
 ## Heartbeat
 
-2026-10-07T00:06Z · fire-9iet5z (stood down; run complete)
+2026-10-08T00:05Z · fire-xnuycv (stood down; run complete)
 
 ## Branch
 
@@ -141,6 +141,7 @@ A later fire must reinstall all of it (~10 min); set
 
 ## Log
 
+- 2026-10-08T00:05Z fire-xnuycv: started, found the run still complete with nothing queued and no new owner rulings on the branch. Stood down; no code or gates run.
 - 2026-10-07T00:06Z fire-9iet5z: started, found the run complete with nothing queued (Next action: none; the remaining items need the owner's rulings). Stood down; no code or gates run.
 - 2026-10-06T22:45Z fire-3e91b7: Plan 23 Task 7 pill motion committed (D10; unlock half skipped). `flutter analyze` clean, `flutter test` 1156/1156. `flutter build apk --debug` built, zero `e:` lines (after Maven Central's 429s, through a user-level Gradle init script pointing Central at Google's mirror, `maven-central.storage-download.googleapis.com`; not in the repo). No Kotlin changed. Not verified on a device.
 - 2026-10-06T22:10Z fire-3e91b7: started; nothing queued, run complete and Plan 24 done. Taking the optional Plan 23 Task 7 (motion), view-only.
