@@ -2125,6 +2125,32 @@ void main() {
       await settleReopen(tester);
     }
 
+    // User's ruling 2026-10-09: on a Tor site, 8c's Reconnect restarts Tor.
+    // Only an open starts Tor, and a Tor that died under the page (its own
+    // `:tor` process, since fix-tor-process) does not come back for a reload,
+    // so the container reopens in place, unwiped, at the page it shows.
+    testWidgets("8c's Reconnect on a Tor site reopens it in place, so Tor starts again",
+        (tester) async {
+      final engine = FakeContainerEngine();
+      final site = _site().copyWith(proxyMode: ProxyMode.tor);
+      await pumpOpen(tester, engine, site);
+      engine.emitTunnelDropped(TunnelDroppedEvent(
+        siteId: 's1', host: 'forum.example.com', droppedAt: DateTime(2026, 10, 9),
+      ));
+      await tester.pump();
+      await tester.pump();
+      await tester.pump();
+
+      await tester.tap(find.text('Reconnect'));
+      await settleReopen(tester);
+
+      expect(find.text('Tunnel dropped'), findsNothing);
+      expect(engine.closedWith['s1'], isFalse, reason: 'a reopen never wipes');
+      expect(engine.openedInitialUrls['s1'], endsWith('/t/9'));
+      expect(engine.reloaded, isEmpty, reason: 'a reload cannot start Tor');
+      expect(engine.wiped, isEmpty);
+    });
+
     testWidgets("☰'s Security level picks Safest: written, reopened unwiped at the page shown",
         (tester) async {
       final engine = FakeContainerEngine();

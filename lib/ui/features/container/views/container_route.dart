@@ -444,9 +444,20 @@ class _ContainerRouteState extends ConsumerState<ContainerRoute> {
   /// `8c`'s Reconnect: the overlay goes, and the page shown reloads (user's
   /// ruling 2026-10-05), so it does not stay on what the dropped tunnel left
   /// it showing, such as Chromium's error page.
+  ///
+  /// On a Tor site it restarts Tor (user's ruling 2026-10-09): only an open
+  /// starts Tor, and a Tor that died under the page does not come back for a
+  /// reload, so the container reopens in place, unwiped, at the page shown,
+  /// through `8a`'s "Connecting to Tor".
   void _reconnect(String siteId) {
     _registry.clearTunnelDropped(siteId);
-    final pageId = _state.byId(siteId)?.viewedPageId;
+    final container = _state.byId(siteId);
+    if (container == null) return;
+    if (_routeSite(container).proxyMode == ProxyMode.tor) {
+      unawaited(_registry.reopenInPlace(container.site));
+      return;
+    }
+    final pageId = container.viewedPageId;
     if (pageId != null) unawaited(_engine.reload(pageId));
   }
 
