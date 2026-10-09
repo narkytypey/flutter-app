@@ -1401,6 +1401,20 @@ spec's layout C (§6.1 had moved reload into the ☰ menu only):
   logged `CONNECT postman-echo.com:443`, and postman-echo's reply was back
   on the page.
 
+## Reader left the page unstyled (2026-10-09, branch `fix-reader-live-page`)
+
+Found on the emulator, older than Plan 6's Reader: `READER_JS` began by
+removing every `script`, `style`, `nav`, `aside` and `footer` from the **live**
+page, so once Reader closed the page stayed unstyled until a reload
+(example.com turned left-aligned; Wikipedia lost its icons and banner styles).
+It now strips a copy of the body (`document.body.cloneNode(true)`), dropping
+`noscript` and `template` too, since a detached copy is not rendered. Checked
+in Chromium (Playwright) on Wikipedia's Onion routing article: the old script
+left 2 of the page's 18 stylesheets and removed 452 elements, the new one
+changes nothing, and both extract the same paragraphs. `ReaderJsTest` (Kotlin,
+2) fails on the old script. Kotlin JVM 380/380. Don't point the strip back at
+`document`.
+
 ## Working on this repo
 
 - ~~No git repo initialized yet, and Flutter isn't installed on this machine as

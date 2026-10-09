@@ -1021,11 +1021,17 @@ fun routeFailureToDartName(kotlinName: String): String = when (kotlinName) {
  * Reader-mode heuristic: strips obvious chrome, then picks the element with
  * the highest text-to-tag-node-count ratio as the likely article body. This
  * is the plan's one honestly-approximate piece — see Known Gaps.
+ *
+ * It strips a copy of the body, never the page: removing the live page's
+ * `style` elements left it unstyled after Reader closed (seen 2026-10-09).
+ * A detached copy is not rendered, so `noscript` and `template`, which
+ * render nothing on the page, go too.
  */
 const val READER_JS = """
 (function(){
-  document.querySelectorAll('script,style,nav,aside,footer').forEach(e=>e.remove());
-  var candidates = document.body.querySelectorAll('article,main,div,section');
+  var body = document.body.cloneNode(true);
+  body.querySelectorAll('script,style,noscript,template,nav,aside,footer').forEach(e=>e.remove());
+  var candidates = body.querySelectorAll('article,main,div,section');
   var best = null, bestScore = 0;
   candidates.forEach(function(el){
     var text = el.innerText || '';
