@@ -14,8 +14,11 @@ import org.torproject.jni.TorService
 import java.io.File
 
 /**
- * The real [TorDaemon]: tor-android's [TorService], bound while Tor is needed
- * (spec §4.2). Unbinding destroys the service, which shuts Tor down.
+ * tor-android's [TorService], bound while Tor is needed (spec §4.2).
+ * Unbinding destroys the service, which shuts Tor down. It runs only inside
+ * the `:tor` process, started by [TorHostService]; the app drives Tor through
+ * [TorProcessDaemon], which kills that process at every stop, so here only
+ * [start] is ever called.
  *
  * [TorRuns] orders the runs: a start waits for the last Tor to end, and a
  * stop before Tor's control connection exists halts Tor once it does (Plan 19
@@ -167,7 +170,7 @@ internal object Tor {
         socketPath = TorFiles.socket(context.filesDir).absolutePath
         val main = android.os.Handler(android.os.Looper.getMainLooper())
         runtime = TorRuntime(
-            TorServiceDaemon(context.applicationContext),
+            TorProcessDaemon(context.applicationContext),
             schedule = { delayMs, task -> main.postDelayed(task, delayMs) },
         )
     }
