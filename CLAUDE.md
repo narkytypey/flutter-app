@@ -1415,6 +1415,24 @@ changes nothing, and both extract the same paragraphs. `ReaderJsTest` (Kotlin,
 2) fails on the old script. Kotlin JVM 380/380. Don't point the strip back at
 `document`.
 
+## Tor crashed in every release build (2026-10-09, branch `fix-release-build`)
+
+Found on a physical phone (Xiaomi, Android 13), the first release build ever
+run: every Tor start killed the `:tor` process with `NoSuchFieldError: no "J"
+field "torConfiguration" in class TorService` (`Tor-api: The fieldID is
+NULL`). Flutter's Gradle plugin turns R8 on for release, R8 renamed
+`TorService`'s fields, and Tor's native code looks them up by name;
+tor-android 0.4.9.13 ships no keep rules. Every device check before this ran a
+debug build, which is not shrunk. `android/app/proguard-rules.pro` (which
+Flutter's plugin hands R8 when it exists) keeps `org.torproject.jni.**`, and
+`test/android_release_rules_test.dart` fails without it. Seen on the emulator
+with release builds: before, the same `fieldID is NULL` death; after, Tor
+bootstrapped and the DuckDuckGo onion loaded. `flutter analyze` clean,
+`flutter test` 1162/1162. In the same release build panic from a site's top
+bar reached `3c` and the old PIN was refused afterwards; panic reported not
+working on the phone was not reproduced. **Device-check release builds too**:
+anything reached by name (JNI, reflection) can break only there.
+
 ## Working on this repo
 
 - ~~No git repo initialized yet, and Flutter isn't installed on this machine as
