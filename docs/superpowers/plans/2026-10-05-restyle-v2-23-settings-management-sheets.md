@@ -187,6 +187,27 @@ Pixel_9 (API 36, WebView 154; **not a physical phone**), light theme.
 raised. Both use the same `TunnelHeader` and button order, but neither was
 seen.
 
+### Done (2026-10-09, emulator)
+
+Pixel_9 (API 36, WebView 154; **not a physical phone**), the branch's x64-only
+debug build at `1a61dcf`, dark theme for `8b`.
+
+- **`8b` for Tor-clearnet**: TorC (check.torproject.org) closed, Tor stopped,
+  Wi-Fi and data cut, TorC reopened: `8a`'s `Connecting to Tor`, then after
+  about 2 minutes `Tor did not connect`, with Tunnel `Tor` and `Last worked`
+  in the `Group`, `Try again` jade, `Change proxy settings` neutral and `Open
+  without the tunnel` as danger text below them (offered because the site is
+  not an onion: `canOpenWithoutTunnel`, unchanged from `main`). With the
+  network back, Try again loaded the page and a reload showed a new exit IP.
+- The user's rulings of 2026-10-08: `6c` opens on Security level, `Blocked
+  here` and the three shields, with Proxy, Cookies, Force dark mode and
+  Desktop view below; `10a` reads `12 sites · cookies kept`; `10c` has no
+  stored-data row, and its Delete stays off until the name is typed.
+- Today and Settings in both themes; `9b` and `9c` (`Locked after 1 minute in
+  the background`).
+
+**Still not done**: `8b` for Tor-onion.
+
 ## Known gaps
 
 `10a`/`10c` storage sizes are unchanged behaviour (spec §12 note).

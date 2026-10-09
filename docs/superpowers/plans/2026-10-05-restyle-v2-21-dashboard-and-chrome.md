@@ -186,6 +186,24 @@ Pixel_9 (API 36, WebView 154; **not a physical phone**), light theme.
 marks one done — the Plan 17 finding (`openStepsFor` makes every step
 `pending`). A fix for it exists on branch `second/tender-mccarthy-90488l`.
 
+### Done (2026-10-09, emulator)
+
+Pixel_9 (API 36, WebView 154; **not a physical phone**), the branch's x64-only
+debug build at `1a61dcf` installed over the vault, light and then dark theme
+(switched live with `cmd uimode night`).
+
+- The user's rulings of 2026-10-08: the pill reads `WIPE ON EXIT` on a
+  wipe-on-exit site and `THROWAWAY` on a typed address, under the host; a
+  keep site shows only its host (or `Tor`).
+- `2c` lists viewed then background containers and its `×` closes one; ☰'s
+  rows, the address suggestions (`ITS OWN CONTAINER`, `THROWAWAY`, `Nothing
+  is fetched while you type.`) and the throwaway's save bar all drawn.
+- **Seen once, not reproduced:** the first tap on the dashboard after an
+  unlock, on ExD's row (second), opened Webmail (then fifth). The UI dump
+  taken just before the tap had ExD at that spot. A tap on the same row after
+  a later unlock opened ExD. Likely a stale dump or a re-sort just after
+  unlock; worth watching on a phone.
+
 ## Known gaps
 
 - A visible word for the case (spec §12 Q4) is not drawn.

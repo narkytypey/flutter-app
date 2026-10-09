@@ -303,6 +303,21 @@ theme was **light**, so everything below was seen in the light variant
   rows grow, `Copy link` wraps inside its tile. The workspace chips scroll
   sideways, as they are meant to.
 
+### Done (2026-10-09, emulator)
+
+Pixel_9 (API 36, WebView 154; **not a physical phone**), the branch's x64-only
+debug build at `1a61dcf` installed over the vault.
+
+- **The themed-icon variant**, the one gap above: with Wallpaper & style ›
+  Home screen › Themed icons on, the home screen drew the monochrome layer as
+  a light case mark with its dot on the launcher's tinted disc, like the
+  other themed apps. Its glyph sits larger in the disc than theirs do
+  (the case spans 56 of the 108 dp canvas, inside the 66 dp safe circle).
+  The coloured ring around it in the bottom row is the Pixel Launcher's
+  predicted-app outline, not the icon: it stays, recoloured, with themed
+  icons off. Pixel Launcher shows themed icons on the home screen only; the
+  app drawer keeps the full-colour icon.
+
 ## Known gaps
 
 - Literal `ui(size:)` calls (175) still carry canvas sizes until Plans 21–23; screens look mixed between plans.
