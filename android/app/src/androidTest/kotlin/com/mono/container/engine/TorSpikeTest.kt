@@ -12,7 +12,8 @@ import java.net.Socket
 /**
  * Built-in Tor spec §4.4's spike, on a device against the real Tor network:
  * tor-android with a Unix SOCKS port, TLS over [StreamSocket] on Android's
- * provider, no TCP listener of ours, and a second start after a stop.
+ * provider, no TCP listener of ours, and a second start after a stop, each
+ * run in a `:tor` process of its own.
  */
 @RunWith(AndroidJUnit4::class)
 class TorSpikeTest {
@@ -41,89 +42,110 @@ class TorSpikeTest {
         return response.body.readBytes().toString(Charsets.UTF_8)
     }
 
+    /**
+     * [isTorBody], tried up to [attempts] times on the same Tor: an exit relay
+     * can drop a new stream (`connection closed` in the TLS handshake), which
+     * says nothing about the run. Each failure is logged, so the rate shows.
+     */
+    private fun isTorBodyWithin(attempts: Int, label: String): String {
+        var last: Exception? = null
+        repeat(attempts) { attempt ->
+            try {
+                return isTorBody()
+            } catch (e: java.io.IOException) {
+                android.util.Log.w("TorSpikeTest", "$label attempt ${attempt + 1}: $e")
+                last = e
+            }
+        }
+        throw last!!
+    }
+
     @Test(timeout = 600_000)
     fun torRunsOverItsUnixSocketCarriesTlsAndStartsAgain() {
-        val runtime = TorRuntime(TorServiceDaemon(context))
-        onMain { runtime.hold("spike") }
-        assertTrue("Tor did not bootstrap", runtime.awaitReady("spike"))
-
-        // Plan D3: neither of the library's default TCP ports is open.
-        assertFalse("9050 is listening", listening(9050))
-        assertFalse("8118 is listening", listening(8118))
-
-        val body = isTorBody()
-        assertTrue(body, body.contains("\"IsTor\":true"))
-
-        // release() lingers, so stop at once to make the next hold a real second start.
-        onMain { runtime.stopAll() }
-        Thread.sleep(5_000)
-
-        onMain { runtime.hold("spike") }
-        assertTrue("Tor did not bootstrap a second time", runtime.awaitReady("spike"))
-        val again = isTorBody()
-        assertTrue(again, again.contains("\"IsTor\":true"))
-        onMain { runtime.stopAll() }
-    }
-
-    /** True once [alive] matches whether a thread named `tor` is alive, polled for at most [withinMs]. */
-    private fun torAlive(alive: Boolean, withinMs: Long, pollMs: Long = 100): Boolean {
-        val deadline = System.currentTimeMillis() + withinMs
-        while (System.currentTimeMillis() < deadline) {
-            if (liveTorThreads().isNotEmpty() == alive) return true
-            Thread.sleep(pollMs)
-        }
-        return liveTorThreads().isNotEmpty() == alive
-    }
-
-    private fun torEnds(withinMs: Long) = torAlive(false, withinMs)
-
-    /**
-     * Plan 19 final review, Important #1 and #2 (`TorRuns`), on a device: a
-     * stop before Tor's control connection exists still ends Tor, and a start
-     * right after a stop never runs a second `tor_run_main` beside the old one.
-     * Before `08489c2` the second can also show as the process aborting in
-     * `pubsub_install`; that is a failure too.
-     */
-    @Test(timeout = 600_000)
-    fun anEarlyStopEndsTorAndAQuickStartNeverRunsTwo() {
-        // Another test's Tor still exiting would make the next hold wait, and
-        // the early stop would then cancel a start that never ran.
-        assertTrue("an earlier Tor is still running", torEnds(15_000))
-        var most = 0
-        val sampling = Thread {
-            while (!Thread.currentThread().isInterrupted) {
-                most = maxOf(most, liveTorThreads().size)
-                try { Thread.sleep(20) } catch (_: InterruptedException) { break }
-            }
-        }.apply { isDaemon = true; start() }
-        val runtime = TorRuntime(TorServiceDaemon(context))
+        val runtime = TorRuntime(TorProcessDaemon(context))
         try {
-            onMain { runtime.hold("early") }
-            // tor_run_main has begun, so the control connection is at most just
-            // opening. Whether the stop took its HALT path cannot be seen from
-            // here (ServiceRun.controllable is private): check logcat.
-            assertTrue("Tor never started", torAlive(true, 10_000, pollMs = 5))
-            onMain { runtime.stopAll() }
-            // The stop waits 5 s for the control connection, then settles.
-            assertTrue("Tor outlived a stop before its control connection (most $most)", torEnds(30_000))
+            onMain { runtime.hold("spike") }
+            assertTrue("Tor did not bootstrap", runtime.awaitReady("spike"))
 
-            onMain { runtime.hold("quick") }
-            assertTrue("Tor did not bootstrap (most $most)", runtime.awaitReady("quick"))
-            onMain { runtime.stopAll() }
-            onMain { runtime.hold("quick") }
-            assertTrue(
-                "Tor did not bootstrap right after a stop: the network, or the old Tor took over 10 s to exit (most $most)",
-                runtime.awaitReady("quick"),
-            )
+            // Plan D3: neither of the library's default TCP ports is open.
+            assertFalse("9050 is listening", listening(9050))
+            assertFalse("8118 is listening", listening(8118))
+
             val body = isTorBody()
             assertTrue(body, body.contains("\"IsTor\":true"))
+
+            // release() lingers, so stop at once to make the next hold a real second start.
             onMain { runtime.stopAll() }
-            assertTrue("Tor outlived the last stop (most $most)", torEnds(15_000))
+            Thread.sleep(5_000)
+
+            onMain { runtime.hold("spike") }
+            assertTrue("Tor did not bootstrap a second time", runtime.awaitReady("spike"))
+            val again = isTorBody()
+            assertTrue(again, again.contains("\"IsTor\":true"))
         } finally {
             onMain { runtime.stopAll() }
-            sampling.interrupt()
-            sampling.join()
         }
-        assertTrue("$most tor threads were alive at once", most <= 1)
+    }
+
+    /** True once [present] matches whether the system lists a `:tor` process, polled for at most [withinMs]. */
+    private fun torProcess(present: Boolean, withinMs: Long): Boolean {
+        val deadline = System.currentTimeMillis() + withinMs
+        while (System.currentTimeMillis() < deadline) {
+            if (torProcessPids(context).isNotEmpty() == present) return true
+            Thread.sleep(100)
+        }
+        return torProcessPids(context).isNotEmpty() == present
+    }
+
+    /**
+     * Tor cannot be run twice in one process (`tor_api.h`, Tor bug 23847): on
+     * a device the fourth run in the app's process aborted it, `SIGABRT` in
+     * `pubsub_install` (2026-10-09). Each run now has a `:tor` process of its
+     * own: six starts in this one process each bootstrap in a new `:tor` and
+     * carry a request over Tor, Tor never runs here, and every stop leaves no `:tor` process behind.
+     */
+    @Test(timeout = 900_000)
+    fun everyRunHasAProcessOfItsOwnAndAStopEndsIt() {
+        assertTrue("an earlier :tor process is still listed", torProcess(false, 15_000))
+        val runtime = TorRuntime(TorProcessDaemon(context))
+        val pids = mutableListOf<Int>()
+        try {
+            repeat(6) { run ->
+                onMain { runtime.hold("run") }
+                assertTrue("run ${run + 1}: Tor did not bootstrap", runtime.awaitReady("run"))
+                val listed = torProcessPids(context)
+                assertTrue("run ${run + 1}: one :tor process, not $listed", listed.size == 1)
+                pids += listed.single()
+                assertTrue("run ${run + 1}: Tor ran in the app's process", liveTorThreads().isEmpty())
+                val body = isTorBodyWithin(attempts = 3, label = "run ${run + 1}")
+                assertTrue("run ${run + 1}: $body", body.contains("\"IsTor\":true"))
+                onMain { runtime.stopAll() }
+                assertTrue("run ${run + 1}: the :tor process outlived the stop", torProcess(false, 10_000))
+            }
+        } finally {
+            onMain { runtime.stopAll() }
+        }
+        assertTrue("a :tor process served two runs: $pids", pids.toSet().size == pids.size)
+    }
+
+    /** A stop before Tor has even connected still leaves no `:tor` process, and the next run bootstraps. */
+    @Test(timeout = 600_000)
+    fun anEarlyStopEndsTorAndTheNextRunStarts() {
+        assertTrue("an earlier :tor process is still listed", torProcess(false, 15_000))
+        val runtime = TorRuntime(TorProcessDaemon(context))
+        try {
+            onMain { runtime.hold("early") }
+            assertTrue(":tor never started", torProcess(true, 10_000))
+            onMain { runtime.stopAll() }
+            assertTrue("the :tor process outlived an early stop", torProcess(false, 10_000))
+
+            onMain { runtime.hold("next") }
+            assertTrue("Tor did not bootstrap after an early stop", runtime.awaitReady("next"))
+            val body = isTorBody()
+            assertTrue(body, body.contains("\"IsTor\":true"))
+        } finally {
+            onMain { runtime.stopAll() }
+        }
+        assertTrue("the :tor process outlived the last stop", torProcess(false, 10_000))
     }
 }

@@ -1,4 +1,5 @@
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
     <!-- The app is a browser. Flutter's template puts INTERNET only in the
          debug and profile manifests (for hot reload), so without this line a
          release build ships unable to load a single page. -->
@@ -60,6 +61,19 @@
                 android:name="android.support.FILE_PROVIDER_PATHS"
                 android:resource="@xml/file_paths" />
         </provider>
+        <!-- Built-in Tor runs in a process of its own, one per run: Tor cannot be
+             run twice in one process (tor_api.h, Tor bug 23847), and the fourth
+             run in the app's process aborted it. TorHostService kills ":tor"
+             when it is destroyed. tor-android's own service must live there
+             too, since the host binds it in-process. -->
+        <service
+            android:name=".engine.TorHostService"
+            android:exported="false"
+            android:process=":tor" />
+        <service
+            android:name="org.torproject.jni.TorService"
+            android:process=":tor"
+            tools:node="merge" />
     </application>
     <!-- Required to query activities that can process text, see:
          https://developer.android.com/training/package-visibility and
