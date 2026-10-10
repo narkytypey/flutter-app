@@ -1,7 +1,9 @@
+import 'package:container/domain/models/open_step.dart';
 import 'package:container/domain/models/security_level.dart';
 import 'package:container/ui/core/tokens.dart';
 import 'package:container/ui/core/widgets/status_rail.dart';
 import 'package:container/ui/features/container/views/container_top_bar.dart';
+import 'package:container/ui/features/container/views/opening_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -102,5 +104,24 @@ void main() {
     await tester.pumpWidget(_topBar(live: true, still: true));
     await tester.pumpAndSettle();
     expect(_pillDot(tester).boxShadow, [_glowOf(C.jade)]);
+  });
+
+  testWidgets("8a's opening dot glows amber, like the pill it becomes", (tester) async {
+    await tester.pumpWidget(MaterialApp(
+      home: OpeningBody(
+        host: 'example.com',
+        steps: const [OpenStep('Filter lists loaded', OpenStepState.running)],
+        progress: 0.2,
+        onCancel: () {},
+      ),
+    ));
+    final dots = tester
+        .widgetList<Container>(find.byType(Container))
+        .map((c) => c.decoration)
+        .whereType<BoxDecoration>()
+        .where((d) => d.shape == BoxShape.circle && d.color == C.warning)
+        .toList();
+    expect(dots, hasLength(1));
+    expect(dots.single.boxShadow, [_glowOf(C.warning)]);
   });
 }

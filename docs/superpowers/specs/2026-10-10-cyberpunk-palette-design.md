@@ -96,8 +96,10 @@ None is the neon `jade`, so a marker is never mistaken for a live light (v2
 A new, deliberately narrow exception to v2 §4's "Nothing else casts a shadow":
 
 - **What glows:** the live light and the opening light, nothing else. That is
-  `StatusRail`'s filled dot (dashboard rows, `2c`), and the 8 dp dot that
-  leads `ContainerTopBar`'s address pill. An idle ring never glows.
+  `StatusRail`'s filled dot (dashboard rows, `2c`), the 8 dp dot that
+  leads `ContainerTopBar`'s address pill, and the amber dot in `8a`'s address
+  pill (`OpeningBody`), which is the same light before the page is up (added
+  2026-10-10 during Plan 25's device check). An idle ring never glows.
 - **How:** one `BoxShadow` in the light's own colour at 60 % alpha, blur
   radius 6, spread 0, offset 0. So jade glows neon, and amber (opening) glows
   yellow.

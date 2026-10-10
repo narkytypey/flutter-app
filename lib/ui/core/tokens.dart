@@ -305,8 +305,9 @@ abstract final class C {
 
   /// The glow around a live or opening light (cyberpunk spec §3): one shadow
   /// in [light]'s own colour at 60 %, blur 6. Null when the active palette
-  /// does not glow. Only `StatusRail` and the address pill's dot call this;
-  /// nothing else casts a shadow but sheets (v2 §4).
+  /// does not glow. Only `StatusRail` and the address pill's dot (`2b`, and
+  /// `8a`'s opening pill) call this; nothing else casts a shadow but sheets
+  /// (v2 §4).
   static List<BoxShadow>? glow(Color light) => _active.glow
       ? [BoxShadow(color: light.withValues(alpha: 0.6), blurRadius: 6)]
       : null;
