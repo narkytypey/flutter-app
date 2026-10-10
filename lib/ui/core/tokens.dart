@@ -1,9 +1,13 @@
 import 'dart:ui';
 
-/// Colour tokens for the Isolated Web Container — restyle v2 ("Instrument").
+import 'package:flutter/painting.dart' show BoxShadow;
+
+/// Colour tokens for the Isolated Web Container — restyle v2 ("Instrument")
+/// with the cyberpunk dark palette.
 ///
-/// Every value comes from `docs/superpowers/specs/2026-10-05-restyle-v2-design.md`
-/// §2 (dark) and §9 (light). Four surfaces, three text tones (each ≥ 4.5:1
+/// Dark values come from `docs/superpowers/specs/2026-10-10-cyberpunk-palette-design.md`
+/// §2, light values from `docs/superpowers/specs/2026-10-05-restyle-v2-design.md`
+/// §9. Four surfaces, three text tones (each ≥ 4.5:1
 /// wherever the spec lets it sit), jade for live state or the one affirmative
 /// action and never for a position. If a screen needs a colour that is not
 /// here, that is a design question, not an implementation one.
@@ -51,6 +55,7 @@ final class Palette {
     required this.warning,
     required this.pinError,
     required this.markers,
+    required this.glow,
   });
 
   final Color bg;
@@ -92,52 +97,59 @@ final class Palette {
   final Color pinError;
   final List<Color> markers;
 
-  /// Spec §2: the dark values, unchanged since Plan 20.
+  /// Whether the live and opening lights glow (cyberpunk spec §3). Dark only:
+  /// on a light page a glow reads as a smudge.
+  final bool glow;
+
+  /// Cyberpunk spec (`2026-10-10-cyberpunk-palette-design.md`) §2: cool
+  /// blue-black surfaces and a neon live colour. Reader keeps v2 §2.5's warm
+  /// values.
   static const dark = Palette(
-    bg: Color(0xFF121110),
+    bg: Color(0xFF0B0D12),
     bgReader: Color(0xFF15120E),
-    surface: Color(0xFF22201D),
-    sheet: Color(0xFF302D29),
-    button: Color(0xFF403C37),
-    selected: Color(0xFF403C37),
-    monogramOpen: Color(0xFF403C37),
-    knobOff: Color(0xFFA8A095),
-    skeleton: Color(0xFF22201D),
-    barTrack: Color(0xFF22201D),
-    handle: Color(0xFF958D82),
-    lineSoft: Color(0x14EDEAE4),
-    line: Color(0x24EDEAE4),
-    edge: Color(0xFF958D82),
-    focus: Color(0xFFEDEAE4),
-    textPrimary: Color(0xFFEDEAE4),
-    textSecondary: Color(0xFFEDEAE4),
-    textTertiary: Color(0xFFCBC4B9),
-    textMuted: Color(0xFFCBC4B9),
-    textFaint: Color(0xFFA8A095),
-    monogramText: Color(0xFFEDEAE4),
-    icon: Color(0xFFCBC4B9),
-    chevron: Color(0xFFA8A095),
-    tabInactive: Color(0xFFCBC4B9),
-    pillText: Color(0xFFEDEAE4),
+    surface: Color(0xFF1A1F2A),
+    sheet: Color(0xFF252B39),
+    button: Color(0xFF31394A),
+    selected: Color(0xFF31394A),
+    monogramOpen: Color(0xFF31394A),
+    knobOff: Color(0xFF97A3BA),
+    skeleton: Color(0xFF1A1F2A),
+    barTrack: Color(0xFF1A1F2A),
+    handle: Color(0xFF7A87A0),
+    lineSoft: Color(0x14E6EDF7),
+    line: Color(0x24E6EDF7),
+    edge: Color(0xFF7A87A0),
+    focus: Color(0xFFE6EDF7),
+    textPrimary: Color(0xFFE6EDF7),
+    textSecondary: Color(0xFFE6EDF7),
+    textTertiary: Color(0xFFB8C3D6),
+    textMuted: Color(0xFFB8C3D6),
+    textFaint: Color(0xFF97A3BA),
+    monogramText: Color(0xFFE6EDF7),
+    icon: Color(0xFFB8C3D6),
+    chevron: Color(0xFF97A3BA),
+    tabInactive: Color(0xFFB8C3D6),
+    pillText: Color(0xFFE6EDF7),
     readerMuted: Color(0xFFA39A8C),
     readerTitle: Color(0xFFEFE8DC),
     readerBody: Color(0xFFD3CBBE),
-    jade: Color(0xFF7FC8A9),
-    onJade: Color(0xFF121110),
-    code: Color(0xFFD9CFB8),
-    idleDot: Color(0xFF958D82),
-    pinEmpty: Color(0xFF958D82),
-    danger: Color(0xFFEE8D79),
-    dangerSurface: Color(0xFF2C201D),
-    warning: Color(0xFFE0B266),
-    pinError: Color(0xFFEE8D79),
+    jade: Color(0xFF3DF5D0),
+    onJade: Color(0xFF0B0D12),
+    code: Color(0xFFC9B8FF),
+    idleDot: Color(0xFF7A87A0),
+    pinEmpty: Color(0xFF7A87A0),
+    danger: Color(0xFFFF7AA6),
+    dangerSurface: Color(0xFF2A1520),
+    warning: Color(0xFFF5D13D),
+    pinError: Color(0xFFFF7AA6),
     markers: <Color>[
-      Color(0xFFC9B48A),
-      Color(0xFF8FA5C8),
-      Color(0xFFE0B266),
-      Color(0xFFC89BB4),
-      Color(0xFFA8A095),
+      Color(0xFFFF8FCF),
+      Color(0xFF8FB0FF),
+      Color(0xFFF5D13D),
+      Color(0xFFC49BFF),
+      Color(0xFF97A3BA),
     ],
+    glow: true,
   );
 
   /// Spec §9: the light values. Same roles; jade darkened to spruce.
@@ -186,6 +198,7 @@ final class Palette {
       Color(0xFF8A4F72),
       Color(0xFF6E675D),
     ],
+    glow: false,
   );
 }
 
@@ -289,6 +302,15 @@ abstract final class C {
   /// Workspace markers, in the order the picker shows them (spec `10b`,
   /// v2 §2.6). Data, not identity colour; none is jade.
   static List<Color> get markers => _active.markers;
+
+  /// The glow around a live or opening light (cyberpunk spec §3): one shadow
+  /// in [light]'s own colour at 60 %, blur 6. Null when the active palette
+  /// does not glow. Only `StatusRail` and the address pill's dot (`2b`, and
+  /// `8a`'s opening pill) call this; nothing else casts a shadow but sheets
+  /// (v2 §4).
+  static List<BoxShadow>? glow(Color light) => _active.glow
+      ? [BoxShadow(color: light.withValues(alpha: 0.6), blurRadius: 6)]
+      : null;
 }
 
 /// Spacing scale, dp (spec §4).

@@ -68,6 +68,7 @@ class OpeningBody extends StatelessWidget {
                             decoration: BoxDecoration(
                               color: C.warning,
                               shape: BoxShape.circle,
+                              boxShadow: C.glow(C.warning),
                             ),
                           ),
                           const SizedBox(width: 8),

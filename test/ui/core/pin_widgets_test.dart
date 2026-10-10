@@ -25,7 +25,7 @@ void main() {
 
     final first = tester.widgetList<Container>(find.byType(Container)).first;
     final border = (first.decoration! as BoxDecoration).border! as Border;
-    expect(border.top.color, const Color(0xFFEE8D79));
+    expect(border.top.color, const Color(0xFFFF7AA6));
   });
 
   testWidgets('the keypad reports digits and backspace', (tester) async {
