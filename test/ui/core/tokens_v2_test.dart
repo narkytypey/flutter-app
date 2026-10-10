@@ -17,25 +17,25 @@ double contrast(Color a, Color b) {
 }
 
 void main() {
-  test('surfaces are the four v2 tones', () {
-    expect(C.bg, const Color(0xFF121110));
-    expect(C.surface, const Color(0xFF22201D));
-    expect(C.sheet, const Color(0xFF302D29));
-    expect(C.button, const Color(0xFF403C37));
-    expect(C.selected, const Color(0xFF403C37));
+  test('surfaces are the four cyberpunk tones', () {
+    expect(C.bg, const Color(0xFF0B0D12));
+    expect(C.surface, const Color(0xFF1A1F2A));
+    expect(C.sheet, const Color(0xFF252B39));
+    expect(C.button, const Color(0xFF31394A));
+    expect(C.selected, const Color(0xFF31394A));
   });
 
   test('text tones and state colours', () {
-    expect(C.textPrimary, const Color(0xFFEDEAE4));
-    expect(C.textMuted, const Color(0xFFCBC4B9));
-    expect(C.textFaint, const Color(0xFFA8A095));
-    expect(C.jade, const Color(0xFF7FC8A9));
-    expect(C.danger, const Color(0xFFEE8D79));
-    expect(C.warning, const Color(0xFFE0B266));
-    expect(C.edge, const Color(0xFF958D82));
-    expect(C.code, const Color(0xFFD9CFB8));
-    expect(C.lineSoft, const Color(0x14EDEAE4));
-    expect(C.line, const Color(0x24EDEAE4));
+    expect(C.textPrimary, const Color(0xFFE6EDF7));
+    expect(C.textMuted, const Color(0xFFB8C3D6));
+    expect(C.textFaint, const Color(0xFF97A3BA));
+    expect(C.jade, const Color(0xFF3DF5D0));
+    expect(C.danger, const Color(0xFFFF7AA6));
+    expect(C.warning, const Color(0xFFF5D13D));
+    expect(C.edge, const Color(0xFF7A87A0));
+    expect(C.code, const Color(0xFFC9B8FF));
+    expect(C.lineSoft, const Color(0x14E6EDF7));
+    expect(C.line, const Color(0x24E6EDF7));
   });
 
   test('every text tone is at least 4.5:1 on every surface it may sit on', () {
@@ -87,47 +87,48 @@ void main() {
   group('light palette (Plan 24, spec §9)', () {
     tearDown(() => C.use(Brightness.dark));
 
-    test('Palette.dark holds exactly the v2 dark values', () {
+    test('Palette.dark holds exactly the cyberpunk dark values', () {
       const d = Palette.dark;
-      expect(d.bg, const Color(0xFF121110));
+      expect(d.bg, const Color(0xFF0B0D12));
+      // Reader keeps v2's warm values (cyberpunk spec §2.5).
       expect(d.bgReader, const Color(0xFF15120E));
-      expect(d.surface, const Color(0xFF22201D));
-      expect(d.skeleton, const Color(0xFF22201D));
-      expect(d.barTrack, const Color(0xFF22201D));
-      expect(d.sheet, const Color(0xFF302D29));
+      expect(d.surface, const Color(0xFF1A1F2A));
+      expect(d.skeleton, const Color(0xFF1A1F2A));
+      expect(d.barTrack, const Color(0xFF1A1F2A));
+      expect(d.sheet, const Color(0xFF252B39));
       for (final c in [d.button, d.selected, d.monogramOpen]) {
-        expect(c, const Color(0xFF403C37));
+        expect(c, const Color(0xFF31394A));
       }
       for (final c in [d.textPrimary, d.textSecondary, d.monogramText, d.pillText, d.focus]) {
-        expect(c, const Color(0xFFEDEAE4));
+        expect(c, const Color(0xFFE6EDF7));
       }
       for (final c in [d.textTertiary, d.textMuted, d.icon, d.tabInactive]) {
-        expect(c, const Color(0xFFCBC4B9));
+        expect(c, const Color(0xFFB8C3D6));
       }
       for (final c in [d.textFaint, d.chevron, d.knobOff]) {
-        expect(c, const Color(0xFFA8A095));
+        expect(c, const Color(0xFF97A3BA));
       }
       for (final c in [d.edge, d.handle, d.idleDot, d.pinEmpty]) {
-        expect(c, const Color(0xFF958D82));
+        expect(c, const Color(0xFF7A87A0));
       }
-      expect(d.line, const Color(0x24EDEAE4));
-      expect(d.lineSoft, const Color(0x14EDEAE4));
-      expect(d.jade, const Color(0xFF7FC8A9));
-      expect(d.onJade, const Color(0xFF121110));
-      expect(d.code, const Color(0xFFD9CFB8));
-      expect(d.danger, const Color(0xFFEE8D79));
-      expect(d.pinError, const Color(0xFFEE8D79));
-      expect(d.dangerSurface, const Color(0xFF2C201D));
-      expect(d.warning, const Color(0xFFE0B266));
+      expect(d.line, const Color(0x24E6EDF7));
+      expect(d.lineSoft, const Color(0x14E6EDF7));
+      expect(d.jade, const Color(0xFF3DF5D0));
+      expect(d.onJade, const Color(0xFF0B0D12));
+      expect(d.code, const Color(0xFFC9B8FF));
+      expect(d.danger, const Color(0xFFFF7AA6));
+      expect(d.pinError, const Color(0xFFFF7AA6));
+      expect(d.dangerSurface, const Color(0xFF2A1520));
+      expect(d.warning, const Color(0xFFF5D13D));
       expect(d.readerMuted, const Color(0xFFA39A8C));
       expect(d.readerTitle, const Color(0xFFEFE8DC));
       expect(d.readerBody, const Color(0xFFD3CBBE));
       expect(d.markers, const [
-        Color(0xFFC9B48A),
-        Color(0xFF8FA5C8),
-        Color(0xFFE0B266),
-        Color(0xFFC89BB4),
-        Color(0xFFA8A095),
+        Color(0xFFFF8FCF),
+        Color(0xFF8FB0FF),
+        Color(0xFFF5D13D),
+        Color(0xFFC49BFF),
+        Color(0xFF97A3BA),
       ]);
     });
 
@@ -182,7 +183,7 @@ void main() {
       expect(C.markers, Palette.light.markers);
       C.use(Brightness.dark);
       expect(C.brightness, Brightness.dark);
-      expect(C.bg, const Color(0xFF121110));
+      expect(C.bg, const Color(0xFF0B0D12));
       expect(C.markers, Palette.dark.markers);
     });
 

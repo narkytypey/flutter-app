@@ -10,13 +10,13 @@ import 'package:container/ui/features/workspaces/views/workspaces_screen.dart';
 
 /// Restyle v2 (Plan 23 Task 3): `10a`–`10e`.
 void main() {
-  test('the markers are the v2 five: brass, steel, amber, mauve, stone', () {
+  test('the markers are the cyberpunk five: pink, blue, yellow, violet, grey', () {
     expect(C.markers, const [
-      Color(0xFFC9B48A),
-      Color(0xFF8FA5C8),
-      Color(0xFFE0B266),
-      Color(0xFFC89BB4),
-      Color(0xFFA8A095),
+      Color(0xFFFF8FCF),
+      Color(0xFF8FB0FF),
+      Color(0xFFF5D13D),
+      Color(0xFFC49BFF),
+      Color(0xFF97A3BA),
     ]);
     expect(C.markers, isNot(contains(C.jade)));
   });
@@ -39,8 +39,8 @@ void main() {
                 of: find.byWidget(markers[i]), matching: find.byType(Container)))
             .decoration as BoxDecoration)
         .color)!;
-    expect(fill(0), const Color(0xFFC9B48A));
-    expect(fill(1), const Color(0xFFA8A095));
+    expect(fill(0), const Color(0xFFFF8FCF));
+    expect(fill(1), const Color(0xFF97A3BA));
   });
 
   testWidgets('10c Delete sits on the danger wash with a danger label', (tester) async {

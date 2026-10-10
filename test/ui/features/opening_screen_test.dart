@@ -1,5 +1,6 @@
 import 'package:container/domain/models/open_step.dart';
 import 'package:container/ui/core/icons.dart';
+import 'package:container/ui/core/tokens.dart';
 import 'package:container/ui/features/container/views/opening_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
@@ -61,7 +62,7 @@ void main() {
         lessThanOrEqualTo(320));
     // Nothing on 8a is jade: nothing is live yet.
     for (final icon in tester.widgetList<AppIcon>(find.byType(AppIcon))) {
-      expect(icon.color, isNot(const Color(0xFF7FC8A9)));
+      expect(icon.color, isNot(C.jade));
     }
   });
 }
