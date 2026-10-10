@@ -1,5 +1,7 @@
 import 'dart:ui';
 
+import 'package:flutter/painting.dart' show BoxShadow;
+
 /// Colour tokens for the Isolated Web Container — restyle v2 ("Instrument")
 /// with the cyberpunk dark palette.
 ///
@@ -53,6 +55,7 @@ final class Palette {
     required this.warning,
     required this.pinError,
     required this.markers,
+    required this.glow,
   });
 
   final Color bg;
@@ -93,6 +96,10 @@ final class Palette {
   final Color warning;
   final Color pinError;
   final List<Color> markers;
+
+  /// Whether the live and opening lights glow (cyberpunk spec §3). Dark only:
+  /// on a light page a glow reads as a smudge.
+  final bool glow;
 
   /// Cyberpunk spec (`2026-10-10-cyberpunk-palette-design.md`) §2: cool
   /// blue-black surfaces and a neon live colour. Reader keeps v2 §2.5's warm
@@ -142,6 +149,7 @@ final class Palette {
       Color(0xFFC49BFF),
       Color(0xFF97A3BA),
     ],
+    glow: true,
   );
 
   /// Spec §9: the light values. Same roles; jade darkened to spruce.
@@ -190,6 +198,7 @@ final class Palette {
       Color(0xFF8A4F72),
       Color(0xFF6E675D),
     ],
+    glow: false,
   );
 }
 
@@ -293,6 +302,14 @@ abstract final class C {
   /// Workspace markers, in the order the picker shows them (spec `10b`,
   /// v2 §2.6). Data, not identity colour; none is jade.
   static List<Color> get markers => _active.markers;
+
+  /// The glow around a live or opening light (cyberpunk spec §3): one shadow
+  /// in [light]'s own colour at 60 %, blur 6. Null when the active palette
+  /// does not glow. Only `StatusRail` and the address pill's dot call this;
+  /// nothing else casts a shadow but sheets (v2 §4).
+  static List<BoxShadow>? glow(Color light) => _active.glow
+      ? [BoxShadow(color: light.withValues(alpha: 0.6), blurRadius: 6)]
+      : null;
 }
 
 /// Spacing scale, dp (spec §4).

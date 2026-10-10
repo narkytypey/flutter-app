@@ -172,6 +172,7 @@ class ContainerTopBar extends StatelessWidget {
                       decoration: BoxDecoration(
                         color: live ? C.jade : C.warning,
                         shape: BoxShape.circle,
+                        boxShadow: C.glow(live ? C.jade : C.warning),
                       ),
                     ),
                     const SizedBox(width: 8),

@@ -6,6 +6,7 @@ import '../tokens.dart';
 /// live — one of the few places jade is allowed; amber while it is still
 /// opening; otherwise a hollow edge ring, or nothing where [showIdle] is
 /// false (the dashboard's rows say idle by the missing light).
+/// A lit dot glows in its own colour (`C.glow`); an idle ring never does.
 class StatusRail extends StatelessWidget {
   const StatusRail({super.key, required this.live, this.opening = false, this.showIdle = true});
 
@@ -24,6 +25,7 @@ class StatusRail extends StatelessWidget {
         shape: BoxShape.circle,
         color: live ? C.jade : (opening ? C.warning : null),
         border: lit ? null : Border.all(color: C.edge, width: 2),
+        boxShadow: lit ? C.glow(live ? C.jade : C.warning) : null,
       ),
     );
   }
