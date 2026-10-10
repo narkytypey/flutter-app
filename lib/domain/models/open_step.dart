@@ -15,18 +15,31 @@ class OpenStep {
 /// The checklist `8a` shows, built from what this site actually applies. Copy
 /// is verbatim from the spec; the tunnel line interpolates the real endpoint.
 /// [torPercent] is Tor's last reported percentage (built-in Tor spec §7).
-List<OpenStep> openStepsFor(Site site, {int? torPercent}) {
-  return <OpenStep>[
-    const OpenStep('Fresh session, no shared cookies', OpenStepState.pending),
-    if (site.blockTrackers)
-      const OpenStep('Filter lists loaded', OpenStepState.pending),
-    if (site.antiFingerprinting)
-      const OpenStep('Fingerprint noise injected', OpenStepState.pending),
+///
+/// [applied] is whether the container's own `open` has returned: by then the
+/// fresh profile, the filter engine and the document-start scripts are all in
+/// place natively, so every line but the last is done, and the last (the
+/// tunnel, or the session itself on a direct site) runs until the first load
+/// reports live, as the spec draws it. Before that the first line runs.
+List<OpenStep> openStepsFor(Site site, {int? torPercent, bool applied = false}) {
+  final labels = <String>[
+    'Fresh session, no shared cookies',
+    if (site.blockTrackers) 'Filter lists loaded',
+    if (site.antiFingerprinting) 'Fingerprint noise injected',
     if (site.proxyMode == ProxyMode.tor)
-      OpenStep(torStepLabel(torPercent), OpenStepState.pending)
+      torStepLabel(torPercent)
     else if (site.proxyMode != ProxyMode.direct)
-      OpenStep('Connecting through ${site.proxyHost}:${site.proxyPort}',
-          OpenStepState.pending),
+      'Connecting through ${site.proxyHost}:${site.proxyPort}',
+  ];
+  final last = labels.length - 1;
+  return <OpenStep>[
+    for (var i = 0; i < labels.length; i++)
+      OpenStep(
+        labels[i],
+        applied
+            ? (i < last ? OpenStepState.done : OpenStepState.running)
+            : (i == 0 ? OpenStepState.running : OpenStepState.pending),
+      ),
   ];
 }
 
