@@ -54,6 +54,7 @@ class MainActivity : FlutterFragmentActivity() {
         this.flipPanic = flipPanic
 
         val profiles = ProfileManager(
+            applicationContext,
             PendingDeletions(java.io.File(applicationContext.filesDir, "pending-profile-deletions")),
         )
         val throwaways = ThrowawayJournal(java.io.File(applicationContext.filesDir, "throwaway-profiles"))

@@ -1,7 +1,10 @@
 package com.mono.container.engine
 
+import android.content.Context
+import android.webkit.WebView
 import androidx.webkit.Profile
 import androidx.webkit.ProfileStore
+import androidx.webkit.WebViewCompat
 import androidx.webkit.WebViewFeature
 
 /**
@@ -19,7 +22,10 @@ import androidx.webkit.WebViewFeature
  * use — every wipe used to, which is how panic failed open and ephemeral sites
  * were silently never wiped.
  */
-class ProfileManager(private val pending: PendingDeletions) {
+class ProfileManager(
+    private val context: Context,
+    private val pending: PendingDeletions,
+) {
 
     fun isAvailable(): Boolean =
         WebViewFeature.isFeatureSupported(WebViewFeature.MULTI_PROFILE)
@@ -38,8 +44,8 @@ class ProfileManager(private val pending: PendingDeletions) {
 
     /**
      * Destroys everything the profile holds: now if nothing has loaded it this
-     * run, otherwise its cookies, web storage and permissions now and the rest
-     * at the next start. What waits for the next start (history, network
+     * run, otherwise its cookies, web storage, permissions and HTTP cache now
+     * and the rest at the next start. What waits for the next start (history, network
      * state) is not reachable from anywhere in the app meanwhile.
      */
     fun wipe(profileId: String) {
@@ -113,6 +119,25 @@ class ProfileManager(private val pending: PendingDeletions) {
         profile.cookieManager.flush()
         profile.webStorage.deleteAllData()
         profile.geolocationPermissions.clearAll()
+        clearHttpCache(profile.name)
+    }
+
+    /**
+     * A profile has no cache clear of its own: only a WebView on it can empty
+     * its HTTP cache. A closing page does that itself (`Page.close`), but a
+     * site wiped while it is not open has no page, and its whole cache stayed
+     * on disk until the next start (seen 2026-10-10: 2.2 MB after the row
+     * menu's wipe). So a WebView is made on the profile just for this, loads
+     * nothing, and is destroyed.
+     */
+    private fun clearHttpCache(profileId: String) {
+        val view = WebView(context)
+        try {
+            WebViewCompat.setProfile(view, profileId)
+            view.clearCache(true)
+        } finally {
+            view.destroy()
+        }
     }
 }
 

@@ -1522,6 +1522,35 @@ the card half of that ruling, so only the other half was carried onto `main`:
 - Seen on the emulator: the pills in dark and light themes, and the
   Auto-lock pill opening its picker.
 
+## A wipe of a site that is not open left its cache (2026-10-10, branch `fix-wipe-clears-cache`)
+
+The user wiped sessions on their phone and still saw user data and cache in
+Android's storage view. Read on the phone and on the emulator, it was four
+things:
+
+- **A bug, fixed:** wiping a site with no open page (the row menu's "Wipe
+  this site's data", Remove site, `WorkspaceActions.delete`, panic's
+  `wipeAll`) cleared its cookies, web storage and permissions in place, but
+  **not its HTTP cache**, which stayed whole until the next cold start. Only
+  `Page.close(clearCache = true)` cleared a cache, and such a site has no
+  page. A profile has no cache API of its own, so `ProfileManager.clearInPlace`
+  now makes a `WebView` on the profile (`clearHttpCache`), calls
+  `clearCache(true)` and destroys it; it loads nothing. `ProfileManager` now
+  takes a `Context` (`MainActivity` passes `applicationContext`).
+- **By design:** the rest of a wiped profile's folder (`app_webview/Profile N`,
+  about 0.4 MB) waits in `pending-profile-deletions` for the next cold start
+  (WebView will not delete a profile this process loaded). Tor's relay cache
+  (`cache/TorService`, about 35 MB, no browsing data) is deleted only by panic.
+  `app_flutter/flutter_assets` (about 65 MB) exists only in debug builds.
+- Gates: `flutter analyze` clean, `flutter test` 1188/1188, Kotlin JVM 380/380
+  (51 JUnit XML files, `--rerun`), `flutter build apk --debug --target-platform
+  android-x64` succeeding. No JVM test: the fix needs a real WebView.
+- **Seen on the emulator:** a direct `http://localhost:8098` Keep site whose
+  page loads ten cacheable 200 KB scripts, opened, closed without a wipe
+  (cache 2240 KB, 14 entries), then wiped from the row menu: the cache fell to
+  144 KB, 2 entries (the empty index), the profile was journaled, the row
+  stayed. Before the fix the same steps left 2240 KB. Not seen on a phone.
+
 ## Working on this repo
 
 - ~~No git repo initialized yet, and Flutter isn't installed on this machine as
