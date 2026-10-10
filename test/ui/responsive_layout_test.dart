@@ -6,6 +6,7 @@ import 'package:container/ui/core/widgets/pin_keypad.dart';
 import 'package:container/ui/features/add_site/views/add_site_screen.dart';
 import 'package:container/ui/features/lock/views/lock_body.dart';
 import 'package:container/ui/features/settings/views/decoy_resync_pin_screen.dart';
+import 'package:container/ui/features/settings/views/settings_screen.dart';
 import 'package:container/ui/features/setup/views/setup_pin_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -125,4 +126,26 @@ void main() {
       expect(tester.getRect(find.text(tab)).height, lessThanOrEqualTo(oneLine), reason: tab);
     }
   });
+
+  // The value pills of 2026-10-06: a long route still fits a small phone at a
+  // large text scale, and so does the title.
+  for (final scale in [1.3, 2.0]) {
+    testWidgets('Settings fits 320x568 at $scale with a long proxy route', (tester) async {
+      await _pump(
+        tester,
+        SettingsScreen(
+          biometrics: true, biometricsAvailable: true, autoLockLabel: 'After 15 min',
+          decoyEnabled: true, decoySiteCount: 12, hideFromSwitcher: true, panicOnFlip: false,
+          onPanicLabel: 'Wipe + lock', searchEngineName: 'Startpage', securityLevelName: 'Safest',
+          defaultRouteLabel: 'SOCKS5 · a-very-long-proxy-hostname.example.net:1080',
+          defaultRouteMono: true,
+          onChanged: (_, __) {}, onTap: (_) {}, onBack: () {},
+        ),
+        size: const Size(320, 568),
+        textScale: scale,
+      );
+      await tester.scrollUntilVisible(find.text('On panic'), 200);
+      expect(tester.takeException(), isNull);
+    });
+  }
 }

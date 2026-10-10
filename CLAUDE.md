@@ -1496,6 +1496,31 @@ bottom):
   not reach the internet that day (a raw connection from its shell timed out
   too), so pages came from `tool/device-check/pages.py`.
 
+## Settings' picker values in pills (2026-10-10, branch `settings-pills`)
+
+The user's ruling of 2026-10-06, from a mockup (`re.png`, kept untracked in
+the main checkout), was built first on the pre-restyle `main` as branch
+`settings-cards` (`a506fec`, kept as a record, never merged). The restyle had
+since put `2d`'s sections in rounded `Group`s with hairlines inside, which is
+the card half of that ruling, so only the other half was carried onto `main`:
+
+- The four rows that open a picker (Auto-lock, Search engine, Default route,
+  Security level) show their value in a pill ending in `AppGlyph.chevronDown`
+  (`SettingRow.picker`): `C.button` fill, a `C.line` outline, `R.input` corners,
+  text-2, a proxy route still in mono. Tapping the row or the pill opens the
+  same picker as before. Never jade, which stays for live state.
+- "Sites shown in decoy" (opens a screen) and "On panic" (inert) keep a plain
+  value. No copy changed.
+- Not carried over: `SettingsGroup` (the restyle's `Group` does the job), the
+  18 px row sides, and the title scaling (`main`'s Settings already fits
+  320x568 at 2.0).
+- Tests: `settings_test`'s "cards and value pills" group (5) and
+  `responsive_layout_test`'s Settings at 320x568 at 1.3 and 2.0. `flutter
+  analyze` clean, `flutter test` 1180/1180, `flutter build apk --debug
+  --target-platform android-x64` with zero `e:` lines (no Kotlin changed).
+- Seen on the emulator: the pills in dark and light themes, and the
+  Auto-lock pill opening its picker.
+
 ## Working on this repo
 
 - ~~No git repo initialized yet, and Flutter isn't installed on this machine as

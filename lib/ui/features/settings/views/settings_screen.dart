@@ -120,6 +120,7 @@ class SettingsScreen extends StatelessWidget {
                     SettingRow(
                         title: 'Auto-lock',
                         value: autoLockLabel,
+                        picker: true,
                         onTap: () => onTap('autoLock')),
                     SettingRow(
                         title: 'Change main PIN', onTap: () => onTap('changePin')),
@@ -135,17 +136,20 @@ class SettingsScreen extends StatelessWidget {
                     SettingRow(
                       title: 'Search engine',
                       value: searchEngineName,
+                      picker: true,
                       onTap: () => onTap('searchEngine'),
                     ),
                     SettingRow(
                       title: 'Default route',
                       value: defaultRouteLabel,
                       monoValue: defaultRouteMono,
+                      picker: true,
                       onTap: () => onTap('defaultRoute'),
                     ),
                     SettingRow(
                       title: 'Security level',
                       value: securityLevelName,
+                      picker: true,
                       onTap: () => onTap('securityLevel'),
                     ),
                   ]),

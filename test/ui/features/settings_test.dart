@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:container/ui/core/icons.dart';
+import 'package:container/ui/core/tokens.dart';
 import 'package:container/ui/core/typography.dart';
 import 'package:container/ui/core/widgets/app_toggle.dart';
+import 'package:container/ui/core/widgets/group.dart';
 import 'package:container/ui/core/widgets/setting_row.dart';
 import 'package:container/ui/features/settings/views/settings_screen.dart';
 
@@ -331,6 +333,81 @@ void main() {
 
     expect(find.text('Settings'), findsOneWidget);
     expect(findIconTap('Back'), findsNothing);
+  });
+
+  // User's ruling 2026-10-06 (re.png), carried onto the restyle's `2d`: the
+  // sections are its rounded `Group`s, and a row that opens a picker shows its
+  // value in a pill ending in a down chevron. Copy and pickers unchanged.
+  group('cards and value pills', () {
+    Finder rowOf(String title) =>
+        find.ancestor(of: find.text(title), matching: find.byType(SettingRow));
+
+    testWidgets('each section is one card: five with a decoy, four without', (tester) async {
+      await pump(tester, decoyConfigured: true);
+      expect(find.byType(Group), findsNWidgets(5));
+      await pump(tester, decoyConfigured: false);
+      expect(find.byType(Group), findsNWidgets(4));
+    });
+
+    testWidgets('the four picker rows show a pill ending in a down chevron, and open their picker',
+        (tester) async {
+      final taps = <String>[];
+      tester.view.physicalSize = const Size(500, 1600);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+      await tester.pumpWidget(MaterialApp(
+        home: SettingsScreen(
+          biometrics: false, biometricsAvailable: true, autoLockLabel: 'After 1 min',
+          decoyEnabled: true, decoySiteCount: 4, hideFromSwitcher: true, panicOnFlip: false,
+          onPanicLabel: 'Wipe + lock', searchEngineName: 'DuckDuckGo', securityLevelName: 'Standard',
+          defaultRouteLabel: 'Tor', defaultRouteMono: false,
+          onChanged: (_, __) {}, onTap: taps.add, onBack: () {},
+        ),
+      ));
+
+      expect(findGlyph(AppGlyph.chevronDown), findsNWidgets(4));
+      for (final (title, value, key) in [
+        ('Auto-lock', 'After 1 min', 'autoLock'),
+        ('Search engine', 'DuckDuckGo', 'searchEngine'),
+        ('Default route', 'Tor', 'defaultRoute'),
+        ('Security level', 'Standard', 'securityLevel'),
+      ]) {
+        final pill = find.descendant(of: rowOf(title), matching: find.byKey(const Key('setting-pill')));
+        expect(pill, findsOneWidget, reason: title);
+        expect(find.descendant(of: pill, matching: find.text(value)), findsOneWidget, reason: title);
+        expect(find.descendant(of: pill, matching: findGlyph(AppGlyph.chevronDown)), findsOneWidget,
+            reason: title);
+        // The pill ends at the row's right edge, as a plain value did.
+        expect(tester.getRect(pill).right,
+            closeTo(tester.getRect(rowOf(title)).right, 0.5), reason: title);
+        await tester.tap(pill);
+        expect(taps.last, key, reason: title);
+      }
+    });
+
+    testWidgets('Sites shown in decoy and On panic keep a plain value, no pill', (tester) async {
+      await pump(tester, decoyConfigured: true);
+      for (final title in ['Sites shown in decoy', 'On panic']) {
+        expect(find.descendant(of: rowOf(title), matching: find.byKey(const Key('setting-pill'))),
+            findsNothing, reason: title);
+      }
+      expect(find.text('4 selected'), findsOneWidget);
+      expect(find.text('Wipe + lock'), findsOneWidget);
+    });
+
+    testWidgets('pill values are neutral, not jade: jade stays for live state', (tester) async {
+      await pump(tester, decoyConfigured: false);
+      final value = tester.widget<Text>(find.text('DuckDuckGo'));
+      expect(value.style!.color, isNot(C.jade));
+      final chevron = tester.widget<AppIcon>(findGlyph(AppGlyph.chevronDown).first);
+      expect(chevron.color, isNot(C.jade));
+    });
+
+    testWidgets("a proxy route's value stays in mono inside its pill", (tester) async {
+      await pump(tester, decoyConfigured: false);
+      final value = tester.widget<Text>(find.text('SOCKS5 · 127.0.0.1:9050'));
+      expect(value.style!.fontFamily, 'IBMPlexMono');
+    });
   });
 }
 
