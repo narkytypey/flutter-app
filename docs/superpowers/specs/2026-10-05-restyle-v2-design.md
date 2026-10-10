@@ -57,6 +57,11 @@ Plex Mono for values), 48 dp targets, a 13 sp floor.
 
 ## 2. Colour
 
+> **Amended 2026-10-10:** the dark values in §2.1–§2.4 and §2.6 are
+> superseded by `2026-10-10-cyberpunk-palette-design.md` §2 (Plan 25). The
+> tables below remain the record of Instrument. Reader (§2.5) and light
+> mode (§9) are unchanged.
+
 All values are `const Color` in `lib/ui/core/tokens.dart` (`C`). The class
 stays `abstract final class C` with `static const` members, so no call site
 changes for colour alone.
@@ -285,6 +290,8 @@ Mono follows the same ladder, capped at 14 for values in rows.
   radius 14.
 - **Elevation:** one level. Sheets are `C.sheet` with a 1 dp `C.line` top edge
   and `BoxShadow(0, −12, 40, black 55 %)`. Nothing else casts a shadow.
+  **Amended 2026-10-10:** the live and opening lights also glow in dark
+  mode (`2026-10-10-cyberpunk-palette-design.md` §3).
 
 ## 5. Targets and controls
 

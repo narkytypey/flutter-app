@@ -588,3 +588,34 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>"
 ```
 
 Do not merge or push. The user decides that (`superpowers:finishing-a-development-branch`).
+
+## Verification
+
+2026-10-10, on a clean tree at `e787dbb` (only Task 3's doc edits uncommitted): `flutter analyze` "No issues found!"; `flutter test` 1181/1181 (baseline 1173 + 7 glow tests + 1 for `8a`); `flutter build apk --debug` succeeding with zero `e:` lines. No Kotlin changed.
+
+**Plan deviation (ruling):** the device check found a third opening light that §3's list missed: the amber dot in `8a`'s address pill (`OpeningBody`, `opening_screen.dart`). It is the same light that `2b`'s pill dot continues once the page is up, but it was flat while `2b`'s glowed amber. It now calls `C.glow(C.warning)`, pinned by `glow_test.dart`'s "8a's opening dot glows amber, like the pill it becomes" (RED→GREEN), and the spec's §3 list names it (`e787dbb`).
+
+## Device checks
+
+2026-10-10, emulator `Pixel_9` (API 36), x64 debug build of `e787dbb` installed with `adb install -r` (vault kept), screenshots from `adb emu screenrecord screenshot`. Not a physical phone. The emulator had no internet, so lights came from local pages (`pages.py`), a host server that never answers (held a site on `8a`), and Webmail timing out to an error page (a live session).
+
+1. **Live lights:** Webmail's dashboard light (on its monogram's corner) and its `2c` light glow neon, round, with no square clipping by the row; `2c`'s background throwaway shows a plain idle ring with no glow. **The dashboard and `2c` never show an amber light:** `session_row.dart` and `switcher_sheet.dart` never pass `opening:`, so "opening" exists only in the pills. Not a regression (Instrument was the same); recorded under Known gaps.
+2. **`2b`:** a live throwaway's pill dot glows neon. **`8a`:** the pill dot glows yellow (after the fix above; before it, flat).
+3. **`4c`** after one wrong PIN: "Wrong PIN · 4 tries left", the vault mark and the six dot rings in pink `#FF7AA6`, readable on blue-black; keys on the group tone.
+4. **`8c` not seen** (needs a proxy route whose tunnel drops; the test vault has none now). Its colours are danger text (seen on `4c`) and danger-wash (seen on `10c`'s Delete).
+5. **`2d`:** cool cards and hairlines, the decoy switch on. **`10a`/`10b`:** markers pink, blue, yellow, violet, grey; Save and "+ New workspace" in neon. **`10c`:** Delete on the danger-wash (disabled until the name is typed); cancelled, nothing deleted.
+6. **`6b` Reader:** still the warm paper tones; the ☰ sheet behind it is cool.
+7. **Light mode** (`cmd uimode night no`): `2b` is Instrument's light palette, its pill dot spruce and flat with no glow. Dark mode restored afterwards.
+
+Another session's reinstall replaced this build mid-check once (14:23); the check was rerun on this build after coordinating.
+
+## Known gaps
+
+- The launcher icon is still Instrument's (`#121110`/`#7FC8A9`), by spec §2.5.
+- `app-design.pdf` and both canvas HTML files still show the old colours, as they did after restyle v2.
+- No widget anywhere passes `StatusRail(opening: true)`, so the amber rail light (and its glow) is never seen on the dashboard or in `2c`; "opening" shows only in the `2b`/`8a` pills. This is older than this plan.
+- `8c` was not seen on a device.
+
+## Handoff
+
+Later plans read colours only through `C.*`; a new light-like mark that should glow calls `C.glow`, and nothing else may cast a shadow but sheets.
