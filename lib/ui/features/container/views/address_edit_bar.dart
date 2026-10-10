@@ -4,11 +4,11 @@ import '../../../core/icons.dart';
 import '../../../core/tokens.dart';
 import '../../../core/typography.dart';
 import '../../../core/widgets/icon_tap.dart';
-import 'panic_square.dart';
 
 /// Browser-chrome spec §6.2: the top bar's pill as a text field while an
-/// address is typed. The same bar — at least 64 dp, a 48 dp pill, panic on
-/// the right — with the pill drawn as an input (restyle v2 §4: the group
+/// address is typed. The same bar — at least 64 dp, a 48 dp pill, the field
+/// across the whole bar (no panic: user's ruling, 2026-10-10) — with the pill
+/// drawn as an input (restyle v2 §4: the group
 /// tone, a 1.5 dp edge border, 2 dp text-1 while focused) and a × that
 /// clears it. The cursor is `C.textPrimary`, not jade.
 ///
@@ -20,7 +20,6 @@ class AddressEditBar extends StatelessWidget {
     required this.controller,
     required this.onChanged,
     required this.onSubmitted,
-    required this.onPanic,
   });
 
   final TextEditingController controller;
@@ -28,13 +27,13 @@ class AddressEditBar extends StatelessWidget {
 
   /// The keyboard's action.
   final ValueChanged<String> onSubmitted;
-  final VoidCallback onPanic;
 
   @override
   Widget build(BuildContext context) {
     return Container(
       constraints: const BoxConstraints(minHeight: 64),
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      // The top bar's sides, so the field starts where the pill did.
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
       decoration: BoxDecoration(
         color: C.bg,
         border: Border(bottom: BorderSide(color: C.line)),
@@ -81,8 +80,6 @@ class AddressEditBar extends StatelessWidget {
               ),
             ),
           ),
-          const SizedBox(width: 8),
-          PanicSquare(onTap: onPanic),
         ],
       ),
     );

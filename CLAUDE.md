@@ -1433,6 +1433,69 @@ bar reached `3c` and the old PIN was refused afterwards; panic reported not
 working on the phone was not reproduced. **Device-check release builds too**:
 anything reached by name (JNI, reflection) can break only there.
 
+## One bar while browsing; panic only by flip (2026-10-10, branch `chrome-one-bar`)
+
+The user's rulings of 2026-10-10, changing the browser-chrome spec's layout C
+(`docs/superpowers/specs/2026-09-28-browser-chrome-design.md` §6.1, which had
+the address pill and panic on top, back / forward / `N OPEN` / ☰ at the
+bottom):
+
+- **No bottom bar.** The open count and ☰ moved to the top bar, where panic
+  was: the pill (light, case, host, reload/stop, shield), then the count — the
+  number alone in an outlined box, `open-sessions-target`, still "Open
+  sessions" to a screen reader — then ☰. The page reaches the foot of the
+  screen; a throwaway's save bar sits there. Dashboard spec §9's fling between
+  open containers moved to the top bar, with the same rule (at least the bar's
+  height). `ContainerBottomBar` is deleted; `2c`'s header count takes its style
+  from `ContainerTopBar.openCountStyle`.
+- **Back and forward** are Android's own back (unchanged: back in the page
+  first) and ☰'s first two quick actions, so its tile row reads Back · Forward
+  · Reload · Find · Reader · Copy link, each dimmed and inert with no history
+  that way. The user approved them as "the first two rows of ☰"; they are
+  tiles in that sheet's first row, beside the other page actions, not list
+  rows.
+- **Why not all four buttons on the top bar (user's choice A of three):** at
+  48 dp the four plus a pill holding reload, the shield and six characters of
+  host need about 470 dp, so on every phone the pill would have put reload and
+  the shield under the host.
+- **No panic button anywhere.** Gone from the top bar, the address field, the
+  find bar and `2c` (`panic_square.dart` deleted); `2c`'s "Close all and wipe"
+  takes the full row. A panic starts only by flipping the phone face down
+  (`FlipPanicGuard`, which calls the unchanged `panic(ref)`).
+- **Flip-to-panic is on by default:** `panicOnFlipProvider` reads an unset
+  `panic_on_flip` as on, so every existing vault that never set the switch has
+  it on after updating; one where it was turned off keeps it off. Settings'
+  copy is unchanged.
+- **Layout:** the top, address and find bars' sides went from 12 to 8 dp. The
+  pill's "about six characters" rule counted the pill's left padding twice and
+  measured six characters as 6 em (about ten characters); it now subtracts
+  only what is inside the pill and asks 4 em (about seven). So on a 360 dp
+  phone at 1.0, reload and the shield stay beside the host. A host that does
+  not fit wraps after its dots, as before; at large text the actions still
+  move under it.
+- Tests: `chrome_bars_test` (no panic on any bar; the count and ☰; the fling
+  on the top bar), `top_bar_v2_test` (beside the host at 360 and 412 wide; the
+  bar fits at 320x568 at 1.0/1.3/2.0, 360x640 at 1.3, 915x412),
+  `address_and_menu_test` (Back and Forward tiles, dimmed with no history),
+  `container_screen_test`, `container_route_test`, `switcher_sheet_test`,
+  `flip_panic_guard_test` (a vault that never set the switch listens) and
+  `settings_controller_test`. Found on the way: the count's box stretched to
+  any height it was offered (`alignment:` on its `Container`), which made the
+  fling's threshold 600 dp in a test; it is sized to the number now.
+- Gates: `flutter analyze` clean, `flutter test` 1173/1173, Kotlin JVM 380/380
+  (51 JUnit XML files; no Kotlin changed), `flutter build apk --debug
+  --target-platform android-x64` with zero `e:` lines.
+- **Seen on the emulator (debug build, not a physical phone):** a vault that
+  never touched the switch showed it on and had the accelerometer listener
+  registered; the bar is one row (pill, `1`/`2` count, ☰) with no panic and no
+  bottom bar, the save bar at the foot; ☰'s Back and Forward moved between two
+  local pages and Forward was dimmed with nothing ahead; `2c` had no panic
+  tile; a fling right and left on the top bar switched between two open
+  containers; flipping face down inside a site showed `3c` "2 sessions
+  destroyed" with the vault files deleted and the app up. The emulator could
+  not reach the internet that day (a raw connection from its shell timed out
+  too), so pages came from `tool/device-check/pages.py`.
+
 ## Working on this repo
 
 - ~~No git repo initialized yet, and Flutter isn't installed on this machine as

@@ -33,8 +33,8 @@ import 'package:container/ui/features/add_site/views/add_site_screen.dart';
 import 'package:container/ui/features/container/view_models/open_containers.dart';
 import 'package:container/ui/features/container/view_models/providers.dart';
 import 'package:container/ui/features/container/views/address_suggestions.dart';
-import 'package:container/ui/features/container/views/container_bottom_bar.dart';
 import 'package:container/ui/features/container/views/container_route.dart';
+import 'package:container/ui/features/container/views/container_top_bar.dart';
 import 'package:container/ui/features/container/views/container_web_view.dart';
 import 'package:container/ui/features/container/views/find_bar.dart';
 import 'package:container/ui/features/container/views/switcher_sheet.dart';
@@ -66,6 +66,12 @@ import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import '../../data/bundled_filter_lists_test.dart' show FakeBundle;
 import '../../support/glyph_finders.dart';
 import 'shell/session_controller_test.dart' show FakeBiometricService;
+
+/// The top bar's open count, which opens `2c` (user's ruling, 2026-10-10): it
+/// shows the number alone, where `N OPEN` used to be on the bottom bar.
+final _openCountTarget = find.byKey(const Key('open-sessions-target'));
+Finder _openCount(int n) =>
+    find.descendant(of: _openCountTarget, matching: find.text('$n'));
 
 Site _site() => Site(
       id: 's1', workspaceId: 'w', name: 'Forum', monogram: 'Fr',
@@ -507,7 +513,7 @@ void main() {
     await tester.testTextInput.receiveAction(TextInputAction.go);
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('2 OPEN'));
+    await tester.tap(_openCountTarget);
     await tester.pumpAndSettle();
     await tester.tap(find.text('Close all and wipe'));
     await tester.pumpAndSettle();
@@ -527,7 +533,7 @@ void main() {
     await _pump(tester, engine, _site());
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('1 OPEN'));
+    await tester.tap(_openCountTarget);
     await tester.pumpAndSettle();
     await tester.tap(find.descendant(
       of: find.byType(SwitcherSheet), matching: findIconTap('Close'),
@@ -561,7 +567,7 @@ void main() {
   testWidgets("closing this site's session from the switcher stops it reading as open",
       (tester) async {
     final open = await openIdsAfterClosing(tester, () async {
-      await tester.tap(find.text('1 OPEN'));
+      await tester.tap(_openCountTarget);
       await tester.pumpAndSettle();
       await tester.tap(find.descendant(
         of: find.byType(SwitcherSheet), matching: findIconTap('Close'),
@@ -573,7 +579,7 @@ void main() {
   testWidgets('close all and wipe from the switcher stops the site reading as open',
       (tester) async {
     final open = await openIdsAfterClosing(tester, () async {
-      await tester.tap(find.text('1 OPEN'));
+      await tester.tap(_openCountTarget);
       await tester.pumpAndSettle();
       await tester.tap(find.text('Close all and wipe'));
     });
@@ -1174,7 +1180,7 @@ void main() {
     expect(_shownPage(tester), 's1-p1');
     expect(find.text('forum.example.com'), findsOneWidget);
     expect(_tabs(tester).byId(id)!.throwaway, isTrue);
-    expect(find.text('2 OPEN'), findsOneWidget);
+    expect(_openCount(2), findsOneWidget);
     expect(engine.closed, isEmpty);
   });
 
@@ -1298,12 +1304,18 @@ void main() {
     expect(find.text('forum.example.com'), findsOneWidget);
   });
 
+  // Back and forward are ☰'s first quick actions (user's ruling, 2026-10-10).
   testWidgets("back, forward and stop act on this container's page", (tester) async {
     final engine = FakeContainerEngine();
     await _pump(tester, engine, _site());
     await tester.pumpAndSettle();
-    await tester.tap(_icon('Back'), warnIfMissed: false);
+    await tester.tap(_icon('Menu'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Back'), warnIfMissed: false);
+    await tester.pumpAndSettle();
     expect(engine.wentBack, isEmpty);
+    await tester.tapAt(const Offset(10, 10)); // dismiss the sheet
+    await tester.pumpAndSettle();
     expect(_icon('Stop'), findsNothing);
 
     engine.emitNavigation(const NavigationState(
@@ -1311,8 +1323,12 @@ void main() {
       canGoBack: true, canGoForward: true, loading: true, progress: 50,
     ));
     await tester.pumpAndSettle();
-    await tester.tap(_icon('Back'));
-    await tester.tap(_icon('Forward'));
+    for (final label in ['Back', 'Forward']) {
+      await tester.tap(_icon('Menu'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text(label));
+      await tester.pumpAndSettle();
+    }
     await tester.tap(_icon('Stop'));
 
     expect(engine.wentBack, ['s1-p1']);
@@ -1619,7 +1635,7 @@ void main() {
 
     // One host, switched in place (tabs spec §4.2): no second route.
     expect(find.byType(ContainerRoute, skipOffstage: false), findsOneWidget);
-    expect(find.text('2 OPEN'), findsOneWidget);
+    expect(_openCount(2), findsOneWidget);
 
     // A saved container's back goes to the dashboard (tabs spec §5.3), and
     // both containers stay open in the background.
@@ -1792,7 +1808,7 @@ void main() {
       await _pump(tester, engine, _site(), sites: sites);
       await tester.pumpAndSettle();
 
-      await tester.tap(find.text('1 OPEN'));
+      await tester.tap(_openCountTarget);
       await tester.pumpAndSettle();
       await tester.tap(find.text('Close all and wipe'));
       await tester.pumpAndSettle();
@@ -1876,7 +1892,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(_shownPage(tester), link);
-      expect(find.text('1 OPEN'), findsOneWidget);
+      expect(_openCount(1), findsOneWidget);
     });
 
     testWidgets('back on a link page with no history closes it and shows its opener',
@@ -1951,7 +1967,7 @@ void main() {
     testWidgets("N OPEN reads the registry's count of open containers", (tester) async {
       await twoContainers(tester);
 
-      expect(find.text('2 OPEN'), findsOneWidget);
+      expect(_openCount(2), findsOneWidget);
       expect(_tabs(tester).openCount, 2);
     });
 
@@ -1959,7 +1975,7 @@ void main() {
         (tester) async {
       final engine = await twoContainers(tester);
 
-      await tester.tap(find.text('2 OPEN'));
+      await tester.tap(_openCountTarget);
       await tester.pumpAndSettle();
       final sheet = find.byType(SwitcherSheet);
       final market = find.descendant(of: sheet, matching: find.text('Marketplace'));
@@ -1987,7 +2003,7 @@ void main() {
       final link = engine.openPageFromLink('s1', openerPageId: 's1-p1');
       await tester.pumpAndSettle();
 
-      await tester.tap(find.text('1 OPEN'));
+      await tester.tap(_openCountTarget);
       await tester.pumpAndSettle();
       // The container row's ×, then one per page in opening order.
       final closes = find.descendant(of: find.byType(SwitcherSheet), matching: findIconTap('Close'));
@@ -2017,7 +2033,7 @@ void main() {
       expect(find.byType(PermissionRequestSheet), findsNothing);
       expect(engine.resolvedPermissions, isEmpty, reason: 'held, not answered');
 
-      await tester.tap(find.text('1 OPEN'));
+      await tester.tap(_openCountTarget);
       await tester.pumpAndSettle();
       // The first page row's title: its page has no title, so its host.
       await tester.tap(find
@@ -2429,7 +2445,7 @@ void main() {
     });
   });
 
-  testWidgets('a fling on the bottom bar moves between open containers, in opening order',
+  testWidgets('a fling on the top bar moves between open containers, in opening order',
       (tester) async {
     final engine = FakeContainerEngine();
     _standInForPlatformViews(tester);
@@ -2441,11 +2457,11 @@ void main() {
     await _settle(tester);
     expect(_tabs(tester).viewedSiteId, 'm1');
 
-    await tester.fling(find.byType(ContainerBottomBar), const Offset(200, 0), 800);
+    await tester.fling(find.byType(ContainerTopBar), const Offset(200, 0), 800);
     await tester.pumpAndSettle();
     expect(_tabs(tester).viewedSiteId, 's1', reason: 'right: the one opened before');
 
-    await tester.fling(find.byType(ContainerBottomBar), const Offset(-200, 0), 800);
+    await tester.fling(find.byType(ContainerTopBar), const Offset(-200, 0), 800);
     await tester.pumpAndSettle();
     expect(_tabs(tester).viewedSiteId, 'm1', reason: 'left: the one opened after');
     expect(engine.openedSites.keys.toSet(), {'s1', 'm1'}, reason: 'switched, not reopened');

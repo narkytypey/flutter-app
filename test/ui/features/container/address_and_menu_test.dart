@@ -41,16 +41,19 @@ Widget _bar(
   TextEditingController controller, {
   ValueChanged<String>? onChanged,
   ValueChanged<String>? onSubmitted,
-  VoidCallback? onPanic,
 }) =>
     AddressEditBar(
       controller: controller,
       onChanged: onChanged ?? (_) {},
       onSubmitted: onSubmitted ?? (_) {},
-      onPanic: onPanic ?? () {},
     );
 
-Widget _menu(List<String> calls, {String subtitle = 'forum.example.com · Personal'}) =>
+Widget _menu(
+  List<String> calls, {
+  String subtitle = 'forum.example.com · Personal',
+  bool canGoBack = true,
+  bool canGoForward = true,
+}) =>
     MaterialApp(
       home: Scaffold(
         body: Align(
@@ -63,6 +66,8 @@ Widget _menu(List<String> calls, {String subtitle = 'forum.example.com · Person
             securityLevelMeta: 'STANDARD',
             onSecurityLevel: () => calls.add('security level'),
             onNewIdentity: () => calls.add('new identity'),
+            onBack: canGoBack ? () => calls.add('back') : null,
+            onForward: canGoForward ? () => calls.add('forward') : null,
             onReload: () => calls.add('reload'),
             onFind: () => calls.add('find'),
             onReader: () => calls.add('reader'),
@@ -78,7 +83,7 @@ Widget _menu(List<String> calls, {String subtitle = 'forum.example.com · Person
     );
 
 const _menuLabels = [
-  'Reload', 'Find', 'Reader', 'Copy link',
+  'Back', 'Forward', 'Reload', 'Find', 'Reader', 'Copy link',
   'Today', 'Scripts and filters', 'Workspaces', 'Settings', 'All sites',
 ];
 
@@ -101,10 +106,11 @@ void main() {
     expect(field.autocorrect, isFalse);
     expect(field.enableSuggestions, isFalse);
     expect(field.enableIMEPersonalizedLearning, isFalse);
-    expect(_icon('Panic'), findsOneWidget);
+    // User's ruling, 2026-10-10: panic is started only by flipping face down.
+    expect(_icon('Panic'), findsNothing);
   });
 
-  testWidgets('typing, the keyboard action, clearing and panic each report', (tester) async {
+  testWidgets('typing, the keyboard action and clearing each report', (tester) async {
     final calls = <String>[];
     final controller = TextEditingController();
     addTearDown(controller.dispose);
@@ -115,7 +121,6 @@ void main() {
             controller,
             onChanged: (text) => calls.add('changed $text'),
             onSubmitted: (text) => calls.add('submitted $text'),
-            onPanic: () => calls.add('panic'),
           ),
         ]),
       ),
@@ -126,13 +131,11 @@ void main() {
     await tester.pump();
     await tester.tap(_icon('Clear'));
     await tester.pump();
-    await tester.tap(_icon('Panic'));
 
     expect(calls, [
       'changed news.example.org',
       'submitted news.example.org',
       'changed ',
-      'panic',
     ]);
     expect(controller.text, isEmpty);
   });
@@ -202,7 +205,7 @@ void main() {
     expect(footer.style!.color, C.textFaint);
   });
 
-  testWidgets('the menu shows this site, four quick actions in a row, then five rows', (tester) async {
+  testWidgets('the menu shows this site, six quick actions in a row, then five rows', (tester) async {
     await tester.pumpWidget(_menu([]));
 
     expect(find.text('Fr'), findsOneWidget);
@@ -215,6 +218,11 @@ void main() {
     expect(find.text('312 BLOCKED'), findsOneWidget);
 
     double top(String text) => tester.getTopLeft(find.text(text)).dy;
+    double left(String text) => tester.getTopLeft(find.text(text)).dx;
+    // Back and forward lead the quick actions (user's ruling, 2026-10-10).
+    expect(top('Back'), top('Copy link'));
+    expect(left('Back'), lessThan(left('Forward')));
+    expect(left('Forward'), lessThan(left('Reload')));
     expect(top('Reload'), top('Copy link'));
     expect(top('Copy link'), lessThan(top('Today')));
     expect(top('Today'), lessThan(top('Scripts and filters')));
@@ -230,7 +238,7 @@ void main() {
     }
 
     expect(calls, [
-      'reload', 'find', 'reader', 'copy link',
+      'back', 'forward', 'reload', 'find', 'reader', 'copy link',
       'today', 'scripts', 'workspaces', 'settings', 'all sites',
     ]);
   });
@@ -242,7 +250,7 @@ void main() {
       monogram: 'Fr', name: 'Forum', subtitle: 'forum.example.com · Personal',
       blockedToday: 3, securityLevelMeta: 'SAFER',
       onSecurityLevel: () => taps.add('level'), onNewIdentity: () => taps.add('identity'),
-      onReload: () {}, onFind: () {}, onReader: () {}, onCopyLink: () {}, onToday: () {},
+      onBack: null, onForward: null, onReload: () {}, onFind: () {}, onReader: () {}, onCopyLink: () {}, onToday: () {},
       onScripts: () {}, onWorkspaces: () {}, onSettings: () {}, onAllSites: () {},
     ))));
     expect(find.text('Security level'), findsOneWidget);
@@ -256,6 +264,24 @@ void main() {
     await tester.tap(find.text('Security level'));
     await tester.tap(find.text('New identity'));
     expect(taps, ['level', 'identity']);
+  });
+
+  testWidgets('back and forward are dimmed and inert with no history that way', (tester) async {
+    final calls = <String>[];
+    await tester.pumpWidget(_menu(calls, canGoBack: false));
+
+    await tester.tap(find.text('Back'), warnIfMissed: false);
+    await tester.tap(find.text('Forward'));
+
+    expect(calls, ['forward']);
+    // The tile's own icon: AppGlyph.forward is also every row's chevron.
+    AppIcon tileIcon(String label) => tester.widget<AppIcon>(find.descendant(
+        of: find.ancestor(of: find.text(label), matching: find.byType(GestureDetector)).first,
+        matching: find.byType(AppIcon)));
+    expect(tileIcon('Back').glyph, AppGlyph.back);
+    expect(tileIcon('Back').color, C.textFaint);
+    expect(tileIcon('Forward').glyph, AppGlyph.forward);
+    expect(tileIcon('Forward').color, isNot(C.textFaint));
   });
 
   // Review Focus 5.

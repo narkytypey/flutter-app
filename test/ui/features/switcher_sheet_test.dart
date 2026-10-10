@@ -1,5 +1,5 @@
 import 'package:container/ui/core/widgets/status_rail.dart';
-import 'package:container/ui/features/container/views/container_bottom_bar.dart';
+import 'package:container/ui/features/container/views/container_top_bar.dart';
 import 'package:container/domain/models/switcher_entry.dart';
 import 'package:container/ui/core/icons.dart';
 import 'package:container/ui/core/tokens.dart';
@@ -73,7 +73,6 @@ Future<void> _pump(
   WidgetTester tester, {
   List<SwitcherEntry> entries = _entries,
   VoidCallback? onCloseAllAndWipe,
-  VoidCallback? onPanic,
 }) {
   _calls.clear();
   // A small phone, as tabs spec §5.1 is checked at.
@@ -93,7 +92,6 @@ Future<void> _pump(
           onClosePage: (siteId, pageId) =>
               _calls.add('close $siteId $pageId'),
           onCloseAllAndWipe: onCloseAllAndWipe ?? () {},
-          onPanic: onPanic ?? () {},
         ),
       ),
     ),
@@ -301,41 +299,26 @@ void main() {
     expect(_calls, isEmpty);
   });
 
-  testWidgets('panic reports a tap with no confirmation', (tester) async {
-    var tapped = false;
-    await _pump(tester, onPanic: () => tapped = true);
-
-    await tester.tap(findGlyph(AppGlyph.panic));
-    expect(tapped, isTrue);
-    expect(_calls, isEmpty);
-  });
-
-  testWidgets("panic and each row's close are named for screen readers", (tester) async {
+  // User's ruling, 2026-10-10: panic is started only by flipping face down.
+  testWidgets('there is no panic tile; Close all and wipe takes the row', (tester) async {
     final semantics = tester.ensureSemantics();
     await _pump(tester);
 
-    expect(find.bySemanticsLabel('Panic'), findsOneWidget);
+    expect(find.bySemanticsLabel('Panic'), findsNothing);
+    expect(findGlyph(AppGlyph.panic), findsNothing);
+    expect(find.byKey(const Key('switcher-panic')), findsNothing);
     expect(findIconTap('Close'), findsWidgets);
-    expect(tester.getSize(findGlyph(AppGlyph.panic)), const Size(22, 22));
+    // Full width, inside the sheet's 16 dp gutters.
+    expect(tester.getSize(find.byKey(const Key('close-all-and-wipe'))).width, 360 - 32);
     semantics.dispose();
   });
 
-  // Restyle v2 §8 `2c` (Plan 21 Task 5).
-  testWidgets('v2: 24 dp between Close all and wipe and the panic tile', (tester) async {
-    await _pump(tester);
-
-    final gap = tester.getTopLeft(find.byKey(const Key('switcher-panic'))).dx -
-        tester.getTopRight(find.byKey(const Key('close-all-and-wipe'))).dx;
-    expect(gap, greaterThanOrEqualTo(24));
-    expect(tester.getSize(find.byKey(const Key('switcher-panic'))), const Size(48, 48));
-  });
-
-  testWidgets("v2: the header count is set exactly like the bottom bar's N OPEN",
+  testWidgets("v2: the header count is set exactly like the top bar's open count",
       (tester) async {
     await _pump(tester);
 
     expect(tester.widget<Text>(find.text('3 OPEN SESSIONS')).style,
-        ContainerBottomBar.openCountStyle);
+        ContainerTopBar.openCountStyle);
   });
 
   testWidgets('v2: the viewed container has the jade light, the rest an edge ring',

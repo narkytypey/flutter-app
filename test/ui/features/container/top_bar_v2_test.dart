@@ -41,7 +41,9 @@ Future<void> _pump(
             onStop: () {},
             onReload: () {},
             onSiteDetails: () {},
-            onPanic: () {},
+            openCount: 2,
+            onOpenSwitcher: () {},
+            onMenu: () {},
             caseKind: caseKind,
             tor: tor,
             securityLevel: securityLevel,
@@ -120,9 +122,14 @@ void main() {
     }
   });
 
-  testWidgets('shield, reload, stop and panic are each at least 48 x 48', (tester) async {
+  testWidgets('shield, reload, stop and ☰ are each at least 48 x 48, and there is no panic',
+      (tester) async {
     await _pump(tester);
-    for (final label in ['Site details', 'Reload', 'Panic']) {
+    // User's ruling, 2026-10-10: panic is started only by flipping face down.
+    expect(findIconTap('Panic'), findsNothing);
+    final count = tester.getSize(find.byKey(const Key('open-sessions-target')));
+    expect(count.width >= 48 && count.height >= 48, isTrue);
+    for (final label in ['Site details', 'Reload', 'Menu']) {
       final size = tester.getSize(findIconTap(label));
       expect(size.width, greaterThanOrEqualTo(48), reason: label);
       expect(size.height, greaterThanOrEqualTo(48), reason: label);
@@ -131,6 +138,36 @@ void main() {
     final stop = tester.getSize(findIconTap('Stop'));
     expect(stop.width >= 48 && stop.height >= 48, isTrue);
   });
+
+  // Option A of the user's ruling, 2026-10-10: the open count and ☰ beside
+  // the pill, which keeps reload and the shield beside the host on a phone.
+  for (final width in [360.0, 412.0]) {
+    testWidgets('at $width wide, reload and the shield sit beside the host, not under it',
+        (tester) async {
+      await _pump(tester, size: Size(width, 800));
+
+      expect(tester.takeException(), isNull);
+      final host = tester.getRect(find.text(_host));
+      final shield = tester.getRect(findIconTap('Site details'));
+      expect(shield.left, greaterThan(host.right), reason: 'beside the host');
+      expect(shield.top, lessThan(host.bottom), reason: 'on the same row');
+    });
+  }
+
+  for (final (size, scale) in [
+    (const Size(320, 568), 1.0),
+    (const Size(320, 568), 1.3),
+    (const Size(320, 568), 2.0),
+    (const Size(360, 640), 1.3),
+    (const Size(915, 412), 1.0),
+  ]) {
+    testWidgets('at ${size.width.toInt()}x${size.height.toInt()} and $scale the bar fits',
+        (tester) async {
+      await _pump(tester, size: size, scale: scale);
+      expect(tester.takeException(), isNull);
+      expect(tester.getRect(findIconTap('Menu')).right, lessThanOrEqualTo(size.width));
+    });
+  }
 
   testWidgets("the light is the pill's only jade", (tester) async {
     await _pump(tester);

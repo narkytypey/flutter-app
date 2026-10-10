@@ -6,11 +6,10 @@ import '../../../core/tokens.dart';
 import '../../../core/typography.dart';
 import '../../../core/widgets/icon_tap.dart';
 import 'address_edit_bar.dart' show InputFrame;
-import 'panic_square.dart';
 
 /// Browser-chrome spec §6.5: stands in for the top bar while finding in the
-/// page. Panic keeps its place on the right, as on every bar. Restyle v2:
-/// the field is an [InputFrame], the arrows and × 48 dp targets.
+/// page. Restyle v2: the field is an [InputFrame], the arrows and × 48 dp
+/// targets. No panic (user's ruling, 2026-10-10: flipping face down only).
 class FindBar extends StatelessWidget {
   const FindBar({
     super.key,
@@ -20,7 +19,6 @@ class FindBar extends StatelessWidget {
     required this.onPrevious,
     required this.onNext,
     required this.onClose,
-    required this.onPanic,
   });
 
   final TextEditingController controller;
@@ -31,7 +29,6 @@ class FindBar extends StatelessWidget {
   final VoidCallback onPrevious;
   final VoidCallback onNext;
   final VoidCallback onClose;
-  final VoidCallback onPanic;
 
   /// `<active>/<total>`, counting from one (WebView counts from zero), or
   /// `No matches`.
@@ -45,7 +42,8 @@ class FindBar extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       constraints: const BoxConstraints(minHeight: 64),
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      // The top bar's sides, so the field starts where the pill did.
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
       decoration: BoxDecoration(
         color: C.bg,
         border: Border(bottom: BorderSide(color: C.line)),
@@ -113,8 +111,6 @@ class FindBar extends StatelessWidget {
                 onTap: onClose,
                 iconSize: 20,
               ),
-              const SizedBox(width: 8),
-              PanicSquare(onTap: onPanic),
             ],
           );
         },

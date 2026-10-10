@@ -914,7 +914,6 @@ class _ContainerRouteState extends ConsumerState<ContainerRoute> {
         onForward: () => _engine.goForward(pageId),
         onStop: () => _engine.stop(pageId),
         onReload: () => _engine.reload(pageId),
-        onPanic: () => panic(ref),
         onSiteDetails: _showSiteSheet,
         onReader: () => _openReader(pageId),
         onCopyLink: () => _copyLink(navigation?.url ?? openedUrl),

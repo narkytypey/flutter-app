@@ -10,7 +10,6 @@ import 'package:container/ui/core/widgets/icon_tap.dart';
 import 'package:container/ui/features/container/views/address_edit_bar.dart';
 import 'package:container/ui/features/container/views/address_suggestions.dart';
 import 'package:container/ui/features/container/views/browser_menu_sheet.dart';
-import 'package:container/ui/features/container/views/container_bottom_bar.dart';
 import 'package:container/ui/features/container/views/container_screen.dart';
 import 'package:container/ui/features/container/views/container_top_bar.dart';
 import 'package:container/ui/features/container/views/find_bar.dart';
@@ -27,6 +26,9 @@ final _calls = <String>[];
 
 /// Every destination [ContainerScreen] asked to open, in order.
 final _opened = <Destination>[];
+
+/// The top bar's open count, which opens `2c` (user's ruling, 2026-10-10).
+final _openCount = find.byKey(const Key('open-sessions-target'));
 
 const _personal = Workspace(
     id: 'w1', name: 'Personal', markerIndex: 0, storageRule: StorageRule.keep);
@@ -123,7 +125,6 @@ ContainerScreen _screen({
       onForward: () => _calls.add('forward'),
       onStop: () => _calls.add('stop'),
       onReload: () => _calls.add('reload'),
-      onPanic: () => _calls.add('panic'),
       onSiteDetails: () => _calls.add('site details'),
       onReader: () => _calls.add('reader'),
       onCopyLink: () => _calls.add('copy link'),
@@ -182,7 +183,7 @@ void main() {
 
     expect(find.text('forum.example.com'), findsOneWidget);
     expect(find.text('SOCKS5'), findsOneWidget);
-    expect(find.text('3 OPEN'), findsOneWidget);
+    expect(find.descendant(of: _openCount, matching: find.text('3')), findsOneWidget);
   });
 
   testWidgets('a direct site shows no route label', (tester) async {
@@ -191,17 +192,19 @@ void main() {
     expect(find.text('SOCKS5'), findsNothing);
   });
 
-  testWidgets("the pill ends in the shield, which opens the site's details; panic sits beside it", (tester) async {
+  testWidgets("the pill ends in the shield, which opens the site's details; the open count and ☰ follow, and no panic", (tester) async {
     await tester.pumpWidget(_app(_screen()));
 
     expect(tester.getCenter(_icon('Site details')).dx,
         greaterThan(tester.getCenter(find.text('SOCKS5')).dx));
-    expect(tester.getCenter(_icon('Panic')).dx,
+    expect(tester.getCenter(_openCount).dx,
         greaterThan(tester.getCenter(_icon('Site details')).dx));
+    expect(tester.getCenter(_icon('Menu')).dx, greaterThan(tester.getCenter(_openCount).dx));
+    // User's ruling, 2026-10-10: panic is started only by flipping face down.
+    expect(_icon('Panic'), findsNothing);
     await tester.tap(_icon('Site details'));
-    await tester.tap(_icon('Panic'));
 
-    expect(_calls, ['site details', 'panic']);
+    expect(_calls, ['site details']);
     // 2b's ‹ glyph and ⟳ text have left the top bar; reload is a drawn icon.
     expect(find.text('‹'), findsNothing);
     expect(find.text('⟳'), findsNothing);
@@ -243,23 +246,43 @@ void main() {
     expect(find.byKey(const Key('load-line')), findsNothing);
   });
 
-  testWidgets('back and forward follow the page history', (tester) async {
+  // User's ruling, 2026-10-10: back and forward moved from the bottom bar
+  // into ☰'s quick actions.
+  testWidgets("☰'s back and forward are inert with no history, and leave the sheet open",
+      (tester) async {
     await tester.pumpWidget(_app(_screen()));
-    await tester.tap(_icon('Back'), warnIfMissed: false);
-    await tester.tap(_icon('Forward'), warnIfMissed: false);
-    expect(_calls, isEmpty);
+    expect(_icon('Back'), findsNothing);
+    expect(_icon('Forward'), findsNothing);
 
+    await tester.tap(_icon('Menu'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Back'), warnIfMissed: false);
+    await tester.tap(find.text('Forward'), warnIfMissed: false);
+    await tester.pumpAndSettle();
+
+    expect(_calls, isEmpty);
+    expect(find.byType(BrowserMenuSheet), findsOneWidget);
+  });
+
+  testWidgets("☰'s back and forward follow the page history, closing the sheet first",
+      (tester) async {
     await tester.pumpWidget(_app(_screen(navigation: _nav(canGoBack: true, canGoForward: true))));
-    await tester.tap(_icon('Back'));
-    await tester.tap(_icon('Forward'));
+
+    for (final label in ['Back', 'Forward']) {
+      await tester.tap(_icon('Menu'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text(label));
+      await tester.pumpAndSettle();
+      expect(find.byType(BrowserMenuSheet), findsNothing, reason: label);
+    }
 
     expect(_calls, ['back', 'forward']);
   });
 
-  testWidgets('tapping the open-count pill opens the switcher sheet', (tester) async {
+  testWidgets('tapping the open count opens the switcher sheet', (tester) async {
     await tester.pumpWidget(_app(_screen()));
 
-    await tester.tap(find.text('3 OPEN'));
+    await tester.tap(_openCount);
     await tester.pumpAndSettle();
 
     expect(find.text('1 OPEN SESSIONS'), findsOneWidget);
@@ -305,7 +328,7 @@ void main() {
       ),
     ];
     for (final (target, call) in taps) {
-      await tester.tap(find.text('3 OPEN'));
+      await tester.tap(_openCount);
       await tester.pumpAndSettle();
       await tester.tap(target());
       await tester.pumpAndSettle();
@@ -373,7 +396,7 @@ void main() {
 
     expect(find.byType(ContainerTopBar), findsNothing);
     expect(find.text('Find in page'), findsOneWidget);
-    expect(_icon('Panic'), findsOneWidget);
+    expect(_icon('Panic'), findsNothing);
 
     await tester.enterText(find.byType(TextField), 'fox');
     await tester.pump();
@@ -428,13 +451,16 @@ void main() {
     expect(_calls, ['clear find']);
   });
 
-  testWidgets('the save bar shows only when asked, directly above the bottom bar', (tester) async {
+  testWidgets('with no bottom bar the page reaches the foot of the screen; the save bar sits there when asked', (tester) async {
     await tester.pumpWidget(_app(_screen()));
     expect(find.byType(ThrowawaySaveBar), findsNothing);
+    final foot = tester.getRect(find.byType(ContainerScreen)).bottom;
+    expect(tester.getRect(find.byType(_Page)).bottom, foot);
 
     await tester.pumpWidget(_app(_screen(showSaveBar: true)));
-    expect(tester.getRect(find.byType(ThrowawaySaveBar)).bottom,
-        tester.getRect(find.byType(ContainerBottomBar)).top);
+    final saveBar = tester.getRect(find.byType(ThrowawaySaveBar));
+    expect(saveBar.bottom, foot);
+    expect(tester.getRect(find.byType(_Page)).bottom, saveBar.top);
     await tester.tap(find.text('Save as a site'));
     await tester.tap(find.byKey(const Key('save-bar-dismiss')));
 
@@ -478,7 +504,7 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('tapping the pill starts editing on the page address, selected, with panic beside it', (tester) async {
+  testWidgets('tapping the pill starts editing on the page address, selected, with no panic beside it', (tester) async {
     const address = 'https://forum.example.com/t/9';
     await tester.pumpWidget(_app(_screen(address: address)));
 
@@ -486,15 +512,15 @@ void main() {
 
     expect(find.byType(ContainerTopBar), findsNothing);
     expect(find.byType(AddressEditBar), findsOneWidget);
-    expect(_icon('Panic'), findsOneWidget);
+    expect(_icon('Panic'), findsNothing);
     final field = tester.widget<TextField>(find.byType(TextField));
     expect(field.controller!.text, address);
     expect(field.controller!.selection,
         const TextSelection(baseOffset: 0, extentOffset: address.length));
-    // The list covers the page and the bottom bar.
+    // The list covers the page, to the foot of the screen.
     final list = tester.getRect(find.byType(AddressSuggestions));
     expect(list.top, tester.getRect(find.byType(_Page)).top);
-    expect(list.bottom, tester.getRect(find.byType(ContainerBottomBar)).bottom);
+    expect(list.bottom, tester.getRect(find.byType(ContainerScreen)).bottom);
     expect(_calls, isEmpty);
   });
 

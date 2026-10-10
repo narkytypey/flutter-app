@@ -7,8 +7,9 @@ import '../../../core/typography.dart';
 import '../../../core/widgets/monogram.dart';
 import '../../../core/widgets/sheet.dart';
 
-/// Browser-chrome spec §6.4: the ☰ sheet, in `2c`/`6c`'s sheet style. Four
-/// quick actions on this page, then screens that are also reachable from the
+/// Browser-chrome spec §6.4: the ☰ sheet, in `2c`/`6c`'s sheet style. Six
+/// quick actions on this page — Back and Forward first, since the bottom bar
+/// is gone (user's ruling, 2026-10-10) — then screens that are also reachable from the
 /// dashboard, here as shortcuts. Project 3's two rows, `Security level` and
 /// `New identity`, come first among the rows (privacy-controls spec §4.1).
 ///
@@ -24,6 +25,8 @@ class BrowserMenuSheet extends StatelessWidget {
     required this.securityLevelMeta,
     required this.onSecurityLevel,
     required this.onNewIdentity,
+    required this.onBack,
+    required this.onForward,
     required this.onReload,
     required this.onFind,
     required this.onReader,
@@ -53,6 +56,12 @@ class BrowserMenuSheet extends StatelessWidget {
 
   /// The `New identity` row (privacy-controls spec §4.1).
   final VoidCallback onNewIdentity;
+
+  /// Null when the page cannot go back: the tile is dimmed and inert.
+  final VoidCallback? onBack;
+
+  /// Null when the page cannot go forward: the tile is dimmed and inert.
+  final VoidCallback? onForward;
 
   final VoidCallback onReload;
   final VoidCallback onFind;
@@ -100,6 +109,8 @@ class BrowserMenuSheet extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 14),
           child: Row(
             children: [
+              Expanded(child: _Tile(glyph: AppGlyph.back, label: 'Back', onTap: onBack)),
+              Expanded(child: _Tile(glyph: AppGlyph.forward, label: 'Forward', onTap: onForward)),
               Expanded(child: _Tile(glyph: AppGlyph.reload, label: 'Reload', onTap: onReload)),
               Expanded(child: _Tile(glyph: AppGlyph.find, label: 'Find', onTap: onFind)),
               Expanded(child: _Tile(glyph: AppGlyph.reader, label: 'Reader', onTap: onReader)),
@@ -139,10 +150,13 @@ class _Tile extends StatelessWidget {
 
   final AppGlyph glyph;
   final String label;
-  final VoidCallback onTap;
+
+  /// Null draws the tile dimmed and inert.
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
+    final enabled = onTap != null;
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
       onTap: onTap,
@@ -157,10 +171,12 @@ class _Tile extends StatelessWidget {
               color: C.button,
               borderRadius: BorderRadius.circular(R.input),
             ),
-            child: AppIcon(glyph, size: 22),
+            child: AppIcon(glyph, size: 22, color: enabled ? null : C.textFaint),
           ),
           const SizedBox(height: 8),
-          Text(label, textAlign: TextAlign.center, style: T.meta.copyWith(color: C.textMuted)),
+          Text(label,
+              textAlign: TextAlign.center,
+              style: T.meta.copyWith(color: enabled ? C.textMuted : C.textFaint)),
         ],
       ),
     );

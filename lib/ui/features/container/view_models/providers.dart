@@ -78,20 +78,19 @@ final panicServiceProvider = Provider<PanicService>((ref) {
   );
 });
 
-/// The handler both of `2b`'s top-bar `◉` and `2c`'s switcher-sheet panic
-/// button call. `AppGate` already watches [sessionProvider], so moving to
+/// The panic. Since the user's ruling of 2026-10-10 the only caller is
+/// `FlipPanicGuard`, on a flip face down: the container's panic buttons
+/// (`2b`'s top bar, the address and find bars, `2c`) are gone. `AppGate`
+/// already watches [sessionProvider], so moving to
 /// `SessionPanicked` replaces the whole tree with `3c` — no route is pushed,
 /// because a pushed route would leave this screen and its WebViews mounted
 /// underneath, which is both a live surface and a lie about what just
 /// happened. No confirmation dialog: `3c` reports afterwards, it does not
 /// ask first.
 ///
-/// Called from [ContainerRoute]'s `onPanic` (Task 4) — the real call site
-/// this was written ahead of.
-///
-/// The session is read before the panic runs: closing every container
-/// disposes the container route whose button called this, and its [ref]
-/// with it.
+/// The session is read before the panic runs: closing every container can
+/// dispose whatever widget's [ref] called this (it did when the container
+/// route's own button called it).
 Future<void> panic(WidgetRef ref) async {
   final session = ref.read(sessionProvider.notifier);
   final report = await ref.read(panicServiceProvider).trigger();

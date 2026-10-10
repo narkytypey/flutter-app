@@ -31,7 +31,7 @@ ideas, not copying an Android app.
 | Where does a typed address or search open? | This container for this container's own site; the saved site's own container for a saved site; otherwise a new **throwaway** container. |
 | Which route does a throwaway use? | **Inherits the route of the container it was typed in.** |
 | Search | A small fixed list in Settings: DuckDuckGo (default), Startpage, Brave Search, Mullvad Leta. No custom engines, no suggestions. |
-| Chrome layout | **C** — address pill + panic on top, back / forward / `N OPEN` / ☰ at the bottom. |
+| Chrome layout | **C** — address pill + panic on top, back / forward / `N OPEN` / ☰ at the bottom. **Changed 2026-10-10 (user's rulings):** one top bar — the pill, the open count, ☰ — with no bottom bar and no panic button (panic only by flipping face down, on by default); back and forward are Android's back and ☰'s first quick actions. See CLAUDE.md, "One bar while browsing; panic only by flip". |
 | Visual direction | **Keep the Container look** (graphite, jade, hairlines, Figtree + IBM Plex Mono). Unicode glyphs become line icons. |
 | Typing state and ☰ menu | As mocked up: vault-local suggestions with destination tags; menu with four quick actions and five rows. |
 | Address entry from the dashboard | **Not in this project.** |

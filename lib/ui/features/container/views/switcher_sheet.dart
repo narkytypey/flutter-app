@@ -9,11 +9,11 @@ import '../../../core/widgets/hairline.dart';
 import '../../../core/widgets/icon_tap.dart';
 import '../../../core/widgets/monogram.dart';
 import '../../../core/widgets/status_rail.dart';
-import 'container_bottom_bar.dart';
+import 'container_top_bar.dart';
 
-/// Spec `2c` — the quick switcher drawer. Both destructive actions (wipe,
-/// panic) live on this sheet by design and neither gets a confirmation
-/// dialog; `3c` establishes that panic simply happens and reports afterwards.
+/// Spec `2c` — the quick switcher drawer. "Close all and wipe" lives on this
+/// sheet with no confirmation dialog. Its panic tile is gone (user's ruling,
+/// 2026-10-10): a panic starts only by flipping the phone face down.
 ///
 /// Tabs spec §5.1: under a container with two or more pages, a row per page,
 /// indented to the container row's text column. A container row taps to view
@@ -22,10 +22,9 @@ import 'container_bottom_bar.dart';
 /// groups. The body scrolls under the fixed handle, so many pages never
 /// overflow the sheet.
 ///
-/// Restyle v2 §8 `2c`: the header count is set exactly like the bottom
-/// bar's `N OPEN`; the viewed container has the jade light, the others an
-/// edge ring; hosts wrap and are never cut short; 24 dp between "Close all
-/// and wipe" and the panic tile.
+/// Restyle v2 §8 `2c`: the header count is set exactly like the top bar's
+/// open count; the viewed container has the jade light, the others an edge
+/// ring; hosts wrap and are never cut short.
 class SwitcherSheet extends StatelessWidget {
   const SwitcherSheet({
     super.key,
@@ -36,7 +35,6 @@ class SwitcherSheet extends StatelessWidget {
     required this.onCloseSession,
     required this.onClosePage,
     required this.onCloseAllAndWipe,
-    required this.onPanic,
   });
 
   /// Exactly the listed containers, so the header counts them.
@@ -47,7 +45,6 @@ class SwitcherSheet extends StatelessWidget {
   final void Function(String siteId) onCloseSession;
   final void Function(String siteId, String pageId) onClosePage;
   final VoidCallback onCloseAllAndWipe;
-  final VoidCallback onPanic;
 
   @override
   Widget build(BuildContext context) {
@@ -90,7 +87,7 @@ class SwitcherSheet extends StatelessWidget {
                         children: [
                           Text(
                             '${entries.length} OPEN SESSIONS',
-                            style: ContainerBottomBar.openCountStyle,
+                            style: ContainerTopBar.openCountStyle,
                           ),
                           const SizedBox(width: 12),
                           Flexible(
@@ -143,33 +140,6 @@ class SwitcherSheet extends StatelessWidget {
                                   'Close all and wipe',
                                   textAlign: TextAlign.center,
                                   style: T.label.copyWith(fontWeight: FontWeight.w500),
-                                ),
-                              ),
-                            ),
-                          ),
-                          // Restyle v2 §8 `2c`: kept apart from the wipe.
-                          const SizedBox(width: 24),
-                          Semantics(
-                            label: 'Panic',
-                            button: true,
-                            excludeSemantics: true,
-                            onTap: onPanic,
-                            child: GestureDetector(
-                              onTap: onPanic,
-                              child: Container(
-                                key: const Key('switcher-panic'),
-                                width: 48,
-                                height: 48,
-                                alignment: Alignment.center,
-                                decoration: BoxDecoration(
-                                  color: C.dangerSurface,
-                                  borderRadius: BorderRadius.circular(R.input),
-                                  border: Border.all(color: C.danger, width: 1.5),
-                                ),
-                                child: AppIcon(
-                                  AppGlyph.panic,
-                                  size: 22,
-                                  color: C.danger,
                                 ),
                               ),
                             ),

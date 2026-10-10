@@ -96,9 +96,11 @@ final autoLockProvider = FutureProvider<AutoLockPolicy>((ref) {
 });
 
 /// Settings' "Trigger by flipping face down" for the open vault (user's
-/// ruling, 2026-09-30): off until turned on.
+/// ruling, 2026-09-30). On until turned off (user's ruling, 2026-10-10): it
+/// is the only way to start a panic, since the container's panic buttons are
+/// gone, so a vault that never set it has it on.
 final panicOnFlipProvider = FutureProvider<bool>(
-  (ref) => ref.watch(settingsRepositoryProvider).getBool('panic_on_flip'),
+  (ref) => ref.watch(settingsRepositoryProvider).getBool('panic_on_flip', fallback: true),
 );
 
 sealed class DecoyResyncOutcome {

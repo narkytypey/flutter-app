@@ -3,10 +3,9 @@ import 'package:container/ui/core/icons.dart';
 import 'package:container/ui/core/tokens.dart';
 import 'package:container/ui/core/widgets/icon_tap.dart';
 import 'package:container/ui/core/widgets/pill_button.dart';
-import 'package:container/ui/features/container/views/container_bottom_bar.dart';
+import 'package:container/ui/features/container/views/container_top_bar.dart';
 import 'package:container/ui/features/container/views/find_bar.dart';
 import 'package:container/ui/features/container/views/load_line.dart';
-import 'package:container/ui/features/container/views/panic_square.dart';
 import 'package:container/ui/features/container/views/throwaway_save_bar.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -34,18 +33,45 @@ FindBar _findBar(
       onPrevious: () => calls?.add('previous'),
       onNext: () => calls?.add('next'),
       onClose: () => calls?.add('close'),
-      onPanic: () => calls?.add('panic'),
+    );
+
+/// The container's one bar (user's ruling, 2026-10-10): the pill, then the
+/// open count and ☰ where panic was.
+ContainerTopBar _topBar({
+  int openCount = 3,
+  List<String>? calls,
+  bool next = true,
+  bool previous = true,
+}) =>
+    ContainerTopBar(
+      host: 'forum.example.com',
+      routeLabel: '',
+      live: true,
+      loading: false,
+      openCount: openCount,
+      onEditAddress: () => calls?.add('address'),
+      onStop: () => calls?.add('stop'),
+      onReload: () => calls?.add('reload'),
+      onSiteDetails: () => calls?.add('details'),
+      onOpenSwitcher: () => calls?.add('switcher'),
+      onMenu: () => calls?.add('menu'),
+      onNextContainer: next ? () => calls?.add('next') : null,
+      onPreviousContainer: previous ? () => calls?.add('previous') : null,
     );
 
 void main() {
-  testWidgets('the panic square is 32px of danger, labelled, and reports a tap', (tester) async {
-    var taps = 0;
-    await _pump(tester, PanicSquare(onTap: () => taps++));
+  // User's ruling, 2026-10-10: panic is started only by flipping the phone
+  // face down. No bar the container shows has a panic button.
+  testWidgets('no bar has a panic button', (tester) async {
+    final controller = TextEditingController();
+    addTearDown(controller.dispose);
+    await _pump(tester, _topBar());
+    expect(_icon('Panic'), findsNothing);
+    expect(findGlyph(AppGlyph.panic), findsNothing);
 
-    await tester.tap(_icon('Panic'));
-    expect(taps, 1);
-    expect(tester.getSize(_icon('Panic')), const Size(48, 48));
-    expect(_glyph(tester, AppGlyph.panic).color, C.danger);
+    await _pump(tester, _findBar(controller, null));
+    expect(_icon('Panic'), findsNothing);
+    expect(findGlyph(AppGlyph.panic), findsNothing);
   });
 
   testWidgets('the load line fills to the progress while loading, and is empty otherwise', (tester) async {
@@ -71,53 +97,35 @@ void main() {
     expect(tester.getSize(find.byType(LoadLine)), const Size(300, 2));
   });
 
-  testWidgets('back and forward are dimmed and inert with no history that way', (tester) async {
+  testWidgets('the open count and ☰ end the top bar, each reporting a tap', (tester) async {
     final calls = <String>[];
-    await _pump(
-      tester,
-      ContainerBottomBar(
-        openCount: 3,
-        onBack: null,
-        onForward: () => calls.add('forward'),
-        onOpenSwitcher: () => calls.add('switcher'),
-        onMenu: () => calls.add('menu'),
-      ),
-    );
+    await _pump(tester, _topBar(calls: calls));
 
-    await tester.tap(_icon('Back'), warnIfMissed: false);
-    await tester.tap(_icon('Forward'));
-    await tester.tap(find.text('3 OPEN'));
+    await tester.tap(find.byKey(const Key('open-sessions-target')));
     await tester.tap(_icon('Menu'));
 
-    expect(calls, ['forward', 'switcher', 'menu']);
-    expect(_glyph(tester, AppGlyph.back).color, C.textFaint);
-    expect(_glyph(tester, AppGlyph.forward).color, C.icon);
-    expect(tester.getSize(_icon('Back')), const Size(48, 48));
+    expect(calls, ['switcher', 'menu']);
+    // The count is the number alone, in its own outlined box.
+    expect(find.descendant(
+        of: find.byKey(const Key('open-sessions-target')), matching: find.text('3')),
+        findsOneWidget);
+    // Right of the pill, ☰ last.
+    final pill = tester.getRect(find.byKey(const Key('address-pill')));
+    final count = tester.getRect(find.byKey(const Key('open-sessions-target')));
+    final menu = tester.getRect(_icon('Menu'));
+    expect(count.left, greaterThanOrEqualTo(pill.right));
+    expect(menu.left, greaterThanOrEqualTo(count.right));
+    // Back and forward are in ☰ and on Android's own back, not on the bar.
+    expect(_icon('Back'), findsNothing);
+    expect(_icon('Forward'), findsNothing);
   });
 
-  testWidgets('the bottom bar is flat footer with a hairline above, its pill named for screen readers', (tester) async {
+  testWidgets('the open count is named for screen readers', (tester) async {
     final semantics = tester.ensureSemantics();
-    await _pump(
-      tester,
-      ContainerBottomBar(
-        openCount: 1,
-        onBack: () {},
-        onForward: () {},
-        onOpenSwitcher: () {},
-        onMenu: () {},
-      ),
-    );
+    await _pump(tester, _topBar(openCount: 1));
 
-    final bar = tester.widget<Container>(find
-        .descendant(of: find.byType(ContainerBottomBar), matching: find.byType(Container))
-        .first);
-    final decoration = bar.decoration! as BoxDecoration;
-    expect(decoration.color, C.bg);
-    expect((decoration.border! as Border).top.color, C.line);
-    expect(_glyph(tester, AppGlyph.chevronUp).color, C.textPrimary);
-    expect(tester.getSize(find.byWidgetPredicate(
-        (w) => w is AppIcon && w.glyph == AppGlyph.chevronUp)), const Size(12, 12));
     expect(find.bySemanticsLabel('Open sessions'), findsOneWidget);
+    expect(find.bySemanticsLabel('Menu'), findsOneWidget);
     semantics.dispose();
   });
 
@@ -171,7 +179,7 @@ void main() {
     expect(find.text('Find in page'), findsOneWidget);
   });
 
-  testWidgets('typing, stepping, closing and panic each report from the find bar', (tester) async {
+  testWidgets('typing, stepping and closing each report from the find bar', (tester) async {
     final calls = <String>[];
     final controller = TextEditingController();
     addTearDown(controller.dispose);
@@ -185,9 +193,8 @@ void main() {
     await tester.tap(_icon('Previous match'));
     await tester.tap(_icon('Next match'));
     await tester.tap(_icon('Close find'));
-    await tester.tap(_icon('Panic'));
 
-    expect(calls, ['find fox', 'previous', 'next', 'close', 'panic']);
+    expect(calls, ['find fox', 'previous', 'next', 'close']);
     expect(find.text('1/3'), findsOneWidget);
   });
 
@@ -232,16 +239,10 @@ void main() {
       home: Scaffold(
         body: Column(
           children: [
+            _topBar(openCount: 12),
             _findBar(controller, const FindResult(siteId: 's1', pageId: 's1-p1', activeMatch: 0, matchCount: 0)),
             const Spacer(),
             ThrowawaySaveBar(onSave: () {}, onDismiss: () {}),
-            ContainerBottomBar(
-              openCount: 12,
-              onBack: () {},
-              onForward: () {},
-              onOpenSwitcher: () {},
-              onMenu: () {},
-            ),
           ],
         ),
       ),
@@ -257,16 +258,8 @@ void main() {
       await tester.pumpWidget(MaterialApp(
         home: Scaffold(
           body: Align(
-            alignment: Alignment.bottomCenter,
-            child: ContainerBottomBar(
-              openCount: 3,
-              onBack: () => calls.add('back'),
-              onForward: null,
-              onOpenSwitcher: () => calls.add('switcher'),
-              onMenu: () => calls.add('menu'),
-              onNextContainer: next ? () => calls.add('next') : null,
-              onPreviousContainer: previous ? () => calls.add('previous') : null,
-            ),
+            alignment: Alignment.topCenter,
+            child: _topBar(calls: calls, next: next, previous: previous),
           ),
         ),
       ));
@@ -276,9 +269,9 @@ void main() {
     testWidgets('a fling to the left views the next, to the right the previous', (tester) async {
       final calls = await pumpBar(tester);
 
-      await tester.fling(find.byType(ContainerBottomBar), const Offset(-200, 0), 800);
+      await tester.fling(find.byType(ContainerTopBar), const Offset(-200, 0), 800);
       await tester.pumpAndSettle();
-      await tester.fling(find.byType(ContainerBottomBar), const Offset(200, 0), 800);
+      await tester.fling(find.byType(ContainerTopBar), const Offset(200, 0), 800);
       await tester.pumpAndSettle();
 
       expect(calls, ['next', 'previous']);
@@ -287,8 +280,8 @@ void main() {
     testWidgets('with no neighbour a fling does nothing', (tester) async {
       final calls = await pumpBar(tester, next: false, previous: false);
 
-      await tester.fling(find.byType(ContainerBottomBar), const Offset(-200, 0), 800);
-      await tester.fling(find.byType(ContainerBottomBar), const Offset(200, 0), 800);
+      await tester.fling(find.byType(ContainerTopBar), const Offset(-200, 0), 800);
+      await tester.fling(find.byType(ContainerTopBar), const Offset(200, 0), 800);
       await tester.pumpAndSettle();
 
       expect(calls, isEmpty);
@@ -297,8 +290,8 @@ void main() {
     testWidgets('at the last container only a fling to the right works', (tester) async {
       final calls = await pumpBar(tester, next: false);
 
-      await tester.fling(find.byType(ContainerBottomBar), const Offset(-200, 0), 800);
-      await tester.fling(find.byType(ContainerBottomBar), const Offset(200, 0), 800);
+      await tester.fling(find.byType(ContainerTopBar), const Offset(-200, 0), 800);
+      await tester.fling(find.byType(ContainerTopBar), const Offset(200, 0), 800);
       await tester.pumpAndSettle();
 
       expect(calls, ['previous']);
@@ -306,46 +299,38 @@ void main() {
 
     testWidgets('a short drag does not switch and a tap still taps', (tester) async {
       final calls = await pumpBar(tester);
-      final height = tester.getSize(find.byType(ContainerBottomBar)).height;
+      final height = tester.getSize(find.byType(ContainerTopBar)).height;
 
-      await tester.drag(find.byType(ContainerBottomBar), Offset(-(height - 10), 0));
+      // Dragged across ☰, so the pill's own tap cannot answer it.
+      await tester.dragFrom(tester.getCenter(findIconTap('Menu')), Offset(-(height - 10), 0));
       await tester.pumpAndSettle();
       expect(calls, isEmpty, reason: 'shorter than the bar is tall');
 
       // A tap that moves a little, under the touch slop, is still a tap.
       await tester.dragFrom(tester.getCenter(findIconTap('Menu')), const Offset(6, 0));
       await tester.pumpAndSettle();
-      await tester.tap(findIconTap('Back'));
-      expect(calls, ['menu', 'back']);
+      await tester.tap(find.byKey(const Key('open-sessions-target')));
+      expect(calls, ['menu', 'switcher']);
     });
   });
 
-  // Restyle v2 §5, §8 `2b` (Plan 21 Task 4).
-  testWidgets("v2: the bottom bar's targets are 48 dp and the bar at least 56", (tester) async {
-    await _pump(
-      tester,
-      ContainerBottomBar(
-        openCount: 2,
-        onBack: () {},
-        onForward: () {},
-        onOpenSwitcher: () {},
-        onMenu: () {},
-      ),
-    );
+  // Restyle v2 §5, §8 `2b`, moved to the top bar (user's ruling, 2026-10-10).
+  testWidgets("v2: the open count and ☰ are 48 dp targets, the count set as N OPEN was",
+      (tester) async {
+    await _pump(tester, _topBar(openCount: 2));
 
-    for (final label in ['Back', 'Forward', 'Menu']) {
-      expect(tester.getSize(_icon(label)), const Size(48, 48), reason: label);
-    }
-    expect(tester.getSize(find.byKey(const Key('open-sessions-target'))).height,
-        greaterThanOrEqualTo(48));
-    expect(tester.getSize(find.byType(ContainerBottomBar)).height, greaterThanOrEqualTo(56));
-    final count = tester.widget<Text>(find.text('2 OPEN'));
+    expect(tester.getSize(_icon('Menu')), const Size(48, 48));
+    final target = tester.getSize(find.byKey(const Key('open-sessions-target')));
+    expect(target.width, greaterThanOrEqualTo(48));
+    expect(target.height, greaterThanOrEqualTo(48));
+    final count = tester.widget<Text>(find.text('2'));
     expect(count.style!.fontSize, 13);
     expect(count.style!.fontWeight, FontWeight.w600);
     expect(count.style!.color, C.textPrimary);
+    expect(count.style, ContainerTopBar.openCountStyle);
   });
 
-  testWidgets("v2: the find bar's arrows, × and panic are 48 dp; the field an input",
+  testWidgets("v2: the find bar's arrows and × are 48 dp; the field an input",
       (tester) async {
     final controller = TextEditingController(text: 'fox');
     addTearDown(controller.dispose);
@@ -353,7 +338,7 @@ void main() {
         _findBar(controller, const FindResult(siteId: 's1', pageId: 's1-p1', activeMatch: 0, matchCount: 3)));
     await tester.pump();
 
-    for (final label in ['Previous match', 'Next match', 'Close find', 'Panic']) {
+    for (final label in ['Previous match', 'Next match', 'Close find']) {
       expect(tester.getSize(_icon(label)), const Size(48, 48), reason: label);
     }
     final frame = tester.widget<Container>(

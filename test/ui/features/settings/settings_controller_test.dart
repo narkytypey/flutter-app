@@ -380,12 +380,18 @@ void main() {
     });
   });
 
-  test('the flip switch is saved in the open vault, off until turned on', () async {
+  // User's ruling 2026-10-10: flipping face down is the only panic, so a
+  // vault that never set the switch has it on.
+  test('the flip switch is saved in the open vault, on until turned off', () async {
+    expect(await container.read(panicOnFlipProvider.future), isTrue);
+
+    await container.read(settingsControllerProvider).setPanicOnFlip(false);
+
+    expect(await container.read(settingsRepositoryProvider).getBool('panic_on_flip'), isFalse);
     expect(await container.read(panicOnFlipProvider.future), isFalse);
 
     await container.read(settingsControllerProvider).setPanicOnFlip(true);
 
-    expect(await container.read(settingsRepositoryProvider).getBool('panic_on_flip'), isTrue);
     expect(await container.read(panicOnFlipProvider.future), isTrue);
   });
 }

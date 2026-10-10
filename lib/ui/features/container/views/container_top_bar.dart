@@ -7,7 +7,6 @@ import '../../../core/icons.dart';
 import '../../../core/tokens.dart';
 import '../../../core/typography.dart';
 import '../../../core/widgets/icon_tap.dart';
-import 'panic_square.dart';
 
 export '../../../../domain/models/route_display.dart' show CaseKind;
 
@@ -19,7 +18,15 @@ export '../../../../domain/models/route_display.dart' show CaseKind;
 /// ruling 2026-10-05; reload is also in the ☰ menu) — and the shield, drawn
 /// by security level, which opens `6c`. `2b`'s ‹ is gone — back is on the
 /// bottom bar. A tap anywhere else on the pill starts typing an address
-/// (§6.2). Panic is always here, never behind a menu.
+/// (§6.2).
+///
+/// The container's only bar (user's rulings, 2026-10-10, replacing layout
+/// C's bottom bar): after the pill, where panic was, the open count — the
+/// number alone in an outlined box, which opens `2c` — and ☰. Back is
+/// Android's own back, and back and forward are ☰'s first quick actions.
+/// There is no panic button anywhere in the container: a panic starts only
+/// by flipping the phone face down (`FlipPanicGuard`). Dashboard spec §9's
+/// fling between open containers moved here with the count.
 class ContainerTopBar extends StatelessWidget {
   const ContainerTopBar({
     super.key,
@@ -31,7 +38,11 @@ class ContainerTopBar extends StatelessWidget {
     required this.onStop,
     required this.onReload,
     required this.onSiteDetails,
-    required this.onPanic,
+    required this.openCount,
+    required this.onOpenSwitcher,
+    required this.onMenu,
+    this.onNextContainer,
+    this.onPreviousContainer,
     this.caseKind = CaseKind.keep,
     this.tor = false,
     this.securityLevel = SecurityLevel.standard,
@@ -58,7 +69,25 @@ class ContainerTopBar extends StatelessWidget {
 
   /// The shield: `6c`.
   final VoidCallback onSiteDetails;
-  final VoidCallback onPanic;
+
+  /// Open containers, vault-wide (tabs spec §5.1).
+  final int openCount;
+
+  /// The count: `2c`.
+  final VoidCallback onOpenSwitcher;
+
+  /// ☰ (spec §6.4).
+  final VoidCallback onMenu;
+
+  /// Dashboard spec §9: a fling to the left views the next open container,
+  /// to the right the previous. Null at that end: a fling that way does
+  /// nothing.
+  final VoidCallback? onNextContainer;
+  final VoidCallback? onPreviousContainer;
+
+  /// The open count's style, which `2c`'s header count shares (restyle v2
+  /// §8): the tab role at 600, text-1.
+  static TextStyle get openCountStyle => T.tabSelected;
 
   /// The case's shape: solid for a site that keeps its storage, broken for
   /// one that does not.
@@ -96,10 +125,20 @@ class ContainerTopBar extends StatelessWidget {
       };
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context) => _Fling(
+        onNext: onNextContainer,
+        onPrevious: onPreviousContainer,
+        child: _bar(context),
+      );
+
+  Widget _bar(BuildContext context) {
     return Container(
       constraints: const BoxConstraints(minHeight: 64),
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      // 8, not 12, at the sides, and no gap before the count (whose 48 dp
+      // target already rings its box with space): on a 360 dp phone that
+      // leaves the host its six characters, so reload and the shield stay
+      // beside it rather than drop under it.
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
       decoration: BoxDecoration(
         color: C.bg,
         border: Border(bottom: BorderSide(color: C.line)),
@@ -188,9 +227,11 @@ class ContainerTopBar extends StatelessWidget {
                   // and the two 48 dp actions. Where that is under about six
                   // characters (a narrow phone at a large text scale), the
                   // actions move under the host, in the same order, rather
-                  // than squeeze it a letter at a time.
-                  final hostRoom = constraints.maxWidth - 12 - 8 - 8 - 20 - 8 - 96;
-                  final minRoom = MediaQuery.textScalerOf(context).scale(16) * 6;
+                  // than squeeze it a letter at a time. [constraints] are
+                  // already inside the pill's padding and border; six
+                  // characters of the 16 sp face are about four of its em.
+                  final hostRoom = constraints.maxWidth - 8 - 8 - 20 - 8 - 96;
+                  final minRoom = MediaQuery.textScalerOf(context).scale(16) * 4;
                   if (hostRoom >= minRoom) {
                     return Row(children: [...lead, ...actions]);
                   }
@@ -208,10 +249,98 @@ class ContainerTopBar extends StatelessWidget {
               ),
             ),
           ),
-          const SizedBox(width: 8),
-          PanicSquare(onTap: onPanic),
+          _OpenCount(count: openCount, onTap: onOpenSwitcher),
+          IconTap(glyph: AppGlyph.menu, label: 'Menu', onTap: onMenu),
         ],
       ),
+    );
+  }
+}
+
+/// The number of open containers in an outlined box, a 48 dp target named
+/// "Open sessions" for screen readers. In text-1, not jade: jade on `2b` is
+/// the pill's light.
+class _OpenCount extends StatelessWidget {
+  const _OpenCount({required this.count, required this.onTap});
+
+  final int count;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      label: 'Open sessions',
+      button: true,
+      excludeSemantics: true,
+      onTap: onTap,
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: onTap,
+        child: ConstrainedBox(
+          key: const Key('open-sessions-target'),
+          constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
+          child: Center(
+            widthFactor: 1,
+            heightFactor: 1,
+            child: Container(
+              constraints: const BoxConstraints(minWidth: 24, minHeight: 24),
+              padding: const EdgeInsets.symmetric(horizontal: 4),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(6),
+                border: Border.all(color: C.textPrimary, width: 1.5),
+              ),
+              // Sized to the number, never stretched to the room it is given.
+              child: Center(
+                widthFactor: 1,
+                heightFactor: 1,
+                child: Text('$count', style: ContainerTopBar.openCountStyle),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Dashboard spec §9's swipe, on the whole bar: a fling must travel at least
+/// the bar's own height, so a tap that moves a little is still a tap. With
+/// nowhere to go there is no drag recogniser at all, so every tap on the bar
+/// is exactly as it would be without it.
+class _Fling extends StatefulWidget {
+  const _Fling({required this.onNext, required this.onPrevious, required this.child});
+
+  final VoidCallback? onNext;
+  final VoidCallback? onPrevious;
+  final Widget child;
+
+  @override
+  State<_Fling> createState() => _FlingState();
+}
+
+class _FlingState extends State<_Fling> {
+  /// How far the current horizontal drag has gone; left is negative.
+  double _travel = 0;
+
+  void _dragEnded() {
+    final threshold = context.size?.height ?? double.infinity;
+    if (_travel <= -threshold) {
+      widget.onNext?.call();
+    } else if (_travel >= threshold) {
+      widget.onPrevious?.call();
+    }
+    _travel = 0;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final swipes = widget.onNext != null || widget.onPrevious != null;
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onHorizontalDragStart: swipes ? (_) => _travel = 0 : null,
+      onHorizontalDragUpdate: swipes ? (details) => _travel += details.delta.dx : null,
+      onHorizontalDragEnd: swipes ? (_) => _dragEnded() : null,
+      child: widget.child,
     );
   }
 }
