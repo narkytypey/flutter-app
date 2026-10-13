@@ -123,5 +123,7 @@ plan built, what is verified on a device, and what is still open.
 
 ## Licence
 
-No licence has been chosen yet, so all rights are reserved by default. If you
-want to reuse any of this, open an issue and ask.
+GNU General Public License v3.0. See [`LICENSE`](LICENSE).
+
+The bundled IBM Plex fonts are under the SIL Open Font License
+(`assets/fonts/OFL-IBMPlex.txt`).
